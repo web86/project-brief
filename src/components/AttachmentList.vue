@@ -15,6 +15,13 @@ const selected = ref(null)
           ><small>{{ formatSize(file.size) }} · посмотреть</small></span
         ><AppIcon name="external" :size="16" />
       </button>
+      <a v-else-if="file.downloadUrl" class="attachment-item" :href="file.downloadUrl">
+        <span class="file-symbol"><AppIcon name="file" /></span
+        ><span
+          ><strong>{{ file.name }}</strong
+          ><small>{{ formatSize(file.size) }} · скачать</small></span
+        >
+      </a>
       <div v-else class="attachment-item">
         <span class="file-symbol"><AppIcon name="file" /></span
         ><span
@@ -30,6 +37,9 @@ const selected = ref(null)
     id="attachment-dialog-title"
     @close="selected = null"
     ><img v-if="selected" class="attachment-preview" :src="selected.preview" :alt="selected.name" />
-    <p class="field-help">Уменьшенное превью. Исходный файл не сохраняется.</p></BaseDialog
+    <a v-if="selected?.downloadUrl" :href="selected.downloadUrl" class="button secondary"
+      >Скачать исходный файл</a
+    >
+    <p v-else class="field-help">Уменьшенное превью. Исходный файл не сохраняется.</p></BaseDialog
   >
 </template>

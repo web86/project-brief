@@ -17,7 +17,7 @@ const store = useProjectStore()
         :done="store.counts.done"
         :total="store.counts.all"
         :progress="store.progress"
-      /><RouterLink to="/task/new" class="button primary"
+      /><RouterLink :to="store.newTaskPath" class="button primary"
         ><AppIcon name="plus" :size="19" />Добавить идею</RouterLink
       >
     </div>

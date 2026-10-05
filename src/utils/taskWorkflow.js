@@ -52,9 +52,10 @@ export function applyQuickStatusAction(store, taskId, actionId) {
   const understood = action.id === 'understood'
   // Understanding the brief never substitutes for the client's approval of its scope.
   const status = understood ? (task.clientApproved ? 'approved' : 'new') : action.status
-  store.changeStatus(taskId, status)
-  return {
+  const changed = store.changeStatus(taskId, status)
+  const result = {
     focusComment: action.id === 'clarify',
     message: understood && !task.clientApproved ? 'Всё понятно. Ожидаем согласования клиента.' : '',
   }
+  return changed?.then ? changed.then((saved) => (saved ? result : null)) : result
 }

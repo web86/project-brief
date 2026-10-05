@@ -9,6 +9,7 @@ const emit = defineEmits(['clarify'])
 const store = useProjectStore()
 const actions = computed(() => getQuickStatusActions(props.task))
 const message = ref('')
+const pending = ref(false)
 const buttons = ref(null)
 watch(
   () => [props.task.id, props.task.status, props.task.clientApproved],
@@ -19,7 +20,10 @@ watch(
 )
 
 async function apply(actionId, event) {
-  const result = applyQuickStatusAction(store, props.task.id, actionId)
+  if (pending.value) return
+  pending.value = true
+  const result = await applyQuickStatusAction(store, props.task.id, actionId)
+  pending.value = false
   if (!result) return
   message.value = result.message
   if (result.focusComment) {
@@ -45,7 +49,7 @@ async function apply(actionId, event) {
         type="button"
         class="button"
         :class="action.style"
-        :disabled="store.storageBlocked"
+        :disabled="store.storageBlocked || pending"
         @click="apply(action.id, $event)"
       >
         <AppIcon :name="action.icon" :size="17" />{{ action.label }}

@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { FILE_ACCEPT, MAX_FILES, getPastedImages, prepareAttachment } from '../utils/attachments'
 import { formatSize } from '../constants/project'
+import { API_MODE } from '../api/client'
 import AppIcon from './AppIcon.vue'
 const props = defineProps({ modelValue: { type: Array, default: () => [] } })
 const emit = defineEmits(['update:modelValue', 'busy'])
@@ -24,7 +25,8 @@ async function addFiles(files) {
       }
       if (next.some((item) => item.name === file.name && item.size === file.size)) continue
       try {
-        next.push(await prepareAttachment(file))
+        const prepared = await prepareAttachment(file)
+        next.push(API_MODE ? { ...prepared, file } : prepared)
       } catch (error) {
         errors.value.push(error.message)
       }
@@ -98,7 +100,13 @@ onBeforeUnmount(() => document.removeEventListener('paste', paste))
           <strong>{{ file.name }}</strong
           ><span
             >{{ formatSize(file.size)
-            }}{{ file.preview ? ' · превью сохранится' : ' · название и размер' }}</span
+            }}{{
+              API_MODE
+                ? ' · исходный файл'
+                : file.preview
+                  ? ' · превью сохранится'
+                  : ' · название и размер'
+            }}</span
           >
         </div>
         <button
@@ -118,7 +126,13 @@ onBeforeUnmount(() => document.removeEventListener('paste', paste))
       </li>
     </ul>
     <p v-for="error in errors" :key="error" class="field-error" role="alert">{{ error }}</p>
-    <p class="field-help">Изображения — превью; остальные файлы — название и размер.</p>
+    <p class="field-help">
+      {{
+        API_MODE
+          ? 'Файлы будут доступны только участникам проекта.'
+          : 'Изображения — превью; остальные файлы — название и размер.'
+      }}
+    </p>
     <span class="sr-only" role="status" aria-live="polite">{{ pastedNotice }}</span>
   </div>
 </template>

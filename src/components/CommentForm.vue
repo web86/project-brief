@@ -6,6 +6,7 @@ const props = defineProps({ taskId: String })
 const store = useProjectStore()
 const text = ref('')
 const sent = ref(false)
+const pending = ref(false)
 const textarea = ref(null)
 const clarifying = ref(false)
 async function focusForClarification() {
@@ -45,12 +46,15 @@ watch(
   },
   { flush: 'sync' },
 )
-function submit() {
-  if (store.addComment(props.taskId, text.value)) {
+async function submit() {
+  if (pending.value) return
+  pending.value = true
+  if (await store.addComment(props.taskId, text.value)) {
     text.value = ''
     sent.value = true
     clarifying.value = false
   }
+  pending.value = false
 }
 </script>
 <template>
@@ -73,7 +77,7 @@ function submit() {
       ><button
         type="submit"
         class="button primary"
-        :disabled="!text.trim() || store.storageBlocked"
+        :disabled="pending || !text.trim() || store.storageBlocked"
       >
         <AppIcon name="send" :size="16" />Отправить
       </button>

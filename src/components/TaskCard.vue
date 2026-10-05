@@ -1,4 +1,6 @@
 <script setup>
+import { useProjectStore } from '../stores/project'
+const store = useProjectStore()
 import AppIcon from './AppIcon.vue'
 import TaskStatus from './TaskStatus.vue'
 import TaskPriority from './TaskPriority.vue'
@@ -7,7 +9,7 @@ defineProps({ task: { type: Object, required: true } })
 </script>
 <template>
   <RouterLink
-    :to="`/task/${task.id}`"
+    :to="store.taskPath(task.id)"
     class="task-card"
     :class="{ 'is-done': task.status === 'done' }"
   >

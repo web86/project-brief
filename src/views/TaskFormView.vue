@@ -1,10 +1,12 @@
 <script setup>
+import { useProjectStore } from '../stores/project'
+const store = useProjectStore()
 import TaskForm from '../components/TaskForm.vue'
 import AppIcon from '../components/AppIcon.vue'
 </script>
 <template>
   <div class="form-page">
-    <RouterLink to="/" class="back-link"
+    <RouterLink :to="store.projectPath" class="back-link"
       ><AppIcon name="arrow" :size="17" />Назад к проекту</RouterLink
     >
     <div class="page-heading">

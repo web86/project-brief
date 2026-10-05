@@ -16,13 +16,20 @@ const route = useRoute()
 const store = useProjectStore()
 const task = computed(() => store.findTask(route.params.id))
 const commentForm = ref(null)
+const approving = ref(false)
+async function approve() {
+  if (approving.value) return
+  approving.value = true
+  await store.approveTask(task.value.id)
+  approving.value = false
+}
 function focusClarification() {
   commentForm.value?.focusForClarification()
 }
 </script>
 <template>
   <div v-if="task" class="task-page" :key="task.id">
-    <RouterLink to="/" class="back-link"
+    <RouterLink :to="store.projectPath" class="back-link"
       ><AppIcon name="arrow" :size="17" />Назад к проекту</RouterLink
     >
     <header class="task-heading">
@@ -39,8 +46,8 @@ function focusClarification() {
           <button
             v-else
             class="button primary"
-            :disabled="store.storageBlocked"
-            @click="store.approveTask(task.id)"
+            :disabled="store.storageBlocked || approving"
+            @click="approve"
           >
             <AppIcon name="check" :size="18" />Согласовать задачу
           </button>
@@ -68,6 +75,6 @@ function focusClarification() {
   <div v-else class="empty-state page-empty">
     <h1>Идея не найдена</h1>
     <p>Возможно, она была удалена или ссылка ведёт на другой проект.</p>
-    <RouterLink to="/" class="button primary">Вернуться к проекту</RouterLink>
+    <RouterLink :to="store.projectPath" class="button primary">Вернуться к проекту</RouterLink>
   </div>
 </template>

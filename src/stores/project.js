@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
+import { api, API_MODE, taskBody } from '../api/client.js'
 import { createDemoData } from '../data/demo.js'
 import {
   FILTERS,
@@ -82,17 +83,142 @@ export function isValidSnapshot(data) {
 }
 
 export const useProjectStore = defineStore('project', () => {
-  const demo = createDemoData()
+  const demo = API_MODE
+    ? {
+        project: { id: '', name: '', website: '', description: '', currency: 'RUB' },
+        sections: [],
+        tasks: [],
+        currentMode: 'client',
+      }
+    : createDemoData()
   const project = ref(demo.project)
   const sections = ref(demo.sections)
   const tasks = ref(demo.tasks)
   const currentMode = ref(demo.currentMode)
+  const apiMode = API_MODE
+  const admin = ref(null)
+  const apiError = ref('')
+  const sessionLost = ref(false)
+  const apiLoading = ref(false)
+  const developerDrafts = ref({})
+  const savingDeveloper = ref(false)
+  let developerTimer
+  const writes = new Map()
   const storageError = ref('')
   const storageBlocked = ref(false)
   const initialized = ref(false)
   let loading = false
 
-  const isDeveloper = computed(() => currentMode.value === 'developer')
+  const isDeveloper = computed(() => (API_MODE ? !!admin.value : currentMode.value === 'developer'))
+  const projectPath = computed(() =>
+    !API_MODE
+      ? '/'
+      : admin.value
+        ? `/admin/projects/${project.value.id}/brief`
+        : `/project/${project.value.id}`,
+  )
+  const newTaskPath = computed(() => (!API_MODE ? '/task/new' : `${projectPath.value}/task/new`))
+  const taskPath = (id) => (!API_MODE ? `/task/${id}` : `${projectPath.value}/task/${id}`)
+  const actorPath = () => `/api/${admin.value ? 'admin' : 'client'}`
+  function reportError(error) {
+    apiError.value = error.message
+    if (error.status === 401) sessionLost.value = true
+  }
+  function replaceTask(task) {
+    Object.assign(task, developerDrafts.value[task.id] || {})
+    const index = tasks.value.findIndex((item) => item.id === task.id)
+    if (index < 0) tasks.value.unshift(task)
+    else tasks.value.splice(index, 1, task)
+    return task
+  }
+  function serialize(id, operation) {
+    const previous = writes.get(id) || Promise.resolve()
+    const next = previous.catch(() => {}).then(operation)
+    writes.set(id, next)
+    next
+      .finally(() => {
+        if (writes.get(id) === next) writes.delete(id)
+      })
+      .catch(() => {})
+    return next
+  }
+  async function mutateTask(id, suffix, method, body) {
+    apiError.value = ''
+    return serialize(id, async () => {
+      try {
+        const { data } = await api.request(`${actorPath()}/tasks/${id}${suffix}`, { method, body })
+        replaceTask(data)
+        return true
+      } catch (error) {
+        reportError(error)
+        return false
+      }
+    })
+  }
+  async function loadApiProject(id, asAdmin) {
+    apiLoading.value = true
+    apiError.value = ''
+    sessionLost.value = false
+    try {
+      if (asAdmin) {
+        const result = await api.request('/api/admin/me')
+        admin.value = result.user
+      } else {
+        admin.value = null
+        developerDrafts.value = {}
+      }
+      await flushDeveloperData()
+      const [details, list] = await Promise.all([
+        api.request(asAdmin ? `/api/admin/projects/${id}` : `/api/client/project/${id}`),
+        api.request(asAdmin ? `/api/admin/projects/${id}/tasks` : '/api/client/tasks'),
+      ])
+      project.value = details.data
+      sections.value = details.data.sections
+      tasks.value = list.data.map((task) =>
+        Object.assign(task, developerDrafts.value[task.id] || {}),
+      )
+      currentMode.value = asAdmin ? 'developer' : 'client'
+      initialized.value = true
+    } catch (error) {
+      tasks.value = []
+      reportError(error)
+      throw error
+    } finally {
+      apiLoading.value = false
+    }
+  }
+  async function flushDeveloperData() {
+    clearTimeout(developerTimer)
+    const entries = Object.entries(developerDrafts.value).map(([id, data]) => [id, { ...data }])
+    if (!entries.length) return
+    savingDeveloper.value = true
+    await Promise.all(
+      entries.map(([id, draft]) =>
+        serialize(id, async () => {
+          try {
+            const { data } = await api.request(`/api/admin/tasks/${id}`, {
+              method: 'PATCH',
+              body: draft,
+            })
+            for (const [key, value] of Object.entries(draft))
+              if (developerDrafts.value[id]?.[key] === value) delete developerDrafts.value[id][key]
+            if (!Object.keys(developerDrafts.value[id] || {}).length)
+              delete developerDrafts.value[id]
+            replaceTask(data)
+            apiError.value = ''
+          } catch (error) {
+            reportError(error)
+          }
+        }),
+      ),
+    )
+    savingDeveloper.value = false
+  }
+  async function uploadAttachments(id, attachments) {
+    const body = new FormData()
+    for (const file of attachments) body.append('attachments[]', file.file, file.name)
+    return mutateTask(id, '/attachments', 'POST', body)
+  }
   const locationOptions = computed(() => [
     ...new Set([...sections.value, ...tasks.value.map(getTaskLocation)]),
   ])
@@ -116,6 +242,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function saveToStorage() {
+    if (API_MODE) return false
     if (storageBlocked.value) return false
     try {
       localStorage.setItem(
@@ -138,6 +265,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function loadFromStorage() {
+    if (API_MODE) return
     loading = true
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -163,6 +291,20 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function addTask(input) {
+    if (API_MODE)
+      return (async () => {
+        try {
+          const { data } = await api.request(
+            admin.value ? `/api/admin/projects/${project.value.id}/tasks` : '/api/client/tasks',
+            { method: 'POST', body: taskBody(input) },
+          )
+          replaceTask(data)
+          return data.id
+        } catch (error) {
+          reportError(error)
+          throw error
+        }
+      })()
     if (
       !isText(input.title) ||
       !isText(input.description) ||
@@ -210,6 +352,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function updateTask(id, changes) {
+    if (API_MODE) return mutateTask(id, '', 'PATCH', changes)
     const task = findTask(id)
     if (!task) return false
     const fields = [
@@ -252,12 +395,17 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function deleteTask(id) {
+    if (API_MODE) return false
     if (!isDeveloper.value || !findTask(id)) return false
     tasks.value = tasks.value.filter((task) => task.id !== id)
     return true
   }
 
   function changeStatus(id, status) {
+    if (API_MODE)
+      return !isDeveloper.value || findTask(id)?.status === status
+        ? false
+        : mutateTask(id, '', 'PATCH', { status })
     const task = findTask(id)
     if (!isDeveloper.value || !task || !Object.hasOwn(STATUSES, status) || task.status === status)
       return false
@@ -268,6 +416,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function approveTask(id) {
+    if (API_MODE) return isDeveloper.value ? false : mutateTask(id, '/approve', 'POST')
     const task = findTask(id)
     if (isDeveloper.value || !task || task.clientApproved) return false
     task.clientApproved = true
@@ -277,6 +426,8 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function addComment(id, text) {
+    if (API_MODE)
+      return text.trim() ? mutateTask(id, '/comments', 'POST', { text: text.trim() }) : false
     const task = findTask(id)
     if (!task || !isText(text) || !text.trim()) return false
     task.comments.push({
@@ -294,6 +445,21 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function updateDeveloperData(id, data) {
+    if (API_MODE) {
+      if (!isDeveloper.value || !findTask(id)) return false
+      const safe = Object.fromEntries(
+        Object.entries(data).filter(([key, value]) =>
+          key === 'developerNotes'
+            ? isText(value)
+            : ['estimateHours', 'price'].includes(key) && validNumber(value),
+        ),
+      )
+      developerDrafts.value[id] = { ...(developerDrafts.value[id] || {}), ...safe }
+      Object.assign(findTask(id), safe)
+      clearTimeout(developerTimer)
+      developerTimer = setTimeout(flushDeveloperData, 450)
+      return true
+    }
     const task = findTask(id)
     if (!isDeveloper.value || !task) return false
     const changed = []
@@ -324,6 +490,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function setMode(mode) {
+    if (API_MODE) return
     if (['client', 'developer'].includes(mode)) currentMode.value = mode
   }
 
@@ -336,6 +503,19 @@ export const useProjectStore = defineStore('project', () => {
   )
 
   return {
+    apiMode,
+    admin,
+    apiError,
+    sessionLost,
+    apiLoading,
+    projectPath,
+    newTaskPath,
+    taskPath,
+    loadApiProject,
+    uploadAttachments,
+    developerDrafts,
+    savingDeveloper,
+    flushDeveloperData,
     project,
     sections,
     tasks,

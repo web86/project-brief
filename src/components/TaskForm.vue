@@ -39,7 +39,7 @@ async function submit() {
   }
   saving.value = true
   try {
-    store.addTask({
+    await store.addTask({
       title: title.value,
       location: location.value,
       description: description.value,
@@ -47,9 +47,12 @@ async function submit() {
       priority: priority.value,
       attachments: attachments.value,
     })
-    await router.push('/')
+    await router.push(store.projectPath)
   } catch (cause) {
-    error.value = cause.message
+    error.value =
+      Object.values(cause.errors || {})
+        .flat()
+        .join(' ') || cause.message
   } finally {
     saving.value = false
   }
@@ -140,7 +143,7 @@ async function submit() {
     </div>
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
     <div class="form-actions">
-      <RouterLink to="/" class="button secondary">Отмена</RouterLink
+      <RouterLink :to="store.projectPath" class="button secondary">Отмена</RouterLink
       ><button
         class="button primary"
         type="submit"

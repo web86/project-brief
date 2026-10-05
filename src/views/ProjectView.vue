@@ -80,7 +80,9 @@ const groups = computed(() =>
       </p>
       <button v-if="store.tasks.length" class="button secondary" @click="resetFilters">
         Показать все идеи</button
-      ><RouterLink v-else to="/task/new" class="button primary">Добавить первую идею</RouterLink>
+      ><RouterLink v-else :to="store.newTaskPath" class="button primary"
+        >Добавить первую идею</RouterLink
+      >
     </div>
   </div>
 </template>
