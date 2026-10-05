@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
@@ -49,3 +50,11 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
 
 Route::post('/api/admin/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['admin', 'throttle:comments']);
 Route::post('/api/client/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['client', 'throttle:comments']);
+
+foreach (['admin', 'client'] as $actor) {
+    Route::middleware($actor)->prefix('/api/'.$actor)->group(function () {
+        Route::post('/tasks/{task}/attachments', [AttachmentController::class, 'store'])->middleware('throttle:uploads');
+        Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download']);
+        Route::get('/attachments/{attachment}/preview', [AttachmentController::class, 'preview']);
+    });
+}

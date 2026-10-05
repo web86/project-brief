@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\TaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
+use App\Services\AttachmentStorage;
 use App\Services\TaskAccess;
 use App\Services\TaskAudit;
 use Illuminate\Http\Request;
@@ -20,9 +21,11 @@ class TaskController extends Controller
 
     public function store(TaskRequest $request, ?Project $project = null): TaskResource
     {
-        $task = DB::transaction(function () use ($request, $project) {
+        $task = AttachmentStorage::atomic(function (array &$paths) use ($request, $project) {
             $task = TaskAccess::project($request, $project)->tasks()->create($request->taskData());
             TaskAudit::record($request, $task, 'created', (TaskAccess::isAdmin($request) ? 'Разработчик' : 'Клиент').' добавил новую идею');
+
+            AttachmentStorage::storeFiles($request, $task, $paths);
 
             return $task;
         });
@@ -75,10 +78,10 @@ class TaskController extends Controller
             $model = TaskAccess::task($request, $task, true);
             if (! $model->client_approved) {
                 $model->update(['client_approved' => true, 'client_approved_at' => now()]);
-                TaskAudit::record($request,$model,'approved','Клиент согласовал задачу');
+                TaskAudit::record($request, $model, 'approved', 'Клиент согласовал задачу');
             }
         });
 
-        return $this->show($request,$task);
+        return $this->show($request, $task);
     }
 }

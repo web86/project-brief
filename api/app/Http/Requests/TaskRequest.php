@@ -27,6 +27,10 @@ class TaskRequest extends FormRequest
                 'developerNotes' => ['nullable', 'string', 'max:10000']];
         }
 
+        if ($this->isMethod('POST')) {
+            $rules += AttachmentRequest::fileRules();
+        }
+
         return $rules;
     }
 
@@ -44,7 +48,9 @@ class TaskRequest extends FormRequest
         $map = ['expectedResult' => 'expected_result', 'estimateHours' => 'estimate_hours', 'developerNotes' => 'developer_notes'];
         $result = [];
         foreach ($this->validated() as $key => $value) {
-            $result[$map[$key] ?? $key] = $value;
+            if ($key !== 'attachments') {
+                $result[$map[$key] ?? $key] = $value;
+            }
         }
         if (isset($result['location'])) {
             $result['section'] = $result['location'];
