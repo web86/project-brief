@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { createDemoData } from '../data/demo.js'
 import {
   FILTERS,
-  OTHER_SECTION,
+  getTaskLocation,
   PRIORITIES,
   STATUSES,
   STORAGE_KEY,
@@ -46,7 +46,10 @@ export function isValidSnapshot(data) {
         task &&
         isText(task.id) &&
         isText(task.title) &&
-        isText(task.section) &&
+        (task.section === undefined || isText(task.section)) &&
+        (task.location === undefined || isText(task.location)) &&
+        isText(getTaskLocation(task)) &&
+        !!getTaskLocation(task).trim() &&
         isText(task.description) &&
         isText(task.expectedResult) &&
         isText(task.developerNotes) &&
@@ -89,9 +92,10 @@ export const useProjectStore = defineStore('project', () => {
   let loading = false
 
   const isDeveloper = computed(() => currentMode.value === 'developer')
-  const sectionOptions = computed(() => [
-    ...new Set([...sections.value, ...tasks.value.map((task) => task.section), OTHER_SECTION]),
+  const locationOptions = computed(() => [
+    ...new Set([...sections.value, ...tasks.value.map(getTaskLocation)]),
   ])
+  const sectionOptions = locationOptions
   const counts = computed(() =>
     Object.fromEntries(
       FILTERS.map((filter) => [
@@ -165,8 +169,9 @@ export const useProjectStore = defineStore('project', () => {
       !input.description.trim()
     )
       throw new Error('Добавьте название и описание идеи.')
-    if (!sectionOptions.value.includes(input.section) || !Object.hasOwn(PRIORITIES, input.priority))
-      throw new Error('Проверьте раздел и важность идеи.')
+    const location = input.location ?? input.section
+    if (!isText(location) || !location.trim()) throw new Error('Укажите место на сайте или ссылку.')
+    if (!Object.hasOwn(PRIORITIES, input.priority)) throw new Error('Проверьте важность идеи.')
     if (
       input.attachments &&
       (!Array.isArray(input.attachments) || !input.attachments.every(validAttachment))
@@ -176,7 +181,8 @@ export const useProjectStore = defineStore('project', () => {
     const task = {
       id: uuid(),
       title: input.title.trim().slice(0, 160),
-      section: input.section,
+      location: location.trim(),
+      section: location.trim(),
       description: input.description.trim().slice(0, 10000),
       expectedResult: (input.expectedResult || '').trim().slice(0, 10000),
       priority: input.priority,
@@ -205,10 +211,24 @@ export const useProjectStore = defineStore('project', () => {
   function updateTask(id, changes) {
     const task = findTask(id)
     if (!task) return false
-    const fields = ['title', 'description', 'expectedResult', 'section', 'priority', 'attachments']
+    const fields = [
+      'title',
+      'description',
+      'expectedResult',
+      'location',
+      'section',
+      'priority',
+      'attachments',
+    ]
     const safe = Object.fromEntries(
       fields.filter((key) => key in changes).map((key) => [key, changes[key]]),
     )
+    if ('location' in safe || 'section' in safe) {
+      const location = 'location' in safe ? safe.location : safe.section
+      if (!isText(location) || !location.trim()) return false
+      safe.location = location.trim()
+      safe.section = location.trim()
+    }
     const candidate = { ...task, ...safe }
     if (
       !isText(candidate.title) ||
@@ -216,7 +236,8 @@ export const useProjectStore = defineStore('project', () => {
       !isText(candidate.description) ||
       !candidate.description.trim() ||
       !isText(candidate.expectedResult) ||
-      !sectionOptions.value.includes(candidate.section) ||
+      !isText(getTaskLocation(candidate)) ||
+      !getTaskLocation(candidate).trim() ||
       !Object.hasOwn(PRIORITIES, candidate.priority) ||
       !Array.isArray(candidate.attachments) ||
       !candidate.attachments.every(validAttachment)
@@ -323,6 +344,7 @@ export const useProjectStore = defineStore('project', () => {
     initialized,
     isDeveloper,
     sectionOptions,
+    locationOptions,
     counts,
     progress,
     findTask,

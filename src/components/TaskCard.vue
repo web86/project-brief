@@ -2,6 +2,7 @@
 import AppIcon from './AppIcon.vue'
 import TaskStatus from './TaskStatus.vue'
 import TaskPriority from './TaskPriority.vue'
+import { getTaskLocation } from '../constants/project'
 defineProps({ task: { type: Object, required: true } })
 </script>
 <template>
@@ -11,7 +12,7 @@ defineProps({ task: { type: Object, required: true } })
     </div>
     <h3>{{ task.title }}</h3>
     <p class="card-description">{{ task.description }}</p>
-    <div class="card-section">{{ task.section }}</div>
+    <div class="card-section" :title="getTaskLocation(task)">{{ getTaskLocation(task) }}</div>
     <div class="card-footer">
       <TaskPriority :priority="task.priority" />
       <div class="card-meta">

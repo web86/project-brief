@@ -16,7 +16,7 @@ export const PRIORITIES = {
 // Each status belongs to exactly one simple filter, so the counts add up.
 export const FILTERS = [
   { key: 'all', label: 'Все', statuses: Object.keys(STATUSES) },
-  { key: 'ideas', label: 'Идеи', statuses: ['new', 'clarification'] },
+  { key: 'ideas', label: 'Новые', statuses: ['new', 'clarification'] },
   { key: 'approved', label: 'Согласовано', statuses: ['approved'] },
   { key: 'working', label: 'В работе', statuses: ['in_progress', 'review'] },
   { key: 'done', label: 'Готово', statuses: ['done'] },
@@ -24,7 +24,8 @@ export const FILTERS = [
 
 export const STORAGE_KEY = 'project-brief:v1'
 export const STORAGE_VERSION = 1
-export const OTHER_SECTION = 'Другое'
+// Legacy projects only have section; newer ideas may describe any place or URL.
+export const getTaskLocation = (task) => task.location || task.section || ''
 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric',

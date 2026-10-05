@@ -2,7 +2,7 @@ import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { useProjectStore, isValidSnapshot } from '../src/stores/project.js'
-import { STORAGE_KEY } from '../src/constants/project.js'
+import { STORAGE_KEY, getTaskLocation } from '../src/constants/project.js'
 
 class MemoryStorage {
   values = new Map()
@@ -171,4 +171,50 @@ test('storage failure keeps edits in memory, shows an error and supports retry',
   assert.equal(store.saveToStorage(), true)
   assert.equal(store.storageError, '')
   assert.ok(JSON.parse(storage.getItem(STORAGE_KEY)).tasks.some((task) => task.id === id))
+})
+
+test('legacy version 1 data loads without migration or changes to existing ideas', () => {
+  const initial = createStore()
+  const legacy = JSON.parse(storage.getItem(STORAGE_KEY))
+  assert.ok(legacy.tasks.every((task) => !('location' in task)))
+  const originalTasks = JSON.parse(JSON.stringify(initial.tasks))
+  setActivePinia(createPinia())
+  const restored = createStore()
+  assert.equal(restored.storageBlocked, false)
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.tasks)), originalTasks)
+  assert.equal(getTaskLocation(restored.tasks[0]), 'Главная')
+  assert.equal(restored.findTask('demo-5').comments.length, 2)
+})
+
+test('custom locations and complete URLs persist and become grouping/filter options', () => {
+  const store = createStore()
+  const url =
+    'https://example.com/catalog/' + 'product-name/'.repeat(35) + '?color=green&size=large#photos'
+  const values = ['Главная', 'Страница доставки', 'Корзина', url, 'all']
+  const ids = values.map((location) => store.addTask({ ...idea(), location }))
+  values.forEach((location, index) => {
+    assert.equal(getTaskLocation(store.findTask(ids[index])), location)
+    assert.equal(store.findTask(ids[index]).section, location)
+    assert.ok(store.locationOptions.includes(location))
+  })
+  store.updateTask(ids[0], { location: 'Мобильное меню' })
+  store.updateTask(ids[1], { section: 'Форма заказа' })
+  setActivePinia(createPinia())
+  const restored = createStore()
+  assert.equal(getTaskLocation(restored.findTask(ids[0])), 'Мобильное меню')
+  assert.equal(getTaskLocation(restored.findTask(ids[1])), 'Форма заказа')
+  assert.equal(getTaskLocation(restored.findTask(ids[3])), url)
+  assert.ok(isValidSnapshot(JSON.parse(storage.getItem(STORAGE_KEY))))
+})
+
+test('blank locations are rejected and location-only snapshots are accepted', () => {
+  const store = createStore()
+  assert.throws(() => store.addTask({ ...idea(), location: '  ' }))
+  const id = store.addTask({ ...idea(), location: 'Корзина' })
+  assert.equal(store.updateTask(id, { location: '' }), false)
+  const snapshot = JSON.parse(storage.getItem(STORAGE_KEY))
+  delete snapshot.tasks.find((task) => task.id === id).section
+  assert.ok(isValidSnapshot(snapshot))
+  snapshot.tasks.find((task) => task.id === id).location = 123
+  assert.equal(isValidSnapshot(snapshot), false)
 })
