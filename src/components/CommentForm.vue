@@ -33,16 +33,12 @@ function submit() {
     ><textarea
       id="comment-text"
       v-model="text"
-      rows="3"
+      rows="2"
       maxlength="5000"
       placeholder="Задайте вопрос или добавьте подробности…"
     />
     <div class="comment-form-footer">
-      <span class="muted small" aria-live="polite">{{
-        sent
-          ? 'Сообщение добавлено'
-          : `Вы пишете как ${store.isDeveloper ? 'разработчик' : 'клиент'}`
-      }}</span
+      <span class="muted small" aria-live="polite">{{ sent ? 'Сообщение добавлено' : '' }}</span
       ><button
         type="submit"
         class="button primary"

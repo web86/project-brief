@@ -19,7 +19,6 @@ defineProps({ comments: Array })
     </article>
   </div>
   <div v-else class="comments-empty">
-    <AppIcon name="comment" :size="27" />
-    <p>Здесь можно обсудить детали.<br />Напишите первое сообщение.</p>
+    <p>Пока нет комментариев.</p>
   </div>
 </template>

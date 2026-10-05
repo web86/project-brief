@@ -25,7 +25,6 @@ function updateNumber(key, event) {
       <AppIcon name="code" :size="19" />
       <h2>Для разработчика</h2>
     </div>
-    <p class="panel-help">Внутренняя информация. Изменения сохраняются автоматически.</p>
     <div class="field">
       <label for="developer-status">Статус идеи</label
       ><select
@@ -52,7 +51,7 @@ function updateNumber(key, event) {
           :value="task.estimateHours ?? ''"
           :disabled="store.storageBlocked"
           :aria-invalid="!!errors.estimateHours"
-          aria-describedby="estimate-error"
+          :aria-describedby="errors.estimateHours ? 'estimate-error' : undefined"
           @input="updateNumber('estimateHours', $event)"
         />
         <p v-if="errors.estimateHours" id="estimate-error" class="field-error">
@@ -71,7 +70,7 @@ function updateNumber(key, event) {
           :value="task.price ?? ''"
           :disabled="store.storageBlocked"
           :aria-invalid="!!errors.price"
-          aria-describedby="price-error"
+          :aria-describedby="errors.price ? 'price-error' : undefined"
           @input="updateNumber('price', $event)"
         />
         <p v-if="errors.price" id="price-error" class="field-error">{{ errors.price }}</p>
@@ -83,7 +82,7 @@ function updateNumber(key, event) {
         id="developer-notes"
         :value="task.developerNotes"
         :disabled="store.storageBlocked"
-        rows="5"
+        rows="3"
         maxlength="10000"
         placeholder="Компоненты, детали реализации, что стоит учесть…"
         @input="store.updateDeveloperData(task.id, { developerNotes: $event.target.value })"

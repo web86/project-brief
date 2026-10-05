@@ -24,10 +24,6 @@ const selected = ref(null)
       </div></template
     >
   </div>
-  <p v-else class="muted small">К этой идее пока нет вложений.</p>
-  <p v-if="attachments.length" class="field-help">
-    Оригиналы файлов не загружены. Изображения доступны в виде уменьшенных превью.
-  </p>
   <BaseDialog
     :open="!!selected"
     :title="selected?.name || 'Превью изображения'"

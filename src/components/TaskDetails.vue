@@ -11,9 +11,9 @@ defineProps({ task: Object })
     <div class="detail-block">
       <h2>Что должно получиться</h2>
       <p v-if="task.expectedResult" class="prose expected-result">{{ task.expectedResult }}</p>
-      <p v-else class="muted">Результат пока не описан. Можно обсудить его в комментариях.</p>
+      <p v-else class="muted">Не указан.</p>
     </div>
-    <div class="detail-block">
+    <div v-if="task.attachments.length" class="detail-block">
       <h2>
         Примеры и файлы <span class="count-pill">{{ task.attachments.length }}</span>
       </h2>
