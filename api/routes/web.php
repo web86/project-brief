@@ -5,13 +5,23 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-Route::get('/', fn () => response()->json(['service' => 'ProjectBrief API']));
+Route::get('/', SpaController::class);
+Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cache-Control', 'no-store'))
+    ->withoutMiddleware([
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        PreventRequestForgery::class,
+    ]);
 Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'));
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
@@ -58,3 +68,5 @@ foreach (['admin', 'client'] as $actor) {
         Route::get('/attachments/{attachment}/preview', [AttachmentController::class, 'preview']);
     });
 }
+
+Route::any('/{fallbackPlaceholder}', SpaController::class)->where('fallbackPlaceholder', '.*')->fallback();

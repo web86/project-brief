@@ -1,0 +1,24 @@
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Reserved backend prefixes always go through Laravel, even if a file exists.
+    RewriteRule ^(?:api|access|sanctum)(?:/|$) index.php [L]
+
+    # Keep the SPA shell behind Laravel's maintenance middleware too.
+    RewriteRule ^index\.html$ index.php [L]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
