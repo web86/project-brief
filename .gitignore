@@ -2,6 +2,13 @@ node_modules/
 dist/
 .env
 .env.*
+!.env.example
+!**/.env.example
+.tools/
+api/vendor/
+api/database/*.sqlite*
+api/.phpunit.result.cache
+api/.phpunit.cache/
 .DS_Store
 *.local
 coverage/

@@ -1,7 +1,5 @@
 node_modules/
 dist/
+api/
+.tools/
 coverage/
-test-results/
-playwright-report/
-package-lock.json
-docs/*.jpg
