@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TaskController;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use Illuminate\Http\Request;
@@ -29,4 +30,18 @@ Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middlewar
 Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/project', fn (Request $r) => new ProjectResource($r->attributes->get('client_project')));
     Route::get('/project/{project}', fn (Project $project) => new ProjectResource($project));
+});
+
+Route::middleware('admin')->prefix('/api/admin')->group(function () {
+    Route::get('/projects/{project}/tasks', [TaskController::class, 'index']);
+    Route::post('/projects/{project}/tasks', [TaskController::class, 'store']);
+    Route::get('/tasks/{task}', [TaskController::class, 'show']);
+    Route::patch('/tasks/{task}', [TaskController::class, 'update']);
+});
+Route::middleware('client')->prefix('/api/client')->group(function () {
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::get('/tasks/{task}', [TaskController::class, 'show']);
+    Route::patch('/tasks/{task}', [TaskController::class, 'update']);
+    Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);
 });
