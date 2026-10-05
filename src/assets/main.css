@@ -407,6 +407,7 @@ h2 {
   gap: 14px;
 }
 .task-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -419,6 +420,35 @@ h2 {
 }
 .task-card:hover {
   border-color: #7692b9;
+}
+.card-done-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: inherit;
+  background: rgb(247 248 250 / 84%);
+  pointer-events: none;
+  transition: background-color 0.15s;
+}
+.card-done-overlay strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #256746;
+  font-size: 28px;
+  line-height: 1.3;
+}
+.card-done-overlay span {
+  color: #475467;
+  font-size: 14px;
+}
+.task-card.is-done:hover .card-done-overlay,
+.task-card.is-done:focus-visible .card-done-overlay {
+  background: rgb(247 248 250 / 68%);
 }
 .card-top {
   display: flex;

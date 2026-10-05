@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { FILTERS, getTaskLocation } from '../constants/project'
+import { sortTasksByCompletion } from '../utils/tasks'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import SectionBlock from '../components/SectionBlock.vue'
 import AppIcon from '../components/AppIcon.vue'
@@ -24,7 +25,9 @@ const groups = computed(() =>
   store.locationOptions
     .map((name) => ({
       name,
-      tasks: filteredTasks.value.filter((task) => getTaskLocation(task) === name),
+      tasks: sortTasksByCompletion(
+        filteredTasks.value.filter((task) => getTaskLocation(task) === name),
+      ),
     }))
     .filter((group) => group.tasks.length),
 )

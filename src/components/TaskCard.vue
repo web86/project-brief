@@ -6,7 +6,11 @@ import { getTaskLocation } from '../constants/project'
 defineProps({ task: { type: Object, required: true } })
 </script>
 <template>
-  <RouterLink :to="`/task/${task.id}`" class="task-card">
+  <RouterLink
+    :to="`/task/${task.id}`"
+    class="task-card"
+    :class="{ 'is-done': task.status === 'done' }"
+  >
     <div class="card-top">
       <TaskStatus :status="task.status" /><AppIcon class="card-arrow" name="chevron" :size="16" />
     </div>
@@ -22,6 +26,10 @@ defineProps({ task: { type: Object, required: true } })
           ><AppIcon name="comment" :size="15" />{{ task.comments.length }}</span
         >
       </div>
+    </div>
+    <div v-if="task.status === 'done'" class="card-done-overlay" aria-hidden="true">
+      <strong><AppIcon name="check" :size="30" />Готово</strong>
+      <span>Открыть →</span>
     </div>
   </RouterLink>
 </template>
