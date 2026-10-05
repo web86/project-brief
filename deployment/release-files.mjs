@@ -20,6 +20,13 @@ const forbiddenDirectories = new Set([
 export function forbiddenPath(relative) {
   const parts = relative.split('/').map((part) => part.toLowerCase())
   const name = parts.at(-1)
+  if (
+    parts[0] === 'public' &&
+    (['app', 'bootstrap', 'config', 'database', 'storage', 'vendor', 'src'].includes(parts[1]) ||
+      ['.env.production.example', 'composer.json', 'composer.lock', 'artisan'].includes(name) ||
+      (/\.(php|vue)$/.test(name) && relative !== 'public/index.php'))
+  )
+    return true
   if (parts.some((part) => forbiddenDirectories.has(part))) return true
   if (name === '.env.production.example') return false
   return (
@@ -90,7 +97,9 @@ export async function validateRelease(root, localSecrets = []) {
     ) {
       throw new Error(`Local secret detected in: ${file.relative} (value withheld)`)
     }
-    if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(content.toString())) {
+    if (
+      /-----BEGIN (?:RSA |DSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/.test(content.toString())
+    ) {
       throw new Error(`Private key detected in: ${file.relative}`)
     }
   }

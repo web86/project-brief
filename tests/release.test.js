@@ -20,6 +20,11 @@ test('release rejects local secrets, development directories and source maps at 
     '.git/config',
     'node_modules/vue/index.js',
     'private/database/database.sqlite',
+    'public/vendor/autoload.php',
+    'public/config/app.php',
+    'public/.env.production.example',
+    'public/composer.json',
+    'public/source.vue',
   ]) {
     assert.equal(forbiddenPath(file), true, file)
   }

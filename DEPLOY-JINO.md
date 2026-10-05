@@ -85,7 +85,7 @@ Apache должен поддерживать `mod_rewrite` и разрешать
 
 ## Расширения PHP и права
 
-Требуются `ctype`, `curl`, `dom`, `xml`, `fileinfo`, `filter`, `hash`, `iconv`, `json`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `session`, `tokenizer`, **`zip`** (проверка ZIP/DOCX). `pdo_sqlite` и `gd` нужны только локальным тестам. Composer platform requirements также проверяются локально при сборке.
+Требуются `ctype`, `curl`, `dom`, `xml`, `libxml`, `fileinfo`, `filter`, `hash`, `iconv`, `json`, `mbstring`, `openssl`, `pcre`, `pdo`, `pdo_mysql`, `session`, `tokenizer`, **`zip`** (проверка ZIP/DOCX). `pdo_sqlite` и `gd` нужны только локальным тестам. Composer platform requirements также проверяются локально при сборке.
 
 Начальные права пакета: **755 directories / 644 files**. `.env` — 600. PHP process должен иметь запись в `storage/` (включая private uploads, framework/cache/data, sessions, views, logs) и `bootstrap/cache/`. На shared hosting обычно достаточно прав владельца; если процесс имеет другого владельца, настройте группу/права с поддержкой Jino. **Не используйте 777.**
 
@@ -96,6 +96,8 @@ Uploads находятся в **`~/project-brief-app/storage/app/private`** и �
 ## Проверки перед упаковкой
 
 Сборка прекращается без финального архива при ошибке тестов или проверки. Проверяется наличие Vue assets, vendor/autoload.php, bootstrap, artisan, production entry point, `.htaccess`, CLI tools и безопасного env example. Запрещены `.env`, `.env.*` кроме production example, `.git`, `.tools`, node_modules, tests, local DB, `local-admin.json`, `*.key`, source maps, файлы credentials/secrets и содержимое private keys. Из локальных `.env`/local-admin.json берутся значения секретов только для сравнения с содержимым пакета — они не выводятся. Development Composer packages исключены. Данные и caches текущего приложения не копируются. Symlinks запрещены. Проверяются SHA-256 файлов внутри ZIP. `checksums.txt` можно проверить локально на Mac командой `shasum -a 256 -c checksums.txt` из распакованного пакета.
+
+Проверки локального пакета и PHP 8.4/Apache/MariaDB: [docs/release-verification.md](docs/release-verification.md) в исходном Git-репозитории (development docs не включаются в ZIP).
 
 ## Обновление
 

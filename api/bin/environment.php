@@ -28,7 +28,7 @@ function report(bool $passed, string $message): bool
 function checkPrerequisites(bool $requireEnvironment): void
 {
     $passed = report(PHP_VERSION_ID >= 80300, 'PHP >= 8.3 (target: 8.4)');
-    foreach (['ctype', 'curl', 'dom', 'xml', 'fileinfo', 'filter', 'hash', 'iconv', 'json', 'mbstring', 'openssl', 'pdo', 'pdo_mysql', 'session', 'tokenizer', 'zip'] as $extension) {
+    foreach (['ctype', 'curl', 'dom', 'xml', 'libxml', 'fileinfo', 'filter', 'hash', 'iconv', 'json', 'mbstring', 'openssl', 'pcre', 'pdo', 'pdo_mysql', 'session', 'tokenizer', 'zip'] as $extension) {
         $passed = report(extension_loaded($extension), 'Extension '.$extension) && $passed;
     }
     foreach (['vendor/autoload.php', 'bootstrap/app.php', 'artisan'] as $file) {
