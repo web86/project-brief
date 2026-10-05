@@ -10,7 +10,7 @@ class SafeAttachment implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (! $value instanceof UploadedFile || ! $value->isValid()) {
+        if (! $value instanceof UploadedFile || ! $value->isValid() || ! is_readable($value->getPathname())) {
             $fail('Не удалось прочитать файл.');
 
             return;

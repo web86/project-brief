@@ -75,6 +75,9 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   if (!API_MODE) return true
+  const pendingStore = useProjectStore()
+  if (pendingStore.admin && Object.keys(pendingStore.developerDrafts).length)
+    await pendingStore.flushDeveloperData()
   if (['/', '/task/new'].includes(to.path) || to.name === 'task') return '/admin/login'
   if (to.meta.requiresAdmin) {
     const store = useProjectStore()

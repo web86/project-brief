@@ -35,10 +35,10 @@ class AccessLinkController extends Controller
         return response()->json(['message' => 'Доступ отозван.']);
     }
 
-    public function enter(Request $request, string $token): RedirectResponse
+    public function enter(Request $request, #[\SensitiveParameter] string $token): RedirectResponse
     {
         $access = preg_match('/^[a-f0-9]{64}$/D', $token) ? ProjectAccessToken::with('project')->where('token_hash', hash('sha256', $token))->first() : null;
-        $reason = ! $access || $access->revoked_at ? 'invalid' : ($access->expires_at?->isPast() ? 'expired' : ($access->project?->status !== 'active' ? 'unavailable' : null));
+        $reason = ! $access || $access->revoked_at ? 'invalid' : (($access->expires_at && ! $access->expires_at->isFuture()) ? 'expired' : ($access->project?->status !== 'active' ? 'unavailable' : null));
         $url = rtrim(config('projectbrief.frontend_url'), '/');
         if ($reason) {
             return redirect($url.'/access-error?reason='.$reason)->header('Referrer-Policy', 'no-referrer')->header('Cache-Control', 'no-store');
@@ -49,6 +49,6 @@ class AccessLinkController extends Controller
         $request->session()->put(['client_project_id' => $access->project_id, 'client_access_token_id' => $access->id]);
         $access->update(['last_used_at' => now()]);
 
-        return redirect($url.'/project/'.$access->project->uuid)->header('Referrer-Policy', 'no-referrer')->header('Cache-Control','no-store');
+        return redirect($url.'/project/'.$access->project->uuid)->header('Referrer-Policy', 'no-referrer')->header('Cache-Control', 'no-store');
     }
 }

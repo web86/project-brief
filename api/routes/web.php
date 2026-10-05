@@ -36,13 +36,13 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
 
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/projects/{project}/tasks', [TaskController::class, 'index']);
-    Route::post('/projects/{project}/tasks', [TaskController::class, 'store']);
+    Route::post('/projects/{project}/tasks', [TaskController::class, 'store'])->middleware('throttle:uploads');
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::patch('/tasks/{task}', [TaskController::class, 'update']);
 });
 Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/tasks', [TaskController::class, 'index']);
-    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::post('/tasks', [TaskController::class, 'store'])->middleware('throttle:uploads');
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::patch('/tasks/{task}', [TaskController::class, 'update']);
     Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);

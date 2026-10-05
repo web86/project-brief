@@ -53,6 +53,10 @@ class TaskController extends Controller
                 }
                 $old = $original[$field];
                 $new = $dirty[$field];
+                if (in_array($field, ['estimate_hours', 'price'])) {
+                    $old = $old === null ? null : (string) (float) $old;
+                    $new = $new === null ? null : (string) (float) $new;
+                }
                 $type = match ($field) {
                     'estimate_hours' => 'estimate',default => $field
                 };

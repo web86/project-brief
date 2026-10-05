@@ -19,6 +19,7 @@ const store = useProjectStore()
       maxlength="10000"
       placeholder="Компоненты, детали реализации, что стоит учесть…"
       @input="store.updateDeveloperData(task.id, { developerNotes: $event.target.value })"
+      @blur="store.apiMode && store.flushDeveloperData()"
     />
   </section>
 </template>

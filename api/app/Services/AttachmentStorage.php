@@ -23,7 +23,8 @@ class AttachmentStorage
         } catch (Throwable $error) {
             foreach ($paths as $path) {
                 Storage::disk('local')->delete($path);
-            } throw $error;
+            }
+            throw $error;
         }
     }
 
@@ -38,7 +39,8 @@ class AttachmentStorage
             $path = $file->storeAs('attachments/'.$task->uuid, $name, 'local');
             if (! $path) {
                 throw new \RuntimeException('Unable to store attachment');
-            } $paths[] = $path;
+            }
+            $paths[] = $path;
             $original = basename(str_replace('\\', '/', $file->getClientOriginalName()));
             $original = preg_replace('/[\x00-\x1F\x7F]/u', '', $original);
             $original = mb_substr($original ?: 'file', 0, 200);

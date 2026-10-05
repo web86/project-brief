@@ -23,7 +23,13 @@ async function logout() {
 watch(
   () => store.sessionLost,
   (lost) => {
-    if (lost) router.replace(store.admin ? '/admin/login' : '/access-error?reason=session')
+    if (lost) {
+      const destination = store.admin ? '/admin/login' : '/access-error?reason=session'
+      store.admin = null
+      store.tasks = []
+      store.developerDrafts = {}
+      router.replace(destination)
+    }
   },
 )
 store.loadFromStorage()

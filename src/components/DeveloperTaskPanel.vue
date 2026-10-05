@@ -59,6 +59,7 @@ function updateNumber(key, event) {
             :aria-invalid="!!errors.estimateHours"
             aria-label="Оценка, часов"
             :aria-describedby="errors.estimateHours ? 'estimate-error' : undefined"
+            @change="store.apiMode && store.flushDeveloperData()"
             @input="updateNumber('estimateHours', $event)"
           /><span aria-hidden="true">ч</span>
         </div>
@@ -81,6 +82,7 @@ function updateNumber(key, event) {
             :aria-invalid="!!errors.price"
             :aria-label="`Стоимость, ${currencySymbol}`"
             :aria-describedby="errors.price ? 'price-error' : undefined"
+            @change="store.apiMode && store.flushDeveloperData()"
             @input="updateNumber('price', $event)"
           /><span aria-hidden="true">{{ currencySymbol }}</span>
         </div>

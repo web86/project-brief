@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
@@ -26,13 +27,13 @@ class Project extends Model
         return 'uuid';
     }
 
-    public function tasks()
+    public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
     }
 
-    public function accessTokens()
+    public function accessTokens(): HasMany
     {
-        return $this->hasMany(ProjectAccessToken::class);
+        return $this->hasMany(ProjectAccessToken::class)->orderBy('id');
     }
 }

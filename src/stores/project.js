@@ -192,6 +192,7 @@ export const useProjectStore = defineStore('project', () => {
     const entries = Object.entries(developerDrafts.value).map(([id, data]) => [id, { ...data }])
     if (!entries.length) return
     savingDeveloper.value = true
+    apiError.value = ''
     await Promise.all(
       entries.map(([id, draft]) =>
         serialize(id, async () => {
@@ -205,7 +206,6 @@ export const useProjectStore = defineStore('project', () => {
             if (!Object.keys(developerDrafts.value[id] || {}).length)
               delete developerDrafts.value[id]
             replaceTask(data)
-            apiError.value = ''
           } catch (error) {
             reportError(error)
           }
