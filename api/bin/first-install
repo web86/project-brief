@@ -1,0 +1,63 @@
+#!/usr/bin/env php
+<?php
+
+use Illuminate\Contracts\Console\Kernel;
+use ProjectBrief\Deployment\DeploymentException;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
+
+use function ProjectBrief\Deployment\applicationRoot;
+use function ProjectBrief\Deployment\bootstrapApplication;
+use function ProjectBrief\Deployment\checkDatabase;
+use function ProjectBrief\Deployment\checkPrerequisites;
+use function ProjectBrief\Deployment\readEnvironment;
+
+require __DIR__.'/environment.php';
+
+try {
+    checkPrerequisites(true);
+    $environment = readEnvironment();
+    $cachedConfig = applicationRoot().'/bootstrap/cache/config.php';
+    if (is_file($cachedConfig) && ! unlink($cachedConfig)) {
+        throw new DeploymentException('Cannot clear cached configuration. Check bootstrap/cache permissions.');
+    }
+    $app = bootstrapApplication();
+    $kernel = $app->make(Kernel::class);
+    $output = new ConsoleOutput;
+    $run = function (string $command, array $options = [], bool $interactive = false) use ($kernel, $output): void {
+        $input = new ArrayInput(['command' => $command, ...$options]);
+        $input->setInteractive($interactive);
+        if ($kernel->handle($input, $output) !== 0) {
+            throw new DeploymentException('Command failed: '.$command.'. Installation stopped.');
+        }
+    };
+
+    if (empty($environment['APP_KEY'])) {
+        $run('key:generate', ['--force' => true]);
+    } else {
+        fwrite(STDOUT, 'PASS: Existing APP_KEY preserved.'.PHP_EOL);
+    }
+    checkDatabase($app);
+    $run('migrate', ['--force' => true]);
+    $run('optimize');
+
+    if ($app->make('db')->table('users')->where('role', 'admin')->exists()) {
+        fwrite(STDOUT, 'PASS: Administrator already exists; creation skipped.'.PHP_EOL);
+    } else {
+        fwrite(STDOUT, 'Create first administrator? [Y/n] ');
+        $answer = fgets(STDIN);
+        if ($answer !== false && in_array(strtolower(trim($answer)), ['', 'y', 'yes'], true)) {
+            $run('app:create-admin', [], true);
+        } else {
+            fwrite(STDOUT, 'Administrator creation skipped. Run php artisan app:create-admin when ready.'.PHP_EOL);
+        }
+    }
+
+    fwrite(STDOUT, 'Installation complete'.PHP_EOL.rtrim($environment['APP_URL'], '/').'/admin/login'.PHP_EOL);
+    exit(0);
+} catch (Throwable $exception) {
+    // Console commands report their own failures; never print bootstrap/SQL exception details.
+    $message = $exception instanceof DeploymentException ? $exception->getMessage() : 'Installation failed. Check private application logs.';
+    fwrite(STDERR, $message.PHP_EOL);
+    exit(1);
+}

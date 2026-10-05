@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+
+use function ProjectBrief\Deployment\applicationRoot;
+use ProjectBrief\Deployment\DeploymentException;
+use function ProjectBrief\Deployment\bootstrapApplication;
+use function ProjectBrief\Deployment\checkDatabase;
+use function ProjectBrief\Deployment\checkPrerequisites;
+use function ProjectBrief\Deployment\readEnvironment;
+
+require __DIR__.'/environment.php';
+
+try {
+    checkPrerequisites(false);
+    if (is_file(applicationRoot().'/.env')) {
+        readEnvironment();
+        checkDatabase(bootstrapApplication());
+    } else {
+        fwrite(STDOUT, 'SKIP: Database check; create and fill .env first.'.PHP_EOL);
+    }
+    fwrite(STDOUT, 'PASS: Server check complete.'.PHP_EOL);
+    exit(0);
+} catch (Throwable $exception) {
+    $message = $exception instanceof DeploymentException ? $exception->getMessage() : 'Application bootstrap failed. Check private application logs.';
+    fwrite(STDERR, $message.PHP_EOL);
+    exit(1);
+}
