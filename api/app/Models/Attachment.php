@@ -10,7 +10,12 @@ class Attachment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['task_id', 'comment_id', 'uploaded_by_type', 'original_name', 'stored_name', 'mime_type', 'size', 'disk', 'path'];
+    protected $fillable = ['project_client_id', 'task_id', 'comment_id', 'uploaded_by_type', 'original_name', 'stored_name', 'mime_type', 'size', 'disk', 'path'];
+
+    public function projectClient(): BelongsTo
+    {
+        return $this->belongsTo(ProjectClient::class);
+    }
 
     protected function casts(): array
     {

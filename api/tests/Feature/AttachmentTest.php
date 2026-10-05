@@ -17,8 +17,8 @@ class AttachmentTest extends TestCase
 
     private function client(Project $project): void
     {
-        $token = $project->accessTokens()->create(['token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
-        $this->withSession(['client_project_id' => $project->id, 'client_access_token_id' => $token->id]);
+        $token = $project->accessTokens()->create(['project_client_id' => $project->clients()->first()->id, 'token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
+        $this->withSession(['client_project_id' => $project->id, 'project_client_id' => $project->clients()->first()->id, 'client_access_token_id' => $token->id]);
     }
 
     public function test_upload_is_private_and_authorized_download_and_preview_work(): void

@@ -45,7 +45,7 @@ class AttachmentStorage
             $original = preg_replace('/[\x00-\x1F\x7F]/u', '', $original);
             $original = mb_substr($original ?: 'file', 0, 200);
             $task->attachments()->create(['original_name' => $original, 'stored_name' => $name, 'mime_type' => $file->getMimeType(), 'size' => $file->getSize(),
-                'disk' => 'local', 'path' => $path, 'uploaded_by_type' => TaskAccess::isAdmin($request) ? 'admin' : 'client']);
+                'disk' => 'local', 'path' => $path, 'uploaded_by_type' => TaskAccess::isAdmin($request) ? 'admin' : 'client', 'project_client_id' => TaskAccess::isAdmin($request) ? null : $request->attributes->get('project_client')->id]);
             TaskAudit::record($request, $task, 'attachment', 'Добавлен файл: '.$original);
         }
     }

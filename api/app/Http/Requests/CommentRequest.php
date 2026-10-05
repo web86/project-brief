@@ -13,6 +13,6 @@ class CommentRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['text' => ['required', 'string', 'max:5000'], 'author' => ['prohibited'], 'author_type' => ['prohibited'], 'author_user_id' => ['prohibited'], 'task_id' => ['prohibited']];
+        return ['text' => ['required', 'string', 'max:5000'], 'author' => ['prohibited'], 'author_type' => ['prohibited'], 'author_user_id' => ['prohibited'], 'task_id' => ['prohibited'], 'project_client_id' => ['prohibited'], 'projectClientId' => ['prohibited']];
     }
 }

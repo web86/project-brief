@@ -10,6 +10,7 @@ class Project extends Model
 {
     use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory;
 
+    /** Legacy client_name, client_email and sections are retained for migration compatibility only. */
     protected $fillable = ['title', 'website_url', 'client_name', 'client_email', 'currency', 'status', 'sections'];
 
     protected function casts(): array
@@ -30,6 +31,16 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function briefSections(): HasMany
+    {
+        return $this->hasMany(ProjectSection::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function clients(): HasMany
+    {
+        return $this->hasMany(ProjectClient::class)->orderBy('id');
     }
 
     public function accessTokens(): HasMany

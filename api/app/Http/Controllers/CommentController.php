@@ -15,12 +15,12 @@ class CommentController extends Controller
         $model = DB::transaction(function () use ($request, $task) {
             $model = TaskAccess::task($request, $task, true);
             $admin = TaskAccess::isAdmin($request);
-            $model->comments()->create(['text' => $request->validated('text'), 'author_type' => $admin ? 'admin' : 'client', 'author_user_id' => $admin ? $request->user()->id : null]);
+            $model->comments()->create(['text' => $request->validated('text'), 'author_type' => $admin ? 'admin' : 'client', 'author_user_id' => $admin ? $request->user()->id : null, 'project_client_id' => $admin ? null : $request->attributes->get('project_client')->id]);
             TaskAudit::record($request, $model, 'comment', ($admin ? 'Разработчик' : 'Клиент').' добавил комментарий');
 
             return $model;
         });
 
-        return new TaskResource($model->load(['comments', 'attachments', 'history']));
+        return new TaskResource($model->load(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient']));
     }
 }

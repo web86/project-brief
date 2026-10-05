@@ -22,7 +22,7 @@ class AttachmentController extends Controller
             return $model;
         });
 
-        return new TaskResource($model->load(['comments', 'attachments', 'history']));
+        return new TaskResource($model->load(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient']));
     }
 
     public function download(Request $request, string $attachment): StreamedResponse
@@ -46,6 +46,6 @@ class AttachmentController extends Controller
         abort_unless(Storage::disk($file->disk)->exists($file->path), 404);
         $headers = ['Content-Type' => $file->mime_type, 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store', 'Content-Security-Policy' => "default-src 'none'; sandbox", 'Referrer-Policy' => 'no-referrer'];
 
-        return $preview ? Storage::disk($file->disk)->response($file->path, $file->original_name, $headers, 'inline') : Storage::disk($file->disk)->download($file->path,$file->original_name,$headers);
+        return $preview ? Storage::disk($file->disk)->response($file->path, $file->original_name, $headers, 'inline') : Storage::disk($file->disk)->download($file->path, $file->original_name, $headers);
     }
 }

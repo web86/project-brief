@@ -14,8 +14,8 @@ class CommentTest extends TestCase
 
     private function client(Project $project): void
     {
-        $token = $project->accessTokens()->create(['token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
-        $this->withSession(['client_project_id' => $project->id, 'client_access_token_id' => $token->id]);
+        $token = $project->accessTokens()->create(['project_client_id' => $project->clients()->first()->id, 'token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
+        $this->withSession(['client_project_id' => $project->id, 'project_client_id' => $project->clients()->first()->id, 'client_access_token_id' => $token->id]);
     }
 
     public function test_admin_comment_author_and_history_are_server_derived(): void
@@ -42,6 +42,6 @@ class CommentTest extends TestCase
         $task = Task::factory()->create();
         $this->client(Project::factory()->create());
         $this->postJson('/api/client/tasks/'.$task->uuid.'/comments', ['text' => 'Подмена'])->assertNotFound();
-        $this->assertDatabaseCount('comments',0);
+        $this->assertDatabaseCount('comments', 0);
     }
 }

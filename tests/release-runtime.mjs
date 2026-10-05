@@ -62,7 +62,8 @@ $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $project = \\App\\Models\\Project::create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
 $token = str_repeat('a', 64);
-$project->accessTokens()->create(['token_hash'=>hash('sha256', $token)]);
+$client = $project->clients()->create(['name'=>'Release client']);
+$project->accessTokens()->create(['project_client_id'=>$client->id, 'token_hash'=>hash('sha256', $token)]);
 echo json_encode(['project'=>$project->uuid]);
 `,
   )

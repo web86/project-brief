@@ -6,6 +6,7 @@ use App\Http\Requests\TaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Services\AttachmentStorage;
+use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
 use App\Services\TaskAudit;
 use Illuminate\Http\Request;
@@ -16,13 +17,16 @@ class TaskController extends Controller
 {
     public function index(Request $request, ?Project $project = null): AnonymousResourceCollection
     {
-        return TaskResource::collection(TaskAccess::project($request, $project)->tasks()->with(['comments', 'attachments', 'history'])->orderByDesc('id')->get());
+        return TaskResource::collection(TaskAccess::project($request, $project)->tasks()->with(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient'])->orderBy('project_section_id')->orderBy('position')->orderBy('id')->get());
     }
 
     public function store(TaskRequest $request, ?Project $project = null): TaskResource
     {
         $task = AttachmentStorage::atomic(function (array &$paths) use ($request, $project) {
-            $task = TaskAccess::project($request, $project)->tasks()->create($request->taskData());
+            $owner = TaskAccess::project($request, $project);
+            ProjectStructure::lock($owner);
+            $task = $owner->tasks()->create($request->taskData());
+            ProjectStructure::assignNewTask($owner, $task);
             TaskAudit::record($request, $task, 'created', (TaskAccess::isAdmin($request) ? 'Разработчик' : 'Клиент').' добавил новую идею');
 
             AttachmentStorage::storeFiles($request, $task, $paths);
@@ -30,12 +34,12 @@ class TaskController extends Controller
             return $task;
         });
 
-        return new TaskResource($task->refresh()->load(['comments', 'attachments', 'history']));
+        return new TaskResource($task->refresh()->load(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient']));
     }
 
     public function show(Request $request, string $task): TaskResource
     {
-        return new TaskResource(TaskAccess::task($request, $task)->load(['comments', 'attachments', 'history']));
+        return new TaskResource(TaskAccess::task($request, $task)->load(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient']));
     }
 
     public function update(TaskRequest $request, string $task): TaskResource

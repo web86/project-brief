@@ -10,7 +10,12 @@ class Comment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['task_id', 'author_type', 'author_user_id', 'text'];
+    protected $fillable = ['project_client_id', 'task_id', 'author_type', 'author_user_id', 'text'];
+
+    public function projectClient(): BelongsTo
+    {
+        return $this->belongsTo(ProjectClient::class);
+    }
 
     protected function casts(): array
     {

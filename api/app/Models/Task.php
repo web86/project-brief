@@ -11,11 +11,12 @@ class Task extends Model
 {
     use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory;
 
-    protected $fillable = ['project_id', 'title', 'location', 'section', 'description', 'expected_result', 'priority', 'status', 'client_approved', 'client_approved_at', 'estimate_hours', 'price', 'developer_notes'];
+    // section is deprecated, retained only for legacy backfill/fallback.
+    protected $fillable = ['project_id', 'project_section_id', 'position', 'title', 'location', 'section', 'description', 'expected_result', 'priority', 'status', 'client_approved', 'client_approved_at', 'estimate_hours', 'price', 'developer_notes'];
 
     protected function casts(): array
     {
-        return ['client_approved' => 'boolean', 'client_approved_at' => 'datetime', 'estimate_hours' => 'float', 'price' => 'float'];
+        return ['position' => 'integer', 'client_approved' => 'boolean', 'client_approved_at' => 'datetime', 'estimate_hours' => 'float', 'price' => 'float'];
     }
 
     public function uniqueIds(): array
@@ -31,6 +32,11 @@ class Task extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function projectSection(): BelongsTo
+    {
+        return $this->belongsTo(ProjectSection::class);
     }
 
     public function comments(): HasMany

@@ -52,9 +52,6 @@ class TaskRequest extends FormRequest
                 $result[$map[$key] ?? $key] = $value;
             }
         }
-        if (isset($result['location'])) {
-            $result['section'] = $result['location'];
-        }
 
         return $result;
     }

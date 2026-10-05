@@ -15,7 +15,7 @@ class AccessLinkTest extends TestCase
     private function token(Project $project, array $fields = []): array
     {
         $plain = bin2hex(random_bytes(32));
-        $record = $project->accessTokens()->create(['token_hash' => hash('sha256', $plain), ...$fields]);
+        $record = $project->accessTokens()->create(['project_client_id' => $project->clients()->first()->id, 'token_hash' => hash('sha256', $plain), ...$fields]);
 
         return [$plain, $record];
     }
@@ -23,7 +23,7 @@ class AccessLinkTest extends TestCase
     public function test_admin_generates_link_and_stores_only_hash(): void
     {
         $project = Project::factory()->create();
-        $result = $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/access-links')->assertCreated();
+        $result = $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
         $plain = basename($result->json('url'));
         $this->assertSame(64, strlen($plain));
         $this->assertDatabaseHas('project_access_tokens', ['token_hash' => hash('sha256', $plain)]);
@@ -65,7 +65,7 @@ class AccessLinkTest extends TestCase
         $project = Project::factory()->create();
         [$plain,$old] = $this->token($project);
         $this->get('/access/'.$plain)->assertRedirect();
-        $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/access-links')->assertCreated();
+        $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
         $this->assertNotNull($old->fresh()->revoked_at);
         $this->getJson('/api/client/project')->assertUnauthorized();
         $this->get('/access/'.$plain)->assertRedirect(config('projectbrief.frontend_url').'/access-error?reason=invalid');
@@ -77,8 +77,8 @@ class AccessLinkTest extends TestCase
         [$plain,$token] = $this->token($project);
         $other = Project::factory()->create();
         $this->get('/access/'.$plain);
-        $this->actingAs(User::factory()->create())->deleteJson('/api/admin/projects/'.$other->uuid.'/access-links/'.$token->id)->assertNotFound();
-        $this->deleteJson('/api/admin/projects/'.$project->uuid.'/access-links/'.$token->id)->assertOk();
+        $this->actingAs(User::factory()->create())->deleteJson('/api/admin/projects/'.$other->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links/'.$token->id)->assertNotFound();
+        $this->deleteJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links/'.$token->id)->assertOk();
         $this->getJson('/api/client/project')->assertUnauthorized();
     }
 
@@ -90,7 +90,7 @@ class AccessLinkTest extends TestCase
         $this->get('/access/'.$plain);
         $this->getJson('/api/client/project/'.$other->uuid)->assertNotFound();
         $this->postJson('/api/admin/projects', ['title' => 'Запрещено'])->assertUnauthorized();
-        $this->postJson('/api/admin/projects/'.$project->uuid.'/access-links')->assertUnauthorized();
+        $this->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertUnauthorized();
     }
 
     public function test_rotated_link_opens_project_and_expiry_at_now_is_rejected(): void
@@ -99,7 +99,7 @@ class AccessLinkTest extends TestCase
         $project = Project::factory()->create();
         [$expired] = $this->token($project, ['expires_at' => now()]);
         $this->get('/access/'.$expired)->assertRedirect(config('projectbrief.frontend_url').'/access-error?reason=expired');
-        $result = $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/access-links')->assertCreated();
+        $result = $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
         $this->get('/access/'.basename($result->json('url')))->assertRedirect(config('projectbrief.frontend_url').'/project/'.$project->uuid);
         $this->assertGuest();
         $this->getJson('/api/client/project')->assertOk();
