@@ -997,12 +997,21 @@ textarea:focus,
 .task-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(350px, 0.8fr);
-  grid-template-areas: 'details discussion' 'history discussion';
+  grid-template-areas: 'details sidebar' 'history history';
   align-items: start;
   gap: 18px;
 }
 .task-layout.has-developer {
-  grid-template-areas: 'details discussion' 'developer discussion' 'history discussion';
+  grid-template-columns: minmax(0, 1.65fr) minmax(350px, 1fr);
+  grid-template-areas: 'details sidebar' 'notes sidebar' 'history history';
+  grid-template-rows: min-content 1fr auto;
+}
+.task-sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 18px;
 }
 .details-surface {
   grid-area: details;
@@ -1080,7 +1089,6 @@ button.attachment-item:hover {
   border-radius: 6px;
 }
 .comments-panel {
-  grid-area: discussion;
   padding: 22px;
 }
 .comments-panel h2 {
@@ -1221,14 +1229,13 @@ button.attachment-item:hover {
   overflow-wrap: anywhere;
 }
 .developer-panel {
-  grid-area: developer;
-  padding: 22px;
+  padding: 20px;
 }
 .developer-heading {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   color: #344054;
 }
 .developer-heading h2 {
@@ -1237,10 +1244,56 @@ button.attachment-item:hover {
 .developer-numbers {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
-.developer-panel .field:last-of-type {
+.developer-panel .field {
   margin-bottom: 14px;
+}
+.developer-panel input,
+.developer-panel select {
+  min-height: 40px;
+  padding: 8px 10px;
+}
+.number-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.number-with-unit input {
+  width: 100%;
+  min-width: 0;
+}
+.number-with-unit span {
+  color: var(--muted);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.quick-status-actions {
+  margin-bottom: 16px;
+}
+.quick-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quick-action-buttons .button {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+.quick-action-feedback {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 10px;
+}
+.developer-completed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #256746;
+  margin-bottom: 12px;
+  font-size: 15px;
 }
 .developer-approval {
   display: flex;
@@ -1250,6 +1303,32 @@ button.attachment-item:hover {
   font-size: 14px;
   border-top: 1px solid #e4e7ec;
   padding-top: 12px;
+  line-height: 1.5;
+}
+.developer-approval.approved {
+  color: #256746;
+}
+.developer-notes {
+  grid-area: notes;
+  padding: 22px;
+}
+.notes-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-bottom: 12px;
+}
+.notes-heading h2 {
+  font-size: 18px;
+}
+.notes-heading span {
+  font-size: 14px;
+  color: var(--muted);
+}
+.developer-notes textarea {
+  min-height: 144px;
 }
 
 .modal {
@@ -1328,6 +1407,9 @@ button.attachment-item:hover {
   .task-layout {
     grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
   }
+  .task-layout.has-developer {
+    grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+  }
 }
 @media (max-width: 899px) {
   .project-header {
@@ -1353,10 +1435,12 @@ button.attachment-item:hover {
   }
   .task-layout {
     grid-template-columns: 1fr;
-    grid-template-areas: 'details' 'discussion' 'history';
+    grid-template-areas: 'details' 'sidebar' 'history';
   }
   .task-layout.has-developer {
-    grid-template-areas: 'details' 'discussion' 'developer' 'history';
+    grid-template-columns: 1fr;
+    grid-template-areas: 'details' 'sidebar' 'notes' 'history';
+    grid-template-rows: auto;
   }
 }
 @media (max-width: 699px) {
@@ -1542,8 +1626,20 @@ button.attachment-item:hover {
   }
   .details-surface,
   .comments-panel,
-  .developer-panel {
+  .developer-panel,
+  .developer-notes {
     padding: 18px;
+  }
+  .task-sidebar {
+    gap: 15px;
+  }
+  .developer-panel input,
+  .developer-panel select,
+  .quick-action-buttons .button {
+    min-height: 44px;
+  }
+  .quick-action-buttons .button {
+    flex: 1 0 auto;
   }
   .comment-heading time {
     margin-left: 0;

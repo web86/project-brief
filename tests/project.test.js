@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { useProjectStore, isValidSnapshot } from '../src/stores/project.js'
 import { STORAGE_KEY, getTaskLocation } from '../src/constants/project.js'
+import { applyQuickStatusAction, getQuickStatusActions } from '../src/utils/taskWorkflow.js'
+import { getProjectCurrencySymbol } from '../src/utils/currency.js'
 
 class MemoryStorage {
   values = new Map()
@@ -216,5 +218,116 @@ test('blank locations are rejected and location-only snapshots are accepted', ()
   delete snapshot.tasks.find((task) => task.id === id).section
   assert.ok(isValidSnapshot(snapshot))
   snapshot.tasks.find((task) => task.id === id).location = 123
+  assert.equal(isValidSnapshot(snapshot), false)
+})
+
+test('quick actions depend on status and cannot bypass the current mode or storage lock', () => {
+  const expected = {
+    new: ['understood', 'clarify'],
+    clarification: ['understood', 'start'],
+    approved: ['start'],
+    in_progress: ['review', 'finish'],
+    review: ['finish', 'reopen'],
+    done: ['reopen'],
+  }
+  for (const [status, ids] of Object.entries(expected))
+    assert.deepEqual(
+      getQuickStatusActions({ status }).map((action) => action.id),
+      ids,
+    )
+  assert.deepEqual(getQuickStatusActions({ status: 'unknown' }), [])
+  const store = createStore()
+  const id = store.addTask(idea())
+  assert.equal(applyQuickStatusAction(store, id, 'clarify'), null)
+  store.setMode('developer')
+  assert.equal(applyQuickStatusAction(store, id, 'finish'), null)
+  assert.equal(applyQuickStatusAction(store, 'missing', 'clarify'), null)
+  store.storageBlocked = true
+  assert.equal(applyQuickStatusAction(store, id, 'clarify'), null)
+  assert.equal(store.findTask(id).status, 'new')
+})
+
+test('understanding the brief never sets client approval; approved requires the client', () => {
+  const store = createStore()
+  const id = store.addTask(idea())
+  const task = store.findTask(id)
+  store.setMode('developer')
+  const originalHistory = task.history.length
+  assert.ok(applyQuickStatusAction(store, id, 'understood').message)
+  assert.equal(task.status, 'new')
+  assert.equal(task.clientApproved, false)
+  assert.equal(task.history.length, originalHistory)
+  const clarification = applyQuickStatusAction(store, id, 'clarify')
+  assert.equal(clarification.focusComment, true)
+  assert.equal(task.comments.length, 0)
+  applyQuickStatusAction(store, id, 'understood')
+  assert.equal(task.status, 'new')
+  assert.equal(task.clientApproved, false)
+  assert.equal(store.approveTask(id), false)
+  store.setMode('client')
+  store.approveTask(id)
+  store.setMode('developer')
+  applyQuickStatusAction(store, id, 'understood')
+  assert.equal(task.status, 'approved')
+  assert.equal(task.clientApproved, true)
+  const saved = JSON.parse(storage.getItem(STORAGE_KEY)).tasks.find((item) => item.id === id)
+  assert.equal(saved.status, 'approved')
+  assert.equal(saved.clientApproved, true)
+})
+
+test('quick status transitions use existing history exactly once and preserve scope approval', () => {
+  const store = createStore()
+  const transitions = [
+    ['new', 'clarify', 'clarification'],
+    ['clarification', 'start', 'in_progress'],
+    ['approved', 'start', 'in_progress'],
+    ['in_progress', 'review', 'review'],
+    ['in_progress', 'finish', 'done'],
+    ['review', 'reopen', 'in_progress'],
+    ['review', 'finish', 'done'],
+    ['done', 'reopen', 'in_progress'],
+  ]
+  for (const approved of [false, true]) {
+    for (const [from, action, to] of transitions) {
+      store.setMode('client')
+      const id = store.addTask(idea())
+      if (approved) store.approveTask(id)
+      store.setMode('developer')
+      store.changeStatus(id, from)
+      const task = store.findTask(id)
+      const before = task.history.length
+      assert.ok(applyQuickStatusAction(store, id, action))
+      assert.equal(task.status, to)
+      assert.equal(task.clientApproved, approved)
+      assert.equal(task.history.length, before + 1)
+      assert.equal(task.history.at(-1).type, 'status')
+      assert.equal(task.comments.length, 0)
+    }
+  }
+  const task = store.tasks[0]
+  store.changeStatus(task.id, 'done')
+  assert.equal(store.addComment(task.id, 'Уточнение к выполненной работе'), true)
+  assert.equal(task.status, 'done')
+  assert.equal(task.clientApproved, true)
+  assert.equal('resultApproved' in task, false)
+})
+
+test('legacy currency falls back to rubles; configured project currency persists', () => {
+  createStore()
+  const legacy = JSON.parse(storage.getItem(STORAGE_KEY))
+  delete legacy.project.currency
+  storage.setItem(STORAGE_KEY, JSON.stringify(legacy))
+  setActivePinia(createPinia())
+  const restored = createStore()
+  assert.equal(restored.storageBlocked, false)
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.tasks)), legacy.tasks)
+  assert.equal(getProjectCurrencySymbol(restored.project), '₽')
+  restored.project.currency = 'TRY'
+  setActivePinia(createPinia())
+  const configured = createStore()
+  assert.equal(configured.project.currency, 'TRY')
+  assert.equal(getProjectCurrencySymbol(configured.project), '₺')
+  const snapshot = JSON.parse(storage.getItem(STORAGE_KEY))
+  snapshot.project.currency = 100
   assert.equal(isValidSnapshot(snapshot), false)
 })

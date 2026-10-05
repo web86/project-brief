@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project'
 import { getTaskLocation } from '../constants/project'
@@ -10,10 +10,15 @@ import TaskDetails from '../components/TaskDetails.vue'
 import CommentList from '../components/CommentList.vue'
 import CommentForm from '../components/CommentForm.vue'
 import HistoryTimeline from '../components/HistoryTimeline.vue'
-import DeveloperPanel from '../components/DeveloperPanel.vue'
+import DeveloperTaskPanel from '../components/DeveloperTaskPanel.vue'
+import DeveloperNotes from '../components/DeveloperNotes.vue'
 const route = useRoute()
 const store = useProjectStore()
 const task = computed(() => store.findTask(route.params.id))
+const commentForm = ref(null)
+function focusClarification() {
+  commentForm.value?.focusForClarification()
+}
 </script>
 <template>
   <div v-if="task" class="task-page" :key="task.id">
@@ -44,16 +49,20 @@ const task = computed(() => store.findTask(route.params.id))
     </header>
     <div class="task-layout" :class="{ 'has-developer': store.isDeveloper }">
       <TaskDetails :task="task" />
-      <section class="surface comments-panel">
-        <h2>
-          Комментарии <span class="count-pill">{{ task.comments.length }}</span>
-        </h2>
-        <CommentList :comments="task.comments" /><CommentForm :task-id="task.id" />
-      </section>
-      <DeveloperPanel v-if="store.isDeveloper" :task="task" /><HistoryTimeline
-        :history="task.history"
-        :developer="store.isDeveloper"
-      />
+      <div class="task-sidebar">
+        <DeveloperTaskPanel v-if="store.isDeveloper" :task="task" @clarify="focusClarification" />
+        <section class="surface comments-panel">
+          <h2>
+            Комментарии <span class="count-pill">{{ task.comments.length }}</span>
+          </h2>
+          <CommentList :comments="task.comments" /><CommentForm
+            ref="commentForm"
+            :task-id="task.id"
+          />
+        </section>
+      </div>
+      <DeveloperNotes v-if="store.isDeveloper" :task="task" />
+      <HistoryTimeline :history="task.history" :developer="store.isDeveloper" />
     </div>
   </div>
   <div v-else class="empty-state page-empty">

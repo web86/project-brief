@@ -36,6 +36,7 @@ export function isValidSnapshot(data) {
     isText(data.project.name) &&
     isText(data.project.website) &&
     isText(data.project.description) &&
+    (data.project.currency === undefined || isText(data.project.currency)) &&
     Array.isArray(data.sections) &&
     data.sections.every(isText) &&
     ['client', 'developer'].includes(data.currentMode) &&

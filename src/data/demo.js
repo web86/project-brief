@@ -157,6 +157,7 @@ export function createDemoData() {
       id: 'project-brief',
       name: 'Редизайн интернет-магазина',
       website: 'example.com',
+      currency: 'RUB',
       description: 'Делаем покупки проще, а сайт — ближе к вашим клиентам.',
     },
     sections: ['Главная', 'Каталог', 'Карточка товара', 'Контакты', 'Общее'],

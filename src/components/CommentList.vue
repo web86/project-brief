@@ -19,6 +19,6 @@ defineProps({ comments: Array })
     </article>
   </div>
   <div v-else class="comments-empty">
-    <p>Пока нет комментариев.</p>
+    <p>Комментариев пока нет.</p>
   </div>
 </template>
