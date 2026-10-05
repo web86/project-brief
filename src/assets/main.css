@@ -1697,3 +1697,102 @@ button.attachment-item:hover {
     scroll-behavior: auto !important;
   }
 }
+
+.admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 14px;
+}
+.admin-nav a {
+  color: var(--text);
+}
+.admin-login {
+  max-width: 480px;
+  margin: 40px auto;
+}
+.admin-form {
+  display: grid;
+  gap: 22px;
+  padding: 28px;
+}
+.admin-page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+.admin-page-heading h1 {
+  margin-bottom: 12px;
+}
+.admin-project-list {
+  display: grid;
+  gap: 18px;
+}
+.admin-project-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 26px;
+}
+.admin-project-card p {
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+}
+.admin-project-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.admin-settings-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 24px;
+}
+.access-panel {
+  padding: 28px;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.access-panel p {
+  margin: 0;
+  line-height: 1.65;
+}
+.access-panel label {
+  font-weight: 600;
+}
+.access-status {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.admin-feedback {
+  margin-top: 22px;
+}
+.upload-details summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-weight: 600;
+}
+@media (max-width: 760px) {
+  .admin-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-page-heading,
+  .admin-project-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-nav {
+    gap: 16px;
+  }
+  .admin-form,
+  .access-panel,
+  .admin-project-card {
+    padding: 22px;
+  }
+}

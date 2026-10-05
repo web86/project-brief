@@ -1,11 +1,31 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useProjectStore } from '../stores/project'
-import { API_MODE } from '../api/client'
+import { api, API_MODE } from '../api/client'
 import ProjectView from '../views/ProjectView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    {
+      path: '/admin/login',
+      component: () => import('../views/AdminLoginView.vue'),
+      meta: { title: 'Вход администратора' },
+    },
+    {
+      path: '/admin',
+      component: () => import('../views/AdminProjectsView.vue'),
+      meta: { requiresAdmin: true, title: 'Проекты' },
+    },
+    {
+      path: '/admin/projects/new',
+      component: () => import('../views/AdminProjectFormView.vue'),
+      meta: { requiresAdmin: true, title: 'Новый проект' },
+    },
+    {
+      path: '/admin/projects/:uuid',
+      component: () => import('../views/AdminProjectView.vue'),
+      meta: { requiresAdmin: true, title: 'Настройки проекта' },
+    },
     {
       path: '/access-error',
       component: () => import('../views/AccessErrorView.vue'),
@@ -56,6 +76,17 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   if (!API_MODE) return true
   if (['/', '/task/new'].includes(to.path) || to.name === 'task') return '/admin/login'
+  if (to.meta.requiresAdmin) {
+    const store = useProjectStore()
+    try {
+      store.admin = (await api.request('/api/admin/me')).user
+      store.sessionLost = false
+      return true
+    } catch {
+      store.admin = null
+      return '/admin/login'
+    }
+  }
   if (!to.meta.apiProject) return true
   const store = useProjectStore()
   try {
