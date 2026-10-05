@@ -11,6 +11,9 @@ class TaskAudit
 
     public static function record(Request $request, Task $task, string $type, string $text, ?string $old = null, ?string $new = null): void
     {
+        if (in_array($type, ['section_moved', 'reordered']) && $old !== null && $new !== null) {
+            $text .= ': '.$old.' → '.$new;
+        }
         $client = TaskAccess::isAdmin($request) ? null : $request->attributes->get('project_client');
         if ($client) {
             $text = $client->name.': '.strtr($text, ['Клиент добавил новую идею' => 'добавлена новая идея', 'Клиент добавил комментарий' => 'добавлен комментарий', 'Клиент согласовал задачу' => 'задача согласована']);

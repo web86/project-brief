@@ -81,13 +81,15 @@ php artisan db:seed
 
 ```text
 src/api/client.js           HTTP, session cookies, CSRF, безопасные ошибки
-src/stores/project.js      прежние Pinia actions + API cache и autosave
+src/stores/project.js      Pinia tasks, canonical numbers, API cache и autosave
+src/stores/projectManagement.js  sections/clients/settings API actions
+src/utils/structure.js     grouping, canonical ordering, local snapshot migration
 src/router/index.js        local routes, client project, admin guards
 src/components/            прежний клиентский/developer UI, ProjectFields
 src/views/                 ProjectView, TaskView, TaskFormView,
                            AdminLoginView, AdminProjectsView,
                            AdminProjectFormView, AdminProjectView, AccessErrorView
-api/app/Models/            User, Project, ProjectAccessToken, Task,
+api/app/Models/            User, Project, ProjectSection, ProjectClient, ProjectAccessToken, Task,
                            Comment, Attachment, TaskHistory
 api/app/Http/Requests/     валидация и whitelist клиентских/админских полей
 api/app/Http/Middleware/   EnsureAdmin, EnsureClientProjectAccess
@@ -105,15 +107,27 @@ Frontend URLs: `/admin/login`, `/admin`, `/admin/projects/new`, `/admin/projects
 
 Основной интерфейс сохранён: свободное место на сайте/URL, группировка, desktop 3 колонки, mobile 1 колонка, overlay завершённых идей и стабильная сортировка, комментарии, независимое согласование объёма ТЗ, контекстные developer actions, оценка, стоимость по валюте проекта, технические заметки и история.
 
+## Структура ТЗ и обновление существующей базы
+
+Раздел ТЗ и свободный `location` — разные поля. Новые идеи попадают в «Общее», developer назначает раздел и порядок. Номер вычисляется централизованно из `project_sections.position` и `tasks.position`, не хранится строкой и не зависит от статуса/фильтров. Завершённые карточки уходят вниз своего раздела только визуально. Явные перемещения меняют номера; move/reorder нормализуют позиции и пишут историю. Структурные изменения и создание задач сериализованы transaction + блокировкой строки проекта. Раздел с задачами удалить нельзя.
+
+Добавлены две migrations: `2026_10_05_204121_add_project_structure_and_client_identity` и `2026_10_05_204122_backfill_legacy_project_structure`. Первая создаёт `project_sections` и `project_clients`; ALTER TABLE добавляют nullable `tasks.project_section_id`, `tasks.position`, nullable `project_client_id` в tokens/comments/history/attachments. UUID unique; indexes `(project_id, position)`, `(project_id, active)`, `(project_section_id, position)`; FK на project cascade только при удалении самого проекта, на section/client — SET NULL. UI не удаляет клиентов физически.
+
+Backfill проходит проекты по ID; legacy `tasks.section` определяет разделы по первому появлению (task ID), пустые — «Общее». `location` не используется. Записываются только новые связи/позиции. Конфигурированные пустые разделы добавляются после разделов с задачами. Legacy `client_name/client_email` создают первого клиента; при наличии старого token клиент создаётся обязательно, даже без имени. Старые hashes/expiry/revocation не меняются, tokens получают ссылку на первого клиента. Старым comments/history/attachments не назначается предположительный автор. Повторный backfill идемпотентен.
+
+**Deprecated, сохранены:** `projects.client_name`, `projects.client_email`, `projects.sections`, `tasks.section`. Новый UI их не редактирует. Старые localStorage snapshots version 1 обновляются добавлением associations/positions, без потери контента и использования URL как раздела; невалидные snapshots не перезаписываются.
+
+Migration review: удалений таблиц/колонок/данных в `up()` нет. DDL MariaDB может ожидать metadata locks или перестраивать таблицы при добавлении FK/index; backfill блокирует один проект до завершения его transaction. Время зависит от объёма реальной базы. Применять в штатном maintenance update с проверенной резервной копией; ручной SQL не нужен. DDL MySQL не является общей transaction: проверки существования новых колонок/индекса поддерживают повторный запуск после прерывания. Schema migration намеренно forward-only: `down()` отказывается удалять новые production associations; откат через проверенную резервную копию. Backfill `down()` ничего не удаляет. Production база в этой задаче не изменяется.
+
 ## Сессии и доступ клиента
 
 Admin auth: `POST /api/admin/login`, `POST /api/admin/logout`, `GET /api/admin/me`. `GET /api/csrf` выдаёт CSRF token; изменения защищены Laravel web middleware. Cookie session — HttpOnly, SameSite=Lax, Secure в production. Вход admin и успешный доступ клиента меняют session ID. Login/access/comments/uploads имеют rate limits.
 
-Access link содержит 32 случайных байта (256 bits), представленных 64 hex символами. В `project_access_tokens` хранится только SHA-256 hash. URL возвращается **один раз**, находится только в текущем Vue component state; после ухода со страницы его нельзя получить повторно. UI показывает только метаданные, last used/expiry/revocation. Пересоздание атомарно отзывает прежние ссылки.
+Access link содержит 32 случайных байта (256 bits), представленных 64 hex символами. В `project_access_tokens` хранится только SHA-256 hash. URL возвращается **один раз**, находится только в текущем Vue component state; после ухода со страницы его нельзя получить повторно. UI показывает только метаданные, last used/expiry/revocation. Пересоздание атомарно отзывает прежние ссылки только выбранного клиента. У каждого клиента собственная ссылка; отключение клиента отзывает его ссылки, повторное включение требует новой ссылки.
 
 `GET /access/{token}` проверяет hash, срок, отзыв и активность проекта, создаёт минимальную client session и перенаправляет на `/project/{uuid}`. Token исчезает из URL; redirect использует `Referrer-Policy: no-referrer` и `Cache-Control: no-store`. В логах приложения token не записывается. Внешний reverse proxy должен отключать/маскировать access logging для `/access/*`.
 
-**На каждом клиентском запросе** middleware заново проверяет token и проект. Отзыв блокирует существующую сессию на следующем запросе. Tasks, comments, uploads, download и preview выбираются только в проекте client session; чужие UUID получают 404 без выдачи данных. Подмена author/project/approval/history/status/developer fields отклоняется. Клиент редактирует исходную идею только в `new`/`clarification`; далее обсуждает изменения в комментариях.
+**На каждом клиентском запросе** middleware заново проверяет token, проект и активного клиента, а также принадлежность token клиенту и проекту. Отзыв блокирует существующую сессию на следующем запросе. Tasks, comments, uploads, download и preview выбираются только в проекте client session; чужие UUID получают 404 без выдачи данных. Подмена author/project/approval/history/status/developer fields отклоняется. Клиент редактирует исходную идею только в `new`/`clarification`; далее обсуждает изменения в комментариях.
 
 Client TaskResource вообще не содержит `developerNotes`, `estimateHours`, `price` и внутренних history events. Client project не содержит client email/admin metadata. Сервер задаёт авторов комментариев и создаёт audit events: создание/изменение идеи, статус с old/new, согласование, комментарий, файл, оценка, цена, заметки. Содержимое private notes не копируется в историю.
 
@@ -121,15 +135,19 @@ Client TaskResource вообще не содержит `developerNotes`, `estima
 
 ## API
 
-| Область              | Endpoints                                                                                                                                                                |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Session              | `GET /api/csrf`, `POST /api/admin/login`, `POST /api/admin/logout`, `GET /api/admin/me`                                                                                  |
-| Admin projects       | `GET/POST /api/admin/projects`, `GET/PATCH /api/admin/projects/{uuid}`                                                                                                   |
-| Access links         | `POST /api/admin/projects/{uuid}/access-links` (create/rotate, optional `expiresAt`), `DELETE /api/admin/projects/{uuid}/access-links/{id}`                              |
-| Admin tasks          | `GET/POST /api/admin/projects/{uuid}/tasks`, `GET/PATCH /api/admin/tasks/{uuid}`                                                                                         |
-| Client project/tasks | `GET /api/client/project`, `GET /api/client/project/{uuid}`, `GET/POST /api/client/tasks`, `GET/PATCH /api/client/tasks/{uuid}`, `POST /api/client/tasks/{uuid}/approve` |
-| Comments             | `POST /api/{admin,client}/tasks/{uuid}/comments`                                                                                                                         |
-| Attachments          | `POST /api/{admin,client}/tasks/{uuid}/attachments`, `GET /api/{admin,client}/attachments/{uuid}/download`, `GET /api/{admin,client}/attachments/{uuid}/preview`         |
+| Область              | Endpoints                                                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session              | `GET /api/csrf`, `POST /api/admin/login`, `POST /api/admin/logout`, `GET /api/admin/me`                                                                                       |
+| Admin projects       | `GET/POST /api/admin/projects`, `GET/PATCH /api/admin/projects/{uuid}`                                                                                                        |
+| Access links         | `POST /api/admin/projects/{uuid}/clients/{client}/access-links` (create/rotate, optional `expiresAt`), `DELETE /api/admin/projects/{uuid}/clients/{client}/access-links/{id}` |
+| Admin clients        | `GET/POST /api/admin/projects/{uuid}/clients`, `PATCH /api/admin/projects/{uuid}/clients/{client}`                                                                            |
+| Admin sections       | `GET/POST /api/admin/projects/{uuid}/sections`, `PATCH/DELETE /api/admin/projects/{uuid}/sections/{section}`                                                                  |
+| Task structure       | `POST /api/admin/tasks/{uuid}/move` (`sectionId`), `POST /api/admin/tasks/{uuid}/reorder` (`direction: up/down`)                                                              |
+| Current client       | `GET /api/client/me` — имя/email только текущего клиента                                                                                                                      |
+| Admin tasks          | `GET/POST /api/admin/projects/{uuid}/tasks`, `GET/PATCH /api/admin/tasks/{uuid}`                                                                                              |
+| Client project/tasks | `GET /api/client/project`, `GET /api/client/project/{uuid}`, `GET/POST /api/client/tasks`, `GET/PATCH /api/client/tasks/{uuid}`, `POST /api/client/tasks/{uuid}/approve`      |
+| Comments             | `POST /api/{admin,client}/tasks/{uuid}/comments`                                                                                                                              |
+| Attachments          | `POST /api/{admin,client}/tasks/{uuid}/attachments`, `GET /api/{admin,client}/attachments/{uuid}/download`, `GET /api/{admin,client}/attachments/{uuid}/preview`              |
 
 Payloads/responses используют совместимые с Vue camelCase поля. Tasks можно создавать JSON или multipart с `attachments[]`. API errors: 401 с завершённой session, 403 при запрещённом workflow, 404 для недоступных записей, 419 при CSRF, 422 для полей, 429 для rate limit. Frontend не показывает server/SQL stack traces и не повторяет изменения автоматически при ошибке CSRF.
 
@@ -162,8 +180,8 @@ Feature tests используют отдельную SQLite `:memory:` и fake 
 
 Готовый ZIP — в `release/`, распакованный пакет — `release/project-brief/`. `private/project-brief-app` содержит Laravel и production vendor; `public` — Vue build, PHP entry point и Apache `.htaccess`. Реальные `.env`, uploads, local DB, dev dependencies, tests и source maps исключены; до архива выполняются frontend/Laravel tests, build, проверка secrets и запуск копии готового пакета. Серверу не нужны Node/npm/Composer/Git.
 
-Инструкция: [DEPLOY-JINO.md](DEPLOY-JINO.md). Target: `https://brief.web86.site`, private app `~/project-brief-app`, public `~/domains/brief.web86.site`, DB `specchina_breaf_tz`, PHP 8.4. Один HTTPS origin, Vue history fallback через Laravel, серверные `/api`, `/access`, `/sanctum` не попадают в SPA. `GET /api/health` возвращает только liveness `{"ok":true}`; CLI `bin/check-server` дополнительно проверяет DB и окружение, `bin/first-install` сохраняет ключ/данные и выполняет migrations/optimize с интерактивным созданием admin. Загрузка на Jino пока не выполняется.
+Инструкция: [DEPLOY-JINO.md](DEPLOY-JINO.md). Target: `https://brief.web86.site`, private app `~/project-brief-app`, public `~/domains/brief.web86.site`, DB `specchina_breaf_tz`, PHP 8.4. Один HTTPS origin, Vue history fallback через Laravel, серверные `/api`, `/access`, `/sanctum` не попадают в SPA. `GET /api/health` возвращает только liveness `{"ok":true}`; CLI `bin/check-server` дополнительно проверяет DB и окружение, `bin/first-install` сохраняет ключ/данные и выполняет migrations/optimize с интерактивным созданием admin. В этой итерации загрузка на Jino не выполняется; существующий production работает отдельно от локальных проверок.
 
 ## Следующий этап
 
-AI API/разделение большой идеи, уведомления, password reset/2FA, команды и роли, платежи, result acceptance, realtime и production deployment пока не реализованы. Backend обслуживает существующий developer workflow; отдельного Laravel frontend/CRM нет.
+AI API/разделение большой идеи, уведомления, password reset/2FA, команды и роли, платежи, result acceptance и realtime пока не реализованы. Backend обслуживает существующий developer workflow; отдельного Laravel frontend/CRM нет.

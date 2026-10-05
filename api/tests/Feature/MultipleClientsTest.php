@@ -114,4 +114,31 @@ class MultipleClientsTest extends TestCase
         $this->assertDatabaseCount('project_access_tokens', 1);
         $this->getJson($root)->assertOk()->assertJsonMissingPath('data.0.accessLinks.0.token_hash')->assertJsonMissingPath('data.0.accessLinks.0.url');
     }
+
+    public function test_legacy_signed_session_is_upgraded_only_from_its_valid_migrated_token(): void
+    {
+        $project = Project::factory()->create();
+        $client = $project->clients()->first();
+        [, $token] = $this->link($client);
+        $this->withSession(['client_project_id' => $project->id, 'client_access_token_id' => $token->id]);
+        $this->getJson('/api/client/me')->assertOk()->assertJsonPath('id', $client->uuid)->assertSessionHas('project_client_id', $client->id);
+        $client->update(['active' => false]);
+        $this->getJson('/api/client/me')->assertUnauthorized();
+        $this->get('/access/'.str_repeat('f', 64))->assertRedirect();
+    }
+
+    public function test_new_tokens_require_a_client_from_the_same_project(): void
+    {
+        $project = Project::factory()->create();
+        $foreign = Project::factory()->create()->clients()->first();
+        foreach ([null, $foreign->id] as $clientId) {
+            try {
+                $project->accessTokens()->create(['project_client_id' => $clientId, 'token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
+                $this->fail('Anonymous or cross-project token must not be created');
+            } catch (\InvalidArgumentException $error) {
+                $this->assertStringContainsString('same project', $error->getMessage());
+            }
+        }
+        $this->assertDatabaseCount('project_access_tokens', 0);
+    }
 }

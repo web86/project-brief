@@ -32,7 +32,8 @@ class LegacyProjectStructure
                         }
                     });
                     // Keep configured names for empty projects; tasks always determine legacy order first.
-                    foreach (json_decode($project->sections ?? '[]', true) ?: [] as $name) {
+                    $configured = json_decode($project->sections ?? '[]', true);
+                    foreach (is_array($configured) ? $configured : [] as $name) {
                         if (! is_string($name) || trim($name) === '' || isset($byName[trim($name)])) {
                             continue;
                         }
