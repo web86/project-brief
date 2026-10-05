@@ -62,11 +62,12 @@ class ProjectStructure
         }
     }
 
+    /** Resolve ownership outside the transaction so MariaDB's first consistent read follows the project lock. */
     public static function moveTask(Request $request, string $uuid, string $target): Task
     {
-        return DB::transaction(function () use ($request, $uuid, $target): Task {
-            $task = TaskAccess::task($request, $uuid);
-            $project = $task->project;
+        $project = TaskAccess::task($request, $uuid)->project;
+
+        return DB::transaction(function () use ($request, $uuid, $target, $project): Task {
             self::lock($project);
             $task = TaskAccess::task($request, $uuid, true);
             $section = self::section($project, $target);
@@ -85,16 +86,18 @@ class ProjectStructure
         }, 3);
     }
 
+    /** Keep the same lock/read order as moveTask to avoid stale REPEATABLE READ snapshots. */
     public static function reorderTask(Request $request, string $uuid, string $direction): Task
     {
-        return DB::transaction(function () use ($request, $uuid, $direction): Task {
-            $task = TaskAccess::task($request, $uuid);
-            self::lock($task->project);
+        $project = TaskAccess::task($request, $uuid)->project;
+
+        return DB::transaction(function () use ($request, $uuid, $direction, $project): Task {
+            self::lock($project);
             $task = TaskAccess::task($request, $uuid, true);
             if (! $task->project_section_id) {
                 throw ValidationException::withMessages(['sectionId' => 'Сначала назначьте раздел.']);
             }
-            $items = $task->project->tasks()->where('project_section_id', $task->project_section_id)->orderBy('position')->orderBy('id')->get()->all();
+            $items = $project->tasks()->where('project_section_id', $task->project_section_id)->orderBy('position')->orderBy('id')->get()->all();
             $oldNumber = self::number($task);
             self::swap($items, $task->id, $direction);
             self::normalize($items);

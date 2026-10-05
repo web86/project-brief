@@ -168,6 +168,8 @@ vendor/bin/pint --dirty --format agent
 
 Feature tests используют отдельную SQLite `:memory:` и fake storage, не трогают dev MariaDB. Fresh migrations/seed проверены отдельно в новой выделенной dev-базе. `migrate:fresh` удаляет данные выбранной базы, поэтому используйте его только в disposable dev/test environment.
 
+Проверка этапа sections/clients: 73 Laravel tests (386 assertions), 35 frontend tests, production build и formatting — PASS. Дополнительно на PHP 8.4.26 / MariaDB 11.8 / Apache проверено обновление распакованного предыдущего release: все старые rows, файлы и token сохранены, backfill повторяемый, fresh migrations работают. Реальные 5 параллельных create/move/reorder через Apache дают уникальные нормализованные позиции; первый consistent read выполняется после project lock (учтён MariaDB REPEATABLE READ). В двух browser sessions John/Anna проверен независимый revoke, авторы comments, numbering, done filter/overlay; desktop 3 колонки, mobile 390 px одна колонка без horizontal scroll, console без warnings/errors. Generated releases остаются вне Git.
+
 Результаты и browser screenshots: [проверка backend/API](docs/backend-verification.md). Проверки прошлых этапов: [UX](docs/ux-cleanup.md), [developer workspace](docs/developer-workspace.md), [завершённые карточки](docs/completed-tasks.md).
 
 ## Локальная production-сборка для Jino
