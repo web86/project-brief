@@ -11,8 +11,6 @@ const fields = [
     placeholder: 'https://example.com',
     max: 2048,
   },
-  { key: 'clientName', label: 'Имя клиента', type: 'text', max: 255 },
-  { key: 'clientEmail', label: 'Email клиента', type: 'email', max: 255 },
 ]
 </script>
 <template>

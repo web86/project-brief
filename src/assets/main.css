@@ -1796,3 +1796,155 @@ button.attachment-item:hover {
     padding: 22px;
   }
 }
+
+.brief-number {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.task-section-name {
+  margin: 8px 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.management-column {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.management-panel {
+  padding: 28px;
+  min-width: 0;
+}
+.management-panel > h2,
+.management-heading h2 {
+  margin: 0;
+}
+.management-heading,
+.client-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.management-heading h2,
+.client-heading h3 {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.client-heading h3 {
+  margin: 0;
+}
+.managed-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+.managed-section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.managed-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.managed-section-title strong {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.managed-section-title .small {
+  flex-shrink: 0;
+}
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.order-actions .button {
+  min-height: 44px;
+}
+.icon-button {
+  min-width: 44px;
+}
+.inline-edit {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.inline-edit input,
+.inline-edit .field {
+  flex: 1;
+  min-width: 140px;
+}
+.add-section-form .field {
+  margin-bottom: 0;
+}
+.managed-client {
+  border-top: 1px solid var(--border);
+  padding: 24px 0;
+}
+.managed-client:last-of-type {
+  padding-bottom: 0;
+}
+.client-state {
+  font-size: 12px;
+  border-radius: 20px;
+  background: #edf6ef;
+  color: #326745;
+  padding: 5px 10px;
+}
+.client-state.inactive {
+  background: #f1f2f4;
+  color: #68717c;
+}
+.client-email,
+.client-secret label,
+.comment-heading strong {
+  overflow-wrap: anywhere;
+}
+.client-secret {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8f9fb;
+}
+.client-secret input {
+  width: 100%;
+  margin: 8px 0 12px;
+}
+.client-edit {
+  margin: 20px 0;
+}
+@media (max-width: 600px) {
+  .management-panel {
+    padding: 20px;
+  }
+  .management-heading {
+    align-items: flex-start;
+  }
+  .managed-section-title {
+    align-items: flex-start;
+  }
+  .client-secret {
+    padding: 12px;
+  }
+}
+
+.current-client-name {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 45%;
+  overflow-wrap: anywhere;
+  text-align: right;
+}

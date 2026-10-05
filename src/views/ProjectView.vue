@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useProjectStore } from '../stores/project'
-import { FILTERS, getTaskLocation } from '../constants/project'
-import { sortTasksByCompletion } from '../utils/tasks'
+import { FILTERS } from '../constants/project'
+import { groupBriefTasks } from '../utils/structure'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import SectionBlock from '../components/SectionBlock.vue'
 import AppIcon from '../components/AppIcon.vue'
@@ -14,22 +14,13 @@ function resetFilters() {
   activeFilter.value = 'all'
   activeSection.value = ''
 }
-const filteredTasks = computed(() =>
-  store.tasks.filter(
-    (task) =>
-      FILTERS.find((filter) => filter.key === activeFilter.value).statuses.includes(task.status) &&
-      (!activeSection.value || getTaskLocation(task) === activeSection.value),
-  ),
-)
 const groups = computed(() =>
-  store.locationOptions
-    .map((name) => ({
-      name,
-      tasks: sortTasksByCompletion(
-        filteredTasks.value.filter((task) => getTaskLocation(task) === name),
-      ),
-    }))
-    .filter((group) => group.tasks.length),
+  groupBriefTasks(
+    store.tasks,
+    store.sections,
+    FILTERS.find((filter) => filter.key === activeFilter.value).statuses,
+    activeSection.value,
+  ),
 )
 </script>
 <template>
@@ -55,8 +46,8 @@ const groups = computed(() =>
           >Раздел сайта</label
         ><select id="section-filter" v-model="activeSection">
           <option value="">Все разделы</option>
-          <option v-for="section in store.locationOptions" :key="section" :value="section">
-            {{ section }}
+          <option v-for="section in store.sectionOptions" :key="section.id" :value="section.id">
+            {{ section.name }}
           </option>
         </select>
       </div>
@@ -64,8 +55,9 @@ const groups = computed(() =>
     <div class="section-list">
       <SectionBlock
         v-for="group in groups"
-        :key="group.name"
+        :key="group.id"
         :name="group.name"
+        :position="group.position"
         :tasks="group.tasks"
       />
     </div>

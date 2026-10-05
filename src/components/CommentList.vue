@@ -11,7 +11,9 @@ defineProps({ comments: Array })
       /></span>
       <div class="comment-content">
         <div class="comment-heading">
-          <strong>{{ comment.author === 'developer' ? 'Разработчик' : 'Клиент' }}</strong
+          <strong>{{
+            comment.authorName || (comment.author === 'developer' ? 'Разработчик' : 'Клиент')
+          }}</strong
           ><time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
         </div>
         <p>{{ comment.text }}</p>

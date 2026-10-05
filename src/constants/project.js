@@ -25,7 +25,8 @@ export const FILTERS = [
 export const STORAGE_KEY = 'project-brief:v1'
 export const STORAGE_VERSION = 1
 // Legacy projects only have section; newer ideas may describe any place or URL.
-export const getTaskLocation = (task) => task.location || task.section || ''
+export const getTaskLocation = (task) =>
+  task.location || (typeof task.section === 'string' ? task.section : task.section?.name) || ''
 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric',

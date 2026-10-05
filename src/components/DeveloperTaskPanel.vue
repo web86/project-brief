@@ -10,6 +10,20 @@ const emit = defineEmits(['clarify'])
 const store = useProjectStore()
 const currencySymbol = computed(() => getProjectCurrencySymbol(store.project))
 const errors = ref({})
+const structurePending = ref(false)
+const positionIndex = computed(() =>
+  store.sectionTasks(props.task.sectionId).findIndex((task) => task.id === props.task.id),
+)
+async function structureAction(operation) {
+  structurePending.value = true
+  try {
+    await operation()
+  } catch (cause) {
+    errors.value.structure = cause.message
+  } finally {
+    structurePending.value = false
+  }
+}
 function updateNumber(key, event) {
   const value = event.target.value === '' ? null : Number(event.target.value)
   if (
@@ -41,6 +55,42 @@ function updateNumber(key, event) {
           {{ status.label }}
         </option>
       </select>
+    </div>
+    <div class="field">
+      <label for="task-brief-section">Раздел ТЗ</label>
+      <select
+        id="task-brief-section"
+        :value="task.sectionId"
+        :disabled="structurePending || store.storageBlocked"
+        @change="structureAction(() => store.moveTask(task.id, $event.target.value))"
+      >
+        <option v-for="section in store.sectionOptions" :key="section.id" :value="section.id">
+          {{ section.position }}. {{ section.name }}
+        </option>
+      </select>
+      <div class="order-actions">
+        <button
+          class="button secondary"
+          aria-label="Переместить задачу выше"
+          :disabled="structurePending || store.storageBlocked || positionIndex <= 0"
+          @click="structureAction(() => store.reorderTask(task.id, 'up'))"
+        >
+          ↑ Выше
+        </button>
+        <button
+          class="button secondary"
+          aria-label="Переместить задачу ниже"
+          :disabled="
+            structurePending ||
+            store.storageBlocked ||
+            positionIndex >= store.sectionTasks(task.sectionId).length - 1
+          "
+          @click="structureAction(() => store.reorderTask(task.id, 'down'))"
+        >
+          ↓ Ниже
+        </button>
+      </div>
+      <p v-if="errors.structure" class="field-error" role="alert">{{ errors.structure }}</p>
     </div>
     <QuickStatusActions :task="task" @clarify="emit('clarify')" />
     <div class="developer-numbers">

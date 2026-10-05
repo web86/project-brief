@@ -1,3 +1,4 @@
+import { migrateLocalStructure } from '../utils/structure.js'
 export function createDemoData() {
   const ago = (days, hours = 0) =>
     new Date(Date.now() - (days * 24 + hours) * 3600000).toISOString()
@@ -152,7 +153,7 @@ export function createDemoData() {
       createdAt: ago(0, 3),
     },
   ]
-  return {
+  return migrateLocalStructure({
     project: {
       id: 'project-brief',
       name: 'Редизайн интернет-магазина',
@@ -163,5 +164,5 @@ export function createDemoData() {
     sections: ['Главная', 'Каталог', 'Карточка товара', 'Контакты', 'Общее'],
     tasks,
     currentMode: 'client',
-  }
+  })
 }

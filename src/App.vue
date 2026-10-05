@@ -28,6 +28,7 @@ watch(
       store.admin = null
       store.tasks = []
       store.developerDrafts = {}
+      store.currentClient = null
       router.replace(destination)
     }
   },
@@ -66,6 +67,9 @@ watch(
           <RouterLink to="/admin">Проекты</RouterLink
           ><button class="text-button" @click="logout">Выйти</button>
         </nav>
+        <span v-else-if="store.currentClient" class="current-client-name">{{
+          store.currentClient.name
+        }}</span>
       </div>
     </header>
     <div class="workspace">

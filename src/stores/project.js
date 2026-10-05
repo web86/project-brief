@@ -11,6 +11,15 @@ import {
   STORAGE_VERSION,
 } from '../constants/project.js'
 
+import {
+  canonicalOrder,
+  sectionForTask,
+  taskNumber,
+  migrateLocalStructure,
+  normalizePositions,
+  swapPosition,
+} from '../utils/structure.js'
+
 const timestamp = () => new Date().toISOString()
 const uuid = () => crypto.randomUUID()
 const validDate = (value) => typeof value === 'string' && Number.isFinite(Date.parse(value))
@@ -30,6 +39,23 @@ const validAttachment = (file) =>
 
 // Validate the entire snapshot before replacing any reactive state.
 export function isValidSnapshot(data) {
+  if (!Array.isArray(data?.sections) || !Array.isArray(data?.tasks)) return false
+  const canonical = data.sections.every((section) => section && typeof section === 'object')
+  const legacy = data.sections.every(isText)
+  if (!canonical && !legacy) return false
+  if (
+    canonical &&
+    (new Set(data.sections.map((section) => section.id)).size !== data.sections.length ||
+      new Set(data.sections.map((section) => section.position)).size !== data.sections.length ||
+      new Set(
+        data.tasks
+          .filter((task) => task?.sectionId)
+          .map((task) => `${task.sectionId}:${task.position}`),
+      ).size !== data.tasks.filter((task) => task?.sectionId).length)
+  )
+    return false
+  if (data.tasks.some((task) => !!task?.sectionId !== Number.isInteger(task?.position)))
+    return false
   return (
     data?.version === STORAGE_VERSION &&
     data.project &&
@@ -39,7 +65,15 @@ export function isValidSnapshot(data) {
     isText(data.project.description) &&
     (data.project.currency === undefined || isText(data.project.currency)) &&
     Array.isArray(data.sections) &&
-    data.sections.every(isText) &&
+    data.sections.every(
+      (section) =>
+        isText(section) ||
+        (section &&
+          isText(section.id) &&
+          isText(section.name) &&
+          Number.isInteger(section.position) &&
+          section.position > 0),
+    ) &&
     ['client', 'developer'].includes(data.currentMode) &&
     Array.isArray(data.tasks) &&
     new Set(data.tasks.map((task) => task?.id)).size === data.tasks.length &&
@@ -48,7 +82,13 @@ export function isValidSnapshot(data) {
         task &&
         isText(task.id) &&
         isText(task.title) &&
-        (task.section === undefined || isText(task.section)) &&
+        (task.section === undefined ||
+          isText(task.section) ||
+          (task.section && isText(task.section.name))) &&
+        (task.sectionId === undefined ||
+          (isText(task.sectionId) &&
+            data.sections.some((section) => section.id === task.sectionId))) &&
+        (task.position === undefined || (Number.isInteger(task.position) && task.position > 0)) &&
         (task.location === undefined || isText(task.location)) &&
         isText(getTaskLocation(task)) &&
         !!getTaskLocation(task).trim() &&
@@ -97,6 +137,7 @@ export const useProjectStore = defineStore('project', () => {
   const currentMode = ref(demo.currentMode)
   const apiMode = API_MODE
   const admin = ref(null)
+  const currentClient = ref(null)
   const apiError = ref('')
   const sessionLost = ref(false)
   const apiLoading = ref(false)
@@ -161,10 +202,12 @@ export const useProjectStore = defineStore('project', () => {
     sessionLost.value = false
     try {
       if (asAdmin) {
+        currentClient.value = null
         const result = await api.request('/api/admin/me')
         admin.value = result.user
       } else {
         admin.value = null
+        currentClient.value = await api.request('/api/client/me')
         developerDrafts.value = {}
       }
       await flushDeveloperData()
@@ -220,9 +263,15 @@ export const useProjectStore = defineStore('project', () => {
     return mutateTask(id, '/attachments', 'POST', body)
   }
   const locationOptions = computed(() => [
-    ...new Set([...sections.value, ...tasks.value.map(getTaskLocation)]),
+    ...new Set([
+      ...sections.value.map((section) => section.name),
+      ...tasks.value.map(getTaskLocation),
+    ]),
   ])
-  const sectionOptions = locationOptions
+  const sectionOptions = computed(() => canonicalOrder(sections.value))
+  const numberForTask = (task) => taskNumber(task, sections.value)
+  const taskSection = (task) => sectionForTask(task, sections.value)
+  const sectionTasks = (id) => canonicalOrder(tasks.value.filter((task) => task.sectionId === id))
   const counts = computed(() =>
     Object.fromEntries(
       FILTERS.map((filter) => [
@@ -272,6 +321,7 @@ export const useProjectStore = defineStore('project', () => {
       if (raw !== null) {
         const data = JSON.parse(raw)
         if (!isValidSnapshot(data)) throw new Error('Invalid saved project')
+        migrateLocalStructure(data)
         project.value = data.project
         sections.value = data.sections
         tasks.value = data.tasks
@@ -320,12 +370,23 @@ export const useProjectStore = defineStore('project', () => {
       (!Array.isArray(input.attachments) || !input.attachments.every(validAttachment))
     )
       throw new Error('Проверьте прикреплённые файлы.')
+    let section = sections.value.find((item) => item.name === 'Общее')
+    if (!section) {
+      section = {
+        id: uuid(),
+        name: 'Общее',
+        position: Math.max(0, ...sections.value.map((item) => item.position)) + 1,
+      }
+      sections.value.push(section)
+    }
     const createdAt = timestamp()
     const task = {
       id: uuid(),
       title: input.title.trim().slice(0, 160),
       location: location.trim(),
-      section: location.trim(),
+      section: section.name,
+      sectionId: section.id,
+      position: Math.max(0, ...sectionTasks(section.id).map((item) => item.position)) + 1,
       description: input.description.trim().slice(0, 10000),
       expectedResult: (input.expectedResult || '').trim().slice(0, 10000),
       priority: input.priority,
@@ -371,7 +432,7 @@ export const useProjectStore = defineStore('project', () => {
       const location = 'location' in safe ? safe.location : safe.section
       if (!isText(location) || !location.trim()) return false
       safe.location = location.trim()
-      safe.section = location.trim()
+      delete safe.section
     }
     const candidate = { ...task, ...safe }
     if (
@@ -489,6 +550,51 @@ export const useProjectStore = defineStore('project', () => {
     return true
   }
 
+  async function moveTask(id, sectionId) {
+    if (!isDeveloper.value || storageBlocked.value) return false
+    if (API_MODE) {
+      await flushDeveloperData()
+      if (!(await mutateTask(id, '/move', 'POST', { sectionId }))) return false
+      await loadApiProject(project.value.id, true)
+      return true
+    }
+    const task = findTask(id)
+    const section = sections.value.find((item) => item.id === sectionId)
+    if (!task || !section || task.sectionId === sectionId) return false
+    const previous = numberForTask(task)
+    const oldSection = task.sectionId
+    task.sectionId = sectionId
+    task.position =
+      Math.max(
+        0,
+        ...sectionTasks(sectionId)
+          .filter((item) => item.id !== id)
+          .map((item) => item.position),
+      ) + 1
+    normalizePositions(sectionTasks(oldSection))
+    normalizePositions(sectionTasks(sectionId))
+    addHistory(
+      task,
+      'section_moved',
+      `Разработчик переместил задачу в раздел «${section.name}»: ${previous} → ${numberForTask(task)}`,
+    )
+    return true
+  }
+  async function reorderTask(id, direction) {
+    if (!isDeveloper.value || storageBlocked.value || !['up', 'down'].includes(direction))
+      return false
+    if (API_MODE) {
+      await flushDeveloperData()
+      if (!(await mutateTask(id, '/reorder', 'POST', { direction }))) return false
+      await loadApiProject(project.value.id, true)
+      return true
+    }
+    const task = findTask(id)
+    if (!task || !swapPosition(sectionTasks(task.sectionId), id, direction)) return false
+    addHistory(task, 'reordered', `Разработчик изменил порядок задачи: ${numberForTask(task)}`)
+    return true
+  }
+
   function setMode(mode) {
     if (API_MODE) return
     if (['client', 'developer'].includes(mode)) currentMode.value = mode
@@ -505,6 +611,7 @@ export const useProjectStore = defineStore('project', () => {
   return {
     apiMode,
     admin,
+    currentClient,
     apiError,
     sessionLost,
     apiLoading,
@@ -525,6 +632,11 @@ export const useProjectStore = defineStore('project', () => {
     initialized,
     isDeveloper,
     sectionOptions,
+    numberForTask,
+    taskSection,
+    sectionTasks,
+    moveTask,
+    reorderTask,
     locationOptions,
     counts,
     progress,

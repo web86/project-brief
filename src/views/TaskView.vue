@@ -33,7 +33,9 @@ function focusClarification() {
       ><AppIcon name="arrow" :size="17" />Назад к проекту</RouterLink
     >
     <header class="task-heading">
+      <p class="brief-number">Задача {{ store.numberForTask(task) }}</p>
       <h1>{{ task.title }}</h1>
+      <p class="task-section-name">{{ store.taskSection(task)?.name }}</p>
       <p class="task-location" :title="getTaskLocation(task)">{{ getTaskLocation(task) }}</p>
       <div class="task-heading-row">
         <div class="task-heading-meta">

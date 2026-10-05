@@ -188,7 +188,7 @@ test('legacy version 1 data loads without migration or changes to existing ideas
   assert.equal(restored.findTask('demo-5').comments.length, 2)
 })
 
-test('custom locations and complete URLs persist and become grouping/filter options', () => {
+test('custom locations and URLs persist independently of their organizational section', () => {
   const store = createStore()
   const url =
     'https://example.com/catalog/' + 'product-name/'.repeat(35) + '?color=green&size=large#photos'
@@ -196,7 +196,7 @@ test('custom locations and complete URLs persist and become grouping/filter opti
   const ids = values.map((location) => store.addTask({ ...idea(), location }))
   values.forEach((location, index) => {
     assert.equal(getTaskLocation(store.findTask(ids[index])), location)
-    assert.equal(store.findTask(ids[index]).section, location)
+    assert.equal(store.taskSection(store.findTask(ids[index])).name, 'Общее')
     assert.ok(store.locationOptions.includes(location))
   })
   store.updateTask(ids[0], { location: 'Мобильное меню' })
@@ -330,4 +330,84 @@ test('legacy currency falls back to rubles; configured project currency persists
   const snapshot = JSON.parse(storage.getItem(STORAGE_KEY))
   snapshot.project.currency = 100
   assert.equal(isValidSnapshot(snapshot), false)
+})
+
+test('legacy sections migrate once without using URLs or changing existing task content', () => {
+  const initial = createStore()
+  const data = JSON.parse(storage.getItem(STORAGE_KEY))
+  data.sections = data.sections.map((section) => section.name)
+  data.tasks.forEach((task, index) => {
+    delete task.sectionId
+    delete task.position
+    task.location = `https://example.com/page/${index}`
+  })
+  const original = JSON.parse(JSON.stringify(data.tasks))
+  storage.setItem(STORAGE_KEY, JSON.stringify(data))
+  setActivePinia(createPinia())
+  const restored = createStore()
+  assert.equal(restored.storageBlocked, false)
+  assert.ok(restored.sections.every((section) => section.id && Number.isInteger(section.position)))
+  restored.tasks.forEach((task, index) => {
+    const { sectionId, position, ...unchanged } = JSON.parse(JSON.stringify(task))
+    assert.deepEqual(unchanged, original[index])
+    assert.equal(restored.taskSection(task).name, original[index].section)
+    assert.ok(restored.numberForTask(task))
+  })
+  const once = JSON.parse(storage.getItem(STORAGE_KEY))
+  setActivePinia(createPinia())
+  createStore()
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)), once)
+  assert.equal(initial.tasks.length, restored.tasks.length)
+})
+
+test('status and filters preserve canonical numbers; explicit moves and reorders update them', async () => {
+  const { groupBriefTasks } = await import('../src/utils/structure.js')
+  const store = createStore()
+  store.setMode('developer')
+  const general = store.sections.find((section) => section.name === 'Общее')
+  const main = store.sections.find((section) => section.name === 'Главная')
+  const first = store.findTask(store.addTask(idea()))
+  const second = store.findTask(store.addTask(idea()))
+  const before = store.numberForTask(first)
+  store.changeStatus(first.id, 'done')
+  const groups = groupBriefTasks(
+    store.tasks,
+    store.sections,
+    Object.keys((await import('../src/constants/project.js')).STATUSES),
+  )
+  assert.equal(groups.find((group) => group.id === general.id).tasks.at(-1).id, first.id)
+  const doneOnly = groupBriefTasks(store.tasks, store.sections, ['done'], general.id)
+  assert.equal(store.numberForTask(doneOnly[0].tasks[0]), before)
+  assert.equal(store.numberForTask(first), before)
+  await store.reorderTask(second.id, 'up')
+  assert.equal(store.numberForTask(second), before)
+  assert.notEqual(store.numberForTask(first), before)
+  await store.moveTask(second.id, main.id)
+  assert.equal(store.taskSection(second).name, 'Главная')
+  assert.equal(second.position, store.sectionTasks(main.id).length)
+  assert.deepEqual(
+    store.sectionTasks(general.id).map((task) => task.position),
+    [1],
+  )
+  assert.equal(second.history.at(-1).type, 'section_moved')
+  const persistedNumber = store.numberForTask(second)
+  setActivePinia(createPinia())
+  const restored = createStore()
+  assert.equal(restored.numberForTask(restored.findTask(second.id)), persistedNumber)
+  restored.setMode('client')
+  assert.equal(await restored.moveTask(second.id, general.id), false)
+})
+
+test('invalid canonical section references and duplicate positions cannot overwrite saved data', () => {
+  createStore()
+  const data = JSON.parse(storage.getItem(STORAGE_KEY))
+  data.tasks[0].sectionId = 'foreign-section'
+  assert.equal(isValidSnapshot(data), false)
+  const valid = JSON.parse(storage.getItem(STORAGE_KEY))
+  valid.sections[1].position = valid.sections[0].position
+  assert.equal(isValidSnapshot(valid), false)
+  storage.setItem(STORAGE_KEY, JSON.stringify(data))
+  setActivePinia(createPinia())
+  assert.equal(createStore().storageBlocked, true)
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)), data)
 })

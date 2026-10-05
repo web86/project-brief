@@ -16,6 +16,7 @@ defineProps({ task: { type: Object, required: true } })
     <div class="card-top">
       <TaskStatus :status="task.status" /><AppIcon class="card-arrow" name="chevron" :size="16" />
     </div>
+    <span class="brief-number">{{ store.numberForTask(task) }}</span>
     <h3>{{ task.title }}</h3>
     <p class="card-description">{{ task.description }}</p>
     <div class="card-section" :title="getTaskLocation(task)">{{ getTaskLocation(task) }}</div>

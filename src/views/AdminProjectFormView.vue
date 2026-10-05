@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import ProjectFields from '../components/ProjectFields.vue'
 const router = useRouter()
-const data = ref({ title: '', website: '', clientName: '', clientEmail: '', currency: 'RUB' })
+const data = ref({ title: '', website: '', currency: 'RUB' })
 const errors = ref({})
 const error = ref('')
 const pending = ref(false)

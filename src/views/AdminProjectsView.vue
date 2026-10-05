@@ -40,7 +40,6 @@ onMounted(load)
         <div>
           <h2>{{ project.name }}</h2>
           <p class="muted">{{ project.website || 'Адрес сайта не указан' }}</p>
-          <p>{{ project.clientName || 'Клиент пока не указан' }}</p>
           <p class="small muted">
             {{ project.doneCount }} из {{ project.tasksCount }} идей готово ·
             {{ project.status === 'active' ? 'Активен' : 'Неактивен' }}
@@ -50,7 +49,7 @@ onMounted(load)
           <RouterLink :to="`/admin/projects/${project.id}/brief`" class="button primary"
             >Открыть</RouterLink
           ><RouterLink :to="`/admin/projects/${project.id}#client-access`" class="button secondary"
-            >Ссылка клиента</RouterLink
+            >Клиенты</RouterLink
           ><RouterLink :to="`/admin/projects/${project.id}`" class="text-button"
             >Настройки</RouterLink
           >
