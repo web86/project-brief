@@ -5,7 +5,7 @@ defineProps({ done: Number, total: Number, progress: Number })
   <div class="project-progress">
     <div class="progress-copy">
       <span
-        ><strong>{{ done }}</strong> из {{ total }} задач выполнено</span
+        ><strong>{{ done }}</strong> из {{ total }} выполнено</span
       ><strong>{{ progress }}%</strong>
     </div>
     <div

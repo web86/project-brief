@@ -28,11 +28,6 @@ watch(
       </div>
     </header>
     <div class="workspace">
-      <nav class="workspace-nav" aria-label="Навигация проекта">
-        <RouterLink to="/" class="workspace-link"
-          ><AppIcon name="grid" :size="17" />Мой проект</RouterLink
-        ><span class="workspace-caption">Место для ваших идей</span>
-      </nav>
       <div v-if="store.storageError" class="storage-warning" role="alert">
         <AppIcon name="info" :size="22" />
         <div>

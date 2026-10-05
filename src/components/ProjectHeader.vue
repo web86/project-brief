@@ -7,9 +7,7 @@ const store = useProjectStore()
 <template>
   <header class="project-header">
     <div class="project-intro">
-      <div class="eyebrow"><span class="tiny-dot" /> ВАШ ПРОЕКТ</div>
       <h1>{{ store.project.name }}</h1>
-      <p>{{ store.project.description }}</p>
       <span class="website-label"
         ><AppIcon name="globe" :size="15" />{{ store.project.website }}</span
       >
@@ -20,7 +18,7 @@ const store = useProjectStore()
         :total="store.counts.all"
         :progress="store.progress"
       /><RouterLink to="/task/new" class="button primary"
-        ><AppIcon name="plus" :size="19" />Хочу что-то изменить</RouterLink
+        ><AppIcon name="plus" :size="19" />Добавить идею</RouterLink
       >
     </div>
   </header>
