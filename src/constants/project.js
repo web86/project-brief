@@ -27,12 +27,16 @@ export const STORAGE_VERSION = 1
 export const OTHER_SECTION = 'Другое'
 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
-  day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
 })
 export const formatDate = (value) => dateFormatter.format(new Date(value))
-export const formatSize = (bytes) => bytes < 1024 * 1024
-  ? `${Math.max(1, Math.round(bytes / 1024))} КБ`
-  : `${(bytes / 1024 / 1024).toFixed(1)} МБ`
+export const formatSize = (bytes) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} КБ`
+    : `${(bytes / 1024 / 1024).toFixed(1)} МБ`
 
 export function pluralize(count, forms = ['идея', 'идеи', 'идей']) {
   const lastTwo = count % 100

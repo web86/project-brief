@@ -1,5 +1,8 @@
 <script setup>
-defineProps({ name: { type: String, required: true }, size: { type: [Number, String], default: 20 } })
+defineProps({
+  name: { type: String, required: true },
+  size: { type: [Number, String], default: 20 },
+})
 const paths = {
   plus: 'M12 5v14M5 12h14',
   arrow: 'M19 12H5m6-6-6 6 6 6',
@@ -29,5 +32,17 @@ const paths = {
 </script>
 
 <template>
-  <svg :width="size" :height="size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="paths[name] || paths.file" /></svg>
+  <svg
+    :width="size"
+    :height="size"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path :d="paths[name] || paths.file" />
+  </svg>
 </template>

@@ -4,7 +4,12 @@ export function createIdeaAssistant(adapter) {
   return {
     async help(description) {
       if (adapter) return adapter({ description, allowSplit: true })
-      return { mode: 'demo', message: 'Позже здесь AI сможет превратить ваше описание в понятную структурированную задачу.', suggestedIdeas: [] }
+      return {
+        mode: 'demo',
+        message:
+          'Позже здесь AI сможет превратить ваше описание в понятную структурированную задачу.',
+        suggestedIdeas: [],
+      }
     },
   }
 }
