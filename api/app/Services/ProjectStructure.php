@@ -27,9 +27,26 @@ class ProjectStructure
             ?? $project->briefSections()->create(['name' => 'Общее', 'position' => ($project->briefSections()->max('position') ?? 0) + 1]);
     }
 
-    public static function assignNewTask(Project $project, Task $task): void
+    public static function namedSection(Project $project, string $name): ProjectSection
     {
-        $section = self::defaultSection($project);
+        $name = trim($name);
+        $section = $project->briefSections()->where('name', $name)->get()->first(fn ($section) => trim($section->name) === $name);
+
+        return $section ?? $project->briefSections()->create(['name' => $name, 'position' => ($project->briefSections()->max('position') ?? 0) + 1]);
+    }
+
+    public static function normalizeProject(Project $project): void
+    {
+        self::normalize($project->briefSections()->get());
+        foreach ($project->briefSections()->get() as $section) {
+            self::normalize($section->tasks()->orderBy('position')->orderBy('id')->get());
+        }
+    }
+
+    public static function assignNewTask(Project $project, Task $task, string $name): void
+    {
+        self::normalizeProject($project);
+        $section = self::namedSection($project, $name);
         $task->forceFill(['project_section_id' => $section->id, 'position' => ($section->tasks()->max('position') ?? 0) + 1])->save();
     }
 
@@ -38,7 +55,10 @@ class ProjectStructure
     {
         $position = 0;
         foreach ($items as $item) {
-            $item->forceFill(['position' => ++$position])->save();
+            $position++;
+            if ($item->position !== $position) {
+                $item->forceFill(['position' => $position])->save();
+            }
         }
     }
 
@@ -49,6 +69,7 @@ class ProjectStructure
             $sections = $project->briefSections()->get()->all();
             self::swap($sections, $section->id, $direction);
             self::normalize($sections);
+            self::normalizeProject($project);
         }, 3);
     }
 
@@ -70,6 +91,7 @@ class ProjectStructure
         return DB::transaction(function () use ($request, $uuid, $target, $project): Task {
             self::lock($project);
             $task = TaskAccess::task($request, $uuid, true);
+            self::normalizeProject($project);
             $section = self::section($project, $target);
             if ($task->project_section_id === $section->id) {
                 return $task;
@@ -94,6 +116,8 @@ class ProjectStructure
         return DB::transaction(function () use ($request, $uuid, $direction, $project): Task {
             self::lock($project);
             $task = TaskAccess::task($request, $uuid, true);
+            self::normalizeProject($project);
+            $task->refresh();
             if (! $task->project_section_id) {
                 throw ValidationException::withMessages(['sectionId' => 'Сначала назначьте раздел.']);
             }

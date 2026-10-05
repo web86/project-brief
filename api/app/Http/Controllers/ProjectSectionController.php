@@ -22,6 +22,7 @@ class ProjectSectionController extends Controller
         $data = $request->validate(['name' => ['required', 'string', 'max:2048', 'regex:/\S/u']]);
         DB::transaction(function () use ($project, $data): void {
             ProjectStructure::lock($project);
+            ProjectStructure::normalizeProject($project);
             $project->briefSections()->create(['name' => trim($data['name']), 'position' => ($project->briefSections()->max('position') ?? 0) + 1]);
         }, 3);
 

@@ -29,6 +29,11 @@ class Task extends Model
         return 'uuid';
     }
 
+    public function isClientEditable(): bool
+    {
+        return ! $this->client_approved && in_array($this->status, ['new', 'clarification']);
+    }
+
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

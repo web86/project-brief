@@ -20,7 +20,7 @@ class TaskRequest extends FormRequest
         $required = $this->isMethod('POST') ? 'required' : 'sometimes';
         $rules = ['title' => [$required, 'string', 'max:160'], 'location' => [$required, 'string', 'max:2048'],
             'description' => [$required, 'string', 'max:10000'], 'expectedResult' => ['nullable', 'string', 'max:10000'],
-            'priority' => [$required, Rule::in(['low', 'normal', 'high'])]];
+            'priority' => [$required, Rule::in(['low', 'normal', 'high'])], 'section' => ['sometimes', 'string', 'max:2048', 'regex:/\S/u']];
         if (TaskAccess::isAdmin($this)) {
             $rules += ['status' => ['sometimes', Rule::in(array_keys(TaskAudit::STATUSES))],
                 'estimateHours' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'], 'price' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
@@ -48,7 +48,7 @@ class TaskRequest extends FormRequest
         $map = ['expectedResult' => 'expected_result', 'estimateHours' => 'estimate_hours', 'developerNotes' => 'developer_notes'];
         $result = [];
         foreach ($this->validated() as $key => $value) {
-            if ($key !== 'attachments') {
+            if (! in_array($key, ['attachments', 'section'])) {
                 $result[$map[$key] ?? $key] = $value;
             }
         }

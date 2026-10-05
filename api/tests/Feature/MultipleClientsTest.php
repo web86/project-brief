@@ -77,12 +77,12 @@ class MultipleClientsTest extends TestCase
         $this->sessionFor($annaToken);
         $this->postJson('/api/client/tasks/'.$task->uuid.'/comments', ['text' => 'From Anna'])->assertOk()->assertJsonPath('data.comments.1.authorName', 'Anna Smith');
         $this->postJson('/api/client/tasks/'.$task->uuid.'/comments', ['text' => 'Spoof', 'project_client_id' => $john->id])->assertUnprocessable();
+        $this->post('/api/client/tasks/'.$task->uuid.'/attachments', ['attachments' => [UploadedFile::fake()->create('example.txt', 1, 'text/plain')], 'project_client_id' => $john->id], ['Accept' => 'application/json'])->assertOk();
+        $this->assertDatabaseHas('attachments', ['task_id' => $task->id, 'project_client_id' => $anna->id]);
         $this->postJson('/api/client/tasks/'.$task->uuid.'/approve')->assertOk();
         $this->assertDatabaseHas('task_history', ['task_id' => $task->id, 'event_type' => 'approved', 'project_client_id' => $anna->id]);
         $created = $this->postJson('/api/client/tasks', ['title' => 'Anna idea', 'location' => 'Mobile menu', 'description' => 'Describe', 'priority' => 'normal'])->assertCreated()->json('data.id');
         $this->assertDatabaseHas('task_history', ['task_id' => Task::where('uuid', $created)->first()->id, 'event_type' => 'created', 'project_client_id' => $anna->id]);
-        $this->post('/api/client/tasks/'.$task->uuid.'/attachments', ['attachments' => [UploadedFile::fake()->create('example.txt', 1, 'text/plain')], 'project_client_id' => $john->id], ['Accept' => 'application/json'])->assertOk();
-        $this->assertDatabaseHas('attachments', ['task_id' => $task->id, 'project_client_id' => $anna->id]);
         $task->comments()->create(['author_type' => 'client', 'text' => 'Legacy']);
         $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.comments.2.authorName', 'Клиент');
         $this->assertStringNotContainsString('@example.com', $response->getContent());

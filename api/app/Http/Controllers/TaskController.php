@@ -6,9 +6,11 @@ use App\Http\Requests\TaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Services\AttachmentStorage;
+use App\Services\ClientTaskDeletion;
 use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
 use App\Services\TaskAudit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +28,7 @@ class TaskController extends Controller
             $owner = TaskAccess::project($request, $project);
             ProjectStructure::lock($owner);
             $task = $owner->tasks()->create($request->taskData());
-            ProjectStructure::assignNewTask($owner, $task);
+            ProjectStructure::assignNewTask($owner, $task, $request->validated('section') ?? $task->location);
             TaskAudit::record($request, $task, 'created', (TaskAccess::isAdmin($request) ? 'Разработчик' : 'Клиент').' добавил новую идею');
 
             AttachmentStorage::storeFiles($request, $task, $paths);
@@ -44,9 +46,20 @@ class TaskController extends Controller
 
     public function update(TaskRequest $request, string $task): TaskResource
     {
-        DB::transaction(function () use ($request, $task) {
+        $owner = TaskAccess::task($request, $task)->project;
+        DB::transaction(function () use ($request, $task, $owner) {
+            ProjectStructure::lock($owner);
             $model = TaskAccess::task($request, $task, true);
-            abort_unless(TaskAccess::isAdmin($request) || in_array($model->status, ['new', 'clarification']), 403, 'Эта идея уже в работе. Обсудите изменения в комментариях.');
+            abort_unless(TaskAccess::isAdmin($request) || $model->isClientEditable(), 403, 'Эта идея уже в работе. Обсудите изменения в комментариях.');
+            $name = $request->validated('section') ?? (! TaskAccess::isAdmin($request) ? $request->validated('location') : null);
+            $sectionChanged = false;
+            if ($name !== null) {
+                $section = ProjectStructure::namedSection($owner, $name);
+                if ($section->id !== $model->project_section_id) {
+                    $model->forceFill(['project_section_id' => $section->id, 'position' => ($section->tasks()->max('position') ?? 0) + 1]);
+                    $sectionChanged = true;
+                }
+            }
             $model->fill($request->taskData());
             $dirty = $model->getDirty();
             $original = $model->getRawOriginal();
@@ -70,13 +83,23 @@ class TaskController extends Controller
                 };
                 TaskAudit::record($request, $model, $type, $text, $field === 'developer_notes' ? null : (is_null($old) ? null : (string) $old), $field === 'developer_notes' ? null : (is_null($new) ? null : (string) $new));
             }
-            if (array_intersect(array_keys($dirty), ['title', 'location', 'section', 'description', 'expected_result', 'priority'])) {
+            if ($sectionChanged) {
+                ProjectStructure::normalizeProject($owner);
+            }
+            if ($sectionChanged || array_intersect(array_keys($dirty), ['title', 'location', 'section', 'description', 'expected_result', 'priority'])) {
                 TaskAudit::record($request, $model, 'updated', 'Описание идеи обновлено');
             }
             $model->save();
         });
 
         return $this->show($request, $task);
+    }
+
+    public function destroy(Request $request, string $task): JsonResponse
+    {
+        ClientTaskDeletion::delete($request, $task);
+
+        return response()->json(['deleted' => true]);
     }
 
     public function approve(Request $request, string $task): TaskResource

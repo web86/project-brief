@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
@@ -53,7 +54,8 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
 });
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
-    Route::get('/me', fn (Request $r) => response()->json(['id' => $r->attributes->get('project_client')->uuid, 'name' => $r->attributes->get('project_client')->name, 'email' => $r->attributes->get('project_client')->email, 'project' => new ProjectResource($r->attributes->get('client_project'))]));
+    Route::get('/me', fn (Request $r) => response()->json(['id' => $r->attributes->get('project_client')->uuid, 'name' => $r->attributes->get('project_client')->name, 'email' => $r->attributes->get('project_client')->email, 'preferredLocale' => $r->attributes->get('project_client')->preferred_locale, 'project' => new ProjectResource($r->attributes->get('client_project'))]));
+    Route::patch('/me/locale', [ClientLocaleController::class, 'update']);
     Route::get('/project', fn (Request $r) => new ProjectResource($r->attributes->get('client_project')));
     Route::get('/project/{project}', fn (Project $project) => new ProjectResource($project));
     Route::get('/project/{project}/sections', fn (Project $project) => response()->json(['data' => $project->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))]));
@@ -72,6 +74,7 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::post('/tasks', [TaskController::class, 'store'])->middleware('throttle:uploads');
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::patch('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
     Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);
 });
 

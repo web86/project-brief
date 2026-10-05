@@ -42,8 +42,8 @@ class ProjectStructureTest extends TestCase
         $this->assertDatabaseHas('task_history', ['task_id' => $second->id, 'event_type' => 'section_moved', 'old_value' => '1.1', 'new_value' => '2.2']);
         $this->patchJson('/api/admin/projects/'.$project->uuid.'/sections/'.$catalog->uuid, ['direction' => 'up'])->assertOk();
         $this->getJson('/api/admin/tasks/'.$second->uuid)->assertOk()->assertJsonPath('data.displayNumber', '1.2');
-        $this->postJson('/api/admin/projects/'.$project->uuid.'/tasks', ['title' => 'New', 'location' => 'Mobile menu', 'description' => 'Describe', 'priority' => 'normal'])->assertCreated()->assertJsonPath('data.section.name', 'Общее')->assertJsonPath('data.position', 1);
-        $this->postJson('/api/admin/projects/'.$project->uuid.'/tasks', ['title' => 'Next', 'location' => 'https://example.com', 'description' => 'Describe', 'priority' => 'normal'])->assertCreated()->assertJsonPath('data.position', 2);
+        $this->postJson('/api/admin/projects/'.$project->uuid.'/tasks', ['title' => 'New', 'location' => 'Mobile menu', 'description' => 'Describe', 'priority' => 'normal'])->assertCreated()->assertJsonPath('data.section.name', 'Mobile menu')->assertJsonPath('data.position', 1);
+        $this->postJson('/api/admin/projects/'.$project->uuid.'/tasks', ['title' => 'Next', 'location' => 'Mobile menu', 'description' => 'Describe', 'priority' => 'normal'])->assertCreated()->assertJsonPath('data.position', 2);
     }
 
     public function test_section_management_is_scoped_and_nonempty_sections_cannot_be_deleted(): void

@@ -17,6 +17,7 @@ class AttachmentController extends Controller
     {
         $model = AttachmentStorage::atomic(function (array &$paths) use ($request, $task) {
             $model = TaskAccess::task($request, $task, true);
+            abort_unless(TaskAccess::isAdmin($request) || $model->isClientEditable(), 403);
             AttachmentStorage::storeFiles($request, $model, $paths);
 
             return $model;
