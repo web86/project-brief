@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue'
-import { FILE_ACCEPT, MAX_FILES, prepareAttachment } from '../utils/attachments'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { FILE_ACCEPT, MAX_FILES, getPastedImages, prepareAttachment } from '../utils/attachments'
 import { formatSize } from '../constants/project'
 import AppIcon from './AppIcon.vue'
 const props = defineProps({ modelValue: { type: Array, default: () => [] } })
@@ -9,6 +9,7 @@ const input = ref(null)
 const dragging = ref(false)
 const pending = ref(false)
 const errors = ref([])
+const pastedNotice = ref('')
 async function addFiles(files) {
   if (pending.value) return
   errors.value = []
@@ -39,6 +40,24 @@ function drop(event) {
   dragging.value = false
   addFiles(event.dataTransfer.files)
 }
+function paste(event) {
+  if (event.defaultPrevented || document.querySelector('dialog[open]')) return
+  const images = getPastedImages(event.clipboardData)
+  if (!images.length) return
+  event.preventDefault()
+  if (pending.value) {
+    errors.value = ['Подождите, пока обработаются выбранные файлы, и вставьте изображение ещё раз.']
+    return
+  }
+  pastedNotice.value = ''
+  const previousCount = props.modelValue.length
+  addFiles(images).then(() => {
+    if (props.modelValue.length > previousCount)
+      pastedNotice.value = 'Изображение из буфера добавлено.'
+  })
+}
+onMounted(() => document.addEventListener('paste', paste))
+onBeforeUnmount(() => document.removeEventListener('paste', paste))
 </script>
 <template>
   <div class="file-uploader">
@@ -54,8 +73,9 @@ function drop(event) {
         <button type="button" class="text-button" :disabled="pending" @click="input.click()">
           {{ pending ? 'Обрабатываем файлы…' : 'Выберите файлы' }}
         </button>
-        <span>или перетащите их сюда</span>
+        <span>или перетащите сюда</span>
       </p>
+      <span class="paste-hint">Скриншот можно вставить: Ctrl+V / ⌘V</span>
       <span class="small muted">Изображения, PDF, DOC, DOCX, TXT, ZIP · до 20 МБ</span
       ><label class="sr-only" for="idea-files">Выберите примеры или скриншоты</label
       ><input
@@ -98,9 +118,7 @@ function drop(event) {
       </li>
     </ul>
     <p v-for="error in errors" :key="error" class="field-error" role="alert">{{ error }}</p>
-    <p class="field-help">
-      Для изображений сохраняется уменьшенное превью. Для остальных файлов — название и размер.
-      Оригиналы пока не загружаются.
-    </p>
+    <p class="field-help">Изображения — превью; остальные файлы — название и размер.</p>
+    <span class="sr-only" role="status" aria-live="polite">{{ pastedNotice }}</span>
   </div>
 </template>

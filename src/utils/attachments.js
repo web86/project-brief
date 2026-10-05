@@ -13,6 +13,23 @@ export const FILE_ACCEPT = ACCEPTED_EXTENSIONS.map((extension) => `.${extension}
 export const MAX_FILES = 10
 export const MAX_FILE_SIZE = 20 * 1024 * 1024
 
+// Read only the user's paste event; no clipboard permission or background reads.
+export function getPastedImages(clipboardData) {
+  const extensions = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+  return Array.from(clipboardData?.items || [])
+    .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+    .map((item) => item.getAsFile())
+    .filter(Boolean)
+    .map((file) => {
+      const extension = extensions[file.type]
+      if (!extension) return file
+      // Clipboard screenshots often share the name image.png and the same size.
+      // Give each paste a unique name so two different screenshots are not deduplicated.
+      const name = `Скриншот-${crypto.randomUUID().slice(0, 8)}.${extension}`
+      return new File([file], name, { type: file.type, lastModified: file.lastModified })
+    })
+}
+
 function readDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
