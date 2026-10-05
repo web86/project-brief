@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
 use App\Http\Resources\ProjectResource;
@@ -45,3 +46,6 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::patch('/tasks/{task}', [TaskController::class, 'update']);
     Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);
 });
+
+Route::post('/api/admin/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['admin', 'throttle:comments']);
+Route::post('/api/client/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['client', 'throttle:comments']);
