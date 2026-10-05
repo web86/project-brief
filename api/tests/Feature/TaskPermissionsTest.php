@@ -104,6 +104,24 @@ class TaskPermissionsTest extends TestCase
         $this->assertDatabaseHas('task_history', ['event_type' => 'status', 'old_value' => 'new', 'new_value' => 'in_progress']);
         $this->assertDatabaseCount('task_history', 4);
         $this->assertStringNotContainsString('private notes', $task->history()->get()->toJson());
-        $this->patchJson('/api/admin/tasks/'.$task->uuid,['status' => 'invalid'])->assertUnprocessable();
+        $this->patchJson('/api/admin/tasks/'.$task->uuid, ['status' => 'invalid'])->assertUnprocessable();
+    }
+
+    public function test_client_can_edit_clarification_and_rejected_creation_cannot_set_internal_fields(): void
+    {
+        $task = Task::factory()->create(['status' => 'clarification']);
+        $this->client($task->project);
+        $this->patchJson('/api/client/tasks/'.$task->uuid, ['description' => 'Уточнённое описание'])->assertOk()->assertJsonPath('data.description', 'Уточнённое описание');
+        $this->postJson('/api/client/tasks', ['title' => 'Подмена', 'location' => 'Главная', 'description' => 'Описание', 'priority' => 'normal', 'status' => 'done', 'price' => 99])->assertUnprocessable()->assertJsonValidationErrors(['status', 'price']);
+        $this->assertDatabaseCount('tasks', 1);
+    }
+
+    public function test_estimate_and_price_audit_retain_previous_values(): void
+    {
+        $task = Task::factory()->create(['estimate_hours' => 3, 'price' => 150]);
+        $this->actingAs(User::factory()->create());
+        $this->patchJson('/api/admin/tasks/'.$task->uuid, ['estimateHours' => 5, 'price' => 200])->assertOk();
+        $this->assertDatabaseHas('task_history', ['event_type' => 'estimate', 'old_value' => '3', 'new_value' => '5']);
+        $this->assertDatabaseHas('task_history', ['event_type' => 'price', 'old_value' => '150', 'new_value' => '200']);
     }
 }

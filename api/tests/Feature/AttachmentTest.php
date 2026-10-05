@@ -84,7 +84,26 @@ class AttachmentTest extends TestCase
         $this->post('/api/client/tasks/'.$task->uuid.'/attachments', ['attachments' => [$file]], ['Accept' => 'application/json'])->assertOk();
         $attachment = Attachment::first();
         $this->assertSame('danger.png', $attachment->original_name);
-        $this->assertStringStartsWith('attachments/'.$task->uuid.'/',$attachment->path);
-        $this->assertStringNotContainsString('..',$attachment->path);
+        $this->assertStringStartsWith('attachments/'.$task->uuid.'/', $attachment->path);
+        $this->assertStringNotContainsString('..', $attachment->path);
+    }
+
+    public function test_total_file_limit_is_enforced_across_multiple_requests(): void
+    {
+        Storage::fake('local');
+        $task = Task::factory()->create();
+        $this->client($task->project);
+        $files = [];
+        for ($i = 0; $i < 10; $i++) {
+            $files[] = UploadedFile::fake()->image('file-'.$i.'.png');
+        }
+        $this->post('/api/client/tasks/'.$task->uuid.'/attachments', ['attachments' => $files], ['Accept' => 'application/json'])->assertOk();
+        $this->post('/api/client/tasks/'.$task->uuid.'/attachments', ['attachments' => [UploadedFile::fake()->image('extra.png')]], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('attachments');
+        $this->assertDatabaseCount('attachments', 10);
+    }
+
+    public function test_unauthenticated_client_download_is_rejected_with_401(): void
+    {
+        $this->getJson('/api/client/attachments/00000000-0000-4000-8000-000000000000/download')->assertUnauthorized();
     }
 }

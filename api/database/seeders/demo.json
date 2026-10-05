@@ -1,0 +1,260 @@
+{
+  "project": {
+    "id": "project-brief",
+    "name": "Редизайн интернет-магазина",
+    "website": "example.com",
+    "currency": "RUB",
+    "description": "Делаем покупки проще, а сайт — ближе к вашим клиентам."
+  },
+  "sections": [
+    "Главная",
+    "Каталог",
+    "Карточка товара",
+    "Контакты",
+    "Общее"
+  ],
+  "tasks": [
+    {
+      "id": "demo-1",
+      "title": "Обновить первый экран",
+      "section": "Главная",
+      "description": "Хочется, чтобы с первого взгляда было понятно, что мы продаём и чем отличаемся. Сейчас на первом экране слишком много текста.",
+      "expectedResult": "Крупный заголовок, атмосферное фото и одна понятная кнопка «Смотреть коллекцию».",
+      "priority": "high",
+      "status": "in_progress",
+      "clientApproved": true,
+      "estimateHours": 5,
+      "price": 12500,
+      "developerNotes": "",
+      "comments": [],
+      "history": [
+        {
+          "id": "event-0",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-09-28T16:48:09.143Z"
+        }
+      ],
+      "createdAt": "2026-09-28T16:48:09.143Z",
+      "updatedAt": "2026-09-28T16:48:09.143Z"
+    },
+    {
+      "id": "demo-2",
+      "title": "Добавить отзывы покупателей",
+      "section": "Главная",
+      "description": "У нас много тёплых отзывов. Давайте покажем несколько из них на главной, чтобы новым покупателям было проще нам довериться.",
+      "expectedResult": "Небольшой блок с реальными отзывами и именами покупателей.",
+      "priority": "normal",
+      "status": "approved",
+      "clientApproved": true,
+      "estimateHours": 3,
+      "price": 7500,
+      "developerNotes": "",
+      "comments": [],
+      "history": [
+        {
+          "id": "event-1",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-09-28T15:48:09.150Z"
+        }
+      ],
+      "createdAt": "2026-09-28T15:48:09.150Z",
+      "updatedAt": "2026-09-28T15:48:09.150Z"
+    },
+    {
+      "id": "demo-3",
+      "title": "Сделать меню проще",
+      "section": "Главная",
+      "description": "В меню слишком много пунктов. Оставим главное, чтобы посетители быстрее находили нужное.",
+      "expectedResult": "Короткое и понятное меню, удобное с телефона.",
+      "priority": "low",
+      "status": "done",
+      "clientApproved": true,
+      "estimateHours": 2,
+      "price": 5000,
+      "developerNotes": "",
+      "comments": [],
+      "history": [
+        {
+          "id": "event-2",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-09-29T14:48:09.150Z"
+        }
+      ],
+      "createdAt": "2026-09-29T14:48:09.150Z",
+      "updatedAt": "2026-09-29T14:48:09.150Z"
+    },
+    {
+      "id": "demo-4",
+      "title": "Добавить фильтр по цвету",
+      "section": "Каталог",
+      "description": "Покупатели часто спрашивают, какие вещи есть в определённом цвете. Сейчас приходится просматривать весь каталог.",
+      "expectedResult": "Выбрать цвет и увидеть только подходящие товары.",
+      "priority": "normal",
+      "status": "new",
+      "clientApproved": false,
+      "estimateHours": null,
+      "price": null,
+      "developerNotes": "",
+      "comments": [],
+      "history": [
+        {
+          "id": "event-3",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-09-29T13:48:09.150Z"
+        }
+      ],
+      "createdAt": "2026-09-29T13:48:09.150Z",
+      "updatedAt": "2026-09-29T13:48:09.150Z"
+    },
+    {
+      "id": "demo-5",
+      "title": "Показывать, что есть в наличии",
+      "section": "Каталог",
+      "description": "Не всегда понятно, какие товары можно заказать прямо сейчас. Нужна заметная пометка на карточках.",
+      "expectedResult": "Сразу видеть доступные товары и не открывать каждую карточку.",
+      "priority": "normal",
+      "status": "clarification",
+      "clientApproved": false,
+      "estimateHours": null,
+      "price": null,
+      "developerNotes": "",
+      "comments": [
+        {
+          "id": "comment-demo-1",
+          "author": "developer",
+          "text": "Подскажите, показываем только наличие или ещё примерный срок доставки?",
+          "createdAt": "2026-10-04T14:48:09.151Z"
+        },
+        {
+          "id": "comment-demo-2",
+          "author": "client",
+          "text": "Думаю, срок доставки тоже будет полезен. Например: «Отправим завтра».",
+          "createdAt": "2026-10-04T15:48:09.151Z"
+        }
+      ],
+      "history": [
+        {
+          "id": "event-4",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-09-30T12:48:09.150Z"
+        },
+        {
+          "id": "event-demo-comment",
+          "type": "comment",
+          "text": "Клиент добавил комментарий",
+          "createdAt": "2026-10-04T15:48:09.151Z"
+        }
+      ],
+      "createdAt": "2026-09-30T12:48:09.150Z",
+      "updatedAt": "2026-09-30T12:48:09.150Z"
+    },
+    {
+      "id": "demo-6",
+      "title": "Сделать фотографии крупнее",
+      "section": "Карточка товара",
+      "description": "Сейчас изображения слишком маленькие. Хочется рассмотреть фактуру и детали, особенно на телефоне.",
+      "expectedResult": "Большая галерея, которую можно листать и открывать на весь экран.",
+      "priority": "high",
+      "status": "review",
+      "clientApproved": true,
+      "estimateHours": 4,
+      "price": 10000,
+      "developerNotes": "Обновить ProductGallery.vue. Добавить lightbox и адаптацию под мобильные экраны.",
+      "comments": [
+        {
+          "id": "comment-demo-3",
+          "author": "developer",
+          "text": "Галерея готова. Посмотрите, пожалуйста, удобно ли теперь рассматривать фотографии.",
+          "createdAt": "2026-10-05T13:48:09.151Z"
+        }
+      ],
+      "history": [
+        {
+          "id": "event-5",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-09-30T11:48:09.150Z"
+        }
+      ],
+      "createdAt": "2026-09-30T11:48:09.150Z",
+      "updatedAt": "2026-09-30T11:48:09.150Z"
+    },
+    {
+      "id": "demo-7",
+      "title": "Добавить уход за изделием",
+      "section": "Карточка товара",
+      "description": "Добавим короткие рекомендации, как стирать и хранить вещи. Это поможет покупателям и снизит количество вопросов.",
+      "expectedResult": "Аккуратный раскрывающийся блок под описанием.",
+      "priority": "low",
+      "status": "done",
+      "clientApproved": true,
+      "estimateHours": 1,
+      "price": 2500,
+      "developerNotes": "",
+      "comments": [],
+      "history": [
+        {
+          "id": "event-6",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-10-01T10:48:09.150Z"
+        }
+      ],
+      "createdAt": "2026-10-01T10:48:09.150Z",
+      "updatedAt": "2026-10-01T10:48:09.150Z"
+    },
+    {
+      "id": "demo-8",
+      "title": "Обновить адрес и карту",
+      "section": "Контакты",
+      "description": "Мы переехали в новое пространство. Нужно заменить адрес и показать, как к нам добраться.",
+      "expectedResult": "Новый адрес, часы работы и удобная карта.",
+      "priority": "normal",
+      "status": "done",
+      "clientApproved": true,
+      "estimateHours": 1,
+      "price": 2500,
+      "developerNotes": "",
+      "comments": [],
+      "history": [
+        {
+          "id": "event-7",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-10-01T09:48:09.150Z"
+        }
+      ],
+      "createdAt": "2026-10-01T09:48:09.150Z",
+      "updatedAt": "2026-10-01T09:48:09.150Z"
+    },
+    {
+      "id": "demo-9",
+      "title": "Добавить связь в мессенджере",
+      "section": "Контакты",
+      "description": "Покупателям удобнее написать, чем позвонить. Давайте добавим кнопку рядом с контактами.",
+      "expectedResult": "Понятная кнопка «Написать нам», которая открывает Telegram.",
+      "priority": "low",
+      "status": "new",
+      "clientApproved": false,
+      "estimateHours": null,
+      "price": null,
+      "developerNotes": "",
+      "comments": [],
+      "history": [
+        {
+          "id": "event-8",
+          "type": "created",
+          "text": "Клиент добавил новую идею",
+          "createdAt": "2026-10-02T08:48:09.150Z"
+        }
+      ],
+      "createdAt": "2026-10-02T08:48:09.150Z",
+      "updatedAt": "2026-10-02T08:48:09.150Z"
+    }
+  ]
+}

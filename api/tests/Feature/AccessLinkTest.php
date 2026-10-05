@@ -92,4 +92,16 @@ class AccessLinkTest extends TestCase
         $this->postJson('/api/admin/projects', ['title' => 'Запрещено'])->assertUnauthorized();
         $this->postJson('/api/admin/projects/'.$project->uuid.'/access-links')->assertUnauthorized();
     }
+
+    public function test_rotated_link_opens_project_and_expiry_at_now_is_rejected(): void
+    {
+        $this->freezeTime();
+        $project = Project::factory()->create();
+        [$expired] = $this->token($project, ['expires_at' => now()]);
+        $this->get('/access/'.$expired)->assertRedirect(config('projectbrief.frontend_url').'/access-error?reason=expired');
+        $result = $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/access-links')->assertCreated();
+        $this->get('/access/'.basename($result->json('url')))->assertRedirect(config('projectbrief.frontend_url').'/project/'.$project->uuid);
+        $this->assertGuest();
+        $this->getJson('/api/client/project')->assertOk();
+    }
 }
