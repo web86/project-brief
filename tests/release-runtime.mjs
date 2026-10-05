@@ -45,6 +45,12 @@ try {
   assert.match(command(['bin/first-install'], 'n\n'), /Installation complete/)
   const installedEnvironment = await readFile(path.join(application, '.env'), 'utf8')
   assert.match(installedEnvironment, /^APP_KEY=base64:.+/m)
+  const administrator = command(
+    ['bin/first-install'],
+    'y\nRelease QA\nrelease@example.test\nRelease-only-long-password\n',
+  )
+  assert.match(administrator, /Администратор создан/)
+  assert.doesNotMatch(administrator, /Release-only-long-password/)
 
   // Test data lives only in this disposable HOME, never in the upload artifact.
   const fixturePhp = path.join(fixtureRoot, 'fixture.php')
@@ -54,8 +60,7 @@ try {
 require $argv[1].'/vendor/autoload.php';
 $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-$user = \\App\\Models\\User::create(['name'=>'Release QA', 'email'=>'release@example.test', 'password'=>\\Illuminate\\Support\\Facades\\Hash::make('Release-only-long-password')]);
-$project = \\App\\Models\\Project::create(['title'=>'Release QA project', 'sections'=>['Главная'], 'active'=>true]);
+$project = \\App\\Models\\Project::create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
 $token = str_repeat('a', 64);
 $project->accessTokens()->create(['token_hash'=>hash('sha256', $token)]);
 echo json_encode(['project'=>$project->uuid]);
@@ -178,7 +183,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   )
   const clientProject = await request(`/api/client/project/${fixture.project}`)
   assert.equal(clientProject.status, 200)
-  assert.equal((await clientProject.json()).data.title, 'Release QA project')
+  assert.equal((await clientProject.json()).data.name, 'Release QA project')
   assert.equal(
     (await request('/api/admin/me', { headers: { Accept: 'application/json' } })).status,
     401,
