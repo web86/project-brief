@@ -4,6 +4,9 @@ dist/
 .env.*
 !.env.example
 !**/.env.example
+!**/.env.production.example
+release/
+*.zip
 .tools/
 api/vendor/
 api/database/*.sqlite*

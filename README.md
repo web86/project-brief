@@ -152,11 +152,17 @@ Feature tests используют отдельную SQLite `:memory:` и fake 
 
 Результаты и browser screenshots: [проверка backend/API](docs/backend-verification.md). Проверки прошлых этапов: [UX](docs/ux-cleanup.md), [developer workspace](docs/developer-workspace.md), [завершённые карточки](docs/completed-tasks.md).
 
-## Production topology (без deployment)
+## Локальная production-сборка для Jino
 
-Один HTTPS origin: `/` — Vue `dist/` с SPA fallback, `/api/*` и `/access/*` — Laravel `api/public/index.php` через nginx/PHP-FPM. `api/storage`, `.env`, Composer files и исходники находятся вне public web root. CORS отключён; credentialed cross-origin API не поддерживается в этом этапе.
+Из чистого, закоммиченного проекта:
 
-Backend env: `APP_ENV=production`, `APP_DEBUG=false`, правильные `APP_URL` / `FRONTEND_URL` одного origin, `SESSION_SECURE_COOKIE=true`, защищённый `APP_KEY`, MariaDB credentials; frontend `VITE_DATA_SOURCE=api`, пустой `VITE_API_BASE_URL`. Настройте HTTPS, PHP upload limits, nginx body limit около 210 МБ, private storage permissions и отключите/маскируйте access logs `/access/*`. Не включайте third-party analytics на access route. Реальные `.env`, файлы, пароли и `.tools/` исключены из Git.
+```bash
+./bin/build-release
+```
+
+Готовый ZIP — в `release/`, распакованный пакет — `release/project-brief/`. `private/project-brief-app` содержит Laravel и production vendor; `public` — Vue build, PHP entry point и Apache `.htaccess`. Реальные `.env`, uploads, local DB, dev dependencies, tests и source maps исключены; до архива выполняются frontend/Laravel tests, build, проверка secrets и запуск копии готового пакета. Серверу не нужны Node/npm/Composer/Git.
+
+Инструкция: [DEPLOY-JINO.md](DEPLOY-JINO.md). Target: `https://brief.web86.site`, private app `~/project-brief-app`, public `~/domains/brief.web86.site`, DB `specchina_breaf_tz`, PHP 8.4. Один HTTPS origin, Vue history fallback через Laravel, серверные `/api`, `/access`, `/sanctum` не попадают в SPA. `GET /api/health` возвращает только liveness `{"ok":true}`; CLI `bin/check-server` дополнительно проверяет DB и окружение, `bin/first-install` сохраняет ключ/данные и выполняет migrations/optimize с интерактивным созданием admin. Загрузка на Jino пока не выполняется.
 
 ## Следующий этап
 
