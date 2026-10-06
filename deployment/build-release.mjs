@@ -44,7 +44,9 @@ async function knownLocalSecrets() {
   for (const file of ['.env', 'api/.env']) {
     const text = await readFile(path.join(root, file), 'utf8').catch(() => '')
     for (const line of text.split('\n')) {
-      const match = line.match(/^([A-Z_]*(?:PASSWORD|SECRET|TOKEN|APP_KEY)[A-Z_]*)=(.*)$/)
+      const match = line.match(
+        /^([A-Z_]*(?:PASSWORD|SECRET|TOKEN|APP_KEY|PRIVATE_KEY)[A-Z_]*)=(.*)$/,
+      )
       if (match) values.push(match[2].trim().replace(/^['"]|['"]$/g, ''))
     }
   }
@@ -87,6 +89,8 @@ try {
   for (const entry of [
     'app',
     'config',
+    'lang',
+    'resources/views',
     'routes',
     'database/migrations',
     'artisan',

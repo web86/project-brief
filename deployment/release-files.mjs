@@ -68,6 +68,15 @@ export async function normalizePermissions(root) {
 export async function validateRelease(root, localSecrets = []) {
   const required = [
     'public/index.html',
+    'public/sw.js',
+    'public/manifest.webmanifest',
+    'public/icon-192.png',
+    'public/icon-512.png',
+    'private/project-brief-app/lang/ru/notifications.php',
+    'private/project-brief-app/lang/en/notifications.php',
+    'private/project-brief-app/resources/views/mail/project-activity.blade.php',
+    'private/project-brief-app/resources/views/mail/project-activity-text.blade.php',
+    'private/project-brief-app/vendor/minishlink/web-push/src/WebPush.php',
     'public/index.php',
     'public/.htaccess',
     'private/project-brief-app/vendor/autoload.php',
