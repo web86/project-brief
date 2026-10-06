@@ -5,9 +5,11 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectSectionController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
@@ -88,5 +90,18 @@ foreach (['admin', 'client'] as $actor) {
         Route::get('/attachments/{attachment}/preview', [AttachmentController::class, 'preview']);
     });
 }
+
+foreach (['admin', 'client'] as $actor) {
+    Route::middleware($actor)->prefix('/api/'.$actor.'/push')->group(function () {
+        Route::get('/status', [PushSubscriptionController::class, 'status']);
+        Route::post('/subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:30,1');
+        Route::delete('/subscriptions', [PushSubscriptionController::class, 'destroy']);
+    });
+}
+Route::middleware('admin')->prefix('/api/admin/projects/{project}/notifications')->group(function () {
+    Route::get('/', [NotificationSettingsController::class, 'show']);
+    Route::patch('/', [NotificationSettingsController::class, 'update']);
+    Route::post('/test', [NotificationSettingsController::class, 'test'])->middleware('throttle:5,1');
+});
 
 Route::any('/{fallbackPlaceholder}', SpaController::class)->where('fallbackPlaceholder', '.*')->fallback();

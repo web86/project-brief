@@ -1,0 +1,3 @@
+<?php
+
+return ['open' => 'Open project', 'access' => 'To access the project, open your personal ProjectBrief link if your session has ended.', 'by' => ':name updated this task.', 'test_title' => 'Test notification', 'test_body' => 'ProjectBrief notifications are working.', 'events' => ['client' => ['task_created' => 'New idea', 'comment_created' => 'New client comment', 'task_approved' => 'Task approved by client'], 'admin' => ['clarification_requested' => 'Clarification needed', 'comment_created' => 'New developer comment', 'task_review' => 'Task ready for review', 'task_done' => 'Task completed']]];

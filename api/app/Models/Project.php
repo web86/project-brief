@@ -28,6 +28,11 @@ class Project extends Model
         return 'uuid';
     }
 
+    protected static function booted(): void
+    {
+        static::created(fn (self $project) => ProjectNotificationSetting::create(['project_id' => $project->id]));
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);

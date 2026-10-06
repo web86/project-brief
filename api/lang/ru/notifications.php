@@ -1,0 +1,3 @@
+<?php
+
+return ['open' => 'Открыть проект', 'access' => 'Для доступа откройте вашу персональную ссылку ProjectBrief, если сессия завершилась.', 'by' => ':name обновил(а) задачу.', 'test_title' => 'Тестовое уведомление', 'test_body' => 'Уведомления ProjectBrief работают.', 'events' => ['client' => ['task_created' => 'Новая идея', 'comment_created' => 'Комментарий клиента', 'task_approved' => 'Клиент согласовал задачу'], 'admin' => ['clarification_requested' => 'Нужно уточнение', 'comment_created' => 'Комментарий разработчика', 'task_review' => 'Задача на проверке', 'task_done' => 'Задача готова']]];
