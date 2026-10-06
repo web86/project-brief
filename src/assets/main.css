@@ -2187,9 +2187,11 @@ button.attachment-item:hover {
   place-items: center;
   cursor: pointer;
 }
-.notification-checkbox input {
+.notification-checkbox input[type='checkbox'] {
   width: 18px;
   height: 18px;
+  min-height: 18px;
+  padding: 0;
   accent-color: #246c43;
   margin: 0;
 }
