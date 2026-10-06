@@ -3,7 +3,12 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { forbiddenPath, pruneVendor, checksums } from '../deployment/release-files.mjs'
+import {
+  forbiddenPath,
+  pruneVendor,
+  checksums,
+  containsPrivateKey,
+} from '../deployment/release-files.mjs'
 
 test('release rejects local secrets, development directories and source maps at any depth', () => {
   for (const file of [
@@ -67,4 +72,21 @@ test('release checksums are stable, relative and exclude their own manifest', as
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test('release rejects PEM material including escaped JSON keys while allowing crypto serializer source', () => {
+  const material = 'M'.repeat(64) + '='
+  const key = '-----BEGIN EC PRIVATE KEY-----\n' + material + '\n-----END EC PRIVATE KEY-----'
+  assert.equal(containsPrivateKey(key), true)
+  assert.equal(containsPrivateKey(JSON.stringify({ key })), true)
+  assert.equal(
+    containsPrivateKey(
+      '-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-256-CBC,FFFF\n\n' +
+        material +
+        '\n-----END RSA PRIVATE KEY-----',
+    ),
+    true,
+  )
+  assert.equal(containsPrivateKey('$pem = \'-----BEGIN EC PRIVATE KEY-----\' . "\\n";'), false)
+  assert.equal(containsPrivateKey('-----BEGIN PRIVATE KEY-----'), false)
 })

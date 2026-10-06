@@ -65,6 +65,14 @@ export async function normalizePermissions(root) {
   }
 }
 
+export function containsPrivateKey(content) {
+  // Crypto serializers contain PEM delimiters as source strings. Only key material is a secret.
+  const text = content.toString().replace(/\\r\\n|\\n/g, '\n')
+  return /-----BEGIN (?:RSA |DSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----\s*(?:Proc-Type:[^\r\n]+\r?\nDEK-Info:[^\r\n]+\s*)?(?:[A-Za-z0-9+/=]{16,}\s*)+/.test(
+    text,
+  )
+}
+
 export async function validateRelease(root, localSecrets = []) {
   const required = [
     'public/index.html',
@@ -106,9 +114,7 @@ export async function validateRelease(root, localSecrets = []) {
     ) {
       throw new Error(`Local secret detected in: ${file.relative} (value withheld)`)
     }
-    if (
-      /-----BEGIN (?:RSA |DSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/.test(content.toString())
-    ) {
+    if (containsPrivateKey(content)) {
       throw new Error(`Private key detected in: ${file.relative}`)
     }
   }
@@ -116,7 +122,17 @@ export async function validateRelease(root, localSecrets = []) {
     path.join(root, 'private/project-brief-app/.env.production.example'),
     'utf8',
   )
-  for (const key of ['APP_KEY', 'DB_HOST', 'DB_USERNAME', 'DB_PASSWORD']) {
+  for (const key of [
+    'APP_KEY',
+    'DB_HOST',
+    'DB_USERNAME',
+    'DB_PASSWORD',
+    'MAIL_HOST',
+    'MAIL_USERNAME',
+    'MAIL_PASSWORD',
+    'VAPID_PUBLIC_KEY',
+    'VAPID_PRIVATE_KEY',
+  ]) {
     if (!new RegExp(`^${key}=$`, 'm').test(env)) throw new Error(`Example must leave ${key} empty`)
   }
   const installed = JSON.parse(
