@@ -31,6 +31,7 @@ class AttachmentTest extends TestCase
         Storage::disk('local')->assertExists($file->path);
         $this->assertSame('client', $file->uploaded_by_type);
         $this->assertDatabaseHas('task_history', ['event_type' => 'attachment']);
+        $this->assertSame('screenshot.png', $task->history()->where('event_type', 'attachment')->first()->meta['fileName']);
         $this->get('/api/client/attachments/'.$file->uuid.'/download')->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
         $this->get('/api/client/attachments/'.$file->uuid.'/preview')->assertOk();
         $this->actingAs(User::factory()->create())->get('/api/admin/attachments/'.$file->uuid.'/download')->assertOk();

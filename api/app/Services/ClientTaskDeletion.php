@@ -43,10 +43,11 @@ class ClientTaskDeletion
                         throw new RuntimeException('Unable to stage deletion');
                     }
                     $backups[] = ['disk' => $file->disk, 'path' => $file->path, 'backup' => $backup, 'keep' => false];
+                    $expectedSize = $disk->size($file->path);
                     $source = $disk->readStream($file->path);
                     $target = fopen($backup, 'wb');
                     try {
-                        if (! is_resource($source) || ! is_resource($target) || stream_copy_to_stream($source, $target) === false) {
+                        if (! is_resource($source) || ! is_resource($target) || stream_copy_to_stream($source, $target) !== $expectedSize || ! fflush($target)) {
                             throw new RuntimeException('Unable to back up attachment');
                         }
                     } finally {

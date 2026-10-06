@@ -25,7 +25,7 @@ class TaskResource extends JsonResource
                 'uploadedByName' => $file->projectClient?->name, 'downloadUrl' => '/api/'.$prefix.'/attachments/'.$file->uuid.'/download'])->values(),
             'comments' => $this->comments->map(fn ($comment) => ['id' => $comment->uuid, 'author' => $comment->author_type === 'admin' ? 'developer' : 'client', 'authorId' => $comment->projectClient?->uuid, 'authorName' => $comment->author_type === 'admin' ? 'Разработчик' : ($comment->projectClient?->name ?? 'Клиент'), 'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString()])->values(),
             'history' => $this->history->filter(fn ($event) => $admin || ! in_array($event->event_type, ['estimate', 'price', 'developer_notes']))->map(fn ($event) => [
-                'actorType' => $event->actor_type === 'admin' ? 'developer' : 'client', 'actorName' => $event->projectClient?->name, 'oldValue' => $event->old_value, 'newValue' => $event->new_value, 'id' => (string) $event->id, 'type' => $event->event_type, 'text' => $event->meta['text'] ?? 'Изменение задачи', 'createdAt' => $event->created_at->toISOString()])->values(),
+                'fileName' => $event->meta['fileName'] ?? null, 'actorType' => $event->actor_type === 'admin' ? 'developer' : 'client', 'actorName' => $event->projectClient?->name, 'oldValue' => $event->old_value, 'newValue' => $event->new_value, 'id' => (string) $event->id, 'type' => $event->event_type, 'text' => $event->meta['text'] ?? 'Изменение задачи', 'createdAt' => $event->created_at->toISOString()])->values(),
             'createdAt' => $this->created_at->toISOString(), 'updatedAt' => $this->updated_at->toISOString()];
     }
 }

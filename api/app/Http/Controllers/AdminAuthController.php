@@ -6,16 +6,15 @@ use App\Http\Requests\LoginRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 
 class AdminAuthController extends Controller
 {
     public function login(LoginRequest $request): JsonResponse
     {
         if (! Auth::attempt([...$request->validated(), 'role' => 'admin'])) {
-            throw ValidationException::withMessages(['email' => 'Неверный email или пароль.']);
+            return response()->json(['code' => 'invalid_credentials', 'errors' => ['email' => ['Неверный email или пароль.']]], 422);
         }
-        $request->session()->forget(['client_project_id', 'client_access_token_id']);
+        $request->session()->forget(['client_project_id', 'project_client_id', 'client_access_token_id']);
         $request->session()->regenerate();
 
         return $this->me($request);

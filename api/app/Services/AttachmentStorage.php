@@ -46,7 +46,7 @@ class AttachmentStorage
             $original = mb_substr($original ?: 'file', 0, 200);
             $task->attachments()->create(['original_name' => $original, 'stored_name' => $name, 'mime_type' => $file->getMimeType(), 'size' => $file->getSize(),
                 'disk' => 'local', 'path' => $path, 'uploaded_by_type' => TaskAccess::isAdmin($request) ? 'admin' : 'client', 'project_client_id' => TaskAccess::isAdmin($request) ? null : $request->attributes->get('project_client')->id]);
-            TaskAudit::record($request, $task, 'attachment', 'Добавлен файл: '.$original);
+            TaskAudit::record($request, $task, 'attachment', 'Добавлен файл: '.$original, null, null, ['fileName' => $original]);
         }
     }
 }

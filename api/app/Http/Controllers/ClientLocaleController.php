@@ -14,7 +14,7 @@ class ClientLocaleController extends Controller
         if (array_diff(array_keys($request->all()), ['locale'])) {
             throw ValidationException::withMessages(['locale' => 'Only locale may be changed.']);
         }
-        $data = $request->validate(['locale' => ['required', Rule::in(['ru', 'en'])]]);
+        $data = $request->validate(['locale' => ['required', 'string', Rule::in(['ru', 'en'])]]);
         $client = $request->attributes->get('project_client');
         $client->update(['preferred_locale' => $data['locale']]);
 

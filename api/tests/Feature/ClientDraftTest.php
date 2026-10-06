@@ -125,4 +125,45 @@ class ClientDraftTest extends TestCase
         $this->assertSame('one', $disk->get('one.txt'));
         $this->assertSame('two', $disk->get('two.txt'));
     }
+
+    public function test_shared_legacy_file_is_retained_for_its_other_task(): void
+    {
+        Storage::fake('local');
+        $task = Task::factory()->create();
+        $other = Task::factory()->create();
+        $this->client($task->project);
+        Storage::disk('local')->put('shared/file.txt', 'shared original');
+        foreach ([$task, $other] as $owner) {
+            $owner->attachments()->create(['uploaded_by_type' => 'client', 'original_name' => 'file.txt', 'stored_name' => 'file.txt', 'mime_type' => 'text/plain', 'size' => 15, 'disk' => 'local', 'path' => 'shared/file.txt']);
+        }
+        $this->deleteJson('/api/client/tasks/'.$task->uuid)->assertOk();
+        $this->assertModelMissing($task);
+        $this->assertModelExists($other);
+        $this->assertDatabaseHas('attachments', ['task_id' => $other->id, 'path' => 'shared/file.txt']);
+        Storage::disk('local')->assertExists('shared/file.txt');
+    }
+
+    public function test_guest_cannot_delete_a_client_idea(): void
+    {
+        $this->deleteJson('/api/client/tasks/00000000-0000-4000-8000-000000000000')->assertUnauthorized();
+    }
+
+    public function test_incomplete_backup_never_deletes_the_original_file_or_records(): void
+    {
+        $disk = Storage::fake('local');
+        $task = Task::factory()->create();
+        $this->client($task->project);
+        $disk->put('original.txt', 'original bytes');
+        $task->attachments()->create(['uploaded_by_type' => 'client', 'original_name' => 'original.txt', 'stored_name' => 'original.txt', 'mime_type' => 'text/plain', 'size' => 14, 'disk' => 'local', 'path' => 'original.txt']);
+        $source = fopen('php://temp', 'w+b');
+        fwrite($source, 'short');
+        rewind($source);
+        $failing = \Mockery::mock($disk)->makePartial();
+        $failing->shouldReceive('readStream')->with('original.txt')->once()->andReturn($source);
+        Storage::shouldReceive('disk')->with('local')->andReturn($failing);
+        $this->deleteJson('/api/client/tasks/'.$task->uuid)->assertServiceUnavailable();
+        $this->assertModelExists($task);
+        $this->assertDatabaseCount('attachments', 1);
+        $this->assertSame('original bytes', $disk->get('original.txt'));
+    }
 }

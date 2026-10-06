@@ -75,7 +75,7 @@ php artisan db:seed
 - `VITE_DATA_SOURCE=local`: прежний демонстрационный режим **при разработке**, без backend, с localStorage `project-brief:v1` и ModeSwitcher. Существующие данные сохраняются. Для переключения перезапустите Vite.
 - Production build всегда использует API; demo ModeSwitcher в production недоступен.
 
-Существующие `addTask`, `updateTask`, `changeStatus`, `approveTask`, `addComment`, `updateDeveloperData` сохранены. В API-режиме компоненты ожидают серверный ответ, комментарии и согласование блокируют повторный submit. Технические поля сохраняются автоматически с коротким debounce и последовательной очередью; drafts остаются в памяти при ошибке, есть повторное сохранение. Перед переходом между страницами и при потере фокуса поле отправляется на сервер. Дождитесь завершения сохранения перед перезагрузкой страницы.
+Добавлены client edit route `/project/:uuid/task/:id/edit` и `DELETE /api/client/tasks/{uuid}`. Существующие `addTask`, `updateTask`, `changeStatus`, `approveTask`, `addComment`, `updateDeveloperData` сохранены. В API-режиме компоненты ожидают серверный ответ, комментарии и согласование блокируют повторный submit. Технические поля сохраняются автоматически с коротким debounce и последовательной очередью; drafts остаются в памяти при ошибке, есть повторное сохранение. Перед переходом между страницами и при потере фокуса поле отправляется на сервер. Дождитесь завершения сохранения перед перезагрузкой страницы.
 
 ## Структура
 
@@ -109,7 +109,7 @@ Frontend URLs: `/admin/login`, `/admin`, `/admin/projects/new`, `/admin/projects
 
 ## Структура ТЗ и обновление существующей базы
 
-Раздел ТЗ и свободный `location` — разные поля. Новые идеи попадают в «Общее», developer назначает раздел и порядок. Номер вычисляется централизованно из `project_sections.position` и `tasks.position`, не хранится строкой и не зависит от статуса/фильтров. Завершённые карточки уходят вниз своего раздела только визуально. Явные перемещения меняют номера; move/reorder нормализуют позиции и пишут историю. Структурные изменения и создание задач сериализованы transaction + блокировкой строки проекта. Раздел с задачами удалить нельзя.
+Раздел ТЗ и свободный `location` — разные поля. Клиент вводит любое название или URL в editable combobox. Backend использует раздел с точно совпадающим именем после trim или создаёт новый в конце; регистр и URL не переписываются. Developer меняет порядок прямо в заголовках разделов и карточках, а также может перенести задачу через свой panel. Номер вычисляется централизованно из `project_sections.position` и `tasks.position`, не хранится строкой и не зависит от статуса/фильтров. Завершённые карточки уходят вниз своего раздела только визуально. После create/move/reorder/delete позиции непрерывны; пустые разделы сохраняются и показываются компактно, чтобы заголовки шли подряд. Явные перемещения меняют номера; move/reorder нормализуют позиции и пишут историю. Структурные изменения и создание задач сериализованы transaction + блокировкой строки проекта. Раздел с задачами удалить нельзя.
 
 Добавлены две migrations: `2026_10_05_204121_add_project_structure_and_client_identity` и `2026_10_05_204122_backfill_legacy_project_structure`. Первая создаёт `project_sections` и `project_clients`; ALTER TABLE добавляют nullable `tasks.project_section_id`, `tasks.position`, nullable `project_client_id` в tokens/comments/history/attachments. UUID unique; indexes `(project_id, position)`, `(project_id, active)`, `(project_section_id, position)`; FK на project cascade только при удалении самого проекта, на section/client — SET NULL. UI не удаляет клиентов физически.
 
@@ -119,6 +119,16 @@ Backfill проходит проекты по ID; legacy `tasks.section` опр�
 
 Migration review: удалений таблиц/колонок/данных в `up()` нет. DDL MariaDB может ожидать metadata locks или перестраивать таблицы при добавлении FK/index; backfill блокирует один проект до завершения его transaction. Время зависит от объёма реальной базы. Применять в штатном maintenance update с проверенной резервной копией; ручной SQL не нужен. DDL MySQL не является общей transaction: проверки существования новых колонок/индекса поддерживают повторный запуск после прерывания. Schema migration намеренно forward-only: `down()` отказывается удалять новые production associations; откат через проверенную резервную копию. Backfill `down()` ничего не удаляет. Production база в этой задаче не изменяется.
 
+## RU / EN и loading
+
+`vue-i18n` 11, Composition API; dictionaries `src/locales/ru.js` и `en.js`, одинаковые 306 keys. Переводятся UI constants, включая statuses, priorities, ошибки, history summaries и dialogs. Project/section/task content, comments, notes, URLs и filenames не переводятся. `Intl.DateTimeFormat`: ru-RU / en-GB; `Intl.NumberFormat` использует locale и валюту проекта. Counts используют pluralization vue-i18n с русским правилом.
+
+Приоритет: ручной `projectbrief.locale` в localStorage → session client's `preferred_locale` → первый browser language из navigator.languages (fallback navigator.language) → en. ru* → ru, остальные → en. RU | EN в header меняет UI и `<html lang>` без reload. Только ручной client switch вызывает `PATCH /api/client/me/locale`; ID берётся из сессии, body принимает только ru/en. Browser detection не записывается в DB. Admin preference хранится только в localStorage; TR/DE dictionaries пока отсутствуют.
+
+Page loaders — fixed overlay; button loaders сохраняют label footprint и размеры; developer save status — fixed toast. JSON requests имеют timeout 20 s, uploads с реальными файлами — минимум 120 s. Timeout не вызывает automatic replay mutation; loading заканчивается с переводимым сообщением.
+
+Полное удаление draft требует confirmation. `ClientTaskDeletion` блокирует project/task, сохраняет temporary private backups, проверяет полноту копии, удаляет только принадлежащие задаче files, затем task и FK-related comments/history/metadata. Позиции нормализуются, empty section остаётся. Shared legacy file сохраняется, если на него ссылается другая задача. При ошибке DB rollback и восстановление удалённых файлов; API возвращает 503. Если storage мешает восстановлению, backup сохраняется в private `.deletion-recovery`, путь записывается только в server log для восстановления разработчиком. Неполная очистка не сообщается как success.
+
 ## Сессии и доступ клиента
 
 Admin auth: `POST /api/admin/login`, `POST /api/admin/logout`, `GET /api/admin/me`. `GET /api/csrf` выдаёт CSRF token; изменения защищены Laravel web middleware. Cookie session — HttpOnly, SameSite=Lax, Secure в production. Вход admin и успешный доступ клиента меняют session ID. Login/access/comments/uploads имеют rate limits.
@@ -127,7 +137,7 @@ Access link содержит 32 случайных байта (256 bits), пре
 
 `GET /access/{token}` проверяет hash, срок, отзыв и активность проекта, создаёт минимальную client session и перенаправляет на `/project/{uuid}`. Token исчезает из URL; redirect использует `Referrer-Policy: no-referrer` и `Cache-Control: no-store`. В логах приложения token не записывается. Внешний reverse proxy должен отключать/маскировать access logging для `/access/*`.
 
-**На каждом клиентском запросе** middleware заново проверяет token, проект и активного клиента, а также принадлежность token клиенту и проекту. Отзыв блокирует существующую сессию на следующем запросе. Tasks, comments, uploads, download и preview выбираются только в проекте client session; чужие UUID получают 404 без выдачи данных. Подмена author/project/approval/history/status/developer fields отклоняется. Клиент редактирует исходную идею только в `new`/`clarification`; далее обсуждает изменения в комментариях.
+**На каждом клиентском запросе** middleware заново проверяет token, проект и активного клиента, а также принадлежность token клиенту и проекту. Отзыв блокирует существующую сессию на следующем запросе. Tasks, comments, uploads, download и preview выбираются только в проекте client session; чужие UUID получают 404 без выдачи данных. Подмена author/project/approval/history/status/developer fields отклоняется. Клиент редактирует или полностью удаляет исходную идею только в `new`/`clarification` при `client_approved=false`; далее обсуждает изменения в комментариях. Это проверяется сервером при PATCH, DELETE и добавлении файлов. Edit использует ту же форму; изменение free-form раздела находит/создаёт target и нормализует обе группы.
 
 Client TaskResource вообще не содержит `developerNotes`, `estimateHours`, `price` и внутренних history events. Client project не содержит client email/admin metadata. Сервер задаёт авторов комментариев и создаёт audit events: создание/изменение идеи, статус с old/new, согласование, комментарий, файл, оценка, цена, заметки. Содержимое private notes не копируется в историю.
 
@@ -143,7 +153,7 @@ Client TaskResource вообще не содержит `developerNotes`, `estima
 | Admin clients        | `GET/POST /api/admin/projects/{uuid}/clients`, `PATCH /api/admin/projects/{uuid}/clients/{client}`                                                                            |
 | Admin sections       | `GET/POST /api/admin/projects/{uuid}/sections`, `PATCH/DELETE /api/admin/projects/{uuid}/sections/{section}`                                                                  |
 | Task structure       | `POST /api/admin/tasks/{uuid}/move` (`sectionId`), `POST /api/admin/tasks/{uuid}/reorder` (`direction: up/down`)                                                              |
-| Current client       | `GET /api/client/me` — имя/email только текущего клиента                                                                                                                      |
+| Current client       | `PATCH /api/client/me/locale` (`locale: ru/en`); `GET /api/client/me` — имя/email только текущего клиента                                                                     |
 | Admin tasks          | `GET/POST /api/admin/projects/{uuid}/tasks`, `GET/PATCH /api/admin/tasks/{uuid}`                                                                                              |
 | Client project/tasks | `GET /api/client/project`, `GET /api/client/project/{uuid}`, `GET/POST /api/client/tasks`, `GET/PATCH /api/client/tasks/{uuid}`, `POST /api/client/tasks/{uuid}/approve`      |
 | Comments             | `POST /api/{admin,client}/tasks/{uuid}/comments`                                                                                                                              |
@@ -183,6 +193,12 @@ Feature tests используют отдельную SQLite `:memory:` и fake 
 Готовый ZIP — в `release/`, распакованный пакет — `release/project-brief/`. `private/project-brief-app` содержит Laravel и production vendor; `public` — Vue build, PHP entry point и Apache `.htaccess`. Реальные `.env`, uploads, local DB, dev dependencies, tests и source maps исключены; до архива выполняются frontend/Laravel tests, build, проверка secrets и запуск копии готового пакета. Серверу не нужны Node/npm/Composer/Git.
 
 Инструкция: [DEPLOY-JINO.md](DEPLOY-JINO.md). Target: `https://brief.web86.site`, private app `~/project-brief-app`, public `~/domains/brief.web86.site`, DB `specchina_breaf_tz`, PHP 8.4. Один HTTPS origin, Vue history fallback через Laravel, серверные `/api`, `/access`, `/sanctum` не попадают в SPA. `GET /api/health` возвращает только liveness `{"ok":true}`; CLI `bin/check-server` дополнительно проверяет DB и окружение, `bin/first-install` сохраняет ключ/данные и выполняет migrations/optimize с интерактивным созданием admin. В этой итерации загрузка на Jino не выполняется; существующий production работает отдельно от локальных проверок.
+
+## Проверка текущего UX / RU-EN этапа
+
+89 Laravel tests / 532 assertions, 46 frontend tests, translation parity (306 keys), Vue build и formatting — PASS. Server tests покрывают все draft/locked states, agreement даже при status=new, cross-project/crafted requests, удаление связанных rows/files, rollback при частичном удалении, неполную backup-copy и shared legacy file. Frontend tests рендерят реальные Vue views, проверяют Edit/Delete visibility, confirmation/cancel/navigation, locale priority и detection, persistence, HTML lang, dates/currency/plurals и abort timeout.
+
+В MariaDB browser flow проверены free-form «Корзина», edit с переносом в «Каталог» и независимым URL, comments и agreement с исчезновением draft actions; inline reorder и Done filter сохраняют canonical numbers. Все 7 loading buttons измерены с замедлением запросов: width/height неизменны. Desktop — 3-column grid. Финальная mobile/console проверка повторена в отдельном local-demo: 390 px / одна колонка / без horizontal scroll / без JS warnings/errors. Во время проверки локальный Docker/MariaDB runtime временно перестал отвечать; production не затрагивался и глобальный OrbStack без разрешения не перезапускался. Release validation использует собственную isolated SQLite/HOME, не dev/production DB.
 
 ## Следующий этап
 
