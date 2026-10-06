@@ -5,7 +5,7 @@ import { renderToString } from '@vue/server-renderer'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { createServer } from 'vite'
-let server, TaskView, ProjectView, useProjectStore, i18n
+let server, TaskView, ProjectView, PushDevicePanel, useProjectStore, i18n
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -17,6 +17,7 @@ before(async () => {
   })
   TaskView = (await server.ssrLoadModule('/src/views/TaskView.vue')).default
   ProjectView = (await server.ssrLoadModule('/src/views/ProjectView.vue')).default
+  PushDevicePanel = (await server.ssrLoadModule('/src/components/PushDevicePanel.vue')).default
   useProjectStore = (await server.ssrLoadModule('/src/stores/project.js')).useProjectStore
   i18n = (await server.ssrLoadModule('/src/i18n/index.js')).i18n
 })
@@ -92,4 +93,27 @@ test('project renders empty canonical sections and developer controls outside li
       false,
       'reorder buttons must not be inside navigation links',
     )
+})
+
+test('actual push settings panel translates states, actions and retry feedback', async () => {
+  for (const [state, text, action] of [
+    ['unsupported', 'Push notifications are unavailable', null],
+    ['default', 'Not enabled', 'Enable push notifications'],
+    ['denied', 'Notifications are blocked', null],
+    ['enabled', 'Enabled on this device', 'Disable on this device'],
+    ['unconfigured', 'The developer has not configured', null],
+  ]) {
+    i18n.global.locale.value = 'en'
+    const html = await renderToString(createSSRApp(PushDevicePanel, { state }).use(i18n))
+    assert.ok(html.includes(text))
+    assert.equal(html.includes('<button'), !!action)
+    if (action) assert.ok(html.includes(action))
+  }
+  i18n.global.locale.value = 'ru'
+  const russian = await renderToString(
+    createSSRApp(PushDevicePanel, { state: 'default', error: true }).use(i18n),
+  )
+  assert.ok(russian.includes('Включить push-уведомления'))
+  assert.ok(russian.includes('role="alert"'))
+  assert.ok(russian.includes('Попробовать снова'))
 })

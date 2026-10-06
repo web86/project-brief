@@ -1,4 +1,5 @@
 <script setup>
+import PushControls from './components/PushControls.vue'
 import { t, locale, formatApiError } from './i18n/index.js'
 
 import { nextTick, watch } from 'vue'
@@ -81,6 +82,11 @@ watch(
         <span v-else-if="store.currentClient" class="current-client-name">{{
           store.currentClient.name
         }}</span>
+        <PushControls
+          v-if="store.apiMode && (store.admin || store.currentClient)"
+          :key="store.admin?.id || store.currentClient?.id"
+          :persona="store.admin ? 'admin' : 'client'"
+        />
         <LanguageSwitcher />
       </div>
     </header>

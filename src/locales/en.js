@@ -1,4 +1,53 @@
 export default {
+  notifications: {
+    title: 'Notifications',
+    push: 'Push notifications',
+    enable: 'Enable push notifications',
+    disable: 'Disable on this device',
+    deviceHint:
+      'This setting applies to this browser only. Other devices will keep receiving notifications.',
+    installHint:
+      'On some phones, notifications are available after adding the app to the home screen.',
+    deviceError:
+      'Could not change this setting. Check browser permissions and your connection, then try again.',
+    retry: 'Try again',
+    adminEmail: 'Developer notification email',
+    emailFallback: 'Leave blank to use the primary administrator’s email.',
+    notifyAdmin: 'Notify the developer',
+    notifyClients: 'Notify clients',
+    save: 'Save notifications',
+    saved: 'Notification settings saved.',
+    loadError: 'Could not load notification settings.',
+    saveError: 'Could not save settings. Check the email and try again.',
+    testEmail: 'Test Email',
+    testPush: 'Test Push',
+    emailSent: 'Test email sent to the developer.',
+    pushSent: 'Test notification sent to this device.',
+    emailError: 'Could not send a test email. Check the SMTP settings.',
+    pushError: 'Could not send Push. Check VAPID and browser settings.',
+    subscribeFirst: 'First enable push notifications on this device.',
+    device: {
+      loading: 'Checking this device…',
+      unsupported: 'Push notifications are unavailable in this browser.',
+      unconfigured: 'The developer has not configured push notifications yet.',
+      default: 'Not enabled',
+      denied: 'Notifications are blocked in your browser settings.',
+      enabled: 'Enabled on this device',
+    },
+    events: {
+      client: {
+        task_created: 'New idea',
+        comment_created: 'Client comment',
+        task_approved: 'Client approved',
+      },
+      admin: {
+        clarification_requested: 'Clarification needed',
+        comment_created: 'Developer comment',
+        task_review: 'Ready for review',
+        task_done: 'Done',
+      },
+    },
+  },
   ui: {
     originalFile: ' · original file',
     nameAndSize: ' · name and size',

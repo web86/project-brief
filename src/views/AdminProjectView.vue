@@ -1,4 +1,5 @@
 <script setup>
+import ProjectNotificationSettings from '../components/ProjectNotificationSettings.vue'
 import LoadingOverlay from '../components/LoadingOverlay.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 import { t, formatApiError } from '../i18n/index.js'
@@ -72,7 +73,11 @@ async function save() {
         }}</RouterLink>
       </div>
       <div class="admin-settings-layout" :key="route.params.uuid">
-        <div class="management-column"><ProjectClientManager /><ProjectSectionManager /></div>
+        <div class="management-column">
+          <ProjectClientManager /><ProjectSectionManager /><ProjectNotificationSettings
+            :project-id="store.project.id"
+          />
+        </div>
         <form class="surface admin-form" @submit.prevent="save">
           <h2>{{ t('ui.projectSettings') }}</h2>
           <ProjectFields v-model="form" :errors="errors" />

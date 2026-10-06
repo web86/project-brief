@@ -2141,3 +2141,76 @@ button.attachment-item:hover {
 .button.danger:hover {
   background: #82382f;
 }
+
+.notification-settings {
+  padding: 0;
+}
+.notification-settings summary {
+  cursor: pointer;
+  padding: 22px;
+  font-weight: 650;
+  min-height: 48px;
+}
+.notification-settings summary:focus-visible {
+  outline: 3px solid var(--accent, #246c43);
+  outline-offset: 3px;
+}
+.notification-settings-body {
+  position: relative;
+  padding: 0 22px 22px;
+}
+.notification-group {
+  border: 0;
+  padding: 0;
+  margin: 24px 0;
+  min-width: 0;
+}
+.notification-group legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.notification-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 56px;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.notification-columns > span:not(:first-child) {
+  text-align: center;
+  color: #617269;
+}
+.notification-checkbox {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.notification-checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: #246c43;
+  margin: 0;
+}
+.notification-test-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.push-trigger {
+  white-space: nowrap;
+  min-height: 44px;
+}
+@media (max-width: 640px) {
+  .topbar-inner {
+    flex-wrap: wrap;
+  }
+  .notification-settings-body {
+    padding: 0 16px 18px;
+  }
+  .notification-columns {
+    grid-template-columns: minmax(0, 1fr) 46px 46px;
+  }
+}
