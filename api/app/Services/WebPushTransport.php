@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PushSubscription;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
 
@@ -24,7 +25,7 @@ class WebPushTransport
             return ['status' => 'failed', 'error_code' => 'invalid_endpoint'];
         }
         $keys = config('project_notifications.vapid');
-        $sender = new WebPush(['VAPID' => ['subject' => $keys['subject'], 'publicKey' => $keys['public_key'], 'privateKey' => $keys['private_key']]], ['TTL' => 3600], new Client(['handler' => Http::timeout(10)->buildHandlerStack(), 'timeout' => 10, 'connect_timeout' => 5, 'allow_redirects' => false]));
+        $sender = new WebPush(['VAPID' => ['subject' => $keys['subject'], 'publicKey' => $keys['public_key'], 'privateKey' => $keys['private_key']]], ['TTL' => 3600], new Client(['handler' => Http::timeout(10)->buildHandlerStack(), 'timeout' => 10, 'connect_timeout' => 5, 'allow_redirects' => false]), logger: Log::channel());
         $report = $sender->sendOneNotification(Subscription::create(['endpoint' => $subscription->endpoint, 'publicKey' => $subscription->public_key, 'authToken' => $subscription->auth_token, 'contentEncoding' => $subscription->content_encoding ?? 'aes128gcm']), json_encode($payload, JSON_THROW_ON_ERROR));
         if ($report->isSubscriptionExpired()) {
             $subscription->delete();

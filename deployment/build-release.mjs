@@ -27,6 +27,13 @@ function cleanTree() {
   }
 }
 
+async function copyRelease(source, destination, options = {}) {
+  await cp(source, destination, {
+    ...options,
+    filter: (entry) => path.basename(entry) !== '.DS_Store',
+  })
+}
+
 async function composerCommand() {
   if (process.env.COMPOSER_BIN)
     return process.env.COMPOSER_BIN.endsWith('.phar')
@@ -99,10 +106,15 @@ try {
     '.env.production.example',
     'bin',
   ]) {
-    await cp(path.join(root, 'api', entry), path.join(application, entry), { recursive: true })
+    await copyRelease(path.join(root, 'api', entry), path.join(application, entry), {
+      recursive: true,
+    })
   }
   for (const entry of ['app.php', 'providers.php']) {
-    await cp(path.join(root, 'api/bootstrap', entry), path.join(application, 'bootstrap', entry))
+    await copyRelease(
+      path.join(root, 'api/bootstrap', entry),
+      path.join(application, 'bootstrap', entry),
+    )
   }
   for (const directory of [
     'bootstrap/cache',
@@ -117,9 +129,11 @@ try {
   ]) {
     await mkdir(path.join(application, directory), { recursive: true })
   }
-  await cp(path.join(root, 'dist'), path.join(staging, 'public'), { recursive: true })
-  await cp(path.join(root, 'deployment/public'), path.join(staging, 'public'), { recursive: true })
-  await cp(path.join(root, 'DEPLOY-JINO.md'), path.join(staging, 'DEPLOY-JINO.md'))
+  await copyRelease(path.join(root, 'dist'), path.join(staging, 'public'), { recursive: true })
+  await copyRelease(path.join(root, 'deployment/public'), path.join(staging, 'public'), {
+    recursive: true,
+  })
+  await copyRelease(path.join(root, 'DEPLOY-JINO.md'), path.join(staging, 'DEPLOY-JINO.md'))
   await writeFile(
     path.join(staging, 'release.json'),
     `${JSON.stringify({ commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,

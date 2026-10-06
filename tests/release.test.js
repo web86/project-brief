@@ -8,6 +8,7 @@ import { forbiddenPath, pruneVendor, checksums } from '../deployment/release-fil
 test('release rejects local secrets, development directories and source maps at any depth', () => {
   for (const file of [
     '.env',
+    'app/.DS_Store',
     'private/app/.env.local',
     'private/app/local-admin.json',
     'vendor/package/tests/Fixture.php',
