@@ -1,4 +1,7 @@
 <script setup>
+import LoadingButton from './LoadingButton.vue'
+import { t, formatApiError } from '../i18n/index.js'
+
 import { ref } from 'vue'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { formatDate } from '../constants/project.js'
@@ -8,6 +11,7 @@ const editing = ref('')
 const form = ref({ name: '', email: '' })
 const secrets = ref({})
 const pending = ref(false)
+const generatingId = ref('')
 const error = ref('')
 const message = ref('')
 const activeLinks = (client) => client.accessLinks.filter((link) => link.active)
@@ -24,10 +28,7 @@ async function action(operation) {
   try {
     await operation()
   } catch (cause) {
-    error.value =
-      Object.values(cause.errors || {})
-        .flat()
-        .join(' ') || cause.message
+    error.value = cause
   } finally {
     pending.value = false
   }
@@ -38,8 +39,8 @@ function save(client = null) {
     adding.value = false
     editing.value = ''
     message.value = client
-      ? 'Данные клиента сохранены.'
-      : 'Клиент добавлен. Теперь можно создать личную ссылку.'
+      ? { messageKey: 'ui.clientDetailsSaved', params: {} }
+      : { messageKey: 'ui.clientAddedYouCanNowCreateAPersonal', params: {} }
   })
 }
 function toggle(client) {
@@ -47,46 +48,50 @@ function toggle(client) {
     await store.mutateClient(client.id, 'PATCH', { active: !client.active })
     delete secrets.value[client.id]
     message.value = client.active
-      ? 'Клиент отключён, его ссылки отозваны.'
-      : 'Клиент включён. Для доступа создайте новую ссылку.'
+      ? { messageKey: 'ui.clientDisabledAndTheirLinksRevoked', params: {} }
+      : { messageKey: 'ui.clientEnabledCreateANewLinkToGive', params: {} }
   })
 }
-function generate(client) {
-  action(async () => {
+async function generate(client) {
+  generatingId.value = client.id
+  await action(async () => {
     delete secrets.value[client.id]
     secrets.value[client.id] = await store.createAccessLink(client.id)
-    message.value = `Ссылка для ${client.name} создана.`
+    message.value = { messageKey: 'ui.linkForCreated', params: { arg0: client.name } }
   })
+  generatingId.value = ''
 }
 function revoke(client) {
   action(async () => {
     await store.revokeAccess(client.id)
     delete secrets.value[client.id]
-    message.value = `Доступ по ссылке для ${client.name} отозван.`
+    message.value = { messageKey: 'ui.accessForHasBeenRevoked', params: { arg0: client.name } }
   })
 }
 async function copy(client) {
   try {
     await navigator.clipboard.writeText(secrets.value[client.id])
-    message.value = 'Ссылка скопирована.'
+    message.value = { messageKey: 'ui.linkCopied', params: {} }
   } catch {
-    message.value = 'Выделите ссылку и скопируйте её вручную.'
+    message.value = { messageKey: 'ui.selectTheLinkAndCopyItManually', params: {} }
   }
 }
 </script>
 <template>
   <section id="client-access" class="surface management-panel">
     <div class="management-heading">
-      <h2>Клиенты</h2>
+      <h2>{{ t('ui.clients') }}</h2>
       <button class="button secondary" :disabled="pending" @click="edit()">
-        + Добавить клиента
+        {{ t('ui.addClient') }}
       </button>
     </div>
-    <p class="muted">Каждый человек открывает проект по своей личной ссылке.</p>
+    <p class="muted">{{ t('ui.eachPersonOpensTheProjectUsingTheirOwn') }}</p>
     <form v-if="adding" class="client-edit" @submit.prevent="save()">
       <div class="field">
-        <label for="new-client-name">Имя *</label
+        <label for="new-client-name">{{ t('ui.name') }}</label
         ><input
+          @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
+          @input="$event.target.setCustomValidity('')"
           id="new-client-name"
           v-model="form.name"
           required
@@ -95,8 +100,10 @@ async function copy(client) {
         />
       </div>
       <div class="field">
-        <label for="new-client-email">Email</label
+        <label for="new-client-email">{{ t('common.email') }}</label
         ><input
+          @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
+          @input="$event.target.setCustomValidity('')"
           id="new-client-email"
           v-model="form.email"
           type="email"
@@ -105,12 +112,16 @@ async function copy(client) {
         />
       </div>
       <div class="order-actions">
-        <button class="button primary" :disabled="pending">Добавить</button
-        ><button type="button" class="button text" @click="adding = false">Отмена</button>
+        <LoadingButton type="submit" :busy="pending" class="button primary" :disabled="pending">{{
+          t('ui.add')
+        }}</LoadingButton
+        ><button type="button" class="button text" @click="adding = false">
+          {{ t('ui.cancel') }}
+        </button>
       </div>
     </form>
     <p v-if="!store.clients.length && !adding" class="muted">
-      Добавьте клиента, чтобы дать ему доступ к проекту.
+      {{ t('ui.addAClientToGiveThemAccessTo') }}
     </p>
     <article
       v-for="client in store.clients"
@@ -120,12 +131,21 @@ async function copy(client) {
     >
       <form v-if="editing === client.id" class="client-edit" @submit.prevent="save(client)">
         <div class="field">
-          <label :for="`client-name-${client.id}`">Имя *</label
-          ><input :id="`client-name-${client.id}`" v-model="form.name" required maxlength="255" />
+          <label :for="`client-name-${client.id}`">{{ t('ui.name') }}</label
+          ><input
+            @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
+            @input="$event.target.setCustomValidity('')"
+            :id="`client-name-${client.id}`"
+            v-model="form.name"
+            required
+            maxlength="255"
+          />
         </div>
         <div class="field">
-          <label :for="`client-email-${client.id}`">Email</label
+          <label :for="`client-email-${client.id}`">{{ t('common.email') }}</label
           ><input
+            @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
+            @input="$event.target.setCustomValidity('')"
             :id="`client-email-${client.id}`"
             v-model="form.email"
             type="email"
@@ -133,66 +153,73 @@ async function copy(client) {
           />
         </div>
         <div class="order-actions">
-          <button class="button primary" :disabled="pending">Сохранить</button
-          ><button type="button" class="button text" @click="editing = ''">Отмена</button>
+          <LoadingButton type="submit" :busy="pending" class="button primary" :disabled="pending">{{
+            t('ui.save')
+          }}</LoadingButton
+          ><button type="button" class="button text" @click="editing = ''">
+            {{ t('ui.cancel') }}
+          </button>
         </div>
       </form>
       <template v-else>
         <div class="client-heading">
           <h3>{{ client.name }}</h3>
           <span class="client-state" :class="{ inactive: !client.active }">{{
-            client.active ? 'Активен' : 'Отключён'
+            client.active ? t('ui.active') : t('ui.disabled')
           }}</span>
         </div>
         <p v-if="client.email" class="client-email muted">{{ client.email }}</p>
         <p class="small">
-          Доступ: {{ activeLinks(client).length ? 'ссылка активна' : 'активной ссылки нет' }}
+          {{ t('ui.access') }}
+          {{ activeLinks(client).length ? t('ui.linkActive') : t('ui.noActiveLink') }}
         </p>
         <p class="small muted">
-          Последний вход: {{ client.lastUsedAt ? formatDate(client.lastUsedAt) : 'ещё не было' }}
+          {{ t('ui.lastVisit') }}
+          {{ client.lastUsedAt ? formatDate(client.lastUsedAt) : t('ui.notYet') }}
         </p>
         <div v-if="secrets[client.id]" class="client-secret">
-          <label :for="`link-${client.id}`">Ссылка для {{ client.name }}</label>
+          <label :for="`link-${client.id}`">{{ t('ui.linkFor') }} {{ client.name }}</label>
           <input
+            @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
+            @input="$event.target.setCustomValidity('')"
             :id="`link-${client.id}`"
             :value="secrets[client.id]"
             readonly
             @focus="$event.target.select()"
           />
-          <button class="button secondary" @click="copy(client)">Скопировать ссылку</button>
-          <p class="field-help">
-            Сохраните ссылку сейчас: после ухода со страницы она не будет показана снова.
-          </p>
+          <button class="button secondary" @click="copy(client)">{{ t('ui.copyLink') }}</button>
+          <p class="field-help">{{ t('ui.saveTheLinkNowItWillNotBe') }}</p>
         </div>
         <div class="order-actions">
-          <button
+          <LoadingButton
+            :busy="pending && generatingId === client.id"
             class="button primary"
             :disabled="pending || !client.active || store.project.status !== 'active'"
             @click="generate(client)"
           >
-            {{ activeLinks(client).length ? 'Создать новую ссылку' : 'Создать ссылку' }}
-          </button>
+            {{ activeLinks(client).length ? t('ui.createNewLink') : t('ui.createLink') }}
+          </LoadingButton>
           <button
             v-if="activeLinks(client).length"
             class="button secondary"
             :disabled="pending"
             @click="revoke(client)"
           >
-            Отозвать ссылку
+            {{ t('ui.revokeLink') }}
           </button>
           <button class="button text" :disabled="pending" @click="edit(client)">
-            Редактировать
+            {{ t('ui.edit') }}
           </button>
           <button class="button text" :disabled="pending" @click="toggle(client)">
-            {{ client.active ? 'Отключить' : 'Включить' }}
+            {{ client.active ? t('ui.disable') : t('ui.enable') }}
           </button>
         </div>
         <p v-if="activeLinks(client).length" class="field-help">
-          Новая ссылка заменит прежнюю только для {{ client.name }}.
+          {{ t('flow.linkReplaces', { name: client.name }) }}
         </p>
       </template>
     </article>
-    <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-    <p v-if="message" class="admin-feedback" role="status">{{ message }}</p>
+    <p v-if="error" class="field-error" role="alert">{{ formatApiError(error) }}</p>
+    <p v-if="message" class="admin-feedback" role="status">{{ formatApiError(message) }}</p>
   </section>
 </template>

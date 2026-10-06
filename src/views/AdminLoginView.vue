@@ -1,4 +1,7 @@
 <script setup>
+import LoadingButton from '../components/LoadingButton.vue'
+import { t, formatApiError } from '../i18n/index.js'
+
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
@@ -24,10 +27,7 @@ async function login() {
     password.value = ''
     await router.push('/admin')
   } catch (cause) {
-    error.value =
-      Object.values(cause.errors || {})
-        .flat()
-        .join(' ') || cause.message
+    error.value = cause
   } finally {
     pending.value = false
   }
@@ -36,17 +36,27 @@ async function login() {
 <template>
   <div class="admin-login">
     <div class="page-heading">
-      <h1>Вход для администратора</h1>
-      <p>Ваши проекты и идеи клиентов в одном месте.</p>
+      <h1>{{ t('ui.signInAsAdministrator') }}</h1>
+      <p>{{ t('ui.yourProjectsAndClientIdeasInOnePlace') }}</p>
     </div>
     <form class="surface admin-form" @submit.prevent="login">
       <div class="field">
-        <label for="admin-email">Email</label
-        ><input id="admin-email" v-model="email" type="email" autocomplete="username" required />
+        <label for="admin-email">{{ t('common.email') }}</label
+        ><input
+          @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
+          @input="$event.target.setCustomValidity('')"
+          id="admin-email"
+          v-model="email"
+          type="email"
+          autocomplete="username"
+          required
+        />
       </div>
       <div class="field">
-        <label for="admin-password">Пароль</label
+        <label for="admin-password">{{ t('ui.password') }}</label
         ><input
+          @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
+          @input="$event.target.setCustomValidity('')"
           id="admin-password"
           v-model="password"
           type="password"
@@ -54,10 +64,10 @@ async function login() {
           required
         />
       </div>
-      <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-      <button class="button primary" type="submit" :disabled="pending">
-        {{ pending ? 'Входим…' : 'Войти' }}
-      </button>
+      <p v-if="error" class="field-error" role="alert">{{ formatApiError(error) }}</p>
+      <LoadingButton :busy="pending" class="button primary" type="submit" :disabled="pending">
+        {{ t('ui.signIn') }}
+      </LoadingButton>
     </form>
   </div>
 </template>

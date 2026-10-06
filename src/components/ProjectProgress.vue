@@ -1,12 +1,13 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 defineProps({ done: Number, total: Number, progress: Number })
 </script>
 <template>
   <div class="project-progress">
     <div class="progress-copy">
-      <span
-        ><strong>{{ done }}</strong> из {{ total }} выполнено</span
-      ><strong>{{ progress }}%</strong>
+      <span>{{ t('flow.progress', { done, total }) }}</span>
+      <strong>{{ progress }}%</strong>
     </div>
     <div
       class="progress-track"
@@ -14,7 +15,7 @@ defineProps({ done: Number, total: Number, progress: Number })
       :aria-valuenow="progress"
       aria-valuemin="0"
       aria-valuemax="100"
-      aria-label="Готовность проекта"
+      :aria-label="t('ui.projectProgress')"
     >
       <span :style="{ width: `${progress}%` }" />
     </div>

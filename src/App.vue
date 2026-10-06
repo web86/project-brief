@@ -1,7 +1,11 @@
 <script setup>
+import { t, locale, formatApiError } from './i18n/index.js'
+
 import { nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from './stores/project'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
+import LoadingOverlay from './components/LoadingOverlay.vue'
 import ModeSwitcher from './components/ModeSwitcher.vue'
 import { api } from './api/client'
 import AppIcon from './components/AppIcon.vue'
@@ -14,10 +18,11 @@ async function logout() {
     await api.request('/api/admin/logout', { method: 'POST' })
     api.resetCsrf()
     store.admin = null
+    store.currentClient = null
     store.tasks = []
     await router.push('/admin/login')
   } catch (error) {
-    store.apiError = error.message
+    store.apiError = error
   }
 }
 watch(
@@ -35,16 +40,22 @@ watch(
 )
 store.loadFromStorage()
 watch(
+  () => [route.fullPath, locale.value],
+  () => {
+    document.title = `${route.meta.title || t('ui.yourProject')} — Project Brief`
+  },
+  { immediate: true },
+)
+watch(
   () => route.fullPath,
   async () => {
-    document.title = `${route.meta.title || 'Ваш проект'} — Project Brief`
     await nextTick()
     document.getElementById('main-content')?.focus({ preventScroll: true })
   },
 )
 </script>
 <template>
-  <a class="skip-link" href="#main-content">Перейти к содержимому</a>
+  <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
   <div class="app-shell">
     <header class="app-topbar">
       <div class="topbar-inner">
@@ -59,60 +70,61 @@ watch(
               : '/'
           "
           class="brand"
-          aria-label="Project Brief — на страницу проекта"
+          :aria-label="t('ui.projectBriefOpenTheProject')"
           ><span class="brand-mark">p<span class="brand-dot">.</span></span
           ><span>project<span class="brand-light">brief</span></span></RouterLink
         ><ModeSwitcher v-if="!store.apiMode" />
-        <nav v-else-if="store.admin" class="admin-nav" aria-label="Администратор">
-          <RouterLink to="/admin">Проекты</RouterLink
-          ><button class="text-button" @click="logout">Выйти</button>
+        <nav v-else-if="store.admin" class="admin-nav" :aria-label="t('ui.administrator')">
+          <RouterLink to="/admin">{{ t('ui.projects') }}</RouterLink
+          ><button class="text-button" @click="logout">{{ t('ui.signOut') }}</button>
         </nav>
         <span v-else-if="store.currentClient" class="current-client-name">{{
           store.currentClient.name
         }}</span>
+        <LanguageSwitcher />
       </div>
     </header>
+    <LoadingOverlay :active="store.apiLoading" />
     <div class="workspace">
       <div v-if="store.storageError" class="storage-warning" role="alert">
         <AppIcon name="info" :size="22" />
         <div>
           <strong>{{
             store.storageBlocked
-              ? 'Не удалось открыть сохранённый проект'
-              : 'Не удалось сохранить проект'
+              ? t('ui.weCouldNotOpenTheSavedProject')
+              : t('ui.weCouldNotSaveTheProject')
           }}</strong>
-          <p>{{ store.storageError }}</p>
+          <p>{{ formatApiError(store.storageError) }}</p>
         </div>
         <button
           v-if="!store.storageBlocked"
           class="button secondary"
           @click="store.saveToStorage()"
         >
-          Повторить сохранение
+          {{ t('ui.trySavingAgain') }}
         </button>
       </div>
       <div v-if="store.apiError" class="storage-warning" role="alert">
-        <p>{{ store.apiError }}</p>
+        <p>{{ formatApiError(store.apiError) }}</p>
         <button
           v-if="Object.keys(store.developerDrafts).length"
           class="button secondary"
           @click="store.flushDeveloperData()"
         >
-          Повторить сохранение
+          {{ t('ui.trySavingAgain') }}
         </button>
       </div>
-      <p v-if="store.apiLoading" role="status" class="muted">Открываем проект…</p>
       <p
         v-if="store.apiMode && Object.keys(store.developerDrafts).length"
         role="status"
-        class="muted small"
+        class="save-status"
       >
         {{
           store.savingDeveloper
-            ? 'Сохраняем изменения…'
+            ? t('ui.savingChanges')
             : store.apiError
-              ? 'Изменения ещё не сохранены.'
-              : 'Изменения будут сохранены автоматически…'
+              ? t('ui.changesHaveNotBeenSavedYet')
+              : t('ui.changesWillBeSavedAutomatically')
         }}
       </p>
       <main id="main-content" tabindex="-1"><RouterView /></main>

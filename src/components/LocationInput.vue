@@ -1,4 +1,6 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 import { computed, nextTick, ref, watch } from 'vue'
 
 const props = defineProps({
@@ -77,7 +79,7 @@ async function keydown(event) {
       autocomplete="off"
       :spellcheck="false"
       required
-      placeholder="Например: Главная, карточка товара или вставьте ссылку"
+      :placeholder="t('ui.forExampleHomePageProductPageOrPaste')"
       aria-autocomplete="list"
       aria-haspopup="listbox"
       :aria-expanded="expanded"
@@ -96,7 +98,7 @@ async function keydown(event) {
       ref="popup"
       class="location-options"
       role="listbox"
-      aria-label="Подсказки мест на сайте"
+      :aria-label="t('ui.websiteLocationSuggestions')"
     >
       <li
         v-for="(option, index) in options"

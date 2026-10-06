@@ -1,3 +1,4 @@
+import { locale } from '../src/i18n/index.js'
 import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
@@ -20,6 +21,7 @@ class MemoryStorage {
 
 let storage
 beforeEach(() => {
+  locale.value = 'ru'
   storage = new MemoryStorage()
   Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true })
   setActivePinia(createPinia())
@@ -103,7 +105,7 @@ test('mode restrictions and invalid updates cannot corrupt the project', () => {
   const store = createStore()
   const id = store.addTask(idea())
   assert.equal(store.changeStatus(id, 'done'), false)
-  assert.equal(store.deleteTask(id), false)
+  assert.equal(store.deleteTask('missing'), false)
   assert.equal(store.updateDeveloperData(id, { price: 100 }), false)
   assert.equal(store.addComment(id, '   '), false)
   assert.throws(() => store.addTask({ ...idea(), title: ' ' }))
@@ -193,10 +195,10 @@ test('custom locations and URLs persist independently of their organizational se
   const url =
     'https://example.com/catalog/' + 'product-name/'.repeat(35) + '?color=green&size=large#photos'
   const values = ['Главная', 'Страница доставки', 'Корзина', url, 'all']
-  const ids = values.map((location) => store.addTask({ ...idea(), location }))
+  const ids = values.map((location) => store.addTask({ ...idea(), location, section: location }))
   values.forEach((location, index) => {
     assert.equal(getTaskLocation(store.findTask(ids[index])), location)
-    assert.equal(store.taskSection(store.findTask(ids[index])).name, 'Общее')
+    assert.equal(store.taskSection(store.findTask(ids[index])).name, location)
     assert.ok(store.locationOptions.includes(location))
   })
   store.updateTask(ids[0], { location: 'Мобильное меню' })
@@ -366,8 +368,8 @@ test('status and filters preserve canonical numbers; explicit moves and reorders
   store.setMode('developer')
   const general = store.sections.find((section) => section.name === 'Общее')
   const main = store.sections.find((section) => section.name === 'Главная')
-  const first = store.findTask(store.addTask(idea()))
-  const second = store.findTask(store.addTask(idea()))
+  const first = store.findTask(store.addTask({ ...idea(), section: 'Общее' }))
+  const second = store.findTask(store.addTask({ ...idea(), section: 'Общее' }))
   const before = store.numberForTask(first)
   store.changeStatus(first.id, 'done')
   const groups = groupBriefTasks(

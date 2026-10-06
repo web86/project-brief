@@ -1,4 +1,8 @@
 <script setup>
+import LoadingButton from './LoadingButton.vue'
+import { t } from '../i18n/index.js'
+
+import { canEditClientTask } from '../utils/clientDraft.js'
 import { ref } from 'vue'
 import { useProjectStore } from '../stores/project'
 import FileUploader from './FileUploader.vue'
@@ -17,34 +21,39 @@ defineProps({ task: Object })
 <template>
   <section class="surface details-surface">
     <div class="detail-block">
-      <h2>Что хочется изменить</h2>
+      <h2>{{ t('ui.whatYouWouldLikeToChange') }}</h2>
       <p class="prose">{{ task.description }}</p>
     </div>
     <div class="detail-block">
-      <h2>Что должно получиться</h2>
+      <h2>{{ t('ui.whatTheResultShouldLookLike') }}</h2>
       <p v-if="task.expectedResult" class="prose expected-result">{{ task.expectedResult }}</p>
-      <p v-else class="muted">Не указан.</p>
+      <p v-else class="muted">{{ t('ui.notSpecified') }}</p>
     </div>
     <div v-if="task.attachments.length" class="detail-block">
       <h2>
-        Примеры и файлы <span class="count-pill">{{ task.attachments.length }}</span>
+        {{ t('ui.examplesAndFiles') }} <span class="count-pill">{{ task.attachments.length }}</span>
       </h2>
       <AttachmentList :attachments="task.attachments" />
     </div>
     <details
-      v-if="store.apiMode && task.attachments.length < 10"
+      v-if="
+        store.apiMode &&
+        task.attachments.length < 10 &&
+        (store.isDeveloper || canEditClientTask(task))
+      "
       class="detail-block upload-details"
     >
-      <summary>Добавить пример или файл</summary>
+      <summary>{{ t('ui.addAnExampleOrFile') }}</summary>
       <FileUploader v-model="selectedFiles" @busy="busy = $event" />
-      <button
+      <LoadingButton
+        :busy="uploading"
         v-if="selectedFiles.length"
         class="button secondary"
         :disabled="busy || uploading"
         @click="upload(task.id)"
       >
-        {{ uploading ? 'Загружаем…' : 'Добавить файлы' }}
-      </button>
+        {{ t('ui.addFiles') }}
+      </LoadingButton>
     </details>
   </section>
 </template>

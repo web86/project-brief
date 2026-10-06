@@ -1,4 +1,6 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 import { onMounted, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 const props = defineProps({
@@ -27,7 +29,12 @@ watch(() => props.open, syncDialog)
     <div class="modal-content">
       <div class="modal-header">
         <h2 :id="id">{{ title }}</h2>
-        <button class="icon-button" aria-label="Закрыть окно" @click="emit('close')">
+        <button
+          type="button"
+          class="icon-button"
+          :aria-label="t('ui.closeDialog')"
+          @click="emit('close')"
+        >
           <AppIcon name="close" />
         </button>
       </div>

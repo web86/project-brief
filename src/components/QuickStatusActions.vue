@@ -1,4 +1,6 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 import { computed, nextTick, ref, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { applyQuickStatusAction, getQuickStatusActions } from '../utils/taskWorkflow'
@@ -40,9 +42,9 @@ async function apply(actionId, event) {
 <template>
   <div class="quick-status-actions">
     <p v-if="task.status === 'done'" class="developer-completed">
-      <AppIcon name="check" :size="18" />Задача завершена
+      <AppIcon name="check" :size="18" />{{ t('ui.ideaCompleted') }}
     </p>
-    <div ref="buttons" class="quick-action-buttons" role="group" aria-label="Быстрые действия">
+    <div ref="buttons" class="quick-action-buttons" role="group" :aria-label="t('ui.quickActions')">
       <button
         v-for="action in actions"
         :key="action.id"
@@ -55,6 +57,6 @@ async function apply(actionId, event) {
         <AppIcon :name="action.icon" :size="17" />{{ action.label }}
       </button>
     </div>
-    <p v-if="message" class="quick-action-feedback" role="status">{{ message }}</p>
+    <p v-if="message" class="quick-action-feedback" role="status">{{ t(message) }}</p>
   </div>
 </template>

@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js'
 // Future adapters may return several structured ideas for the same description.
 // Nothing is sent outside the browser until an API adapter is explicitly added.
 export function createIdeaAssistant(adapter) {
@@ -6,8 +7,8 @@ export function createIdeaAssistant(adapter) {
       if (adapter) return adapter({ description, allowSplit: true })
       return {
         mode: 'demo',
-        message:
-          'Позже здесь AI сможет превратить ваше описание в понятную структурированную задачу.',
+        messageKey: 'ui.laterAiWillBeAbleToTurnYour',
+        message: t('ui.laterAiWillBeAbleToTurnYour'),
         suggestedIdeas: [],
       }
     },

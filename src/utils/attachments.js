@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js'
 export const ACCEPTED_EXTENSIONS = [
   'jpg',
   'jpeg',
@@ -25,7 +26,7 @@ export function getPastedImages(clipboardData) {
       if (!extension) return file
       // Clipboard screenshots often share the name image.png and the same size.
       // Give each paste a unique name so two different screenshots are not deduplicated.
-      const name = `Скриншот-${crypto.randomUUID().slice(0, 8)}.${extension}`
+      const name = t('ui.screenshot', { arg0: crypto.randomUUID().slice(0, 8), arg1: extension })
       return new File([file], name, { type: file.type, lastModified: file.lastModified })
     })
 }
@@ -34,7 +35,7 @@ function readDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error('Не удалось прочитать изображение.'))
+    reader.onerror = () => reject(new Error(t('ui.weCouldNotReadThisImage')))
     reader.readAsDataURL(file)
   })
 }
@@ -62,8 +63,8 @@ async function createPreview(file) {
 export async function prepareAttachment(file) {
   const extension = file.name.split('.').pop().toLowerCase()
   if (!ACCEPTED_EXTENSIONS.includes(extension))
-    throw new Error(`«${file.name}»: этот формат не поддерживается.`)
-  if (file.size > MAX_FILE_SIZE) throw new Error(`«${file.name}»: файл больше 20 МБ.`)
+    throw new Error(t('ui.thisFileFormatIsNotSupported', { arg0: file.name }))
+  if (file.size > MAX_FILE_SIZE) throw new Error(t('ui.theFileExceedsMb', { arg0: file.name }))
   let preview = null
   if (['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
     try {

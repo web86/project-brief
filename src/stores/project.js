@@ -1,6 +1,8 @@
+import { t, applyClientLocale, setManualLocale, SUPPORTED_LOCALES } from '../i18n/index.js'
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { api, API_MODE, taskBody } from '../api/client.js'
+import { canEditClientTask } from '../utils/clientDraft.js'
 import { createDemoData } from '../data/demo.js'
 import {
   FILTERS,
@@ -141,6 +143,7 @@ export const useProjectStore = defineStore('project', () => {
   const apiError = ref('')
   const sessionLost = ref(false)
   const apiLoading = ref(false)
+  const orderPending = ref(false)
   const developerDrafts = ref({})
   const savingDeveloper = ref(false)
   let developerTimer
@@ -162,7 +165,7 @@ export const useProjectStore = defineStore('project', () => {
   const taskPath = (id) => (!API_MODE ? `/task/${id}` : `${projectPath.value}/task/${id}`)
   const actorPath = () => `/api/${admin.value ? 'admin' : 'client'}`
   function reportError(error) {
-    apiError.value = error.message
+    apiError.value = error
     if (error.status === 401) sessionLost.value = true
   }
   function replaceTask(task) {
@@ -208,6 +211,7 @@ export const useProjectStore = defineStore('project', () => {
       } else {
         admin.value = null
         currentClient.value = await api.request('/api/client/me')
+        applyClientLocale(currentClient.value.preferredLocale)
         developerDrafts.value = {}
       }
       await flushDeveloperData()
@@ -284,9 +288,16 @@ export const useProjectStore = defineStore('project', () => {
     tasks.value.length ? Math.round((counts.value.done / tasks.value.length) * 100) : 0,
   )
   const findTask = (id) => tasks.value.find((task) => task.id === id)
-  const addHistory = (task, type, text) => {
+  const addHistory = (task, type, text, metadata = {}) => {
     const createdAt = timestamp()
-    task.history.push({ id: uuid(), type, text, createdAt })
+    task.history.push({
+      id: uuid(),
+      type,
+      text,
+      createdAt,
+      actorType: currentMode.value,
+      ...metadata,
+    })
     task.updatedAt = createdAt
   }
 
@@ -307,8 +318,10 @@ export const useProjectStore = defineStore('project', () => {
       storageError.value = ''
       return true
     } catch {
-      storageError.value =
-        'Изменения пока не сохранены. Возможно, память браузера заполнена или недоступна. Не закрывайте страницу; проверьте доступ к памяти браузера или освободите место и повторите сохранение.'
+      storageError.value = {
+        messageKey: 'ui.yourChangesHaveNotBeenSavedBrowserStorage',
+        params: {},
+      }
       return false
     }
   }
@@ -331,8 +344,7 @@ export const useProjectStore = defineStore('project', () => {
       storageError.value = ''
     } catch {
       storageBlocked.value = true
-      storageError.value =
-        'Не удалось прочитать сохранённый проект. Исходные данные не перезаписаны. Проверьте доступ к памяти браузера и обновите страницу. Сейчас показаны демонстрационные данные.'
+      storageError.value = { messageKey: 'ui.weCouldNotReadTheSavedProjectYour', params: {} }
     } finally {
       loading = false
       initialized.value = true
@@ -361,24 +373,18 @@ export const useProjectStore = defineStore('project', () => {
       !input.title.trim() ||
       !input.description.trim()
     )
-      throw new Error('Добавьте название и описание идеи.')
+      throw new Error(t('ui.addATitleAndDescriptionForYourIdea'))
     const location = input.location ?? input.section
-    if (!isText(location) || !location.trim()) throw new Error('Укажите место на сайте или ссылку.')
-    if (!Object.hasOwn(PRIORITIES, input.priority)) throw new Error('Проверьте важность идеи.')
+    if (!isText(location) || !location.trim()) throw new Error(t('ui.enterAPlaceOnTheWebsiteOrA'))
+    if (!Object.hasOwn(PRIORITIES, input.priority)) throw new Error(t('ui.checkTheIdeaSImportance'))
     if (
       input.attachments &&
       (!Array.isArray(input.attachments) || !input.attachments.every(validAttachment))
     )
-      throw new Error('Проверьте прикреплённые файлы.')
-    let section = sections.value.find((item) => item.name === 'Общее')
-    if (!section) {
-      section = {
-        id: uuid(),
-        name: 'Общее',
-        position: Math.max(0, ...sections.value.map((item) => item.position)) + 1,
-      }
-      sections.value.push(section)
-    }
+      throw new Error(t('ui.checkTheAttachedFiles'))
+    const section = ensureLocalSection((input.section ?? location).trim())
+    normalizePositions(canonicalOrder(sections.value))
+    for (const item of sections.value) normalizePositions(sectionTasks(item.id))
     const createdAt = timestamp()
     const task = {
       id: uuid(),
@@ -401,7 +407,9 @@ export const useProjectStore = defineStore('project', () => {
         {
           id: uuid(),
           type: 'created',
-          text: `${isDeveloper.value ? 'Разработчик' : 'Клиент'} добавил новую идею`,
+          text: t('ui.addedANewIdea', {
+            arg0: isDeveloper.value ? t('ui.developer') : t('ui.client'),
+          }),
           createdAt,
         },
       ],
@@ -415,7 +423,7 @@ export const useProjectStore = defineStore('project', () => {
   function updateTask(id, changes) {
     if (API_MODE) return mutateTask(id, '', 'PATCH', changes)
     const task = findTask(id)
-    if (!task) return false
+    if (!task || (!isDeveloper.value && !canEditClientTask(task))) return false
     const fields = [
       'title',
       'description',
@@ -433,6 +441,11 @@ export const useProjectStore = defineStore('project', () => {
       if (!isText(location) || !location.trim()) return false
       safe.location = location.trim()
       delete safe.section
+      safe.targetSectionName = isText(changes.section)
+        ? changes.section.trim()
+        : !isDeveloper.value
+          ? safe.location
+          : undefined
     }
     const candidate = { ...task, ...safe }
     if (
@@ -450,16 +463,108 @@ export const useProjectStore = defineStore('project', () => {
       return false
     if (Object.keys(safe).every((key) => JSON.stringify(task[key]) === JSON.stringify(safe[key])))
       return false
+    const targetName = safe.targetSectionName
+    delete safe.targetSectionName
+    if (targetName) {
+      const section = ensureLocalSection(targetName)
+      if (task.sectionId !== section.id) {
+        const oldId = task.sectionId
+        task.sectionId = section.id
+        task.position =
+          Math.max(
+            0,
+            ...sectionTasks(section.id)
+              .filter((item) => item.id !== id)
+              .map((item) => item.position),
+          ) + 1
+        normalizePositions(sectionTasks(oldId))
+        normalizePositions(sectionTasks(section.id))
+      }
+      normalizePositions(canonicalOrder(sections.value))
+    }
     Object.assign(task, safe)
-    addHistory(task, 'updated', 'Описание идеи обновлено')
+    addHistory(task, 'updated', t('ui.ideaDescriptionUpdated'))
     return true
   }
 
   function deleteTask(id) {
-    if (API_MODE) return false
-    if (!isDeveloper.value || !findTask(id)) return false
-    tasks.value = tasks.value.filter((task) => task.id !== id)
+    const task = findTask(id)
+    if (!task || storageBlocked.value || (!isDeveloper.value && !canEditClientTask(task)))
+      return false
+    if (API_MODE)
+      return (async () => {
+        try {
+          await serialize(id, () => api.request(`/api/client/tasks/${id}`, { method: 'DELETE' }))
+          await loadApiProject(project.value.id, false)
+          return true
+        } catch (error) {
+          reportError(error)
+          return false
+        }
+      })()
+    const sectionId = task.sectionId
+    tasks.value = tasks.value.filter((item) => item.id !== id)
+    normalizePositions(sectionTasks(sectionId))
+    normalizePositions(canonicalOrder(sections.value))
     return true
+  }
+  function ensureLocalSection(name) {
+    let section = sections.value.find((item) => item.name.trim() === name)
+    if (!section) {
+      section = {
+        id: uuid(),
+        name,
+        position: Math.max(0, ...sections.value.map((item) => item.position)) + 1,
+      }
+      sections.value.push(section)
+    }
+    return section
+  }
+  async function selectLocale(value) {
+    if (!SUPPORTED_LOCALES.includes(value)) return false
+    setManualLocale(value)
+    if (API_MODE && currentClient.value && !admin.value) {
+      try {
+        const id = currentClient.value.id
+        await serialize(`locale:${id}`, async () => {
+          const result = await api.request('/api/client/me/locale', {
+            method: 'PATCH',
+            body: { locale: value },
+          })
+          if (currentClient.value?.id === id)
+            currentClient.value.preferredLocale = result.preferredLocale
+        })
+      } catch (error) {
+        reportError(error)
+      }
+    }
+  }
+  async function reorderSection(id, direction) {
+    if (!isDeveloper.value || storageBlocked.value || orderPending.value) return false
+    const previous = sections.value.map((section) => ({
+      id: section.id,
+      position: section.position,
+    }))
+    if (!swapPosition(canonicalOrder(sections.value), id, direction)) return false
+    if (!API_MODE) return true
+    orderPending.value = true
+    try {
+      const result = await api.request(`/api/admin/projects/${project.value.id}/sections/${id}`, {
+        method: 'PATCH',
+        body: { direction },
+      })
+      sections.value = result.data
+      return true
+    } catch (error) {
+      for (const saved of previous) {
+        const section = sections.value.find((item) => item.id === saved.id)
+        if (section) section.position = saved.position
+      }
+      reportError(error)
+      return false
+    } finally {
+      orderPending.value = false
+    }
   }
 
   function changeStatus(id, status) {
@@ -470,9 +575,15 @@ export const useProjectStore = defineStore('project', () => {
     const task = findTask(id)
     if (!isDeveloper.value || !task || !Object.hasOwn(STATUSES, status) || task.status === status)
       return false
+    const oldValue = task.status
     const previous = STATUSES[task.status].label
     task.status = status
-    addHistory(task, 'status', `Статус изменён: ${previous} → ${STATUSES[status].label}`)
+    addHistory(
+      task,
+      'status',
+      t('ui.statusChanged', { arg0: previous, arg1: STATUSES[status].label }),
+      { oldValue, newValue: status },
+    )
     return true
   }
 
@@ -481,7 +592,7 @@ export const useProjectStore = defineStore('project', () => {
     const task = findTask(id)
     if (isDeveloper.value || !task || task.clientApproved) return false
     task.clientApproved = true
-    addHistory(task, 'approved', 'Клиент согласовал задачу')
+    addHistory(task, 'approved', t('ui.clientApprovedTheIdea'))
     // Approval by the client is independent of the developer's workflow status.
     return true
   }
@@ -500,7 +611,7 @@ export const useProjectStore = defineStore('project', () => {
     addHistory(
       task,
       'comment',
-      `${isDeveloper.value ? 'Разработчик' : 'Клиент'} добавил комментарий`,
+      t('ui.addedAComment', { arg0: isDeveloper.value ? t('ui.developer') : t('ui.client') }),
     )
     return true
   }
@@ -525,9 +636,9 @@ export const useProjectStore = defineStore('project', () => {
     if (!isDeveloper.value || !task) return false
     const changed = []
     for (const [key, label] of [
-      ['estimateHours', 'оценка в часах'],
-      ['price', 'стоимость'],
-      ['developerNotes', 'технические заметки'],
+      ['estimateHours', t('ui.hourEstimate')],
+      ['price', t('ui.price3')],
+      ['developerNotes', t('ui.technicalNotes2')],
     ]) {
       if (!(key in data) || data[key] === task[key]) continue
       if (key === 'developerNotes' ? !isText(data[key]) : !validNumber(data[key])) continue
@@ -540,13 +651,13 @@ export const useProjectStore = defineStore('project', () => {
     const createdAt = timestamp()
     if (previous?.type === 'developer' && Date.now() - Date.parse(previous.createdAt) < 30000) {
       const labels = new Set([
-        ...previous.text.replace('Разработчик обновил: ', '').split(', '),
+        ...previous.text.replace(t('ui.developerUpdated'), '').split(', '),
         ...changed,
       ])
-      previous.text = `Разработчик обновил: ${[...labels].join(', ')}`
+      previous.text = t('ui.developerUpdated2', { arg0: [...labels].join(', ') })
       previous.createdAt = createdAt
       task.updatedAt = createdAt
-    } else addHistory(task, 'developer', `Разработчик обновил: ${changed.join(', ')}`)
+    } else addHistory(task, 'developer', t('ui.developerUpdated2', { arg0: changed.join(', ') }))
     return true
   }
 
@@ -576,7 +687,12 @@ export const useProjectStore = defineStore('project', () => {
     addHistory(
       task,
       'section_moved',
-      `Разработчик переместил задачу в раздел «${section.name}»: ${previous} → ${numberForTask(task)}`,
+      t('ui.developerMovedTheIdeaTo', {
+        arg0: section.name,
+        arg1: previous,
+        arg2: numberForTask(task),
+      }),
+      { oldValue: previous, newValue: numberForTask(task) },
     )
     return true
   }
@@ -584,14 +700,35 @@ export const useProjectStore = defineStore('project', () => {
     if (!isDeveloper.value || storageBlocked.value || !['up', 'down'].includes(direction))
       return false
     if (API_MODE) {
-      await flushDeveloperData()
-      if (!(await mutateTask(id, '/reorder', 'POST', { direction }))) return false
-      await loadApiProject(project.value.id, true)
-      return true
+      if (orderPending.value) return false
+      orderPending.value = true
+      const previous = tasks.value.map((task) => ({ id: task.id, position: task.position }))
+      swapPosition(sectionTasks(findTask(id).sectionId), id, direction)
+      try {
+        await flushDeveloperData()
+        if (!(await mutateTask(id, '/reorder', 'POST', { direction }))) {
+          for (const saved of previous) {
+            const task = findTask(saved.id)
+            if (task) task.position = saved.position
+          }
+          return false
+        }
+        await loadApiProject(project.value.id, true)
+        return true
+      } finally {
+        orderPending.value = false
+      }
     }
     const task = findTask(id)
-    if (!task || !swapPosition(sectionTasks(task.sectionId), id, direction)) return false
-    addHistory(task, 'reordered', `Разработчик изменил порядок задачи: ${numberForTask(task)}`)
+    if (!task) return false
+    const oldValue = numberForTask(task)
+    if (!swapPosition(sectionTasks(task.sectionId), id, direction)) return false
+    addHistory(
+      task,
+      'reordered',
+      t('ui.developerChangedTheIdeaSOrder', { arg0: numberForTask(task) }),
+      { oldValue, newValue: numberForTask(task) },
+    )
     return true
   }
 
@@ -612,6 +749,9 @@ export const useProjectStore = defineStore('project', () => {
     apiMode,
     admin,
     currentClient,
+    selectLocale,
+    orderPending,
+    reorderSection,
     apiError,
     sessionLost,
     apiLoading,

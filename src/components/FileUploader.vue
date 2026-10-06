@@ -1,4 +1,6 @@
 <script setup>
+import { t, formatApiError } from '../i18n/index.js'
+
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { FILE_ACCEPT, MAX_FILES, getPastedImages, prepareAttachment } from '../utils/attachments'
 import { formatSize } from '../constants/project'
@@ -20,7 +22,7 @@ async function addFiles(files) {
   try {
     for (const file of Array.from(files)) {
       if (next.length >= MAX_FILES) {
-        errors.value.push('К одной идее можно добавить до 10 файлов.')
+        errors.value.push(t('ui.youCanAddUpToFilesToOne'))
         break
       }
       if (next.some((item) => item.name === file.name && item.size === file.size)) continue
@@ -48,14 +50,13 @@ function paste(event) {
   if (!images.length) return
   event.preventDefault()
   if (pending.value) {
-    errors.value = ['Подождите, пока обработаются выбранные файлы, и вставьте изображение ещё раз.']
+    errors.value = [t('ui.waitUntilTheSelectedFilesAreProcessedThen')]
     return
   }
   pastedNotice.value = ''
   const previousCount = props.modelValue.length
   addFiles(images).then(() => {
-    if (props.modelValue.length > previousCount)
-      pastedNotice.value = 'Изображение из буфера добавлено.'
+    if (props.modelValue.length > previousCount) pastedNotice.value = t('ui.clipboardImageAdded')
   })
 }
 onMounted(() => document.addEventListener('paste', paste))
@@ -73,13 +74,13 @@ onBeforeUnmount(() => document.removeEventListener('paste', paste))
       <span class="upload-icon"><AppIcon name="upload" :size="22" /></span>
       <p>
         <button type="button" class="text-button" :disabled="pending" @click="input.click()">
-          {{ pending ? 'Обрабатываем файлы…' : 'Выберите файлы' }}
+          {{ pending ? t('ui.processingFiles') : t('ui.chooseFiles') }}
         </button>
-        <span>или перетащите сюда</span>
+        <span>{{ t('ui.orDragThemHere') }}</span>
       </p>
-      <span class="paste-hint">Скриншот можно вставить: Ctrl+V / ⌘V</span>
-      <span class="small muted">Изображения, PDF, DOC, DOCX, TXT, ZIP · до 20 МБ</span
-      ><label class="sr-only" for="idea-files">Выберите примеры или скриншоты</label
+      <span class="paste-hint">{{ t('ui.pasteAScreenshotCtrlVV') }}</span>
+      <span class="small muted">{{ t('ui.imagesPdfDocDocxTxtZipUpTo') }}</span
+      ><label class="sr-only" for="idea-files">{{ t('ui.chooseExamplesOrScreenshots') }}</label
       ><input
         id="idea-files"
         ref="input"
@@ -102,10 +103,10 @@ onBeforeUnmount(() => document.removeEventListener('paste', paste))
             >{{ formatSize(file.size)
             }}{{
               API_MODE
-                ? ' · исходный файл'
+                ? t('ui.originalFile')
                 : file.preview
-                  ? ' · превью сохранится'
-                  : ' · название и размер'
+                  ? t('ui.previewWillBeSaved')
+                  : t('ui.nameAndSize')
             }}</span
           >
         </div>
@@ -113,7 +114,7 @@ onBeforeUnmount(() => document.removeEventListener('paste', paste))
           type="button"
           class="icon-button"
           :disabled="pending"
-          :aria-label="`Убрать ${file.name}`"
+          :aria-label="t('ui.remove', { arg0: file.name })"
           @click="
             emit(
               'update:modelValue',
@@ -125,12 +126,14 @@ onBeforeUnmount(() => document.removeEventListener('paste', paste))
         </button>
       </li>
     </ul>
-    <p v-for="error in errors" :key="error" class="field-error" role="alert">{{ error }}</p>
+    <p v-for="error in errors" :key="error" class="field-error" role="alert">
+      {{ formatApiError(error) }}
+    </p>
     <p class="field-help">
       {{
         API_MODE
-          ? 'Файлы будут доступны только участникам проекта.'
-          : 'Изображения — превью; остальные файлы — название и размер.'
+          ? t('ui.filesAreOnlyAvailableToProjectParticipants')
+          : t('ui.imagesShowPreviewsOtherFilesShowTheirName')
       }}
     </p>
     <span class="sr-only" role="status" aria-live="polite">{{ pastedNotice }}</span>

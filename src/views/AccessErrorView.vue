@@ -1,20 +1,22 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 const route = useRoute()
 const message = computed(
   () =>
     ({
-      expired: 'Срок действия ссылки истёк.',
-      unavailable: 'Проект недоступен.',
-      session: 'Сессия завершена. Откройте ссылку клиента ещё раз.',
-    })[route.query.reason] || 'Ссылка недействительна или была отозвана.',
+      expired: t('ui.thisLinkHasExpired'),
+      unavailable: t('ui.projectUnavailable'),
+      session: t('ui.yourSessionHasEndedOpenYourPersonalLink'),
+    })[route.query.reason] || t('ui.thisLinkIsInvalidOrHasBeenRevoked'),
 )
 </script>
 <template>
   <div class="empty-state page-empty">
-    <h1>Нет доступа к проекту</h1>
+    <h1>{{ t('ui.noAccessToThisProject') }}</h1>
     <p>{{ message }}</p>
-    <p>Попросите разработчика прислать новую ссылку.</p>
+    <p>{{ t('ui.askTheDeveloperForANewLink') }}</p>
   </div>
 </template>

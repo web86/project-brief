@@ -1,3 +1,5 @@
+import { beforeEach } from 'node:test'
+import { locale } from '../src/i18n/index.js'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { getPastedImages, prepareAttachment, MAX_FILE_SIZE } from '../src/utils/attachments.js'
@@ -39,4 +41,8 @@ test('attachment formats and size limits remain enforced', async () => {
     prepareAttachment({ name: 'large.png', size: MAX_FILE_SIZE + 1 }),
     /больше 20 МБ/,
   )
+})
+
+beforeEach(() => {
+  locale.value = 'ru'
 })

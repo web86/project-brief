@@ -1,31 +1,55 @@
+import { t } from '../i18n/index.js'
 const actions = {
-  understood: { id: 'understood', label: 'Всё понятно', icon: 'check', style: 'secondary' },
+  understood: {
+    id: 'understood',
+    get label() {
+      return t('ui.allClear')
+    },
+    icon: 'check',
+    style: 'secondary',
+  },
   clarify: {
     id: 'clarify',
     status: 'clarification',
-    label: 'Нужно уточнить',
+    get label() {
+      return t('ui.needsClarification')
+    },
     icon: 'info',
     style: 'secondary',
   },
   start: {
     id: 'start',
     status: 'in_progress',
-    label: 'Взять в работу',
+    get label() {
+      return t('ui.startWork')
+    },
     icon: 'code',
     style: 'primary',
   },
   review: {
     id: 'review',
     status: 'review',
-    label: 'Отправить на проверку',
+    get label() {
+      return t('ui.sendForReview')
+    },
     icon: 'external',
     style: 'primary',
   },
-  finish: { id: 'finish', status: 'done', label: 'Завершить', icon: 'check', style: 'primary' },
+  finish: {
+    id: 'finish',
+    status: 'done',
+    get label() {
+      return t('ui.finish')
+    },
+    icon: 'check',
+    style: 'primary',
+  },
   reopen: {
     id: 'reopen',
     status: 'in_progress',
-    label: 'Вернуть в работу',
+    get label() {
+      return t('ui.returnToWork')
+    },
     icon: 'arrow',
     style: 'secondary',
   },
@@ -55,7 +79,7 @@ export function applyQuickStatusAction(store, taskId, actionId) {
   const changed = store.changeStatus(taskId, status)
   const result = {
     focusComment: action.id === 'clarify',
-    message: understood && !task.clientApproved ? 'Всё понятно. Ожидаем согласования клиента.' : '',
+    message: understood && !task.clientApproved ? 'ui.allClearWaitingForClientApproval' : '',
   }
   return changed?.then ? changed.then((saved) => (saved ? result : null)) : result
 }

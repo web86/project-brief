@@ -1,4 +1,7 @@
 <script setup>
+import LoadingButton from './LoadingButton.vue'
+import { t } from '../i18n/index.js'
+
 import { nextTick, ref, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
 import AppIcon from './AppIcon.vue'
@@ -59,7 +62,9 @@ async function submit() {
 </script>
 <template>
   <form class="comment-form" @submit.prevent="submit">
-    <label for="comment-text">Написать {{ store.isDeveloper ? 'клиенту' : 'разработчику' }}</label
+    <label for="comment-text">{{
+      t(store.isDeveloper ? 'flow.writeToClient' : 'flow.writeToDeveloper')
+    }}</label
     ><textarea
       id="comment-text"
       ref="textarea"
@@ -68,19 +73,20 @@ async function submit() {
       maxlength="5000"
       :placeholder="
         clarifying && store.isDeveloper
-          ? 'Что нужно уточнить у клиента?'
-          : 'Задайте вопрос или добавьте подробности…'
+          ? t('ui.whatNeedsToBeClarifiedWithTheClient')
+          : t('ui.askAQuestionOrAddDetails')
       "
     />
     <div class="comment-form-footer">
-      <span class="muted small" aria-live="polite">{{ sent ? 'Сообщение добавлено' : '' }}</span
-      ><button
+      <span class="muted small" aria-live="polite">{{ sent ? t('ui.messageAdded') : '' }}</span
+      ><LoadingButton
+        :busy="pending"
         type="submit"
         class="button primary"
         :disabled="pending || !text.trim() || store.storageBlocked"
       >
-        <AppIcon name="send" :size="16" />Отправить
-      </button>
+        <AppIcon name="send" :size="16" />{{ t('ui.send') }}
+      </LoadingButton>
     </div>
   </form>
 </template>

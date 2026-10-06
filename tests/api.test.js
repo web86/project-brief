@@ -1,6 +1,11 @@
+import { beforeEach } from 'node:test'
+import { locale } from '../src/i18n/index.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createApiClient, ApiError, taskBody } from '../src/api/client.js'
+beforeEach(() => {
+  locale.value = 'ru'
+})
 const response = (status, data) => ({ ok: status < 400, status, json: async () => data })
 
 test('session mutations acquire CSRF, include cookies and never use bearer credentials', async () => {
@@ -87,4 +92,21 @@ test('network failure is actionable without losing form data', async () => {
     client.request('/api/test'),
     (error) => error.status === 0 && error.message.includes('Нет связи'),
   )
+})
+
+test('stalled requests abort with a stable timeout error instead of leaving loading active', async (context) => {
+  context.mock.timers.enable({ apis: ['setTimeout'] })
+  const client = createApiClient({
+    timeoutMs: 200,
+    fetchImpl: async (_url, options) =>
+      new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
+      }),
+  })
+  const result = assert.rejects(
+    client.request('/api/client/me'),
+    (error) => error instanceof ApiError && error.code === 'timeout',
+  )
+  context.mock.timers.tick(201)
+  await result
 })

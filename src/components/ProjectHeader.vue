@@ -1,4 +1,6 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 import { useProjectStore } from '../stores/project'
 import ProjectProgress from './ProjectProgress.vue'
 import AppIcon from './AppIcon.vue'
@@ -18,7 +20,7 @@ const store = useProjectStore()
         :total="store.counts.all"
         :progress="store.progress"
       /><RouterLink :to="store.newTaskPath" class="button primary"
-        ><AppIcon name="plus" :size="19" />Добавить идею</RouterLink
+        ><AppIcon name="plus" :size="19" />{{ t('ui.addIdea') }}</RouterLink
       >
     </div>
   </header>

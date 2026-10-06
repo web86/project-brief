@@ -31,7 +31,6 @@ export function groupBriefTasks(tasks, sections, statuses, sectionId = '') {
         ),
       ),
     }))
-    .filter((section) => section.tasks.length)
 }
 
 // Add associations to a validated legacy snapshot; never use location as a section.

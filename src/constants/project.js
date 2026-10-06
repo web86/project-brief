@@ -1,25 +1,101 @@
+import { t } from '../i18n/index.js'
 export const STATUSES = {
-  new: { label: 'Новая идея', tone: 'gray' },
-  clarification: { label: 'Нужно уточнить', tone: 'orange' },
-  approved: { label: 'Согласовано', tone: 'violet' },
-  in_progress: { label: 'В работе', tone: 'blue' },
-  review: { label: 'На проверке', tone: 'orange' },
-  done: { label: 'Готово', tone: 'green' },
+  new: {
+    get label() {
+      return t('ui.newIdea')
+    },
+    tone: 'gray',
+  },
+  clarification: {
+    get label() {
+      return t('ui.needsClarification')
+    },
+    tone: 'orange',
+  },
+  approved: {
+    get label() {
+      return t('ui.approved')
+    },
+    tone: 'violet',
+  },
+  in_progress: {
+    get label() {
+      return t('ui.inProgress')
+    },
+    tone: 'blue',
+  },
+  review: {
+    get label() {
+      return t('ui.inReview')
+    },
+    tone: 'orange',
+  },
+  done: {
+    get label() {
+      return t('ui.done')
+    },
+    tone: 'green',
+  },
 }
 
 export const PRIORITIES = {
-  low: { label: 'Можно позже', tone: 'gray' },
-  normal: { label: 'Важно', tone: 'orange' },
-  high: { label: 'Очень важно', tone: 'red' },
+  low: {
+    get label() {
+      return t('ui.canWait')
+    },
+    tone: 'gray',
+  },
+  normal: {
+    get label() {
+      return t('ui.important')
+    },
+    tone: 'orange',
+  },
+  high: {
+    get label() {
+      return t('ui.veryImportant')
+    },
+    tone: 'red',
+  },
 }
 
 // Each status belongs to exactly one simple filter, so the counts add up.
 export const FILTERS = [
-  { key: 'all', label: 'Все', statuses: Object.keys(STATUSES) },
-  { key: 'ideas', label: 'Новые', statuses: ['new', 'clarification'] },
-  { key: 'approved', label: 'Согласовано', statuses: ['approved'] },
-  { key: 'working', label: 'В работе', statuses: ['in_progress', 'review'] },
-  { key: 'done', label: 'Готово', statuses: ['done'] },
+  {
+    key: 'all',
+    get label() {
+      return t('ui.all')
+    },
+    statuses: Object.keys(STATUSES),
+  },
+  {
+    key: 'ideas',
+    get label() {
+      return t('ui.new')
+    },
+    statuses: ['new', 'clarification'],
+  },
+  {
+    key: 'approved',
+    get label() {
+      return t('ui.approved')
+    },
+    statuses: ['approved'],
+  },
+  {
+    key: 'working',
+    get label() {
+      return t('ui.inProgress')
+    },
+    statuses: ['in_progress', 'review'],
+  },
+  {
+    key: 'done',
+    get label() {
+      return t('ui.done')
+    },
+    statuses: ['done'],
+  },
 ]
 
 export const STORAGE_KEY = 'project-brief:v1'
@@ -28,20 +104,10 @@ export const STORAGE_VERSION = 1
 export const getTaskLocation = (task) =>
   task.location || (typeof task.section === 'string' ? task.section : task.section?.name) || ''
 
-const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
-  day: 'numeric',
-  month: 'long',
-  hour: '2-digit',
-  minute: '2-digit',
-})
-export const formatDate = (value) => dateFormatter.format(new Date(value))
+export { formatDate } from '../i18n/index.js'
 export const formatSize = (bytes) =>
   bytes < 1024 * 1024
-    ? `${Math.max(1, Math.round(bytes / 1024))} КБ`
-    : `${(bytes / 1024 / 1024).toFixed(1)} МБ`
+    ? t('ui.kb', { arg0: Math.max(1, Math.round(bytes / 1024)) })
+    : t('ui.mb', { arg0: (bytes / 1024 / 1024).toFixed(1) })
 
-export function pluralize(count, forms = ['идея', 'идеи', 'идей']) {
-  const lastTwo = count % 100
-  if (lastTwo >= 11 && lastTwo <= 14) return forms[2]
-  return count % 10 === 1 ? forms[0] : count % 10 >= 2 && count % 10 <= 4 ? forms[1] : forms[2]
-}
+export const pluralize = (count) => t('counts.ideas', count)

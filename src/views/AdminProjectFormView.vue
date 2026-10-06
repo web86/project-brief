@@ -1,4 +1,7 @@
 <script setup>
+import LoadingButton from '../components/LoadingButton.vue'
+import { t, formatApiError } from '../i18n/index.js'
+
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
@@ -18,7 +21,7 @@ async function create() {
     await router.push(`/admin/projects/${result.data.id}`)
   } catch (cause) {
     errors.value = cause.errors || {}
-    error.value = cause.message
+    error.value = cause
   } finally {
     pending.value = false
   }
@@ -26,19 +29,19 @@ async function create() {
 </script>
 <template>
   <div class="form-page">
-    <RouterLink to="/admin" class="back-link">← Все проекты</RouterLink>
+    <RouterLink to="/admin" class="back-link">{{ t('ui.allProjects') }}</RouterLink>
     <div class="page-heading">
-      <h1>Новый проект</h1>
-      <p>Дайте проекту имя — клиенту будет проще ориентироваться.</p>
+      <h1>{{ t('ui.newProject2') }}</h1>
+      <p>{{ t('ui.giveTheProjectANameSoYourClient') }}</p>
     </div>
     <form class="surface admin-form" @submit.prevent="create">
       <ProjectFields v-model="data" :errors="errors" />
-      <p v-if="error" class="field-error" role="alert">{{ error }}</p>
+      <p v-if="error" class="field-error" role="alert">{{ formatApiError(error) }}</p>
       <div class="form-actions">
-        <RouterLink to="/admin" class="button secondary">Отмена</RouterLink
-        ><button class="button primary" :disabled="pending">
-          {{ pending ? 'Создаём…' : 'Создать проект' }}
-        </button>
+        <RouterLink to="/admin" class="button secondary">{{ t('ui.cancel') }}</RouterLink
+        ><LoadingButton type="submit" :busy="pending" class="button primary" :disabled="pending">
+          {{ t('ui.createProject') }}
+        </LoadingButton>
       </div>
     </form>
   </div>

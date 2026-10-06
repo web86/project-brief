@@ -1,12 +1,18 @@
+import { t } from '../i18n/index.js'
 export class ApiError extends Error {
-  constructor(status, message, errors = {}) {
+  constructor(status, message, errors = {}, code = null) {
     super(message)
     this.status = status
     this.errors = errors
+    this.code = code
   }
 }
 
-export function createApiClient({ fetchImpl = (...args) => fetch(...args), baseUrl = '' } = {}) {
+export function createApiClient({
+  fetchImpl = (...args) => fetch(...args),
+  baseUrl = '',
+  timeoutMs = 20000,
+} = {}) {
   let csrf = null
   let csrfRequest = null
   async function request(path, { method = 'GET', body } = {}) {
@@ -20,10 +26,18 @@ export function createApiClient({ fetchImpl = (...args) => fetch(...args), baseU
     }
     const multipart = body instanceof FormData
     let response
+    let data
+    const controller = new AbortController()
+    const hasFiles = multipart && [...body.values()].some((value) => value instanceof Blob)
+    const timer = setTimeout(
+      () => controller.abort(),
+      hasFiles ? Math.max(timeoutMs, 120000) : timeoutMs,
+    )
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {
         method,
         credentials: 'same-origin',
+        signal: controller.signal,
         headers: {
           Accept: 'application/json',
           ...(body && !multipart ? { 'Content-Type': 'application/json' } : {}),
@@ -31,24 +45,35 @@ export function createApiClient({ fetchImpl = (...args) => fetch(...args), baseU
         },
         ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
       })
+      data = await response.json().catch((error) => {
+        if (controller.signal.aborted) throw error
+        return {}
+      })
     } catch {
-      throw new ApiError(0, 'Нет связи с сервером. Проверьте подключение и повторите попытку.')
+      throw new ApiError(
+        0,
+        t('ui.weCouldNotConnectToTheServerCheck'),
+        {},
+        controller.signal.aborted ? 'timeout' : null,
+      )
+    } finally {
+      clearTimeout(timer)
     }
-    const data = await response.json().catch(() => ({}))
     if (!response.ok) {
       if ([401, 419].includes(response.status)) csrf = null
       const messages = {
-        401: 'Сессия завершена. Войдите снова или откройте ссылку клиента.',
-        403: 'Это действие недоступно. Обсудите изменения в комментариях.',
-        404: 'Запись не найдена или недоступна.',
-        419: 'Сессия обновилась. Повторите действие.',
-        422: 'Проверьте заполненные поля.',
-        429: 'Слишком много запросов. Подождите немного.',
+        401: t('ui.yourSessionHasEndedSignInAgainOr'),
+        403: t('ui.thisActionIsUnavailableDiscussChangesInThe'),
+        404: t('ui.thisRecordWasNotFoundOrIsUnavailable'),
+        419: t('ui.yourSessionHasChangedTryThisActionAgain'),
+        422: t('ui.checkTheFields'),
+        429: t('ui.tooManyRequestsPleaseWaitALittle'),
       }
       throw new ApiError(
         response.status,
-        messages[response.status] || 'Не удалось выполнить действие. Повторите попытку.',
+        messages[response.status] || t('ui.weCouldNotCompleteThisActionPleaseTry'),
         data.errors || {},
+        data.code || null,
       )
     }
     return data
@@ -67,9 +92,11 @@ export function taskBody(input) {
   const form = new FormData()
   for (const key of ['title', 'location', 'description', 'expectedResult', 'priority'])
     form.append(key, input[key] || '')
+  if (typeof input.section === 'string' && input.section.trim())
+    form.append('section', input.section)
   for (const attachment of input.attachments || []) {
     if (!(attachment.file instanceof Blob))
-      throw new Error('Выберите файлы ещё раз перед отправкой.')
+      throw new Error(t('ui.chooseTheFilesAgainBeforeSubmitting'))
     form.append('attachments[]', attachment.file, attachment.name)
   }
   return form

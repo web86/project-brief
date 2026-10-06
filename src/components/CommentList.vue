@@ -1,10 +1,12 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 import { formatDate } from '../constants/project'
 import AppIcon from './AppIcon.vue'
 defineProps({ comments: Array })
 </script>
 <template>
-  <div v-if="comments.length" class="comment-list" aria-label="Комментарии">
+  <div v-if="comments.length" class="comment-list" :aria-label="t('ui.comments2')">
     <article v-for="comment in comments" :key="comment.id" class="comment" :class="comment.author">
       <span class="comment-avatar"
         ><AppIcon :name="comment.author === 'developer' ? 'code' : 'user'" :size="17"
@@ -12,7 +14,8 @@ defineProps({ comments: Array })
       <div class="comment-content">
         <div class="comment-heading">
           <strong>{{
-            comment.authorName || (comment.author === 'developer' ? 'Разработчик' : 'Клиент')
+            (comment.authorId ? comment.authorName : null) ||
+            (comment.author === 'developer' ? t('ui.developer') : t('ui.client'))
           }}</strong
           ><time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
         </div>
@@ -21,6 +24,6 @@ defineProps({ comments: Array })
     </article>
   </div>
   <div v-else class="comments-empty">
-    <p>Комментариев пока нет.</p>
+    <p>{{ t('ui.noCommentsYet') }}</p>
   </div>
 </template>

@@ -1,12 +1,27 @@
 <script setup>
+import { t } from '../i18n/index.js'
+
 defineProps({ modelValue: Object, errors: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['update:modelValue'])
-const update = (key, value, model) => emit('update:modelValue', { ...model, [key]: value })
+const update = (key, value, model, event) => {
+  event?.target.setCustomValidity('')
+  emit('update:modelValue', { ...model, [key]: value })
+}
 const fields = [
-  { key: 'title', label: 'Название проекта', type: 'text', required: true, max: 160 },
+  {
+    key: 'title',
+    get label() {
+      return t('ui.projectName')
+    },
+    type: 'text',
+    required: true,
+    max: 160,
+  },
   {
     key: 'website',
-    label: 'Адрес сайта',
+    get label() {
+      return t('ui.websiteAddress')
+    },
     type: 'url',
     placeholder: 'https://example.com',
     max: 2048,
@@ -17,6 +32,7 @@ const fields = [
   <div v-for="field in fields" :key="field.key" class="field">
     <label :for="`project-${field.key}`">{{ field.label }}{{ field.required ? ' *' : '' }}</label>
     <input
+      @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
       :id="`project-${field.key}`"
       :value="modelValue[field.key]"
       :type="field.type"
@@ -25,14 +41,14 @@ const fields = [
       :placeholder="field.placeholder"
       :aria-invalid="!!errors[field.key]"
       :aria-describedby="errors[field.key] ? `project-${field.key}-error` : undefined"
-      @input="update(field.key, $event.target.value, modelValue)"
+      @input="update(field.key, $event.target.value, modelValue, $event)"
     />
     <p v-if="errors[field.key]" :id="`project-${field.key}-error`" class="field-error">
-      {{ errors[field.key].join(' ') }}
+      {{ t('flow.fieldError') }}
     </p>
   </div>
   <div class="field">
-    <label for="project-currency">Валюта</label
+    <label for="project-currency">{{ t('ui.currency') }}</label
     ><select
       id="project-currency"
       :value="modelValue.currency"
