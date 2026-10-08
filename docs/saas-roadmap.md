@@ -48,7 +48,7 @@ A registered public user becomes the owner of a private workspace. Owners can in
 # Milestone 1 — UX and notification fixes
 
 Status: **implemented and verified, 8 October 2026**. See [implementation and verification](milestone-1.md).
-No database migrations. Milestones 2–4 remain unstarted.
+Milestone 1 required no database migrations. Milestone 2 adds the tenant foundation described below; Milestones 3–4 remain unstarted.
 
 ## Developer task editing
 
@@ -95,6 +95,8 @@ Tests must cover RU/EN output and event-specific content.
 ---
 
 # Milestone 2 — SaaS foundation / tenant isolation
+
+Status: **implemented and verified, 8 October 2026**. See [schema, migration, authorization and verification](milestone-2.md).
 
 Introduce the multi-tenant domain model before adding public registration.
 
@@ -151,7 +153,7 @@ Owners implicitly retain access to all projects in their workspace.
 
 ## Migration of existing production data
 
-The current production account and all current projects must be migrated safely into one initial workspace, for example `Web86`.
+The current production account and all current projects must be migrated safely into one initial workspace named from the oldest legacy administrator or configured application name.
 
 Requirements:
 
@@ -365,6 +367,6 @@ Do not mix Milestone 4 authentication changes into Milestones 1–3.
 
 ## Current next step
 
-**Milestone 1 is complete** on `feature/saas-foundation`. Only Milestone 1 was implemented in this change.
+**Milestones 1 and 2 are complete** on `feature/saas-foundation`. This change implements only Milestone 2, preserving Milestone 1 behavior.
 
-Milestone 2 (tenant isolation) is the next planned milestone and requires a separate implementation request. Workspace, multi-tenant and registration work has not begun.
+Milestone 3 (navigation and unread state) is the next planned milestone and requires a separate request. Sidebar, workspace switcher UI, unread badges, public registration, password reset and invitations remain unimplemented.

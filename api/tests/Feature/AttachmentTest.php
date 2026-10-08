@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -34,7 +33,7 @@ class AttachmentTest extends TestCase
         $this->assertSame('screenshot.png', $task->history()->where('event_type', 'attachment')->first()->meta['fileName']);
         $this->get('/api/client/attachments/'.$file->uuid.'/download')->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
         $this->get('/api/client/attachments/'.$file->uuid.'/preview')->assertOk();
-        $this->actingAs(User::factory()->create())->get('/api/admin/attachments/'.$file->uuid.'/download')->assertOk();
+        $this->actingAs($this->ownerFor($task->project))->get('/api/admin/attachments/'.$file->uuid.'/download')->assertOk();
     }
 
     public function test_unsupported_disguised_and_oversized_files_are_rejected(): void

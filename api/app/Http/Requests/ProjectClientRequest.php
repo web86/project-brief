@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\CurrentWorkspace;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -9,7 +10,7 @@ class ProjectClientRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'admin';
+        return $this->user() && (bool) app(CurrentWorkspace::class)->resolve($this);
     }
 
     public function rules(): array

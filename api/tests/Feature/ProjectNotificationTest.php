@@ -9,7 +9,6 @@ use App\Models\ProjectClient;
 use App\Models\ProjectNotificationSetting;
 use App\Models\PushSubscription;
 use App\Models\Task;
-use App\Models\User;
 use App\Services\NotificationEvents;
 use App\Services\NotificationPayload;
 use App\Services\ProjectNotificationService;
@@ -93,8 +92,8 @@ class ProjectNotificationTest extends TestCase
         config(['project_notifications.admin_locale' => $locale]);
         $this->smtp();
         Mail::fake();
-        $admin = User::factory()->create(['email' => 'admin@example.test']);
         $task = Task::factory()->create();
+        $admin = $this->ownerFor($task->project, ['email' => 'admin@example.test']);
         $client = $this->client($task->project);
         $client->update(['name' => 'Иван']);
         $endpoint = '/api/client/tasks/'.$task->uuid;
@@ -141,7 +140,7 @@ class ProjectNotificationTest extends TestCase
         $this->client($task->project, $john);
         $anna = $task->project->clients()->create(['name' => 'Anna', 'email' => 'anna@example.test', 'preferred_locale' => 'ru']);
         $this->client($task->project, $anna);
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($task->project));
         if ($action === 'comment') {
             $this->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => 'Я изменил форму. Проверьте, пожалуйста. <img onerror=bad>'])->assertOk();
         } else {
@@ -181,7 +180,7 @@ class ProjectNotificationTest extends TestCase
         $this->smtp();
         Mail::fake();
         $task = Task::factory()->create();
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         $clients = [];
         foreach (['no-email', 'email', 'inactive', 'revoked', 'expired'] as $name) {
             $client = $task->project->clients()->create(['name' => $name, 'email' => $name === 'no-email' ? null : $name.'@example.test', 'active' => $name !== 'inactive']);
@@ -210,7 +209,7 @@ class ProjectNotificationTest extends TestCase
         $this->smtp();
         Mail::fake();
         $task = Task::factory()->create();
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         PushSubscription::factory()->create(['user_id' => $admin->id]);
         $events = NotificationEvents::defaults();
         $events['client.task_created'] = ['email' => false, 'push' => false];
@@ -235,7 +234,7 @@ class ProjectNotificationTest extends TestCase
         $task = Task::factory()->create();
         $client = $this->client($task->project);
         $client->update(['email' => 'shared@example.test']);
-        $admin = User::factory()->create(['email' => 'shared@example.test']);
+        $admin = $this->ownerFor($task->project, ['email' => 'shared@example.test']);
         $service = app(ProjectNotificationService::class);
         $service->notify(new ProjectNotificationRequested(101, 'client.task_created', $task->id, 'client', $client->id, $client->name));
         $service->notify(new ProjectNotificationRequested(102, 'admin.task_done', $task->id, 'client', $client->id, $client->name));
@@ -248,7 +247,7 @@ class ProjectNotificationTest extends TestCase
         $this->smtp();
         $task = Task::factory()->create();
         $this->client($task->project);
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         PushSubscription::factory()->create(['user_id' => $admin->id]);
         Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('secret provider failure'));
         $sender = $this->mock(WebPushTransport::class);
@@ -266,7 +265,7 @@ class ProjectNotificationTest extends TestCase
         config(['mail.default' => 'log', 'project_notifications.vapid.private_key' => null]);
         $task = Task::factory()->create();
         $this->client($task->project);
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         PushSubscription::factory()->create(['user_id' => $admin->id]);
         $this->postJson('/api/client/tasks/'.$task->uuid.'/comments', ['text' => 'Saved'])->assertOk();
         Mail::assertNothingSent();
@@ -280,7 +279,7 @@ class ProjectNotificationTest extends TestCase
         $task = Task::factory()->create();
         $this->client($task->project);
         $this->patchJson('/api/client/tasks/'.$task->uuid, ['title' => 'Edited draft'])->assertOk();
-        $this->actingAs(User::factory()->create())->patchJson('/api/admin/tasks/'.$task->uuid, ['estimateHours' => 3, 'price' => 50, 'developerNotes' => 'Notes'])->assertOk();
+        $this->actingAs($this->ownerFor($task->project))->patchJson('/api/admin/tasks/'.$task->uuid, ['estimateHours' => 3, 'price' => 50, 'developerNotes' => 'Notes'])->assertOk();
         Event::assertNotDispatched(ProjectNotificationRequested::class);
         $this->assertDatabaseCount('notification_deliveries', 0);
     }
@@ -288,7 +287,7 @@ class ProjectNotificationTest extends TestCase
     public function test_project_settings_validate_persist_defaults_and_never_expose_push_secrets(): void
     {
         $project = Project::factory()->create();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($project));
         $path = '/api/admin/projects/'.$project->uuid.'/notifications';
         $response = $this->getJson($path)->assertOk();
         $this->assertTrue($response->json()['events']['client.task_created']['email']);
@@ -319,7 +318,7 @@ class ProjectNotificationTest extends TestCase
         $this->smtp();
         Mail::fake();
         $project = Project::factory()->create();
-        $admin = User::factory()->create(['email' => 'admin@example.test']);
+        $admin = $this->ownerFor($project, ['email' => 'admin@example.test']);
         $this->actingAs($admin);
         $path = '/api/admin/projects/'.$project->uuid.'/notifications/test';
         $this->postJson($path, ['channel' => 'email'])->assertOk()->assertJsonPath('status', 'sent');
@@ -334,7 +333,7 @@ class ProjectNotificationTest extends TestCase
     {
         Event::fake([ProjectNotificationRequested::class]);
         $task = Task::factory()->create();
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         $request = Request::create('/api/admin/tasks/'.$task->uuid, 'PATCH');
         $request->setUserResolver(fn () => $admin);
         DB::beginTransaction();
@@ -353,7 +352,7 @@ class ProjectNotificationTest extends TestCase
         $task = Task::factory()->create();
         $client = $this->client($task->project);
         $client->update(['email' => 'client@example.test', 'preferred_locale' => null]);
-        $admin = User::factory()->create(['email' => 'admin@example.test']);
+        $admin = $this->ownerFor($task->project, ['email' => 'admin@example.test']);
         $this->postJson('/api/client/tasks/'.$task->uuid.'/comments', ['text' => 'Hello'])->assertOk();
         Mail::assertSent(ProjectActivityMail::class, fn ($mail) => $mail->hasTo($admin->email) && $mail->payload['locale'] === 'en' && str_contains($mail->payload['subject'], 'New client comment'));
         $this->actingAs($admin)->patchJson('/api/admin/tasks/'.$task->uuid, ['status' => 'done'])->assertOk();
@@ -364,7 +363,7 @@ class ProjectNotificationTest extends TestCase
     public function test_comment_context_is_bound_to_exact_audit_comment_and_push_is_concise(): void
     {
         $task = Task::factory()->create(['developer_notes' => 'PRIVATE']);
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         $this->actingAs($admin)->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => 'Первый вопрос <b>текст</b>'])->assertOk();
         $first = $task->history()->where('event_type', 'comment')->first();
         $this->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => 'Другой комментарий'])->assertOk();
@@ -383,7 +382,7 @@ class ProjectNotificationTest extends TestCase
     public function test_clarification_does_not_guess_an_unrelated_old_developer_comment(): void
     {
         $task = Task::factory()->create();
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         $this->actingAs($admin)->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => 'An unrelated old message'])->assertOk();
         $this->patchJson('/api/admin/tasks/'.$task->uuid, ['status' => 'clarification'])->assertOk();
         $history = $task->history()->where('event_type', 'status')->first();
@@ -400,7 +399,7 @@ class ProjectNotificationTest extends TestCase
         $task = Task::factory()->create(['description' => str_repeat('Я🙂', 400)]);
         $created = NotificationPayload::make('client.task_created', $task, 'Иван', 'en', true, '0');
         $this->assertSame(str_repeat('Я🙂', 300).'…', $created['message']);
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($task->project);
         $this->actingAs($admin)->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => str_repeat('Я🙂', 1100)])->assertOk();
         $history = $task->history()->where('event_type', 'comment')->first();
         $payload = NotificationPayload::make('admin.comment_created', $task, 'Иван', 'ru', false, (string) $history->id);
@@ -418,7 +417,7 @@ class ProjectNotificationTest extends TestCase
     public function test_a_comment_containing_zero_is_included_in_html_text_and_push(): void
     {
         $task = Task::factory()->create();
-        $admin = User::factory()->create(['name' => 'Developer']);
+        $admin = $this->ownerFor($task->project, ['name' => 'Developer']);
         $this->actingAs($admin)->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => '0'])->assertOk();
         $history = $task->history()->where('event_type', 'comment')->first();
         $payload = NotificationPayload::make('admin.comment_created', $task, $admin->name, 'en', false, (string) $history->id);

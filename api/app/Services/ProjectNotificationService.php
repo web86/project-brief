@@ -25,14 +25,30 @@ class ProjectNotificationService
         return ProjectNotificationSetting::firstOrCreate(['project_id' => $project->id]);
     }
 
-    public function admin(Project $project): ?User
+    public function primaryOwner(Project $project): ?User
     {
-        return User::where('role', 'admin')->orderBy('id')->first();
+        return ProjectAccess::memberships($project)->where('role', 'owner')->orderBy('id')->first()?->user;
     }
 
     public function adminEmail(Project $project): ?string
     {
-        return $this->settings($project)->notification_email ?: $this->admin($project)?->email;
+        $owner = $this->primaryOwner($project);
+
+        return $owner ? $this->emailFor($project, $owner) : null;
+    }
+
+    private function emailFor(Project $project, User $recipient): ?string
+    {
+        $override = $this->settings($project)->notification_email;
+        if ($override && $this->primaryOwner($project)?->id === $recipient->id) {
+            $emailQuery = fn ($query) => $query->whereRaw('LOWER(email) = ?', [mb_strtolower($override)]);
+            // A legacy external mailbox is allowed, but never route activity to a foreign account.
+            if (! $emailQuery(User::query())->exists() || $emailQuery(ProjectAccess::recipients($project))->exists()) {
+                return $override;
+            }
+        }
+
+        return $recipient->email;
     }
 
     public function mailAvailable(): bool
@@ -61,7 +77,7 @@ class ProjectNotificationService
         $settings = $this->settings($task->project);
         $preferences = $settings->preferences()[$event->event];
         $toAdmin = str_starts_with($event->event, 'client.');
-        $recipients = $toAdmin ? collect([$this->admin($task->project)])->filter() : $task->project->clients()->where('active', true)->whereHas('accessTokens', fn ($q) => $q->where('project_id', $task->project_id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())))->get();
+        $recipients = $toAdmin ? ProjectAccess::recipients($task->project)->get() : $task->project->clients()->where('active', true)->whereHas('accessTokens', fn ($q) => $q->where('project_id', $task->project_id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())))->get();
         $actorEmail = $event->actorType === 'admin' ? User::find($event->actorId)?->email : ProjectClient::find($event->actorId)?->email;
         foreach ($recipients as $recipient) {
             $type = $toAdmin ? 'admin' : 'client';
@@ -71,7 +87,7 @@ class ProjectNotificationService
             $locale = $toAdmin ? config('project_notifications.admin_locale') : ($recipient->preferred_locale ?? 'en');
             $locale = in_array($locale, ['ru', 'en'], true) ? $locale : ($toAdmin ? 'ru' : 'en');
             $payload = NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
-            $email = $toAdmin ? ($settings->notification_email ?: $recipient->email) : $recipient->email;
+            $email = $toAdmin ? $this->emailFor($task->project, $recipient) : $recipient->email;
             // Avoid mail self-notification even if two personas share the same address.
             if ($preferences['email'] && filter_var($email, FILTER_VALIDATE_EMAIL) && (! $actorEmail || strcasecmp($actorEmail, $email) !== 0)) {
                 $this->attempt($task->project, $event->event, 'email', $type, $recipient->id, $event->historyId.':email:'.$type.':'.$recipient->id,
@@ -117,7 +133,7 @@ class ProjectNotificationService
         $payload = NotificationPayload::test(config('project_notifications.admin_locale') === 'en' ? 'en' : 'ru', rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid);
         try {
             if ($channel === 'email') {
-                $email = $this->adminEmail($project);
+                $email = $this->emailFor($project, $admin);
                 if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     return ['status' => 'failed', 'error_code' => 'email_unavailable'];
                 }

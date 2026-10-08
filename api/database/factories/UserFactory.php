@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -26,12 +27,24 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'role' => 'admin',
+            'role' => 'user',
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    public function owner(?Workspace $workspace = null): static
+    {
+        return $this->memberOf($workspace ?? Workspace::factory()->create(), 'owner');
+    }
+
+    public function memberOf(Workspace $workspace, string $role = 'admin'): static
+    {
+        return $this->afterCreating(fn (User $user) => $workspace->members()->create([
+            'user_id' => $user->id, 'role' => $role, 'status' => 'active', 'joined_at' => now(),
+        ]));
     }
 
     /**

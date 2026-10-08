@@ -6,7 +6,6 @@ use App\Models\Project;
 use App\Models\ProjectAccessToken;
 use App\Models\ProjectClient;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -38,7 +37,7 @@ class MultipleClientsTest extends TestCase
         [$annaPlain, $annaToken] = $this->link($anna);
         $this->get('/access/'.$johnPlain)->assertSessionHas('project_client_id', $john->id);
         $this->get('/access/'.$annaPlain)->assertSessionHas('project_client_id', $anna->id);
-        $admin = User::factory()->create();
+        $admin = $this->ownerFor($project);
         $root = '/api/admin/projects/'.$project->uuid.'/clients/';
         $this->actingAs($admin)->deleteJson($root.$john->uuid.'/access-links/'.$johnToken->id)->assertOk();
         $this->sessionFor($johnToken);
@@ -104,7 +103,7 @@ class MultipleClientsTest extends TestCase
         $this->postJson('/api/admin/projects/'.$project->uuid.'/sections', ['name' => 'Spoof'])->assertUnauthorized();
         $this->withSession(['project_client_id' => $other->clients()->first()->id]);
         $this->getJson('/api/client/me')->assertUnauthorized();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($project));
         $root = '/api/admin/projects/'.$project->uuid.'/clients';
         $otherClient = $other->clients()->first();
         $this->patchJson($root.'/'.$otherClient->uuid, ['name' => 'Spoof'])->assertNotFound();

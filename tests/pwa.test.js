@@ -11,6 +11,7 @@ import { createServer } from 'vite'
 import { createToastStore } from '../src/services/toast.js'
 import { createPushEnrollment } from '../src/services/pushEnrollment.js'
 import { createPushDevice } from '../src/services/push.js'
+import { appDestination } from '../src/services/session.js'
 let server,
   routerFactory,
   useProjectStore,
@@ -459,4 +460,28 @@ test('maskable logo pixels stay inside the safe circle and the brand is large', 
     assert.ok(maxX - minX >= size * 0.4)
     assert.ok(maxY - minY >= size * 0.4)
   }
+})
+
+test('workspace-aware owner/team bootstrap preserves installed PWA admin routing and separate client launch', async () => {
+  const workspace = { id: '11111111-1111-4111-8111-111111111111', name: 'Workspace' }
+  for (const membershipRole of ['owner', 'admin']) {
+    assert.equal(
+      await appDestination(async () => ({
+        authenticated: true,
+        type: 'admin',
+        workspace,
+        membershipRole,
+      })),
+      '/admin',
+    )
+  }
+  assert.equal(
+    await appDestination(async () => ({
+      authenticated: true,
+      type: 'client',
+      project: { id: workspace.id },
+    })),
+    '/project/' + workspace.id,
+  )
+  assert.equal(await appDestination(async () => ({ authenticated: false })), null)
 })

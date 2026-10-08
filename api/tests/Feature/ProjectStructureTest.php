@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\Task;
-use App\Models\User;
 use App\Services\ProjectStructure;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
@@ -18,7 +17,7 @@ class ProjectStructureTest extends TestCase
         $project = Project::factory()->create(['sections' => ['Главная', 'Каталог', 'Карточка товара', 'Контакты', 'Общее']]);
         $task = Task::factory()->for($project)->create(['section' => 'Главная']);
         $number = ProjectStructure::number($task->fresh());
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($project));
         $this->patchJson('/api/admin/tasks/'.$task->uuid, ['status' => 'done', 'location' => 'https://example.com/another-place'])->assertOk()->assertJsonPath('data.displayNumber', $number);
         $this->getJson('/api/admin/projects/'.$project->uuid.'/tasks')->assertOk()->assertJsonPath('data.0.displayNumber', $number);
         $this->assertSame($task->position, $task->fresh()->position);
@@ -33,7 +32,7 @@ class ProjectStructureTest extends TestCase
         $first = Task::factory()->for($project)->create(['section' => 'Главная']);
         $second = Task::factory()->for($project)->create(['section' => 'Главная']);
         Task::factory()->for($project)->create(['section' => 'Каталог']);
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($project));
         $this->postJson('/api/admin/tasks/'.$second->uuid.'/reorder', ['direction' => 'up'])->assertOk()->assertJsonPath('data.displayNumber', '1.1');
         $this->assertSame(2, $first->fresh()->position);
         $this->postJson('/api/admin/tasks/'.$second->uuid.'/move', ['sectionId' => $catalog->uuid])->assertOk()->assertJsonPath('data.displayNumber', '2.2');
@@ -51,7 +50,7 @@ class ProjectStructureTest extends TestCase
         $project = Project::factory()->create(['sections' => ['Главная', 'Каталог', 'Карточка товара', 'Контакты', 'Общее']]);
         $task = Task::factory()->for($project)->create();
         $other = Project::factory()->create()->briefSections()->first();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($project));
         $root = '/api/admin/projects/'.$project->uuid.'/sections';
         $this->deleteJson($root.'/'.$task->projectSection->uuid)->assertUnprocessable()->assertJsonValidationErrors('section');
         $this->assertDatabaseHas('tasks', ['id' => $task->id]);

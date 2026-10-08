@@ -60,11 +60,17 @@ try {
 require $argv[1].'/vendor/autoload.php';
 $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-$project = \\App\\Models\\Project::create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
+$owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
+$workspace = $owner->workspaceMembers()->active()->firstOrFail()->workspace;
+$project = $workspace->projects()->create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
 $token = str_repeat('a', 64);
 $client = $project->clients()->create(['name'=>'Release client']);
 $project->accessTokens()->create(['project_client_id'=>$client->id, 'token_hash'=>hash('sha256', $token)]);
-echo json_encode(['project'=>$project->uuid]);
+$foreign = $app->make(\\App\\Services\\OwnerProvisioning::class)->create(['name'=>'Foreign QA', 'email'=>'foreign@example.test', 'password'=>'Foreign-test-only-password']);
+$foreignWorkspace = $foreign->workspaceMembers()->active()->firstOrFail()->workspace;
+$foreignProject = $foreignWorkspace->projects()->create(['title'=>'Foreign QA project']);
+$foreignTask = $foreignProject->tasks()->create(['title'=>'Foreign QA task', 'description'=>'Protected foreign task']);
+echo json_encode(['project'=>$project->uuid, 'workspace'=>$workspace->uuid, 'foreignWorkspace'=>$foreignWorkspace->uuid, 'foreignProject'=>$foreignProject->uuid, 'foreignTask'=>$foreignTask->uuid]);
 `,
   )
   const fixture = JSON.parse(command([fixturePhp, application]))
@@ -174,7 +180,43 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     body: loginPayload,
   })
   assert.equal(login.status, 200)
-  assert.equal((await login.json()).user.role, 'admin')
+  const ownerState = await login.json()
+  assert.equal(ownerState.user.role, 'admin')
+  assert.equal(ownerState.user.membershipRole, 'owner')
+  assert.equal(ownerState.workspace.id, fixture.workspace)
+  const workspaces = await (await request('/api/admin/workspaces')).json()
+  assert.deepEqual(workspaces.data, [{ id: fixture.workspace, name: 'Release QA' }])
+  const projects = await (await request('/api/admin/projects')).json()
+  assert.deepEqual(
+    projects.data.map((project) => project.id),
+    [fixture.project],
+  )
+  assert.equal((await request('/api/admin/projects/' + fixture.foreignProject)).status, 404)
+  assert.equal((await request('/api/admin/tasks/' + fixture.foreignTask)).status, 404)
+  assert.equal(
+    (await request('/api/admin/projects/' + fixture.foreignProject + '/notifications')).status,
+    404,
+  )
+  assert.equal(
+    (
+      await request('/api/admin/workspaces/' + fixture.foreignWorkspace + '/select', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrf.token,
+        },
+        body: '{}',
+      })
+    ).status,
+    404,
+  )
+  const ownerSession = await (await request('/api/session')).json()
+  assert.deepEqual(ownerSession, {
+    authenticated: true,
+    type: 'admin',
+    workspace: { id: fixture.workspace, name: 'Release QA' },
+  })
   assert.equal((await request('/api/admin/me')).status, 200)
   const entered = await request(`/access/${'a'.repeat(64)}`)
   assert.equal(entered.status, 302)
@@ -182,6 +224,12 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     entered.headers.get('location'),
     `https://brief.web86.site/project/${fixture.project}`,
   )
+  const clientSession = await (await request('/api/session')).json()
+  assert.deepEqual(clientSession, {
+    authenticated: true,
+    type: 'client',
+    project: { id: fixture.project },
+  })
   const clientProject = await request(`/api/client/project/${fixture.project}`)
   assert.equal(clientProject.status, 200)
   assert.equal((await clientProject.json()).data.name, 'Release QA project')

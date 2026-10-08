@@ -5,20 +5,27 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
+use App\Services\CurrentWorkspace;
+use App\Services\ProjectAccess;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return ProjectResource::collection(Project::withCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
+        return ProjectResource::collection(ProjectAccess::query($request)->withCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
     }
 
     public function store(ProjectRequest $request): ProjectResource
     {
         $project = DB::transaction(function () use ($request): Project {
-            $project = Project::create($request->projectData());
+            $member = app(CurrentWorkspace::class)->resolve($request);
+            $project = $member->workspace->projects()->create($request->projectData());
+            if ($member->role === 'admin') {
+                $project->members()->create(['workspace_id' => $member->workspace_id, 'workspace_member_id' => $member->id]);
+            }
             foreach ($request->validated('sections') ?? ['Главная', 'Каталог', 'Карточка товара', 'Контакты', 'Общее'] as $index => $name) {
                 $project->briefSections()->create(['name' => $name, 'position' => $index + 1]);
             }

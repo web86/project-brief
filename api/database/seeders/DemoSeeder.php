@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Project;
 use App\Models\User;
+use App\Models\Workspace;
+use App\Services\OwnerProvisioning;
 use App\Services\ProjectStructure;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -17,13 +19,16 @@ class DemoSeeder extends Seeder
         }
         $password = env('DEMO_ADMIN_PASSWORD');
         if ($password) {
-            User::firstOrCreate(['email' => 'admin@example.test'], ['name' => 'Администратор', 'password' => Hash::make($password)]);
+            if (! User::where('email', 'admin@example.test')->exists()) {
+                app(OwnerProvisioning::class)->create(['name' => 'Администратор', 'email' => 'admin@example.test', 'password' => Hash::make($password)]);
+            }
         }
         if (Project::exists()) {
             return;
         }
         $demo = json_decode(file_get_contents(__DIR__.'/demo.json'), true, 512, JSON_THROW_ON_ERROR);
-        $project = Project::create(['title' => $demo['project']['name'], 'website_url' => 'https://example.com', 'currency' => $demo['project']['currency'] ?? 'RUB', 'sections' => $demo['sections']]);
+        $workspace = User::where('email', 'admin@example.test')->first()?->workspaceMembers()->active()->first()?->workspace ?? Workspace::create(['name' => config('app.name')]);
+        $project = $workspace->projects()->create(['title' => $demo['project']['name'], 'website_url' => 'https://example.com', 'currency' => $demo['project']['currency'] ?? 'RUB', 'sections' => $demo['sections']]);
         $project->clients()->create(['name' => 'Демо-клиент']);
         $sections = [];
         foreach ($demo['sections'] as $index => $name) {

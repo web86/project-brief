@@ -259,7 +259,7 @@ export const useProjectStore = defineStore('project', () => {
     if (!isDeveloper.value || savingDeveloper.value || !hasDeveloperChanges(id)) return false
     const draft = { ...developerDrafts.value[id] }
     const savingProject = project.value.id
-    const savingAdmin = admin.value?.id
+    const savingAdmin = admin.value?.email ?? admin.value?.id
     savingDeveloper.value = true
     apiError.value = ''
     try {
@@ -269,7 +269,11 @@ export const useProjectStore = defineStore('project', () => {
             method: 'PATCH',
             body: draft,
           })
-          if (project.value.id !== savingProject || admin.value?.id !== savingAdmin) return
+          if (
+            project.value.id !== savingProject ||
+            (admin.value?.email ?? admin.value?.id) !== savingAdmin
+          )
+            return
           replaceTask(data)
           for (const [key, value] of Object.entries(developerDrafts.value[id] || {})) {
             if (data[key] === value) delete developerDrafts.value[id][key]

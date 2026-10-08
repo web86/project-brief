@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -98,7 +97,7 @@ class TaskPermissionsTest extends TestCase
     public function test_admin_updates_workflow_and_audit_without_leaking_notes_into_history(): void
     {
         $task = Task::factory()->create();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($task->project));
         $this->patchJson('/api/admin/tasks/'.$task->uuid, ['status' => 'in_progress', 'estimateHours' => 3, 'price' => 150, 'developerNotes' => 'private notes'])->assertOk()->assertJsonPath('data.developerNotes', 'private notes');
         $this->assertDatabaseHas('tasks', ['uuid' => $task->uuid, 'status' => 'in_progress', 'estimate_hours' => 3, 'price' => 150]);
         $this->assertDatabaseHas('task_history', ['event_type' => 'status', 'old_value' => 'new', 'new_value' => 'in_progress']);
@@ -119,7 +118,7 @@ class TaskPermissionsTest extends TestCase
     public function test_estimate_and_price_audit_retain_previous_values(): void
     {
         $task = Task::factory()->create(['estimate_hours' => 3, 'price' => 150]);
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($task->project));
         $this->patchJson('/api/admin/tasks/'.$task->uuid, ['estimateHours' => 5, 'price' => 200])->assertOk();
         $this->assertDatabaseHas('task_history', ['event_type' => 'estimate', 'old_value' => '3', 'new_value' => '5']);
         $this->assertDatabaseHas('task_history', ['event_type' => 'price', 'old_value' => '150', 'new_value' => '200']);
@@ -128,7 +127,7 @@ class TaskPermissionsTest extends TestCase
     public function test_explicit_developer_save_records_only_changed_fields_and_no_note_content(): void
     {
         $task = Task::factory()->create(['estimate_hours' => 3, 'price' => 150, 'developer_notes' => 'Original private notes']);
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->ownerFor($task->project));
         $path = '/api/admin/tasks/'.$task->uuid;
         $draft = ['estimateHours' => 5, 'price' => 200, 'developerNotes' => 'Final private notes'];
         $this->patchJson($path, $draft)->assertOk()->assertJsonPath('data.developerNotes', 'Final private notes');

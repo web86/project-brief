@@ -21,8 +21,10 @@ class SessionBootstrapTest extends TestCase
 
     public function test_admin_bootstrap_and_explicit_logout(): void
     {
-        $this->actingAs(User::factory()->create());
-        $this->getJson('/api/session')->assertOk()->assertExactJson(['authenticated' => true, 'type' => 'admin']);
+        $user = User::factory()->owner()->create();
+        $workspace = $user->workspaceMembers()->first()->workspace;
+        $this->actingAs($user);
+        $this->getJson('/api/session')->assertOk()->assertExactJson(['authenticated' => true, 'type' => 'admin', 'workspace' => ['id' => $workspace->uuid, 'name' => $workspace->name]]);
         $this->postJson('/api/admin/logout')->assertOk();
         $this->getJson('/api/session')->assertExactJson(['authenticated' => false]);
         $this->getJson('/api/admin/me')->assertUnauthorized();

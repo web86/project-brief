@@ -13,7 +13,7 @@ class ProjectTest extends TestCase
 
     public function test_admin_creates_and_updates_project(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->owner()->create());
         $id = $this->postJson('/api/admin/projects', ['title' => 'Сайт клиента', 'website' => 'https://example.test', 'clientName' => 'Анна', 'clientEmail' => 'anna@example.test', 'currency' => 'EUR'])->assertCreated()->json('data.id');
         $this->assertDatabaseHas('projects', ['uuid' => $id, 'title' => 'Сайт клиента', 'currency' => 'EUR']);
         $this->patchJson('/api/admin/projects/'.$id, ['title' => 'Новое название'])->assertOk()->assertJsonPath('data.name', 'Новое название');
@@ -29,12 +29,12 @@ class ProjectTest extends TestCase
     public function test_integer_project_id_is_not_a_public_route(): void
     {
         $project = Project::factory()->create();
-        $this->actingAs(User::factory()->create())->getJson('/api/admin/projects/'.$project->id)->assertNotFound();
+        $this->actingAs(User::factory()->owner()->create())->getJson('/api/admin/projects/'.$project->id)->assertNotFound();
     }
 
     public function test_project_validation_rejects_unsafe_url_and_currency(): void
     {
-        $this->actingAs(User::factory()->create())->postJson('/api/admin/projects', ['title' => 'Сайт', 'website' => 'javascript:alert(1)', 'currency' => 'BAD'])->assertUnprocessable()->assertJsonValidationErrors(['website', 'currency']);
+        $this->actingAs(User::factory()->owner()->create())->postJson('/api/admin/projects', ['title' => 'Сайт', 'website' => 'javascript:alert(1)', 'currency' => 'BAD'])->assertUnprocessable()->assertJsonValidationErrors(['website', 'currency']);
         $this->assertDatabaseCount('projects', 0);
     }
 }

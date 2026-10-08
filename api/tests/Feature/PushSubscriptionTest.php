@@ -39,7 +39,7 @@ class PushSubscriptionTest extends TestCase
 
     public function test_authenticated_subscription_stores_encrypted_keys_and_allows_multiple_devices(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->owner()->create();
         $this->actingAs($admin);
         $one = $this->payload('mac');
         $two = $this->payload('phone');
@@ -78,7 +78,7 @@ class PushSubscriptionTest extends TestCase
 
     public function test_admin_without_client_session_cannot_use_client_subscription_api(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->owner()->create());
         $this->postJson('/api/client/push/subscriptions', $this->payload())->assertUnauthorized();
         $this->getJson('/api/client/push/status')->assertUnauthorized();
         $this->assertDatabaseCount('push_subscriptions', 0);
@@ -89,7 +89,7 @@ class PushSubscriptionTest extends TestCase
         $payload = $this->payload();
         $this->postJson('/api/admin/push/subscriptions', $payload)->assertUnauthorized();
         $this->deleteJson('/api/client/push/subscriptions', ['endpoint' => $payload['endpoint']])->assertUnauthorized();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->owner()->create());
         config(['project_notifications.vapid.private_key' => null]);
         $this->postJson('/api/admin/push/subscriptions', $payload)->assertUnprocessable()->assertJsonPath('code', 'push_unconfigured');
         $this->assertDatabaseCount('push_subscriptions', 0);
@@ -103,7 +103,7 @@ class PushSubscriptionTest extends TestCase
     #[DataProvider('invalidEndpoints')]
     public function test_non_push_or_insecure_endpoints_are_rejected_with_422(string $endpoint): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->owner()->create());
         $payload = $this->payload();
         $payload['endpoint'] = $endpoint;
         $this->postJson('/api/admin/push/subscriptions', $payload)->assertUnprocessable()->assertJsonValidationErrors('endpoint');
@@ -131,8 +131,8 @@ class PushSubscriptionTest extends TestCase
     public function test_push_test_is_limited_to_current_admin_browser(): void
     {
         $this->keys();
-        $admin = User::factory()->create();
         $project = Project::factory()->create();
+        $admin = $this->ownerFor($project);
         $own = PushSubscription::factory()->create(['user_id' => $admin->id]);
         $other = PushSubscription::factory()->create();
         $sender = $this->mock(WebPushTransport::class);

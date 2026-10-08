@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\Task;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class TaskAccess
@@ -15,15 +16,19 @@ class TaskAccess
 
     public static function project(Request $request, ?Project $project = null): Project
     {
-        return self::isAdmin($request) ? $project : $request->attributes->get('client_project');
+        return self::isAdmin($request) ? ProjectAccess::project($request, $project?->uuid ?? '') : $request->attributes->get('client_project');
+    }
+
+    public static function query(Request $request): Builder
+    {
+        return self::isAdmin($request)
+            ? Task::query()->whereIn('project_id', ProjectAccess::query($request)->select('projects.id'))
+            : Task::query()->where('project_id', self::project($request)->id);
     }
 
     public static function task(Request $request, string $uuid, bool $lock = false): Task
     {
-        $query = Task::where('uuid', $uuid);
-        if (! self::isAdmin($request)) {
-            $query->where('project_id', self::project($request)->id);
-        }
+        $query = self::query($request)->where('uuid', $uuid);
         if ($lock) {
             $query->lockForUpdate();
         }

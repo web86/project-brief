@@ -21,7 +21,7 @@ class SessionSecurityTest extends TestCase
                 return false;
             }
         });
-        $user = User::factory()->create(['password' => Hash::make('Local-test-password')]);
+        $user = User::factory()->owner()->create(['password' => Hash::make('Local-test-password')]);
         $this->postJson('/api/admin/login', ['email' => $user->email, 'password' => 'Local-test-password'])->assertStatus(419);
         $this->assertGuest();
         $token = $this->getJson('/api/csrf')->assertOk()->json('token');

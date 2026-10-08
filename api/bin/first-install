@@ -41,7 +41,7 @@ try {
     $run('migrate', ['--force' => true]);
     $run('optimize');
 
-    if ($app->make('db')->table('users')->where('role', 'admin')->exists()) {
+    if (\App\Models\WorkspaceMember::query()->active()->exists()) {
         fwrite(STDOUT, 'PASS: Administrator already exists; creation skipped.'.PHP_EOL);
     } else {
         fwrite(STDOUT, 'Create first administrator? [Y/n] ');

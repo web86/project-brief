@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\ProjectAccessToken;
-use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
@@ -23,7 +22,7 @@ class AccessLinkTest extends TestCase
     public function test_admin_generates_link_and_stores_only_hash(): void
     {
         $project = Project::factory()->create();
-        $result = $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
+        $result = $this->actingAs($this->ownerFor($project))->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
         $plain = basename($result->json('url'));
         $this->assertSame(64, strlen($plain));
         $this->assertDatabaseHas('project_access_tokens', ['token_hash' => hash('sha256', $plain)]);
@@ -65,7 +64,7 @@ class AccessLinkTest extends TestCase
         $project = Project::factory()->create();
         [$plain,$old] = $this->token($project);
         $this->get('/access/'.$plain)->assertRedirect();
-        $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
+        $this->actingAs($this->ownerFor($project))->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
         $this->assertNotNull($old->fresh()->revoked_at);
         $this->getJson('/api/client/project')->assertUnauthorized();
         $this->get('/access/'.$plain)->assertRedirect(config('projectbrief.frontend_url').'/access-error?reason=invalid');
@@ -77,7 +76,7 @@ class AccessLinkTest extends TestCase
         [$plain,$token] = $this->token($project);
         $other = Project::factory()->create();
         $this->get('/access/'.$plain);
-        $this->actingAs(User::factory()->create())->deleteJson('/api/admin/projects/'.$other->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links/'.$token->id)->assertNotFound();
+        $this->actingAs($this->ownerFor($project))->deleteJson('/api/admin/projects/'.$other->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links/'.$token->id)->assertNotFound();
         $this->deleteJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links/'.$token->id)->assertOk();
         $this->getJson('/api/client/project')->assertUnauthorized();
     }
@@ -99,7 +98,7 @@ class AccessLinkTest extends TestCase
         $project = Project::factory()->create();
         [$expired] = $this->token($project, ['expires_at' => now()]);
         $this->get('/access/'.$expired)->assertRedirect(config('projectbrief.frontend_url').'/access-error?reason=expired');
-        $result = $this->actingAs(User::factory()->create())->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
+        $result = $this->actingAs($this->ownerFor($project))->postJson('/api/admin/projects/'.$project->uuid.'/clients/'.$project->clients()->first()->uuid.'/access-links')->assertCreated();
         $this->get('/access/'.basename($result->json('url')))->assertRedirect(config('projectbrief.frontend_url').'/project/'.$project->uuid);
         $this->assertGuest();
         $this->getJson('/api/client/project')->assertOk();

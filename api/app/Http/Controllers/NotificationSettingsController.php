@@ -15,7 +15,7 @@ class NotificationSettingsController extends Controller
     {
         $settings = $service->settings($project);
 
-        return response()->json(['events' => $settings->preferences(), 'notificationEmail' => $settings->notification_email, 'fallbackEmail' => $service->admin($project)?->email, 'emailAvailable' => $service->mailAvailable()])->header('Cache-Control', 'no-store');
+        return response()->json(['events' => $settings->preferences(), 'notificationEmail' => $settings->notification_email, 'fallbackEmail' => $service->primaryOwner($project)?->email, 'emailAvailable' => $service->mailAvailable()])->header('Cache-Control', 'no-store');
     }
 
     public function update(Request $request, Project $project, ProjectNotificationService $service): JsonResponse

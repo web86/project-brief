@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Project;
+use App\Services\CurrentWorkspace;
+use App\Services\ProjectAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,7 +14,17 @@ class EnsureAdmin
     public function handle(Request $request, Closure $next): Response
     {
         abort_unless($request->user(), 401, 'Войдите в аккаунт администратора.');
-        abort_unless($request->user()->role === 'admin', 403);
+        // "admin" remains the interface persona, not a global account role.
+        if (! $request->is('api/admin/logout')) {
+            $context = app(CurrentWorkspace::class);
+            abort_unless($context->memberships($request)->exists(), 403);
+            if (! $request->is('api/admin/workspaces', 'api/admin/workspaces/*/select')) {
+                $context->resolve($request);
+                if ($project = $request->route('project')) {
+                    $request->route()->setParameter('project', ProjectAccess::project($request, $project instanceof Project ? $project->uuid : $project));
+                }
+            }
+        }
 
         return $next($request);
     }

@@ -403,3 +403,30 @@ test('actual notes textarea and Save button use the local draft and send exactly
     app.unmount()
   }
 })
+
+test('late save response cannot restore private task cache after logout or a different account login', async () => {
+  for (const nextAdmin of [null, { email: 'other-owner@example.test' }]) {
+    const { store } = setup()
+    store.admin = {
+      name: 'Owner',
+      email: 'owner@example.test',
+      role: 'admin',
+      membershipRole: 'owner',
+    }
+    let resolve
+    api.request = async () =>
+      new Promise((done) => {
+        resolve = done
+      })
+    store.updateDeveloperData('task', { developerNotes: 'Private saved notes' })
+    const pending = store.saveDeveloperData('task')
+    await new Promise((done) => setImmediate(done))
+    store.discardDeveloperChanges()
+    store.admin = nextAdmin
+    store.tasks = []
+    resolve({ data: { ...task(), developerNotes: 'Private saved notes' } })
+    await pending
+    assert.deepEqual(store.tasks, [])
+    assert.deepEqual(store.developerDrafts, {})
+  }
+})

@@ -42,7 +42,7 @@ php artisan migrate
 php artisan app:create-admin
 ```
 
-Команда интерактивно спрашивает имя, email и скрытый пароль (от 12 символов); сохраняется Laravel password hash. Пароль не передавайте через аргументы командной строки.
+Команда интерактивно спрашивает имя, email и скрытый пароль (от 12 символов); сохраняется Laravel password hash. User, workspace и активное owner membership создаются атомарно. Пароль не передавайте через аргументы командной строки.
 
 В двух терминалах из корня:
 
@@ -271,3 +271,22 @@ system copy uses `project_clients.preferred_locale`; admin copy continues to use
 `NOTIFICATION_ADMIN_LOCALE`. Human-written content keeps its original language.
 See [Milestone 1 implementation and verification](docs/milestone-1.md) for content
 bounds, event context, limitations and tests. No database migration is required.
+
+## Milestone 2: workspace tenant boundary
+
+Projects now require a workspace. Active owners access every project in their
+workspace; active admins access only explicitly assigned projects. `users.role` is
+legacy metadata and no longer grants global access. Login and installed PWA bootstrap
+resolve active workspace membership; existing client personal links remain separate.
+
+The server chooses the earliest accessible workspace when no selection exists and
+rejects stale selections. Minimal authenticated APIs are `GET /api/admin/workspaces`
+and `POST /api/admin/workspaces/{uuid}/select`. No workspace switcher or team UI is
+introduced. Notification recipients are the project's active owners and assigned
+admins; foreign-workspace users/devices are excluded.
+
+The three additive migrations preserve existing data and client links, name the
+initial workspace from the oldest legacy admin/application, and retain additional
+legacy admins' access through project assignments. Fresh CLI accounts own their own
+workspace. See [Milestone 2 verification and upgrade instructions](docs/milestone-2.md)
+before applying the release to an existing installation.

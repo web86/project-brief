@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
@@ -11,11 +12,11 @@ class Project extends Model
     use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory;
 
     /** Legacy client_name, client_email and sections are retained for migration compatibility only. */
-    protected $fillable = ['title', 'website_url', 'client_name', 'client_email', 'currency', 'status', 'sections'];
+    protected $fillable = ['title', 'website_url', 'client_name', 'client_email', 'currency', 'status', 'sections', 'workspace_id'];
 
     protected function casts(): array
     {
-        return ['sections' => 'array'];
+        return ['sections' => 'array', 'workspace_id' => 'integer'];
     }
 
     public function uniqueIds(): array
@@ -31,6 +32,16 @@ class Project extends Model
     protected static function booted(): void
     {
         static::created(fn (self $project) => ProjectNotificationSetting::create(['project_id' => $project->id]));
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
+    public function members(): HasMany
+    {
+        return $this->hasMany(ProjectMember::class);
     }
 
     public function tasks(): HasMany

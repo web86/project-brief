@@ -57,7 +57,7 @@
    php bin/first-install
    ```
 
-   `check-server` выводит PASS/FAIL для PHP, расширений, runtime files, writable directories и соединения с базой; без `.env` DB-проверка отмечается SKIP. SQL/пароли не выводятся. `first-install` требует заполненный `.env`, убирает старый config cache, сохраняет существующий APP_KEY (создаёт только отсутствующий), проверяет DB, выполняет `migrate --force` и `optimize`. Затем предлагает `Create first administrator? [Y/n]` и вызывает существующий `app:create-admin`: имя, email, скрытый пароль от 12 символов. Если admin уже есть, создание пропускается. Повторный запуск безопасен; база не удаляется. На пустом stdin создание admin пропускается. При необходимости позже:
+   `check-server` выводит PASS/FAIL для PHP, расширений, runtime files, writable directories и соединения с базой; без `.env` DB-проверка отмечается SKIP. SQL/пароли не выводятся. `first-install` требует заполненный `.env`, убирает старый config cache, сохраняет существующий APP_KEY (создаёт только отсутствующий), проверяет DB, выполняет `migrate --force` и `optimize`. Затем предлагает `Create first administrator? [Y/n]` и вызывает существующий `app:create-admin`: имя, email, скрытый пароль от 12 символов. Если активное workspace membership уже есть, создание пропускается. `app:create-admin` атомарно создаёт User + Workspace + owner membership. Повторный запуск безопасен; база не удаляется. На пустом stdin создание admin пропускается. При необходимости позже:
 
    ```bash
    php artisan app:create-admin
@@ -268,3 +268,26 @@ theme-color и зелёный HTML loader продолжают системны�
 важные состояния сохранения остаются рядом с формой/постоянно видимыми.
 Offline-доступ к проектам не добавлен; worker по-прежнему не кеширует private API.
 Реальная установка и доставка Push зависят от браузера/ОС.
+
+## Обновление до workspace tenant isolation (Milestone 2)
+
+Перед обновлением существующей установки выполните отдельный проверенный backup БД,
+private файлов и текущего release/environment. Включите maintenance mode; старый код
+не должен записывать проекты во время staged миграции. Примените три additive
+миграции `2026_10_08_122755_create_workspace_foundation`,
+`2026_10_08_122756_backfill_legacy_workspaces`,
+`2026_10_08_122757_enforce_project_workspace` через `php artisan migrate --force`
+(или `bin/first-install`), затем
+`php artisan optimize`. APP_KEY, VAPID keys и персональные ссылки клиентов сохраняются.
+
+Старейший legacy admin становится owner первоначального workspace, остальные legacy
+admins получают project assignments для всех прежних проектов. Runtime больше не
+считает `users.role=admin` глобальным разрешением. На пустой базе workspace появляется
+только при создании первого owner. Исходные пароли и client links продолжают работать.
+
+Автоматический rollback этих трёх миграций запрещён. Не запускайте старый globally
+privileged код поверх новой tenant schema. Для rollback требуется согласованное
+восстановление проверенного application/database backup в maintenance mode с отдельным
+учётом последующих записей. Полные детали, ограничения recovery и результаты тестов:
+`docs/milestone-2.md` в исходном репозитории (verification report не входит в upload package).
+Ничего не было развёрнуто в production этим изменением.

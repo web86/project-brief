@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
@@ -21,7 +20,7 @@ class CommentTest extends TestCase
     public function test_admin_comment_author_and_history_are_server_derived(): void
     {
         $task = Task::factory()->create();
-        $user = User::factory()->create();
+        $user = $this->ownerFor($task->project);
         $this->actingAs($user)->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => 'Примерно на 20%?'])->assertOk()->assertJsonPath('data.comments.0.author', 'developer');
         $this->assertDatabaseHas('comments', ['task_id' => $task->id, 'author_type' => 'admin', 'author_user_id' => $user->id]);
         $this->assertDatabaseHas('task_history', ['event_type' => 'comment', 'actor_type' => 'admin']);

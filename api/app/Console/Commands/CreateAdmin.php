@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
+use App\Services\OwnerProvisioning;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -11,7 +11,7 @@ class CreateAdmin extends Command
 {
     protected $signature = 'app:create-admin';
 
-    protected $description = 'Create the first administrator (interactive; password is never echoed)';
+    protected $description = 'Create a workspace owner (interactive; password is never echoed)';
 
     public function handle(): int
     {
@@ -22,9 +22,9 @@ class CreateAdmin extends Command
                 $this->error($error);
             }
 
-return self::FAILURE;
+            return self::FAILURE;
         }
-        User::create(['name' => $data['name'], 'email' => $data['email'], 'password' => Hash::make($data['password'])]);
+        app(OwnerProvisioning::class)->create(['name' => $data['name'], 'email' => $data['email'], 'password' => Hash::make($data['password'])]);
         $this->info('Администратор создан.');
 
         return self::SUCCESS;

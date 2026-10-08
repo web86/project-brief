@@ -14,6 +14,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
+use App\Http\Controllers\WorkspaceController;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\ProjectStructure;
@@ -34,6 +35,8 @@ Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->he
 Route::get('/api/session', SessionController::class);
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
+    Route::get('/workspaces', [WorkspaceController::class, 'index']);
+    Route::post('/workspaces/{workspace}/select', [WorkspaceController::class, 'select']);
     Route::get('/me', [AdminAuthController::class, 'me']);
     Route::post('/logout', [AdminAuthController::class, 'logout']);
 });
