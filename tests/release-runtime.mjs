@@ -184,6 +184,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(ownerState.user.role, 'admin')
   assert.equal(ownerState.user.membershipRole, 'owner')
   assert.equal(ownerState.workspace.id, fixture.workspace)
+  const workspaceCsrf = await (await request('/api/csrf')).json()
   const workspaces = await (await request('/api/admin/workspaces')).json()
   assert.deepEqual(workspaces.data, [{ id: fixture.workspace, name: 'Release QA' }])
   const projects = await (await request('/api/admin/projects')).json()
@@ -204,7 +205,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrf.token,
+          'X-CSRF-TOKEN': workspaceCsrf.token,
         },
         body: '{}',
       })
