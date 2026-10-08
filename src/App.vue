@@ -2,6 +2,7 @@
 import PushControls from './components/PushControls.vue'
 import ToastViewport from './components/ToastViewport.vue'
 import { toast } from './services/toast.js'
+import { confirmDeveloperLeave } from './utils/developerEditor.js'
 import { t, locale, formatApiError } from './i18n/index.js'
 
 import { nextTick, watch } from 'vue'
@@ -16,10 +17,11 @@ const store = useProjectStore()
 const route = useRoute()
 const router = useRouter()
 async function logout() {
-  await store.flushDeveloperData()
+  if (!confirmDeveloperLeave(store)) return
   try {
     await api.request('/api/admin/logout', { method: 'POST' })
     api.resetCsrf()
+    store.discardDeveloperChanges()
     store.admin = null
     store.currentClient = null
     store.tasks = []
@@ -31,11 +33,10 @@ async function logout() {
 watch(
   () => store.sessionLost,
   (lost) => {
-    if (lost) {
+    if (lost && !Object.keys(store.developerDrafts).length) {
       const destination = store.admin ? '/admin/login' : '/access-error?reason=session'
       store.admin = null
       store.tasks = []
-      store.developerDrafts = {}
       store.currentClient = null
       router.replace(destination)
     }
@@ -45,12 +46,7 @@ store.loadFromStorage()
 watch(
   () => store.apiError,
   (error) => {
-    if (
-      error &&
-      route.path !== '/app' &&
-      error.status !== 422 &&
-      !Object.keys(store.developerDrafts).length
-    )
+    if (error && route.path !== '/app' && error.status !== 422 && !store.savingDeveloper)
       toast.error(() => formatApiError(error))
   },
 )
@@ -124,33 +120,6 @@ watch(
           {{ t('ui.trySavingAgain') }}
         </button>
       </div>
-      <div
-        v-if="store.apiError && Object.keys(store.developerDrafts).length"
-        class="storage-warning"
-        role="alert"
-      >
-        <p>{{ formatApiError(store.apiError) }}</p>
-        <button
-          v-if="Object.keys(store.developerDrafts).length"
-          class="button secondary"
-          @click="store.flushDeveloperData()"
-        >
-          {{ t('ui.trySavingAgain') }}
-        </button>
-      </div>
-      <p
-        v-if="store.apiMode && Object.keys(store.developerDrafts).length"
-        role="status"
-        class="save-status"
-      >
-        {{
-          store.savingDeveloper
-            ? t('ui.savingChanges')
-            : store.apiError
-              ? t('ui.changesHaveNotBeenSavedYet')
-              : t('ui.changesWillBeSavedAutomatically')
-        }}
-      </p>
       <main id="main-content" tabindex="-1"><RouterView /></main>
     </div>
   </div>

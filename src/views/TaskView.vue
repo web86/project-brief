@@ -1,7 +1,8 @@
 <script setup>
 import { t, formatApiError } from '../i18n/index.js'
 
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { bindDeveloperEditor } from '../utils/developerEditor.js'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from '../stores/project'
 import { getTaskLocation } from '../constants/project'
@@ -21,6 +22,19 @@ const route = useRoute()
 const storeRouter = useRouter()
 const store = useProjectStore()
 const task = computed(() => store.findTask(route.params.id))
+const editorTask = computed(() => store.developerTask(route.params.id))
+const dirty = computed(() => store.isDeveloper && store.hasDeveloperChanges(route.params.id))
+let editor
+onMounted(() => {
+  editor = bindDeveloperEditor({
+    active: () => store.isDeveloper && !!task.value,
+    dirty: () => dirty.value,
+    save: () => store.saveDeveloperData(route.params.id),
+  })
+  editor.sync()
+})
+watch([dirty, () => store.isDeveloper], () => editor?.sync(), { flush: 'sync' })
+onUnmounted(() => editor?.dispose())
 const commentForm = ref(null)
 const approving = ref(false)
 const editable = computed(() => !store.isDeveloper && canEditClientTask(task.value))
@@ -114,7 +128,11 @@ function focusClarification() {
     <div class="task-layout" :class="{ 'has-developer': store.isDeveloper }">
       <TaskDetails :task="task" />
       <div class="task-sidebar">
-        <DeveloperTaskPanel v-if="store.isDeveloper" :task="task" @clarify="focusClarification" />
+        <DeveloperTaskPanel
+          v-if="store.isDeveloper"
+          :task="editorTask"
+          @clarify="focusClarification"
+        />
         <section class="surface comments-panel">
           <h2>
             {{ t('ui.comments2') }} <span class="count-pill">{{ task.comments.length }}</span>
@@ -125,7 +143,7 @@ function focusClarification() {
           />
         </section>
       </div>
-      <DeveloperNotes v-if="store.isDeveloper" :task="task" />
+      <DeveloperNotes v-if="store.isDeveloper" :task="editorTask" />
       <HistoryTimeline :history="task.history" :developer="store.isDeveloper" />
     </div>
   </div>

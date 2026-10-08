@@ -1,4 +1,11 @@
-import { t, applyClientLocale, setManualLocale, SUPPORTED_LOCALES } from '../i18n/index.js'
+import { toast } from '../services/toast.js'
+import {
+  t,
+  formatApiError,
+  applyClientLocale,
+  setManualLocale,
+  SUPPORTED_LOCALES,
+} from '../i18n/index.js'
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { api, API_MODE, taskBody } from '../api/client.js'
@@ -146,7 +153,6 @@ export const useProjectStore = defineStore('project', () => {
   const orderPending = ref(false)
   const developerDrafts = ref({})
   const savingDeveloper = ref(false)
-  let developerTimer
   const writes = new Map()
   const storageError = ref('')
   const storageBlocked = ref(false)
@@ -168,8 +174,17 @@ export const useProjectStore = defineStore('project', () => {
     apiError.value = error
     if (error.status === 401) sessionLost.value = true
   }
+  function reconcileDeveloperDraft(task) {
+    if (!savingDeveloper.value) {
+      for (const [key, value] of Object.entries(developerDrafts.value[task.id] || {})) {
+        if (task[key] === value) delete developerDrafts.value[task.id][key]
+      }
+      if (!Object.keys(developerDrafts.value[task.id] || {}).length)
+        delete developerDrafts.value[task.id]
+    }
+  }
   function replaceTask(task) {
-    Object.assign(task, developerDrafts.value[task.id] || {})
+    reconcileDeveloperDraft(task)
     const index = tasks.value.findIndex((item) => item.id === task.id)
     if (index < 0) tasks.value.unshift(task)
     else tasks.value.splice(index, 1, task)
@@ -214,52 +229,94 @@ export const useProjectStore = defineStore('project', () => {
         applyClientLocale(currentClient.value.preferredLocale)
         developerDrafts.value = {}
       }
-      await flushDeveloperData()
       const [details, list] = await Promise.all([
         api.request(asAdmin ? `/api/admin/projects/${id}` : `/api/client/project/${id}`),
         api.request(asAdmin ? `/api/admin/projects/${id}/tasks` : '/api/client/tasks'),
       ])
       project.value = details.data
       sections.value = details.data.sections
-      tasks.value = list.data.map((task) =>
-        Object.assign(task, developerDrafts.value[task.id] || {}),
-      )
+      tasks.value = list.data
+      tasks.value.forEach(reconcileDeveloperDraft)
       currentMode.value = asAdmin ? 'developer' : 'client'
       initialized.value = true
     } catch (error) {
-      tasks.value = []
+      if (!Object.keys(developerDrafts.value).length) tasks.value = []
       reportError(error)
       throw error
     } finally {
       apiLoading.value = false
     }
   }
-  async function flushDeveloperData() {
-    clearTimeout(developerTimer)
-    const entries = Object.entries(developerDrafts.value).map(([id, data]) => [id, { ...data }])
-    if (!entries.length) return
+  const hasDeveloperChanges = (id) => !!Object.keys(developerDrafts.value[id] || {}).length
+  function developerTask(id) {
+    const task = findTask(id)
+    return task ? { ...task, ...(developerDrafts.value[id] || {}) } : null
+  }
+  function discardDeveloperChanges() {
+    developerDrafts.value = {}
+  }
+  async function saveDeveloperData(id) {
+    if (!isDeveloper.value || savingDeveloper.value || !hasDeveloperChanges(id)) return false
+    const draft = { ...developerDrafts.value[id] }
+    const savingProject = project.value.id
+    const savingAdmin = admin.value?.id
     savingDeveloper.value = true
     apiError.value = ''
-    await Promise.all(
-      entries.map(([id, draft]) =>
-        serialize(id, async () => {
-          try {
-            const { data } = await api.request(`/api/admin/tasks/${id}`, {
-              method: 'PATCH',
-              body: draft,
-            })
-            for (const [key, value] of Object.entries(draft))
-              if (developerDrafts.value[id]?.[key] === value) delete developerDrafts.value[id][key]
-            if (!Object.keys(developerDrafts.value[id] || {}).length)
-              delete developerDrafts.value[id]
-            replaceTask(data)
-          } catch (error) {
-            reportError(error)
+    try {
+      if (API_MODE) {
+        await serialize(id, async () => {
+          const { data } = await api.request(`/api/admin/tasks/${id}`, {
+            method: 'PATCH',
+            body: draft,
+          })
+          if (project.value.id !== savingProject || admin.value?.id !== savingAdmin) return
+          replaceTask(data)
+          for (const [key, value] of Object.entries(developerDrafts.value[id] || {})) {
+            if (data[key] === value) delete developerDrafts.value[id][key]
           }
-        }),
-      ),
-    )
-    savingDeveloper.value = false
+        })
+      } else {
+        const task = findTask(id)
+        const previous = { ...task, history: [...task.history] }
+        loading = true
+        try {
+          Object.assign(task, draft)
+          addHistory(
+            task,
+            'developer',
+            t('ui.developerUpdated2', {
+              arg0: Object.keys(draft)
+                .map((key) =>
+                  t(
+                    {
+                      estimateHours: 'ui.hourEstimate',
+                      price: 'ui.price3',
+                      developerNotes: 'ui.technicalNotes2',
+                    }[key],
+                  ),
+                )
+                .join(', '),
+            }),
+          )
+          if (!saveToStorage()) {
+            Object.assign(task, previous)
+            throw storageError.value
+          }
+          delete developerDrafts.value[id]
+        } finally {
+          loading = false
+        }
+      }
+      if (!Object.keys(developerDrafts.value[id] || {}).length) delete developerDrafts.value[id]
+      toast.success(() => t('developerEditor.saved'))
+      return true
+    } catch (error) {
+      // Keep the editor and its draft available even when a save fails with an expired session.
+      toast.error(() => formatApiError(error))
+      return false
+    } finally {
+      savingDeveloper.value = false
+    }
   }
   async function uploadAttachments(id, attachments) {
     const body = new FormData()
@@ -617,54 +674,29 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function updateDeveloperData(id, data) {
-    if (API_MODE) {
-      if (!isDeveloper.value || !findTask(id)) return false
-      const safe = Object.fromEntries(
-        Object.entries(data).filter(([key, value]) =>
-          key === 'developerNotes'
-            ? isText(value)
-            : ['estimateHours', 'price'].includes(key) && validNumber(value),
-        ),
-      )
-      developerDrafts.value[id] = { ...(developerDrafts.value[id] || {}), ...safe }
-      Object.assign(findTask(id), safe)
-      clearTimeout(developerTimer)
-      developerTimer = setTimeout(flushDeveloperData, 450)
-      return true
-    }
     const task = findTask(id)
-    if (!isDeveloper.value || !task) return false
-    const changed = []
-    for (const [key, label] of [
-      ['estimateHours', t('ui.hourEstimate')],
-      ['price', t('ui.price3')],
-      ['developerNotes', t('ui.technicalNotes2')],
-    ]) {
-      if (!(key in data) || data[key] === task[key]) continue
-      if (key === 'developerNotes' ? !isText(data[key]) : !validNumber(data[key])) continue
-      task[key] = data[key]
-      changed.push(label)
+    if (!isDeveloper.value || !task || storageBlocked.value) return false
+    const draft = { ...(developerDrafts.value[id] || {}) }
+    let accepted = false
+    for (const [key, value] of Object.entries(data)) {
+      if (
+        key === 'developerNotes'
+          ? !isText(value)
+          : !['estimateHours', 'price'].includes(key) || !validNumber(value)
+      )
+        continue
+      accepted = true
+      if (value === task[key] && !savingDeveloper.value) delete draft[key]
+      else draft[key] = value
     }
-    if (!changed.length) return false
-    // Group uninterrupted typing into one history entry, while persisting every input.
-    const previous = task.history.at(-1)
-    const createdAt = timestamp()
-    if (previous?.type === 'developer' && Date.now() - Date.parse(previous.createdAt) < 30000) {
-      const labels = new Set([
-        ...previous.text.replace(t('ui.developerUpdated'), '').split(', '),
-        ...changed,
-      ])
-      previous.text = t('ui.developerUpdated2', { arg0: [...labels].join(', ') })
-      previous.createdAt = createdAt
-      task.updatedAt = createdAt
-    } else addHistory(task, 'developer', t('ui.developerUpdated2', { arg0: changed.join(', ') }))
-    return true
+    if (Object.keys(draft).length) developerDrafts.value[id] = draft
+    else delete developerDrafts.value[id]
+    return accepted
   }
 
   async function moveTask(id, sectionId) {
     if (!isDeveloper.value || storageBlocked.value) return false
     if (API_MODE) {
-      await flushDeveloperData()
       if (!(await mutateTask(id, '/move', 'POST', { sectionId }))) return false
       await loadApiProject(project.value.id, true)
       return true
@@ -705,7 +737,6 @@ export const useProjectStore = defineStore('project', () => {
       const previous = tasks.value.map((task) => ({ id: task.id, position: task.position }))
       swapPosition(sectionTasks(findTask(id).sectionId), id, direction)
       try {
-        await flushDeveloperData()
         if (!(await mutateTask(id, '/reorder', 'POST', { direction }))) {
           for (const saved of previous) {
             const task = findTask(saved.id)
@@ -762,7 +793,10 @@ export const useProjectStore = defineStore('project', () => {
     uploadAttachments,
     developerDrafts,
     savingDeveloper,
-    flushDeveloperData,
+    saveDeveloperData,
+    hasDeveloperChanges,
+    developerTask,
+    discardDeveloperChanges,
     project,
     sections,
     tasks,

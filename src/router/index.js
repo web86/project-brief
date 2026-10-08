@@ -1,3 +1,4 @@
+import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { t } from '../i18n/index.js'
 import { createRouter, createWebHistory, createMemoryHistory } from 'vue-router'
 import { appDestination } from '../services/session.js'
@@ -174,10 +175,12 @@ export function createProjectRouter({
     },
   })
 
-  router.beforeEach(async (to) => {
+  router.beforeEach(async (to, from) => {
+    const draftStore = useProjectStore()
+    if (to.path !== from.path && !confirmDeveloperLeave(draftStore)) return false
+
     if (to.path === '/app') {
       const store = useProjectStore()
-      if (store.admin && Object.keys(store.developerDrafts).length) await store.flushDeveloperData()
       store.apiError = ''
       store.sessionLost = false
       store.admin = null
@@ -199,9 +202,6 @@ export function createProjectRouter({
       }
       return true
     }
-    const pendingStore = useProjectStore()
-    if (pendingStore.admin && Object.keys(pendingStore.developerDrafts).length)
-      await pendingStore.flushDeveloperData()
     if (['/', '/task/new'].includes(to.path) || to.name === 'task') return '/app'
     if (to.meta.requiresAdmin) {
       const store = useProjectStore()
@@ -226,6 +226,9 @@ export function createProjectRouter({
         ? '/admin/login'
         : `/access-error?reason=${error.status === 401 ? 'session' : 'unavailable'}`
     }
+  })
+  router.afterEach((to, from, failure) => {
+    if (!failure && to.path !== from.path) useProjectStore().discardDeveloperChanges()
   })
   return router
 }

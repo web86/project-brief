@@ -117,3 +117,39 @@ test('actual push settings panel translates states, actions and retry feedback',
   assert.ok(russian.includes('role="alert"'))
   assert.ok(russian.includes('Попробовать снова'))
 })
+
+test('developer editor renders localized dirty state and explicit save for all private fields', async () => {
+  for (const [language, dirty, save] of [
+    ['en', 'Unsaved changes', 'Save changes'],
+    ['ru', 'Есть несохранённые изменения', 'Сохранить изменения'],
+  ]) {
+    const html = await render(
+      TaskView,
+      '/task/demo-1',
+      (store) => {
+        store.currentMode = 'developer'
+        store.updateDeveloperData('demo-1', {
+          developerNotes: 'Local draft',
+          estimateHours: 12,
+          price: 25000,
+        })
+      },
+      language,
+    )
+    assert.ok(html.includes(dirty))
+    assert.ok(html.includes(save))
+    assert.ok(html.includes('Local draft'))
+    assert.ok(html.includes('value="12"'))
+    assert.ok(html.includes('value="25000"'))
+    const clean = await render(
+      TaskView,
+      '/task/demo-1',
+      (store) => {
+        store.currentMode = 'developer'
+      },
+      language,
+    )
+    assert.equal(clean.includes(dirty), false)
+    assert.ok(clean.includes(save))
+  }
+})

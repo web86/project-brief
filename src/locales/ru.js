@@ -1,4 +1,10 @@
 export default {
+  developerEditor: {
+    save: 'Сохранить изменения',
+    dirty: 'Есть несохранённые изменения',
+    saved: 'Изменения сохранены.',
+    leave: 'Есть несохранённые изменения разработчика. Отменить их и уйти?',
+  },
   pwa: {
     notifications: 'Уведомления',
     dismiss: 'Закрыть уведомление',
@@ -147,7 +153,6 @@ export default {
     ideasAndChanges: 'Идеи и изменения',
     ideasThatBecomeFinishedWebsites: 'Идеи, которые становятся готовыми сайтами.',
     ideaNotFound: 'Идея не найдена',
-    changesWillBeSavedAutomatically: 'Изменения будут сохранены автоматически…',
     changesHaveNotBeenSavedYet: 'Изменения ещё не сохранены.',
     yourChangesHaveNotBeenSavedBrowserStorage:
       'Изменения пока не сохранены. Возможно, память браузера заполнена или недоступна. Не закрывайте страницу; проверьте доступ к памяти браузера или освободите место и повторите сохранение.',

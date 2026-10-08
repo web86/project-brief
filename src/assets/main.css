@@ -2301,3 +2301,11 @@ button.attachment-item:hover {
     grid-template-columns: minmax(0, 1fr) 46px 46px;
   }
 }
+
+.developer-save-actions {
+  margin-top: 16px;
+}
+.developer-save-actions p {
+  color: var(--text-muted, #637467);
+  margin: 0 0 12px;
+}

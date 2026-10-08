@@ -1,6 +1,7 @@
 <script setup>
 import { t } from '../i18n/index.js'
 
+import LoadingButton from './LoadingButton.vue'
 import { useProjectStore } from '../stores/project'
 defineProps({ task: { type: Object, required: true } })
 const store = useProjectStore()
@@ -23,7 +24,21 @@ const store = useProjectStore()
       maxlength="10000"
       :placeholder="t('ui.componentsImplementationDetailsThingsToConsider')"
       @input="store.updateDeveloperData(task.id, { developerNotes: $event.target.value })"
-      @blur="store.apiMode && store.flushDeveloperData()"
     />
+    <div class="developer-save-actions">
+      <p v-if="store.hasDeveloperChanges(task.id)" role="status">
+        ● {{ t('developerEditor.dirty') }}
+      </p>
+      <LoadingButton
+        class="button primary"
+        :busy="store.savingDeveloper"
+        :disabled="
+          !store.hasDeveloperChanges(task.id) || store.savingDeveloper || store.storageBlocked
+        "
+        @click="store.saveDeveloperData(task.id)"
+      >
+        {{ t('developerEditor.save') }}
+      </LoadingButton>
+    </div>
   </section>
 </template>

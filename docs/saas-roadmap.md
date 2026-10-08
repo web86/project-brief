@@ -47,11 +47,14 @@ A registered public user becomes the owner of a private workspace. Owners can in
 
 # Milestone 1 — UX and notification fixes
 
+Status: **implemented and verified, 8 October 2026**. See [implementation and verification](milestone-1.md).
+No database migrations. Milestones 2–4 remain unstarted.
+
 ## Developer task editing
 
 Replace the current aggressive developer autosave behavior.
 
-Current implementation debounces changes by roughly 450 ms, which can generate unnecessary PATCH requests and noisy task-history records.
+Previous implementation debounced changes by roughly 450 ms. It has been replaced with local drafts and one explicit PATCH per save; no blur, navigation, logout or project-loading flush remains.
 
 Target behavior:
 
@@ -362,6 +365,6 @@ Do not mix Milestone 4 authentication changes into Milestones 1–3.
 
 ## Current next step
 
-Start with **Milestone 1 — UX and notification fixes** on `feature/saas-foundation`.
+**Milestone 1 is complete** on `feature/saas-foundation`. Only Milestone 1 was implemented in this change.
 
-After Milestone 1 is complete and verified, continue with tenant isolation before implementing public registration or multiple independent owners.
+Milestone 2 (tenant isolation) is the next planned milestone and requires a separate implementation request. Workspace, multi-tenant and registration work has not begun.

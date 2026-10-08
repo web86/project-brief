@@ -13,7 +13,7 @@
 - Client TaskResource не содержит estimateHours, price, developerNotes, внутренние audit events. Поддельные payloads этих полей/status/project/author/history/approval отклоняются. Edit исходного ТЗ доступен только в new/clarification.
 - Согласование идемпотентно, записывает timestamp и history, не меняет status. Авторы комментариев и audit history определяются backend.
 - Реальные приватные файлы, MIME/extension/content/size/count проверки, очищенные исходные имена, случайные storage names, atomically saved task/files, защищённые session downloads/previews. Нет base64 в DB/public URLs.
-- Vue API layer + Pinia cache, сохранённые public actions; local demo остаётся для development, production всегда API. API mode не читает/не пишет localStorage. Debounced developer autosave сериализуется, retries сохраняют drafts, focus/navigation отправляют изменения.
+- Vue API layer + Pinia cache, сохранённые public actions; local demo остаётся для development, production всегда API. API mode не читает/не пишет localStorage. С Milestone 1 developer-поля сохраняются только явной кнопкой/shortcut; retries сохраняют drafts, focus/navigation ничего не отправляют. См. [Milestone 1](milestone-1.md).
 - Vue страницы: AdminLoginView, AdminProjectsView, AdminProjectFormView, AdminProjectView, AccessErrorView. Переключателя роли в API mode нет.
 
 ## Автоматические проверки

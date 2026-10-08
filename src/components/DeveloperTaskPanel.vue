@@ -113,7 +113,6 @@ function updateNumber(key, event) {
             :aria-invalid="!!errors.estimateHours"
             :aria-label="t('ui.estimateHours')"
             :aria-describedby="errors.estimateHours ? 'estimate-error' : undefined"
-            @change="store.apiMode && store.flushDeveloperData()"
             @input="updateNumber('estimateHours', $event)"
           /><span aria-hidden="true">{{ t('ui.h') }}</span>
         </div>
@@ -136,7 +135,6 @@ function updateNumber(key, event) {
             :aria-invalid="!!errors.price"
             :aria-label="t('ui.price2', { arg0: currencySymbol })"
             :aria-describedby="errors.price ? 'price-error' : undefined"
-            @change="store.apiMode && store.flushDeveloperData()"
             @input="updateNumber('price', $event)"
           /><span aria-hidden="true">{{ currencySymbol }}</span>
         </div>

@@ -61,7 +61,7 @@ test('first launch seeds nine ideas, all six statuses and consistent filter coun
   assert.ok(isValidSnapshot(JSON.parse(storage.getItem(STORAGE_KEY))))
 })
 
-test('complete client/developer workflow survives a new store and reload', () => {
+test('complete client/developer workflow survives a new store and reload', async () => {
   const store = createStore()
   const id = store.addTask(idea())
   assert.equal(store.findTask(id).title, 'Большая галерея')
@@ -77,6 +77,7 @@ test('complete client/developer workflow survives a new store and reload', () =>
     price: 15000,
     developerNotes: 'ProductGallery.vue + lightbox',
   })
+  await store.saveDeveloperData(id)
   store.addComment(id, 'Начинаю работу')
   const original = JSON.parse(JSON.stringify(store.findTask(id)))
   setActivePinia(createPinia())
@@ -412,4 +413,22 @@ test('invalid canonical section references and duplicate positions cannot overwr
   setActivePinia(createPinia())
   assert.equal(createStore().storageBlocked, true)
   assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)), data)
+})
+
+test('failed local developer save preserves draft and retry creates one history entry', async () => {
+  const store = createStore()
+  store.setMode('developer')
+  const task = store.findTask('demo-1')
+  const before = task.history.length
+  const notes = task.developerNotes
+  store.updateDeveloperData(task.id, { developerNotes: 'Explicit local save' })
+  storage.failWrites = true
+  assert.equal(await store.saveDeveloperData(task.id), false)
+  assert.equal(task.developerNotes, notes)
+  assert.equal(task.history.length, before)
+  assert.equal(store.developerTask(task.id).developerNotes, 'Explicit local save')
+  storage.failWrites = false
+  assert.equal(await store.saveDeveloperData(task.id), true)
+  assert.equal(task.history.length, before + 1)
+  assert.equal(store.hasDeveloperChanges(task.id), false)
 })

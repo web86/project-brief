@@ -81,7 +81,7 @@ php artisan db:seed
 
 ```text
 src/api/client.js           HTTP, session cookies, CSRF, безопасные ошибки
-src/stores/project.js      Pinia tasks, canonical numbers, API cache и autosave
+src/stores/project.js      Pinia tasks, canonical numbers, API cache и explicit developer save
 src/stores/projectManagement.js  sections/clients/settings API actions
 src/utils/structure.js     grouping, canonical ordering, local snapshot migration
 src/router/index.js        local routes, client project, admin guards
@@ -202,7 +202,7 @@ Feature tests используют отдельную SQLite `:memory:` и fake 
 
 ## Следующий этап
 
-AI API/разделение большой идеи, уведомления, password reset/2FA, команды и роли, платежи, result acceptance и realtime пока не реализованы. Backend обслуживает существующий developer workflow; отдельного Laravel frontend/CRM нет.
+AI API/разделение большой идеи, password reset/2FA, команды и роли, платежи, result acceptance и realtime пока не реализованы. Backend обслуживает существующий developer workflow; отдельного Laravel frontend/CRM нет.
 
 ## Installed ProjectBrief app and long-lived sessions
 
@@ -256,3 +256,18 @@ Regular, maskable and Apple icons are local assets. Reproduce all PNGs with
 standard library; the maskable mark fits inside its safe circle. The production
 build and release checks include these assets. This PWA does not provide offline
 project access; browser/OS installation and push availability remain platform-specific.
+
+## Milestone 1: explicit saves and useful notifications
+
+Developer estimate, price and technical notes are local drafts until **Save changes**
+(**Сохранить изменения**) or Cmd+S / Ctrl+S in the task editor. A visible dirty
+indicator and navigation/logout/reload protection prevent accidental discarding.
+Failed saves retain the draft and report errors through global toasts. Status,
+comments, approval and ordering remain immediate.
+
+Notification emails now explain each event and the next action, identify the project
+and task, and include the relevant public comment or new idea description. Client
+system copy uses `project_clients.preferred_locale`; admin copy continues to use
+`NOTIFICATION_ADMIN_LOCALE`. Human-written content keeps its original language.
+See [Milestone 1 implementation and verification](docs/milestone-1.md) for content
+bounds, event context, limitations and tests. No database migration is required.

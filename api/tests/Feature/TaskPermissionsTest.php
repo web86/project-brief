@@ -124,4 +124,27 @@ class TaskPermissionsTest extends TestCase
         $this->assertDatabaseHas('task_history', ['event_type' => 'estimate', 'old_value' => '3', 'new_value' => '5']);
         $this->assertDatabaseHas('task_history', ['event_type' => 'price', 'old_value' => '150', 'new_value' => '200']);
     }
+
+    public function test_explicit_developer_save_records_only_changed_fields_and_no_note_content(): void
+    {
+        $task = Task::factory()->create(['estimate_hours' => 3, 'price' => 150, 'developer_notes' => 'Original private notes']);
+        $this->actingAs(User::factory()->create());
+        $path = '/api/admin/tasks/'.$task->uuid;
+        $draft = ['estimateHours' => 5, 'price' => 200, 'developerNotes' => 'Final private notes'];
+        $this->patchJson($path, $draft)->assertOk()->assertJsonPath('data.developerNotes', 'Final private notes');
+        $this->assertDatabaseCount('task_history', 3);
+        $this->assertSame(1, $task->history()->where('event_type', 'developer_notes')->count());
+        $this->assertDatabaseHas('task_history', ['event_type' => 'estimate', 'old_value' => '3', 'new_value' => '5']);
+        $this->assertDatabaseHas('task_history', ['event_type' => 'price', 'old_value' => '150', 'new_value' => '200']);
+        $notes = $task->history()->where('event_type', 'developer_notes')->first();
+        $this->assertNull($notes->old_value);
+        $this->assertNull($notes->new_value);
+        $this->assertStringNotContainsString('private notes', $task->history()->get()->toJson());
+        $this->patchJson($path, $draft)->assertOk();
+        $this->patchJson($path, ['estimateHours' => 5.0, 'price' => 200.0])->assertOk();
+        $this->assertDatabaseCount('task_history', 3);
+        $this->patchJson($path, [...$draft, 'developerNotes' => 'Another explicit save'])->assertOk();
+        $this->assertDatabaseCount('task_history', 4);
+        $this->assertSame(2, $task->history()->where('event_type', 'developer_notes')->count());
+    }
 }

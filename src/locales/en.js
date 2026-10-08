@@ -1,4 +1,10 @@
 export default {
+  developerEditor: {
+    save: 'Save changes',
+    dirty: 'Unsaved changes',
+    saved: 'Changes saved.',
+    leave: 'You have unsaved developer changes. Discard them and leave?',
+  },
   pwa: {
     notifications: 'Notifications',
     dismiss: 'Dismiss notification',
@@ -148,7 +154,6 @@ export default {
     ideasAndChanges: 'Ideas and changes',
     ideasThatBecomeFinishedWebsites: 'Ideas that become finished websites.',
     ideaNotFound: 'Idea not found',
-    changesWillBeSavedAutomatically: 'Changes will be saved automatically…',
     changesHaveNotBeenSavedYet: 'Changes have not been saved yet.',
     yourChangesHaveNotBeenSavedBrowserStorage:
       'Your changes have not been saved. Browser storage may be full or unavailable. Keep this page open, check storage access or free some space, then try saving again.',
