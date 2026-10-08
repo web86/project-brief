@@ -101,7 +101,10 @@ this milestone.
 - `npm run build`: production Vite build passes.
 - `npm run format:check`: passes.
 - `vendor/bin/pint --dirty --format agent`: passes.
-- Release package/runtime verification: recorded after the clean implementation checkpoint.
+- `./bin/build-release`: passes from clean implementation commit `1c5667d391eed62b773d31342a758cd4f9b80dfa`; reruns all 88 frontend and 143 PHP tests (1,354 assertions), builds the production frontend, checks production PHP dependencies, validates 7,074 packaged files, checksums and ZIP, and runs the disposable packaged runtime checks.
+- Packaged runtime checks pass for split HOME layout, CLI/server requirements, repeated installation and key preservation, isolated migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.
+- Local release archive: `release/project-brief-20261008-090434-1c5667d.zip` (ignored; not deployed).
+- The final documentation checkpoint records these results; runtime code is identical to the verified implementation checkpoint.
 
 New frontend coverage includes no timer PATCH, dirty/revert behavior, one Save PATCH,
 success/error global toasts, retained failed drafts, edits during pending saves,
