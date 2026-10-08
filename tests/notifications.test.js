@@ -83,7 +83,7 @@ test('mount/load never prompts; only explicit enable creates subscription and di
   assert.equal(post.path, '/api/admin/push/subscriptions')
   assert.equal(post.body.endpoint, 'https://fcm.googleapis.com/send/device')
   assert.deepEqual(await device.load(), { state: 'enabled' })
-  assert.deepEqual(await device.disable(), { state: 'default' })
+  assert.deepEqual(await device.disable(), { state: 'disabled' })
   assert.equal(calls.find((call) => call.method === 'DELETE').body.endpoint, post.body.endpoint)
   assert.equal(await device.endpoint(), null)
 })
@@ -211,4 +211,138 @@ test('an unresolved browser permission request times out instead of leaving the 
   const operation = device.enable()
   context.mock.timers.tick(30000)
   await assert.rejects(operation, (error) => error.code === 'browser_timeout')
+})
+
+test('granted permission automatically creates and synchronizes a device without a permission request', async () => {
+  for (const prefix of ['/api/admin/push', '/api/client/push']) {
+    const { env, request, calls } = browser('granted')
+    const device = createPushDevice({ env, request, prefix })
+    assert.deepEqual(await device.enroll(), { state: 'enabled' })
+    assert.equal(calls.includes('permission'), false)
+    assert.equal(calls.find((call) => call.method === 'POST').path, prefix + '/subscriptions')
+    const initial = await device.endpoint()
+    calls.length = 0
+    assert.deepEqual(await device.enroll(), { state: 'enabled' })
+    assert.equal(await device.endpoint(), initial)
+    assert.equal(calls.includes('subscribe'), false)
+    assert.equal(calls.includes('unsubscribe'), false)
+    assert.equal(calls.filter((call) => call.method === 'POST').length, 1)
+  }
+})
+
+test('automatic enrollment restores an unbound subscription, but never replaces one owned elsewhere', async () => {
+  const { env, request, calls } = browser('granted')
+  const initial = createPushDevice({ env, request, prefix: '/api/admin/push' })
+  await initial.enroll()
+  const endpoint = await initial.endpoint()
+  calls.length = 0
+  let conflict = false
+  const device = createPushDevice({
+    env,
+    prefix: '/api/client/push',
+    request: async (path, options) => {
+      if (path.includes('/status')) return { available: true, subscribed: false, publicKey: 'YQ' }
+      calls.push({ path, ...options })
+      if (conflict)
+        throw Object.assign(new Error(), { status: 409, code: 'device_owned_elsewhere' })
+      return { subscribed: true }
+    },
+  })
+  assert.deepEqual(await device.enroll(), { state: 'enabled' })
+  assert.equal(await device.endpoint(), endpoint)
+  assert.equal(calls.includes('unsubscribe'), false)
+  conflict = true
+  calls.length = 0
+  assert.deepEqual(await device.enroll(), { state: 'ownership' })
+  assert.equal(await device.endpoint(), endpoint)
+  assert.equal(calls.includes('subscribe'), false)
+  assert.equal(calls.includes('unsubscribe'), false)
+  conflict = false
+  assert.deepEqual(await device.enable(), { state: 'enabled' })
+  assert.equal(
+    calls.includes('unsubscribe'),
+    true,
+    'only explicit enabling may replace the binding',
+  )
+})
+
+test('automatic default and denied enrollment register the worker without requesting permission', async () => {
+  for (const permission of ['default', 'denied']) {
+    const { env, request, calls } = browser(permission)
+    const device = createPushDevice({ env, request, prefix: '/api/client/push' })
+    assert.deepEqual(await device.enroll(), { state: permission })
+    await device.enroll()
+    assert.equal(calls.includes('register'), true)
+    assert.equal(calls.includes('permission'), false)
+    assert.equal(calls.includes('subscribe'), false)
+    assert.equal(
+      calls.some((call) => call.method === 'POST'),
+      false,
+    )
+  }
+})
+
+test('explicit device opt out survives launch and enabling clears it without affecting other devices', async () => {
+  const { env, request, calls } = browser('granted')
+  const values = new Map()
+  env.localStorage = {
+    getItem: (key) => values.get(key),
+    setItem: (key, value) => values.set(key, value),
+  }
+  const device = createPushDevice({ env, request, prefix: '/api/client/push' })
+  await device.enroll()
+  await device.disable()
+  calls.length = 0
+  const relaunched = createPushDevice({ env, request, prefix: '/api/client/push' })
+  assert.deepEqual(await relaunched.enroll(), { state: 'disabled' })
+  assert.equal(calls.includes('subscribe'), false)
+  assert.equal(
+    calls.some((call) => call.method === 'POST'),
+    false,
+  )
+  await relaunched.enable()
+  assert.equal(values.get('projectbrief.pushDisabled'), 'false')
+})
+
+test('disposing during startup prevents subscription changes after the persona unmounts', async () => {
+  const { env, request, calls } = browser('granted')
+  let finish
+  const device = createPushDevice({
+    env,
+    prefix: '/api/client/push',
+    request: (path) =>
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+  })
+  const operation = device.enroll()
+  while (!finish) await new Promise((resolve) => setImmediate(resolve))
+  device.dispose()
+  finish({ available: true, publicKey: 'YQ', subscribed: false })
+  assert.equal(await operation, null)
+  assert.equal(calls.includes('subscribe'), false)
+})
+
+test('automatic enrollment renews expired owned subscriptions, but leaves expired unknown ownership for explicit enabling', async () => {
+  for (const owned of [true, false]) {
+    const { env, request, calls } = browser('granted')
+    const initial = createPushDevice({ env, request, prefix: '/api/client/push' })
+    await initial.enroll()
+    const subscription = await (
+      await env.navigator.serviceWorker.getRegistration('/')
+    ).pushManager.getSubscription()
+    subscription.expirationTime = Date.now() - 1000
+    calls.length = 0
+    const device = createPushDevice({
+      env,
+      prefix: '/api/client/push',
+      request: async (path, options) =>
+        path.includes('/status')
+          ? { available: true, subscribed: owned, publicKey: 'YQ' }
+          : request(path, options),
+    })
+    assert.deepEqual(await device.enroll(), { state: owned ? 'enabled' : 'ownership' })
+    assert.equal(calls.includes('unsubscribe'), owned)
+    assert.equal(calls.includes('subscribe'), owned)
+  }
 })

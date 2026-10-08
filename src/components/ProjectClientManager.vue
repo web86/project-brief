@@ -1,4 +1,5 @@
 <script setup>
+import { toast } from '../services/toast.js'
 import LoadingButton from './LoadingButton.vue'
 import { t, formatApiError } from '../i18n/index.js'
 
@@ -13,7 +14,9 @@ const secrets = ref({})
 const pending = ref(false)
 const generatingId = ref('')
 const error = ref('')
-const message = ref('')
+function notify(message, type = 'success') {
+  toast[type](() => formatApiError(message))
+}
 const activeLinks = (client) => client.accessLinks.filter((link) => link.active)
 function edit(client = null) {
   adding.value = !client
@@ -24,7 +27,6 @@ async function action(operation) {
   if (pending.value) return
   pending.value = true
   error.value = ''
-  message.value = ''
   try {
     await operation()
   } catch (cause) {
@@ -38,18 +40,22 @@ function save(client = null) {
     await store.mutateClient(client?.id, client ? 'PATCH' : 'POST', form.value)
     adding.value = false
     editing.value = ''
-    message.value = client
-      ? { messageKey: 'ui.clientDetailsSaved', params: {} }
-      : { messageKey: 'ui.clientAddedYouCanNowCreateAPersonal', params: {} }
+    notify(
+      client
+        ? { messageKey: 'ui.clientDetailsSaved', params: {} }
+        : { messageKey: 'ui.clientAddedYouCanNowCreateAPersonal', params: {} },
+    )
   })
 }
 function toggle(client) {
   action(async () => {
     await store.mutateClient(client.id, 'PATCH', { active: !client.active })
     delete secrets.value[client.id]
-    message.value = client.active
-      ? { messageKey: 'ui.clientDisabledAndTheirLinksRevoked', params: {} }
-      : { messageKey: 'ui.clientEnabledCreateANewLinkToGive', params: {} }
+    notify(
+      client.active
+        ? { messageKey: 'ui.clientDisabledAndTheirLinksRevoked', params: {} }
+        : { messageKey: 'ui.clientEnabledCreateANewLinkToGive', params: {} },
+    )
   })
 }
 async function generate(client) {
@@ -57,7 +63,7 @@ async function generate(client) {
   await action(async () => {
     delete secrets.value[client.id]
     secrets.value[client.id] = await store.createAccessLink(client.id)
-    message.value = { messageKey: 'ui.linkForCreated', params: { arg0: client.name } }
+    notify({ messageKey: 'ui.linkForCreated', params: { arg0: client.name } })
   })
   generatingId.value = ''
 }
@@ -65,15 +71,15 @@ function revoke(client) {
   action(async () => {
     await store.revokeAccess(client.id)
     delete secrets.value[client.id]
-    message.value = { messageKey: 'ui.accessForHasBeenRevoked', params: { arg0: client.name } }
+    notify({ messageKey: 'ui.accessForHasBeenRevoked', params: { arg0: client.name } })
   })
 }
 async function copy(client) {
   try {
     await navigator.clipboard.writeText(secrets.value[client.id])
-    message.value = { messageKey: 'ui.linkCopied', params: {} }
+    notify({ messageKey: 'ui.linkCopied', params: {} })
   } catch {
-    message.value = { messageKey: 'ui.selectTheLinkAndCopyItManually', params: {} }
+    notify({ messageKey: 'ui.selectTheLinkAndCopyItManually', params: {} }, 'warning')
   }
 }
 </script>
@@ -220,6 +226,5 @@ async function copy(client) {
       </template>
     </article>
     <p v-if="error" class="field-error" role="alert">{{ formatApiError(error) }}</p>
-    <p v-if="message" class="admin-feedback" role="status">{{ formatApiError(message) }}</p>
   </section>
 </template>

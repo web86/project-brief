@@ -1,4 +1,16 @@
 export default {
+  pwa: {
+    notifications: 'Notifications',
+    dismiss: 'Dismiss notification',
+    noAccess: 'Project access was not found on this device.',
+    openLink: 'Open the personal link your developer sent you.',
+    adminLogin: 'Sign in as administrator',
+    pushSuggestion: 'Receive notifications about project changes?',
+    pushEnabled: 'Push notifications enabled on this device.',
+    pushDisabled: 'Push notifications disabled on this device.',
+    pushOwnership:
+      'This device is linked to another account. Use Enable in Push settings to switch it explicitly.',
+  },
   notifications: {
     title: 'Notifications',
     push: 'Push notifications',
@@ -30,6 +42,8 @@ export default {
       loading: 'Checking this device…',
       unsupported: 'Push notifications are unavailable in this browser.',
       unconfigured: 'The developer has not configured push notifications yet.',
+      disabled: 'Disabled on this device',
+      ownership: 'Linked to another account; enable to switch this device.',
       default: 'Not enabled',
       denied: 'Notifications are blocked in your browser settings.',
       enabled: 'Enabled on this device',

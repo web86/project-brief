@@ -10,6 +10,7 @@ use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectSectionController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
@@ -30,6 +31,7 @@ Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cac
         PreventRequestForgery::class,
     ]);
 Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'));
+Route::get('/api/session', SessionController::class);
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/me', [AdminAuthController::class, 'me']);

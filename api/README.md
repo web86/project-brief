@@ -13,3 +13,12 @@ php artisan migrate
 php artisan app:create-admin
 php artisan test
 ```
+
+`GET /api/session` returns only `{authenticated:false}`, an admin persona, or a
+client persona with the public project UUID. It uses the same client-session
+validator as protected client endpoints, clears stale client-session authorization,
+and sends `Cache-Control: no-store`. No credentials, access tokens or hashes are returned.
+Production env examples recommend finite 365-day database sessions
+(`SESSION_LIFETIME=525600`, `SESSION_EXPIRE_ON_CLOSE=false`); security flags and
+CSRF remain unchanged. Existing deployments must update their env override and
+refresh the config cache to adopt the recommendation. No new migration is required.

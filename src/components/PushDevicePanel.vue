@@ -10,7 +10,7 @@ defineEmits(['enable', 'disable', 'retry'])
   <p v-if="state === 'unsupported'" class="muted">{{ t('notifications.installHint') }}</p>
   <p v-if="error" class="field-error" role="alert">{{ t('notifications.deviceError') }}</p>
   <LoadingButton
-    v-if="state === 'default'"
+    v-if="['default', 'disabled', 'ownership'].includes(state)"
     :busy="busy"
     :disabled="busy"
     class="button primary"

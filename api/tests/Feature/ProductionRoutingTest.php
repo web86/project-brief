@@ -37,6 +37,7 @@ class ProductionRoutingTest extends TestCase
     }
 
     #[TestWith(['/'])]
+    #[TestWith(['/app'])]
     #[TestWith(['/admin/login'])]
     #[TestWith(['/admin/projects/example/brief'])]
     #[TestWith(['/project/example/task/example'])]

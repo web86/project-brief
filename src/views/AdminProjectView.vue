@@ -1,4 +1,5 @@
 <script setup>
+import { toast } from '../services/toast.js'
 import ProjectNotificationSettings from '../components/ProjectNotificationSettings.vue'
 import LoadingOverlay from '../components/LoadingOverlay.vue'
 import LoadingButton from '../components/LoadingButton.vue'
@@ -13,7 +14,6 @@ import ProjectClientManager from '../components/ProjectClientManager.vue'
 const route = useRoute()
 const store = useProjectManagementStore()
 const form = ref({})
-const message = ref('')
 const error = ref('')
 const errors = ref({})
 const pending = ref(false)
@@ -21,7 +21,6 @@ watch(
   () => route.params.uuid,
   async (id) => {
     error.value = ''
-    message.value = ''
     try {
       await store.load(id)
       if (store.project?.id !== id) return
@@ -44,10 +43,10 @@ async function save() {
   errors.value = {}
   try {
     await store.saveProject(form.value)
-    message.value = { messageKey: 'ui.settingsSaved', params: {} }
+    toast.success(() => t('ui.settingsSaved'))
   } catch (cause) {
-    error.value = cause
     errors.value = cause.errors || {}
+    if (cause.status !== 422) toast.error(() => formatApiError(cause))
   } finally {
     pending.value = false
   }
@@ -87,11 +86,11 @@ async function save() {
               <option value="active">{{ t('ui.active') }}</option>
               <option value="inactive">{{ t('ui.inactive') }}</option>
             </select>
+            <p v-if="errors.status" class="field-error">{{ t('flow.fieldError') }}</p>
           </div>
           <LoadingButton type="submit" :busy="pending" class="button primary" :disabled="pending">{{
             t('ui.saveSettings')
           }}</LoadingButton>
-          <p v-if="message" class="admin-feedback" role="status">{{ formatApiError(message) }}</p>
         </form>
       </div>
     </template>

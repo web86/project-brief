@@ -52,9 +52,14 @@ const fields = [
     ><select
       id="project-currency"
       :value="modelValue.currency"
+      :aria-invalid="!!errors.currency"
+      :aria-describedby="errors.currency ? 'project-currency-error' : undefined"
       @change="update('currency', $event.target.value, modelValue)"
     >
       <option v-for="code in ['RUB', 'USD', 'EUR', 'TRY']" :key="code">{{ code }}</option>
     </select>
+    <p v-if="errors.currency" id="project-currency-error" class="field-error">
+      {{ t('flow.fieldError') }}
+    </p>
   </div>
 </template>

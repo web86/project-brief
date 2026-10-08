@@ -121,7 +121,7 @@ Migration review: удалений таблиц/колонок/данных в `
 
 ## RU / EN и loading
 
-`vue-i18n` 11, Composition API; dictionaries `src/locales/ru.js` и `en.js`, одинаковые 306 keys. Переводятся UI constants, включая statuses, priorities, ошибки, history summaries и dialogs. Project/section/task content, comments, notes, URLs и filenames не переводятся. `Intl.DateTimeFormat`: ru-RU / en-GB; `Intl.NumberFormat` использует locale и валюту проекта. Counts используют pluralization vue-i18n с русским правилом.
+`vue-i18n` 11, Composition API; dictionaries `src/locales/ru.js` и `en.js`, одинаковые 353 keys. Переводятся UI constants, включая statuses, priorities, ошибки, history summaries и dialogs. Project/section/task content, comments, notes, URLs и filenames не переводятся. `Intl.DateTimeFormat`: ru-RU / en-GB; `Intl.NumberFormat` использует locale и валюту проекта. Counts используют pluralization vue-i18n с русским правилом.
 
 Приоритет: ручной `projectbrief.locale` в localStorage → session client's `preferred_locale` → первый browser language из navigator.languages (fallback navigator.language) → en. ru* → ru, остальные → en. RU | EN в header меняет UI и `<html lang>` без reload. Только ручной client switch вызывает `PATCH /api/client/me/locale`; ID берётся из сессии, body принимает только ru/en. Browser detection не записывается в DB. Admin preference хранится только в localStorage; TR/DE dictionaries пока отсутствуют.
 
@@ -203,3 +203,56 @@ Feature tests используют отдельную SQLite `:memory:` и fake 
 ## Следующий этап
 
 AI API/разделение большой идеи, уведомления, password reset/2FA, команды и роли, платежи, result acceptance и realtime пока не реализованы. Backend обслуживает существующий developer workflow; отдельного Laravel frontend/CRM нет.
+
+## Installed ProjectBrief app and long-lived sessions
+
+The PWA manifest launches `/app` in standalone mode with scope `/`. One uncached
+`GET /api/session` decides the current server persona: admin → `/admin`, valid
+client → `/project/{uuid}`, guest → a neutral RU/EN access screen with an optional
+administrator sign-in link. A connection failure shows a retry, rather than a
+false guest state. `/` in production also enters this launcher; local demo routes
+retain their existing behavior. `/api/health` remains a session-free liveness check.
+
+Clients still authenticate only through their developer's personal `/access/{token}`
+URL. Open that URL, enter the project, then install ProjectBrief from the browser's
+installation/home-screen control. Future launches open the client's project when
+the Laravel session is valid. If the installed browser profile loses its session,
+open the personal link in that profile again. Client passwords and email magic links
+are not introduced. No access token or token hash is stored in localStorage or in
+the manifest. Links without `expires_at` remain reusable until revoked.
+
+Production defaults/examples recommend database sessions with
+`SESSION_LIFETIME=525600` and `SESSION_EXPIRE_ON_CLOSE=false`: a finite 365-day idle
+lifetime, renewed by activity. Secure, HttpOnly, SameSite=Lax, session encryption,
+CSRF protection and explicit admin logout remain unchanged. Every protected client
+request and the bootstrap endpoint revalidate the session's access token, its
+expiry/revocation, active client and active project. A long cookie never overrides
+these checks. Apply the recommendation to the deployed `.env` and refresh Laravel's
+configuration cache during the normal deployment; existing environment overrides
+are respected. No database migration is needed for this milestone.
+
+After an authenticated persona mounts, ProjectBrief registers its push-only worker.
+With granted notification permission it obtains/restores a subscription and posts
+it to the existing persona API automatically. The backend's ownership check still
+rejects another account's endpoint; automatic enrollment never unsubscribes it to
+claim ownership. The Push control supports explicit enabling/switching, disabling
+and retry. `default` permission gets a non-blocking translated toast with an Enable
+action; only that click requests permission. Suggestions are shown once per browser
+session, including across reloads. `denied` never triggers permission prompts.
+Explicit disabling records only a device preference, preserved until enabling again.
+VAPID keys, endpoint validation, multi-device support, business events and
+`WebPushTransport` are unchanged; the worker still caches no pages or private data.
+
+Success/error/info/warning toasts are global, translated, closable and timed, with
+pause on hover/focus and safe cleanup. Notification settings saves, test Email/Push,
+Push controls, project settings and client-management success feedback use them.
+Field validation stays beside its field; storage and unsaved-draft states remain
+persistent. The initial HTML contains a green branded loader before Vue/route/API
+startup, reduced-motion support, a no-JavaScript message and a timed/error retry
+fallback. It disappears as soon as initial routing and Vue mounting complete.
+
+Regular, maskable and Apple icons are local assets. Reproduce all PNGs with
+`python3 bin/generate-pwa-icons.py` from `public/app-icon.svg` using only Python's
+standard library; the maskable mark fits inside its safe circle. The production
+build and release checks include these assets. This PWA does not provide offline
+project access; browser/OS installation and push availability remain platform-specific.

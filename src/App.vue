@@ -1,5 +1,7 @@
 <script setup>
 import PushControls from './components/PushControls.vue'
+import ToastViewport from './components/ToastViewport.vue'
+import { toast } from './services/toast.js'
 import { t, locale, formatApiError } from './i18n/index.js'
 
 import { nextTick, watch } from 'vue'
@@ -23,7 +25,7 @@ async function logout() {
     store.tasks = []
     await router.push('/admin/login')
   } catch (error) {
-    store.apiError = error
+    toast.error(() => formatApiError(error))
   }
 }
 watch(
@@ -40,6 +42,18 @@ watch(
   },
 )
 store.loadFromStorage()
+watch(
+  () => store.apiError,
+  (error) => {
+    if (
+      error &&
+      route.path !== '/app' &&
+      error.status !== 422 &&
+      !Object.keys(store.developerDrafts).length
+    )
+      toast.error(() => formatApiError(error))
+  },
+)
 watch(
   () => [route.fullPath, locale.value],
   () => {
@@ -65,9 +79,9 @@ watch(
             store.apiMode
               ? store.admin
                 ? '/admin'
-                : store.project.id
+                : store.currentClient && store.project.id
                   ? store.projectPath
-                  : '/admin/login'
+                  : '/app'
               : '/'
           "
           class="brand"
@@ -84,7 +98,7 @@ watch(
         }}</span>
         <PushControls
           v-if="store.apiMode && (store.admin || store.currentClient)"
-          :key="store.admin?.id || store.currentClient?.id"
+          :key="store.admin ? 'admin:' + store.admin.email : 'client:' + store.currentClient.id"
           :persona="store.admin ? 'admin' : 'client'"
         />
         <LanguageSwitcher />
@@ -110,7 +124,11 @@ watch(
           {{ t('ui.trySavingAgain') }}
         </button>
       </div>
-      <div v-if="store.apiError" class="storage-warning" role="alert">
+      <div
+        v-if="store.apiError && Object.keys(store.developerDrafts).length"
+        class="storage-warning"
+        role="alert"
+      >
         <p>{{ formatApiError(store.apiError) }}</p>
         <button
           v-if="Object.keys(store.developerDrafts).length"
@@ -136,4 +154,5 @@ watch(
       <main id="main-content" tabindex="-1"><RouterView /></main>
     </div>
   </div>
+  <ToastViewport />
 </template>

@@ -4,16 +4,141 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#243b62" />
+    <meta name="theme-color" content="#246c43" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta
       name="description"
       content="Просто расскажите, что хотите изменить на сайте. Идеи, обсуждение и согласование в одном месте."
     />
     <title>Project Brief — идеи для вашего сайта</title>
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#246c43" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #246c43;
+      }
+      #bootstrap-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 20px;
+        padding: 24px;
+        color: white;
+        background: #246c43;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+        transition: opacity 0.18s ease;
+      }
+      #bootstrap-splash.leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .bootstrap-mark {
+        font-size: 104px;
+        font-weight: 750;
+        letter-spacing: -10px;
+        line-height: 1;
+        padding-right: 10px;
+      }
+      .bootstrap-name {
+        font-size: 24px;
+        margin: 0;
+      }
+      .bootstrap-spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid #ffffff50;
+        border-top-color: white;
+        border-radius: 50%;
+        animation: bootstrap-spin 0.8s linear infinite;
+      }
+      #bootstrap-fallback {
+        max-width: 34em;
+      }
+      #bootstrap-fallback a {
+        color: white;
+      }
+      #bootstrap-fallback p {
+        line-height: 1.5;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @keyframes bootstrap-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bootstrap-spinner {
+          animation: none;
+        }
+        #bootstrap-splash {
+          transition: none;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="bootstrap-splash" role="status" aria-live="polite">
+      <span class="bootstrap-mark" aria-hidden="true">p.</span>
+      <p class="bootstrap-name">ProjectBrief</p>
+      <div class="bootstrap-spinner" aria-hidden="true"></div>
+      <span id="bootstrap-label">Загрузка / Loading…</span>
+      <div id="bootstrap-fallback" hidden>
+        <p id="bootstrap-error">Не удалось открыть приложение. / Could not open the app.</p>
+        <a href="/app" id="bootstrap-retry">Попробовать снова / Try again</a>
+      </div>
+      <noscript
+        >Включите JavaScript, чтобы открыть проект. / Enable JavaScript to open your
+        project.</noscript
+      >
+    </div>
+    <script>
+      ;(() => {
+        const splash = document.getElementById('bootstrap-splash')
+        let complete = false
+        let language = (navigator.languages?.[0] || navigator.language || '').startsWith('ru')
+          ? 'ru'
+          : 'en'
+        try {
+          language = localStorage.getItem('projectbrief.locale') || language
+        } catch {}
+        document.getElementById('bootstrap-label').textContent =
+          language === 'ru' ? 'Загрузка…' : 'Loading…'
+        document.getElementById('bootstrap-error').textContent =
+          language === 'ru'
+            ? 'Не удалось открыть приложение. Проверьте соединение и попробуйте снова.'
+            : 'Could not open the app. Check your connection and try again.'
+        document.getElementById('bootstrap-retry').textContent =
+          language === 'ru' ? 'Попробовать снова' : 'Try again'
+        function fail() {
+          if (complete) return
+          splash.querySelector('.bootstrap-spinner').hidden = true
+          document.getElementById('bootstrap-label').hidden = true
+          document.getElementById('bootstrap-fallback').hidden = false
+        }
+        const timer = setTimeout(fail, 25000)
+        window.addEventListener('error', fail, true)
+        window.projectBriefBootstrap = {
+          fail,
+          complete() {
+            complete = true
+            clearTimeout(timer)
+            window.removeEventListener('error', fail, true)
+            splash.classList.add('leaving')
+            setTimeout(
+              () => splash.remove(),
+              matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180,
+            )
+          },
+        }
+      })()
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

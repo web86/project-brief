@@ -1,8 +1,9 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { t } from '../i18n/index.js'
 import { api } from '../api/client.js'
 import { createNotificationSettings, notificationEvents } from '../services/notificationSettings.js'
+import { toast } from '../services/toast.js'
 import LoadingButton from './LoadingButton.vue'
 import LoadingOverlay from './LoadingOverlay.vue'
 const props = defineProps({ projectId: { type: String, required: true } })
@@ -11,7 +12,11 @@ const settings = ref(null)
 const loading = ref(true)
 const saving = ref(false)
 const testing = ref(null)
-const feedback = ref('')
+const validation = ref({})
+let active = true
+onUnmounted(() => {
+  active = false
+})
 const error = ref('')
 async function load() {
   loading.value = true
@@ -27,13 +32,16 @@ async function load() {
 async function save() {
   if (saving.value) return
   saving.value = true
-  feedback.value = ''
+  validation.value = {}
   error.value = ''
   try {
     settings.value = await client.save(settings.value)
-    feedback.value = 'notifications.saved'
-  } catch {
-    error.value = 'notifications.saveError'
+    validation.value = {}
+    if (active) toast.success(() => t('notifications.saved'))
+  } catch (cause) {
+    if (cause.status === 422 && Object.keys(cause.errors || {}).length)
+      validation.value = cause.errors
+    else if (active) toast.error(() => t('notifications.saveError'))
   } finally {
     saving.value = false
   }
@@ -41,7 +49,6 @@ async function save() {
 async function test(channel) {
   if (testing.value) return
   testing.value = channel
-  feedback.value = ''
   error.value = ''
   try {
     let endpoint = null
@@ -49,19 +56,23 @@ async function test(channel) {
       const registration = await globalThis.navigator?.serviceWorker?.getRegistration('/')
       endpoint = (await registration?.pushManager.getSubscription())?.endpoint || null
       if (!endpoint) {
-        error.value = 'notifications.subscribeFirst'
+        if (active) toast.info(() => t('notifications.subscribeFirst'))
         return
       }
     }
     await client.test(channel, endpoint)
-    feedback.value = channel === 'email' ? 'notifications.emailSent' : 'notifications.pushSent'
+    if (active)
+      toast.success(() =>
+        t(channel === 'email' ? 'notifications.emailSent' : 'notifications.pushSent'),
+      )
   } catch (cause) {
-    error.value =
+    const key =
       cause.code === 'device_not_subscribed'
         ? 'notifications.subscribeFirst'
         : channel === 'email'
           ? 'notifications.emailError'
           : 'notifications.pushError'
+    if (active) toast.error(() => t(key))
   } finally {
     testing.value = null
   }
@@ -86,9 +97,22 @@ onMounted(load)
             v-model="settings.notificationEmail"
             :placeholder="settings.fallbackEmail || ''"
             maxlength="255"
+            :aria-invalid="!!validation.notificationEmail"
+            :aria-describedby="
+              validation.notificationEmail ? 'notification-email-error' : undefined
+            "
           />
+          <p
+            v-if="validation.notificationEmail"
+            id="notification-email-error"
+            class="field-error"
+            role="alert"
+          >
+            {{ t('flow.fieldError') }}
+          </p>
           <p class="muted field-hint">{{ t('notifications.emailFallback') }}</p>
         </div>
+        <p v-if="validation.events" class="field-error" role="alert">{{ t('flow.fieldError') }}</p>
         <fieldset v-for="group in ['client', 'admin']" :key="group" class="notification-group">
           <legend>
             {{
@@ -114,6 +138,12 @@ onMounted(load)
                 v-model="settings.events[event][channel]"
                 :aria-label="`${t(`notifications.events.${event}`)} — ${channel === 'email' ? 'Email' : 'Push'}`"
               />
+              <span
+                v-if="validation[`events.${event}.${channel}`]"
+                class="field-error"
+                role="alert"
+                >{{ t('flow.fieldError') }}</span
+              >
             </label>
           </div>
         </fieldset>
@@ -137,7 +167,6 @@ onMounted(load)
           >{{ t('notifications.testPush') }}</LoadingButton
         >
       </div>
-      <p v-if="feedback" class="admin-feedback" role="status">{{ t(feedback) }}</p>
     </div>
   </details>
 </template>
