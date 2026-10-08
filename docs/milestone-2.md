@@ -215,16 +215,16 @@ external SMTP/Push delivery and production deployment are not performed.
 
 ## Recorded verification results
 
-| Check                                          | Result                                             |
-| ---------------------------------------------- | -------------------------------------------------- |
-| `npm test`                                     | PASS — 90 tests, including all Milestone 1 tests   |
-| `npm run build`                                | PASS — production Vite build                       |
-| `npm run format:check`                         | PASS — Prettier                                    |
-| `php artisan test` / PHP 8.5 + SQLite          | PASS — 165 tests, 1,966 assertions                 |
-| Full PHP 8.5 + MariaDB 11.8 suite              | PASS — 165 tests, 1,970 assertions                 |
-| Full PHPUnit / PHP 8.4.26 + MariaDB 11.8 suite | PASS — 165 tests, 1,970 assertions                 |
-| `vendor/bin/pint --dirty --format agent`       | PASS                                               |
-| `./bin/build-release` and packaged runtime     | Recorded after the clean implementation checkpoint |
+| Check                                          | Result                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------ |
+| `npm test`                                     | PASS — 90 tests, including all Milestone 1 tests                   |
+| `npm run build`                                | PASS — production Vite build                                       |
+| `npm run format:check`                         | PASS — Prettier                                                    |
+| `php artisan test` / PHP 8.5 + SQLite          | PASS — 165 tests, 1,966 assertions                                 |
+| Full PHP 8.5 + MariaDB 11.8 suite              | PASS — 165 tests, 1,970 assertions                                 |
+| Full PHPUnit / PHP 8.4.26 + MariaDB 11.8 suite | PASS — 165 tests, 1,970 assertions                                 |
+| `vendor/bin/pint --dirty --format agent`       | PASS                                                               |
+| `./bin/build-release` and packaged runtime     | PASS — 7,085 packaged files, checksums, ZIP and disposable runtime |
 
 The MariaDB runs use a new disposable container and independently created legacy
 fixture databases. PHP 8.4 uses a local test image derived from the existing release
@@ -232,3 +232,13 @@ verification image, with GD added only for Laravel's image factory. Its source c
 excludes real environment secrets; encryption credentials and all records are synthetic.
 No application dependency versions, real keys, existing DBs or production configuration
 were changed. Disposable container/image cleanup is part of verification.
+
+## Release checkpoint
+
+- Main implementation commit: `8ed3202adf94cc11ac4b7c91d37d37cb5dbb0cfb`.
+- Final implementation/release-source checkpoint: `14ac92003e3641769e6c8a34e7d1504999620083`.
+- Local archive: `release/project-brief-20261008-181600-14ac920.zip` (ignored; not deployed).
+- Release build reran all 90 frontend tests and all 165 PHP tests (1,966 SQLite assertions), built the production frontend, installed/checked production-only PHP dependencies, validated 7,085 files, verified checksums and ZIP, and ran the disposable packaged runtime.
+- Packaged runtime verifies fresh tenant migrations, CLI owner/workspace/membership creation, repeat install and unchanged APP_KEY, optimized routes, minimal workspace/admin/client bootstrap, scoped project listing, foreign project/task/settings denial, unauthorized workspace selection with a fresh post-login CSRF token, existing personal access links, assets and maintenance mode.
+- The temporary MariaDB containers and PHP 8.4 test image were removed after successful checks. Existing local DB containers were not migrated, reset or removed.
+- Final documentation checkpoint records these results; application code is identical to the verified source checkpoint. No production deployment or remote push occurred.
