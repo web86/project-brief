@@ -1,0 +1,19 @@
+--- a/core/components/sendit/services/sendit.class.php
++++ b/core/components/sendit/services/sendit.class.php
+@@ -429,10 +429,12 @@
+         if (!empty($this->webConfig)) {
+             $webConfig = json_encode($this->webConfig, JSON_UNESCAPED_UNICODE);
+-            $this->modx->regClientScript(
+-                "<script> window.siConfig = $webConfig; </script>",
+-                1
+-            );
++            $configScript = "<script> window.siConfig = $webConfig; </script>";
++            // A cached registration can survive after another plugin replaces its script slot.
++            if (!in_array($configScript, $this->modx->jscripts, true)) {
++                unset($this->modx->loadedjscripts[$configScript]);
++            }
++            $this->modx->regClientScript($configScript, 1);
+         }
+ 
+         if ($frontend_js) {
+             $scriptPath = str_replace('[[+assetsUrl]]', $assetsUrl, $frontend_js);
