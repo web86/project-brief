@@ -290,3 +290,17 @@ initial workspace from the oldest legacy admin/application, and retain additiona
 legacy admins' access through project assignments. Fresh CLI accounts own their own
 workspace. See [Milestone 2 verification and upgrade instructions](docs/milestone-2.md)
 before applying the release to an existing installation.
+
+## Milestone 3: admin shell and personal activity
+
+Authenticated owners/team users have a shared sidebar, validated workspace switcher
+and mobile drawer. Project pages are `/brief`, `/clients`, `/structure`,
+`/notifications` and `/settings`; legacy project URLs redirect to settings (the old
+client-access hash redirects to clients). Client/PWA/task editing interfaces remain.
+
+Project badges count only client `created`, `comment` and `approved` history after
+that user's project high-water marker. Successful brief/task loading marks the
+project seen through an explicit POST; settings and management screens do not.
+Counts are personal and tenant-scoped, with no polling or delivery/read-state mixing.
+See [Milestone 3 report](docs/milestone-3.md) for schema, routes, load/query behavior,
+mobile accessibility, tests, screenshots and deployment limitations.

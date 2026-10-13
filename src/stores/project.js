@@ -158,6 +158,7 @@ export const useProjectStore = defineStore('project', () => {
   const storageBlocked = ref(false)
   const initialized = ref(false)
   let loading = false
+  let apiRevision = 0
 
   const isDeveloper = computed(() => (API_MODE ? !!admin.value : currentMode.value === 'developer'))
   const projectPath = computed(() =>
@@ -203,9 +204,11 @@ export const useProjectStore = defineStore('project', () => {
   }
   async function mutateTask(id, suffix, method, body) {
     apiError.value = ''
+    const current = apiRevision
     return serialize(id, async () => {
       try {
         const { data } = await api.request(`${actorPath()}/tasks/${id}${suffix}`, { method, body })
+        if (current !== apiRevision) return false
         replaceTask(data)
         return true
       } catch (error) {
@@ -214,15 +217,28 @@ export const useProjectStore = defineStore('project', () => {
       }
     })
   }
-  async function loadApiProject(id, asAdmin) {
+  function clearApiState() {
+    apiRevision++
+    project.value = { id: '', name: '', website: '', description: '', currency: 'RUB' }
+    tasks.value = []
+    sections.value = []
+    developerDrafts.value = {}
+    currentClient.value = null
+    apiLoading.value = false
+  }
+  async function loadApiProject(id, asAdmin, { skipAdmin = false } = {}) {
+    const current = ++apiRevision
     apiLoading.value = true
     apiError.value = ''
     sessionLost.value = false
     try {
       if (asAdmin) {
         currentClient.value = null
-        const result = await api.request('/api/admin/me')
-        admin.value = result.user
+        if (!skipAdmin) {
+          const result = await api.request('/api/admin/me')
+          if (current !== apiRevision) return false
+          admin.value = result.user
+        }
       } else {
         admin.value = null
         currentClient.value = await api.request('/api/client/me')
@@ -233,18 +249,21 @@ export const useProjectStore = defineStore('project', () => {
         api.request(asAdmin ? `/api/admin/projects/${id}` : `/api/client/project/${id}`),
         api.request(asAdmin ? `/api/admin/projects/${id}/tasks` : '/api/client/tasks'),
       ])
+      if (current !== apiRevision) return false
       project.value = details.data
       sections.value = details.data.sections
       tasks.value = list.data
       tasks.value.forEach(reconcileDeveloperDraft)
       currentMode.value = asAdmin ? 'developer' : 'client'
       initialized.value = true
+      return true
     } catch (error) {
+      if (current !== apiRevision) return false
       if (!Object.keys(developerDrafts.value).length) tasks.value = []
       reportError(error)
       throw error
     } finally {
-      apiLoading.value = false
+      if (current === apiRevision) apiLoading.value = false
     }
   }
   const hasDeveloperChanges = (id) => !!Object.keys(developerDrafts.value[id] || {}).length
@@ -794,6 +813,7 @@ export const useProjectStore = defineStore('project', () => {
     newTaskPath,
     taskPath,
     loadApiProject,
+    clearApiState,
     uploadAttachments,
     developerDrafts,
     savingDeveloper,

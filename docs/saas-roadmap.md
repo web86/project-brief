@@ -184,6 +184,8 @@ Add cross-tenant security tests for all important project/task/client/attachment
 
 # Milestone 3 — Admin navigation and personal unread state
 
+Status: **implemented; final verification in progress**. See [architecture, routes, unread semantics and verification](milestone-3.md).
+
 Introduce the SaaS-oriented admin shell.
 
 ## Global admin layout

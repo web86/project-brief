@@ -4,6 +4,7 @@ defineProps({
   size: { type: [Number, String], default: 20 },
 })
 const paths = {
+  menu: 'M4 6h16M4 12h16M4 18h16',
   plus: 'M12 5v14M5 12h14',
   arrow: 'M19 12H5m6-6-6 6 6 6',
   chevron: 'm9 5 7 7-7 7',

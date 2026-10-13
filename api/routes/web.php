@@ -6,6 +6,7 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\NotificationSettingsController;
+use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectSectionController;
@@ -49,6 +50,8 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
+    Route::get('/activity', [ProjectActivityController::class, 'show']);
+    Route::post('/activity/read', [ProjectActivityController::class, 'read']);
     Route::get('/clients', [ProjectClientController::class, 'index']);
     Route::post('/clients', [ProjectClientController::class, 'store']);
     Route::patch('/clients/{client}', [ProjectClientController::class, 'update']);

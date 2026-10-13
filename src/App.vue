@@ -7,6 +7,7 @@ import { t, locale, formatApiError } from './i18n/index.js'
 
 import { nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAdminNavigationStore } from './stores/adminNavigation.js'
 import { useProjectStore } from './stores/project'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import LoadingOverlay from './components/LoadingOverlay.vue'
@@ -21,6 +22,7 @@ async function logout() {
   try {
     await api.request('/api/admin/logout', { method: 'POST' })
     api.resetCsrf()
+    useAdminNavigationStore().clear()
     store.discardDeveloperChanges()
     store.admin = null
     store.currentClient = null
@@ -35,6 +37,7 @@ watch(
   (lost) => {
     if (lost && !Object.keys(store.developerDrafts).length) {
       const destination = store.admin ? '/admin/login' : '/access-error?reason=session'
+      useAdminNavigationStore().clear()
       store.admin = null
       store.tasks = []
       store.currentClient = null
@@ -67,7 +70,8 @@ watch(
 </script>
 <template>
   <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
-  <div class="app-shell">
+  <RouterView v-if="route.meta.adminShell" />
+  <div v-else class="app-shell">
     <header class="app-topbar">
       <div class="topbar-inner">
         <RouterLink
@@ -85,10 +89,6 @@ watch(
           ><span class="brand-mark">p<span class="brand-dot">.</span></span
           ><span>project<span class="brand-light">brief</span></span></RouterLink
         ><ModeSwitcher v-if="!store.apiMode" />
-        <nav v-else-if="store.admin" class="admin-nav" :aria-label="t('ui.administrator')">
-          <RouterLink to="/admin">{{ t('ui.projects') }}</RouterLink
-          ><button class="text-button" @click="logout">{{ t('ui.signOut') }}</button>
-        </nav>
         <span v-else-if="store.currentClient" class="current-client-name">{{
           store.currentClient.name
         }}</span>

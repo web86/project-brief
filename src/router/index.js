@@ -2,6 +2,8 @@ import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { t } from '../i18n/index.js'
 import { createRouter, createWebHistory, createMemoryHistory } from 'vue-router'
 import { appDestination } from '../services/session.js'
+import { useAdminNavigationStore } from '../stores/adminNavigation.js'
+import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { useProjectStore } from '../stores/project'
 import { canEditClientTask } from '../utils/clientDraft.js'
 import { api, API_MODE } from '../api/client'
@@ -35,33 +37,78 @@ export function createProjectRouter({
       },
       {
         path: '/admin',
-        component: () => import('../views/AdminProjectsView.vue'),
-        meta: {
-          requiresAdmin: true,
-          get title() {
-            return t('ui.projects')
+        component: () => import('../views/AdminShell.vue'),
+        meta: { requiresAdmin: true, adminShell: true },
+        children: [
+          {
+            path: 'unavailable',
+            component: () => import('../views/AdminProjectUnavailableView.vue'),
           },
-        },
-      },
-      {
-        path: '/admin/projects/new',
-        component: () => import('../views/AdminProjectFormView.vue'),
-        meta: {
-          requiresAdmin: true,
-          get title() {
-            return t('ui.newProject2')
+          {
+            path: '',
+            component: () => import('../views/AdminProjectsView.vue'),
+            meta: {
+              get title() {
+                return t('nav.allProjects')
+              },
+            },
           },
-        },
-      },
-      {
-        path: '/admin/projects/:uuid',
-        component: () => import('../views/AdminProjectView.vue'),
-        meta: {
-          requiresAdmin: true,
-          get title() {
-            return t('ui.projectSettings')
+          {
+            path: 'projects/new',
+            component: () => import('../views/AdminProjectFormView.vue'),
+            meta: {
+              get title() {
+                return t('nav.newProject')
+              },
+            },
           },
-        },
+          {
+            path: 'projects/:uuid',
+            component: () => import('../views/AdminProjectShell.vue'),
+            children: [
+              {
+                path: '',
+                redirect: (to) => ({
+                  path: to.path + (to.hash === '#client-access' ? '/clients' : '/settings'),
+                  hash: '',
+                }),
+              },
+              ...['clients', 'structure', 'notifications', 'settings'].map((section) => ({
+                path: section,
+                component: {
+                  clients: () => import('../views/AdminProjectClientsView.vue'),
+                  structure: () => import('../views/AdminProjectStructureView.vue'),
+                  notifications: () => import('../views/AdminProjectNotificationsView.vue'),
+                  settings: () => import('../views/AdminProjectSettingsView.vue'),
+                }[section],
+                meta: {
+                  projectSection: section,
+                  get title() {
+                    return t('nav.' + section)
+                  },
+                },
+              })),
+              ...[
+                ['brief', ProjectView, false],
+                ['brief/task/new', () => import('../views/TaskFormView.vue'), false],
+                ['brief/task/:id/edit', () => import('../views/TaskFormView.vue'), true],
+                ['brief/task/:id', () => import('../views/TaskView.vue'), false],
+              ].map(([path, component, editTask]) => ({
+                path,
+                component,
+                meta: {
+                  projectSection: 'brief',
+                  apiProject: true,
+                  admin: true,
+                  editTask,
+                  get title() {
+                    return t('nav.brief')
+                  },
+                },
+              })),
+            ],
+          },
+        ],
       },
       {
         path: '/access-error',
@@ -72,7 +119,7 @@ export function createProjectRouter({
           },
         },
       },
-      ...['/project/:uuid', '/admin/projects/:uuid/brief'].flatMap((path) => [
+      ...['/project/:uuid'].flatMap((path) => [
         {
           path,
           component: ProjectView,
@@ -186,6 +233,7 @@ export function createProjectRouter({
       store.admin = null
       store.currentClient = null
       store.tasks = []
+      useAdminNavigationStore().clear()
       try {
         return (await appDestination(request)) || true
       } catch (error) {
@@ -204,15 +252,41 @@ export function createProjectRouter({
     }
     if (['/', '/task/new'].includes(to.path) || to.name === 'task') return '/app'
     if (to.meta.requiresAdmin) {
-      const store = useProjectStore()
+      const store = useProjectStore(),
+        nav = useAdminNavigationStore(),
+        management = useProjectManagementStore()
       try {
-        store.admin = (await request('/api/admin/me')).user
+        if (!(await nav.bootstrap(request))) return false
         store.sessionLost = false
+      } catch (error) {
+        if ([401, 403].includes(error.status)) {
+          nav.clear()
+          store.admin = null
+          return '/admin/login'
+        }
         return true
-      } catch {
-        store.admin = null
-        return '/admin/login'
       }
+      if (to.params.uuid) {
+        nav.pageLoading = true
+        try {
+          if (to.meta.apiProject) {
+            const loaded = await store.loadApiProject(to.params.uuid, true, { skipAdmin: true })
+            if (loaded === false) return false
+            management.adopt(store.project)
+            if (to.params.id && !store.findTask(to.params.id)) return '/admin/unavailable'
+            await nav.markRead(to.params.uuid, request)
+          } else {
+            await management.load(to.params.uuid, to.meta.projectSection)
+          }
+        } catch (error) {
+          return error.status === 401 ? '/admin/login' : '/admin/unavailable'
+        } finally {
+          nav.pageLoading = false
+        }
+      } else if (to.path === '/admin' && from.meta.adminShell && !nav.switching) {
+        await nav.refreshProjects(request)
+      }
+      return true
     }
     if (!to.meta.apiProject) return true
     const store = useProjectStore()

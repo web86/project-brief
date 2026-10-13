@@ -7,6 +7,7 @@ use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\CurrentWorkspace;
 use App\Services\ProjectAccess;
+use App\Services\ProjectUnread;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ class ProjectController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        return ProjectResource::collection(ProjectAccess::query($request)->withCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
+        return ProjectResource::collection(app(ProjectUnread::class)->withCounts(ProjectAccess::query($request), $request->user())->withCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
     }
 
     public function store(ProjectRequest $request): ProjectResource
@@ -36,18 +37,22 @@ class ProjectController extends Controller
             return $project;
         });
 
-        return new ProjectResource($project);
+        return new ProjectResource($project->load('briefSections'));
     }
 
-    public function show(Project $project): ProjectResource
+    public function show(Request $request, Project $project): ProjectResource
     {
-        return new ProjectResource($project->load('briefSections')->loadCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')]));
+        if (! $request->boolean('summary')) {
+            $project->load('briefSections');
+        }
+
+        return new ProjectResource($project->loadCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')]));
     }
 
     public function update(ProjectRequest $request, Project $project): ProjectResource
     {
         $project->update($request->projectData());
 
-        return $this->show($project);
+        return $this->show($request, $project);
     }
 }

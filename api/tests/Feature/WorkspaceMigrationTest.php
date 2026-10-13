@@ -46,8 +46,10 @@ class WorkspaceMigrationTest extends TestCase
 
     private function migrateWorkspace(): void
     {
-        foreach (glob(database_path('migrations/2026_10_08_*.php')) as $migration) {
-            (require $migration)->up();
+        foreach (glob(database_path('migrations/2026_10_*.php')) as $migration) {
+            if (basename($migration) >= '2026_10_08') {
+                (require $migration)->up();
+            }
         }
     }
 

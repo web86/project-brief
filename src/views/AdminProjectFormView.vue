@@ -6,6 +6,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import ProjectFields from '../components/ProjectFields.vue'
+import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const router = useRouter()
 const data = ref({ title: '', website: '', currency: 'RUB' })
 const errors = ref({})
@@ -18,7 +19,10 @@ async function create() {
   error.value = ''
   try {
     const result = await api.request('/api/admin/projects', { method: 'POST', body: data.value })
-    await router.push(`/admin/projects/${result.data.id}`)
+    const nav = useAdminNavigationStore()
+    nav.updateProject(result.data)
+    await nav.refreshProjects()
+    await router.push(`/admin/projects/${result.data.id}/brief`)
   } catch (cause) {
     errors.value = cause.errors || {}
     error.value = cause

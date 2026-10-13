@@ -219,6 +219,38 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     workspace: { id: fixture.workspace, name: 'Release QA' },
   })
   assert.equal((await request('/api/admin/me')).status, 200)
+  const activity = await (
+    await request('/api/admin/projects/' + fixture.project + '/activity')
+  ).json()
+  assert.deepEqual(activity, { unreadCount: 0 })
+  const readState = await request('/api/admin/projects/' + fixture.project + '/activity/read', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': workspaceCsrf.token,
+    },
+    body: '{}',
+  })
+  assert.equal(readState.status, 200)
+  assert.deepEqual(await readState.json(), { unreadCount: 0 })
+  assert.equal(
+    (
+      await request('/api/admin/projects/' + fixture.foreignProject + '/activity/read', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': workspaceCsrf.token,
+        },
+        body: '{}',
+      })
+    ).status,
+    404,
+  )
+  for (const section of ['clients', 'structure', 'notifications', 'settings']) {
+    assert.equal((await request('/admin/projects/' + fixture.project + '/' + section)).status, 200)
+  }
   const entered = await request(`/access/${'a'.repeat(64)}`)
   assert.equal(entered.status, 302)
   assert.equal(

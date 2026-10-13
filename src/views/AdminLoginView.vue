@@ -5,6 +5,7 @@ import { t, formatApiError } from '../i18n/index.js'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
+import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectStore } from '../stores/project'
 const router = useRouter()
 const store = useProjectStore()
@@ -21,6 +22,8 @@ async function login() {
       method: 'POST',
       body: { email: email.value, password: password.value },
     })
+    api.resetCsrf()
+    useAdminNavigationStore().clear()
     store.admin = result.user
     store.apiError = ''
     store.sessionLost = false

@@ -3,59 +3,87 @@ import { ref } from 'vue'
 import { api } from '../api/client.js'
 
 export const useProjectManagementStore = defineStore('projectManagement', () => {
-  const project = ref(null)
-  const sections = ref([])
-  const clients = ref([])
-  const loading = ref(false)
+  const project = ref(null),
+    sections = ref([]),
+    clients = ref([]),
+    loading = ref(false)
   let revision = 0
   const root = () => `/api/admin/projects/${project.value.id}`
-  async function load(id) {
-    const current = ++revision
+  function clear() {
+    revision++
     project.value = null
     sections.value = []
     clients.value = []
+    loading.value = false
+  }
+  function adopt(data) {
+    project.value = data
+  }
+  async function load(id, section = 'settings') {
+    const previous = project.value?.id === id ? project.value : null
+    const current = ++revision
+    if (!previous) clearData()
     loading.value = true
     try {
-      const [details, structure, people] = await Promise.all([
-        api.request(`/api/admin/projects/${id}`),
-        api.request(`/api/admin/projects/${id}/sections`),
-        api.request(`/api/admin/projects/${id}/clients`),
+      const [details, resource] = await Promise.all([
+        previous
+          ? Promise.resolve({ data: previous })
+          : api.request(`/api/admin/projects/${id}?summary=1`),
+        section === 'clients' || section === 'structure'
+          ? api.request(
+              `/api/admin/projects/${id}/${section === 'clients' ? 'clients' : 'sections'}`,
+            )
+          : Promise.resolve(null),
       ])
-      if (current !== revision) return
+      if (current !== revision) return false
       project.value = details.data
-      sections.value = structure.data
-      clients.value = people.data
+      if (section === 'clients') clients.value = resource.data
+      if (section === 'structure') sections.value = resource.data
+      return true
     } finally {
       if (current === revision) loading.value = false
     }
   }
+  function clearData() {
+    project.value = null
+    sections.value = []
+    clients.value = []
+  }
   async function saveProject(body) {
-    project.value = (await api.request(root(), { method: 'PATCH', body })).data
+    const current = revision
+    const result = await api.request(root() + '?summary=1', { method: 'PATCH', body })
+    if (current === revision) project.value = result.data
+    return result.data
   }
   async function mutateSection(id, method, body) {
-    sections.value = (
-      await api.request(`${root()}/sections${id ? `/${id}` : ''}`, { method, body })
-    ).data
+    const current = revision
+    const result = await api.request(`${root()}/sections${id ? `/${id}` : ''}`, { method, body })
+    if (current === revision) sections.value = result.data
   }
   async function mutateClient(id, method, body) {
-    clients.value = (
-      await api.request(`${root()}/clients${id ? `/${id}` : ''}`, { method, body })
-    ).data
+    const current = revision
+    const result = await api.request(`${root()}/clients${id ? `/${id}` : ''}`, { method, body })
+    if (current === revision) clients.value = result.data
   }
   async function createAccessLink(clientId) {
-    const result = await api.request(`${root()}/clients/${clientId}/access-links`, {
-      method: 'POST',
-    })
-    clients.value = (await api.request(`${root()}/clients`)).data
+    const current = revision,
+      path = root()
+    const result = await api.request(`${path}/clients/${clientId}/access-links`, { method: 'POST' })
+    const people = await api.request(`${path}/clients`)
+    if (current !== revision) return null
+    clients.value = people.data
     return result.url
   }
   async function revokeAccess(clientId) {
+    const current = revision,
+      path = root()
     const client = clients.value.find((item) => item.id === clientId)
     for (const token of client.accessLinks.filter((link) => link.active))
-      await api.request(`${root()}/clients/${clientId}/access-links/${token.id}`, {
+      await api.request(`${path}/clients/${clientId}/access-links/${token.id}`, {
         method: 'DELETE',
       })
-    clients.value = (await api.request(`${root()}/clients`)).data
+    const people = await api.request(`${path}/clients`)
+    if (current === revision) clients.value = people.data
   }
   return {
     project,
@@ -63,6 +91,8 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
     clients,
     loading,
     load,
+    clear,
+    adopt,
     saveProject,
     mutateSection,
     mutateClient,

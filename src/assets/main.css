@@ -2309,3 +2309,281 @@ button.attachment-item:hover {
   color: var(--text-muted, #637467);
   margin: 0 0 12px;
 }
+
+/* Authenticated workspace shell; client topbar/layout remain unchanged. */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  border-right: 1px solid var(--border, #e4e7ec);
+  background: #f9fafb;
+}
+.admin-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+  padding: max(24px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+}
+.sidebar-workspace {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sidebar-workspace select {
+  width: 100%;
+  background: white;
+  min-height: 40px;
+  border: 1px solid #dce1e8;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+.sidebar-create {
+  width: 100%;
+  font-size: 13px;
+}
+.sidebar-projects {
+  overflow-y: auto;
+  min-height: 80px;
+  flex: 1;
+}
+.sidebar-projects h2 {
+  margin: 0 10px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sidebar-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  margin: 2px 0;
+  color: var(--muted);
+}
+.sidebar-project:hover {
+  background: #eef1f5;
+  color: var(--text);
+}
+.sidebar-project.active {
+  background: #e7edf6;
+  color: #26456f;
+  font-weight: 600;
+}
+.sidebar-project-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  padding: 0 6px;
+  background: #dbe7fa;
+  color: #234d87;
+  font-size: 11px;
+  font-weight: 650;
+}
+.sidebar-general {
+  border-top: 1px solid #e4e7ec;
+  padding-top: 16px;
+  font-size: 13px;
+}
+.sidebar-general a {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 6px;
+}
+.sidebar-general [aria-current='page'] {
+  color: var(--action);
+  font-weight: 600;
+}
+.sidebar-account {
+  display: grid;
+  gap: 4px;
+  padding: 16px 10px 0;
+  border-top: 1px solid #e4e7ec;
+  font-size: 13px;
+}
+.sidebar-account > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.sidebar-account button {
+  text-align: left;
+  margin-top: 8px;
+  justify-self: start;
+}
+.sidebar-skeleton {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+}
+.sidebar-skeleton span {
+  background: #e7ebf1;
+  height: 24px;
+  border-radius: 6px;
+}
+.sidebar-error {
+  font-size: 12px;
+  padding: 10px;
+}
+.admin-content {
+  min-width: 0;
+}
+.admin-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #e4e7ec;
+  min-height: 62px;
+  padding: env(safe-area-inset-top) 28px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.admin-toolbar-workspace {
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.admin-toolbar-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: auto;
+}
+.admin-main {
+  padding: 28px;
+  margin: auto;
+  max-width: 1440px;
+  min-width: 0;
+}
+.admin-project-header {
+  margin-bottom: 24px;
+}
+.admin-project-header h1 {
+  margin: 5px 0 20px;
+  font-size: 27px;
+  letter-spacing: -0.6px;
+  overflow-wrap: anywhere;
+}
+.project-subnav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0 1px;
+  border-bottom: 1px solid #e4e7ec;
+}
+.project-subnav a {
+  padding: 10px 12px;
+  white-space: nowrap;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+}
+.project-subnav a.active {
+  color: var(--action);
+  border-bottom-color: var(--action);
+  font-weight: 600;
+}
+.admin-project-shell > .management-panel,
+.admin-project-shell > .admin-form {
+  max-width: 980px;
+}
+.admin-project-shell .project-intro h1 {
+  font-size: 22px;
+}
+.admin-menu-trigger {
+  display: none;
+}
+.admin-drawer {
+  position: fixed;
+  margin: 0;
+  inset: 0 auto 0 0;
+  width: min(320px, 90vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  background: #f9fafb;
+}
+.admin-drawer:not([open]) {
+  display: none;
+}
+.admin-drawer::backdrop {
+  background: rgba(20, 30, 45, 0.4);
+}
+.drawer-close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 12px;
+}
+.admin-drawer .brand {
+  margin-right: 32px;
+}
+.navigation-error {
+  padding: 24px;
+}
+.admin-project-card h2 .unread-badge {
+  vertical-align: middle;
+}
+@media (max-width: 960px) {
+  .admin-shell {
+    display: block;
+  }
+  .admin-sidebar {
+    display: none;
+  }
+  .admin-menu-trigger {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  .admin-toolbar {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .admin-main {
+    padding: 22px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+  .admin-toolbar-workspace {
+    max-width: 120px;
+  }
+  .project-subnav {
+    gap: 0;
+  }
+  .project-subnav a {
+    padding: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell * {
+    scroll-behavior: auto;
+  }
+}
+
+.admin-project-shell .project-header {
+  justify-content: flex-end;
+  padding-bottom: 16px;
+}
