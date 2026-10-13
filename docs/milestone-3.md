@@ -2,8 +2,7 @@
 
 Branch: `feature/saas-foundation`.
 Starting commit: `79ed43312988c15d1e8f93a2daa3c1e71829e02b`.
-Implementation date: 13 October 2026. Verification is in progress; release results are
-recorded after the clean implementation checkpoint. Nothing is deployed.
+Implemented and fully verified: 13 October 2026. Nothing is deployed.
 
 ## Shell and route structure
 
@@ -201,7 +200,7 @@ Real external mail/Push delivery and production deployment are not performed.
 | Full PHPUnit / PHP 8.4.26 + MariaDB 11.8 suite | PASS — 170 tests, 2,021 assertions                                                   |
 | `vendor/bin/pint --dirty --format agent`       | PASS                                                                                 |
 | Local browser preview                          | PASS — desktop/mobile, RU/EN, workspace draft protection, drawer focus/route closure |
-| `./bin/build-release` / packaged runtime       | Recorded after clean implementation checkpoint                                       |
+| `./bin/build-release` / packaged runtime       | PASS — 7,096 packaged files, checksums, ZIP and disposable runtime                   |
 
 MariaDB and PHP 8.4 checks use separate disposable resources and synthetic data,
 including legacy schema fixtures. Existing databases were not upgraded or reset.
@@ -252,3 +251,12 @@ Application dependency versions remain unchanged; GD was added only to the test 
 - `src/views/AdminProjectUnavailableView.vue`
 - `src/views/AdminShell.vue`
 - `tests/admin-navigation.test.js`
+
+## Release checkpoint
+
+- Implementation / archive source commit: `be9566e3fcf7388671cc7f0128d4e6596ec96340`.
+- Local archive: `release/project-brief-20261013-204832-be9566e.zip` (ignored; not deployed).
+- `./bin/build-release` reran all 106 frontend and 170 PHP tests (2,017 SQLite assertions), built the frontend, checked production-only dependencies, validated 7,096 packaged files, verified checksums/ZIP and passed the disposable packaged runtime.
+- Runtime includes fresh read-marker migration, read-state GET/POST with CSRF, foreign read/mark denial, all project management subpage SPA routes, and the previous CLI, tenant, session/client access, key-preservation, assets and maintenance checks.
+- Disposable MariaDB/test-image and preview servers were stopped/removed after checks. Existing local databases were not migrated or reset.
+- Final documentation checkpoint records results; runtime code is identical to the verified implementation commit. No production deployment or remote push occurred.

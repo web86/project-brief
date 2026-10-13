@@ -48,7 +48,7 @@ A registered public user becomes the owner of a private workspace. Owners can in
 # Milestone 1 — UX and notification fixes
 
 Status: **implemented and verified, 8 October 2026**. See [implementation and verification](milestone-1.md).
-Milestone 1 required no database migrations. Milestone 2 adds the tenant foundation described below; Milestones 3–4 remain unstarted.
+Milestone 1 required no database migrations. Milestones 2 and 3 add the tenant/navigation/read-state foundation described below; Milestone 4 remains unstarted.
 
 ## Developer task editing
 
@@ -184,7 +184,7 @@ Add cross-tenant security tests for all important project/task/client/attachment
 
 # Milestone 3 — Admin navigation and personal unread state
 
-Status: **implemented; final verification in progress**. See [architecture, routes, unread semantics and verification](milestone-3.md).
+Status: **implemented and fully verified, 13 October 2026**. See [architecture, routes, unread semantics and verification](milestone-3.md).
 
 Introduce the SaaS-oriented admin shell.
 
@@ -369,6 +369,6 @@ Do not mix Milestone 4 authentication changes into Milestones 1–3.
 
 ## Current next step
 
-**Milestones 1 and 2 are complete** on `feature/saas-foundation`. This change implements only Milestone 2, preserving Milestone 1 behavior.
+**Milestones 1–3 are complete** on `feature/saas-foundation`. This change implements only Milestone 3, preserving Milestone 1 editing/notification behavior and Milestone 2 tenant boundaries.
 
-Milestone 3 (navigation and unread state) is the next planned milestone and requires a separate request. Sidebar, workspace switcher UI, unread badges, public registration, password reset and invitations remain unimplemented.
+Milestone 4 requires a separate implementation request. Public registration, password reset, email verification, team invitations/management, profile editing and billing remain unimplemented.
