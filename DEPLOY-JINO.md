@@ -109,6 +109,15 @@ php artisan down
 
 Загрузите новые application files/vendor и public assets из архива. **Сохраните текущие `.env` и всё `storage/`, включая uploads и maintenance marker.** Не перезаписывайте их пустыми папками нового пакета. Для `bootstrap/cache` удалите старые `config.php`, `routes-*.php`, `events.php`, `packages.php`, `services.php` перед заменой; папку и права сохраните. Заменяйте vendor целиком, чтобы не оставлять старые dependencies. Не удаляйте private files через web-интерфейс приложения.
 
+При обновлении используйте прежние пути: `private/project-brief-app/` из архива
+заменяет код в `~/project-brief-app/`, а `public/` — файлы в
+`~/domains/brief.web86.site/`. Сохраните резервную копию предыдущего кода/public
+вне публичной папки. Не копируйте `.env.production.example` поверх `.env` и не
+запускайте `bin/first-install` как шаг обновления: его поведение проверено на
+временной базе (существующий APP_KEY сохраняется), но для работающего приложения
+достаточно явных команд ниже. Сохраняйте `APP_KEY`, VAPID, session driver/domain и
+содержимое таблицы `sessions`; миграции не требуют сброса сессий или данных.
+
 ```bash
 php artisan migrate --force
 php artisan optimize
@@ -116,6 +125,49 @@ php artisan up
 ```
 
 Если migration/optimize завершились ошибкой, оставьте maintenance mode и исправьте её перед `up`. Не выполняйте `migrate:fresh`, `db:wipe`, seed или смену APP_KEY. Проверьте health, login, клиентскую ссылку, reload Vue route и вложения. Здесь нет автоматического SSH/rsync, server-side Composer/Node/Git, web installer или default production password. Загрузка на Jino и проверка его реального document root/CLI PHP — отдельный следующий шаг.
+
+Проверьте создание/редактирование задачи, комментарии, уведомления, экспорт
+PDF/DOCX и отсутствие доступа к чужому workspace. Для отката сохраните maintenance
+mode и восстановите согласованный backup кода и БД; не запускайте старый код
+поверх несовместимой новой схемы.
+
+## AI Task Assistant (Milestone 4.1)
+
+Архив содержит `groq`, `zveno` и `groq_bridge`, общий серверный валидатор и
+workspace-лимиты. AI выключен в `.env.production.example`; сборка и установщик
+не добавляют ключи и не включают AI. Существующая production `.env` сохраняется.
+Для включения через уже развёрнутый Deno Bridge вручную добавьте в приватную
+`~/project-brief-app/.env` во время согласованного обновления:
+
+```dotenv
+AI_ENABLED=true
+AI_PROVIDER=groq_bridge
+AI_BRIDGE_URL=https://projectbrief-ai-bridge.web86.deno.net/ai
+AI_BRIDGE_SECRET=
+GROQ_MODEL=openai/gpt-oss-120b
+AI_REQUESTS_PER_MINUTE=5
+AI_WORKSPACE_DAILY_LIMIT=50
+```
+
+Пустой `AI_BRIDGE_SECRET` необходимо заполнить секретом моста вручную (минимум
+32 символа), не через Git, чат или публичную папку. Groq API key хранится в Deno,
+Laravel для `groq_bridge` использует только bridge secret. Для прямого `groq`
+нужен `GROQ_API_KEY`; для `zveno` — `ZVENO_API_KEY`, `AI_MODEL` и явно выбранный
+`ZVENO_OUTPUT_MODE` (`json_schema` по умолчанию либо `prompt_json`). Автоматических
+повторов, переключения провайдера или платных моделей нет.
+
+После редактирования `.env` выполните `php artisan optimize` перед `up`. Проверьте
+в интерфейсе, что предложение редактируется и применяется только к локальному
+черновику; сохранение задачи остаётся отдельным действием. Не запускайте CLI
+live-проверки без необходимости: успешный синтетический Groq Bridge тест уже
+зафиксирован в `docs/milestone-4-1-3.md` исходного репозитория.
+
+Таймауты: Deno → Groq — 20 секунд, Laravel — 25 секунд (соединение — 5), браузер —
+35 секунд. На Jino проверьте PHP `max_execution_time` и лимит web/proxy: бюджет
+запроса рекомендуется от 30 секунд. Не отключайте проверку TLS; при проблемах с
+CA исправьте доверенный CA bundle средствами хостинга. Фактические настройки Jino
+и доступность Groq из Deno проверяются отдельно; при HTTP 403 live-проверки
+останавливают без обхода ограничений. Ключи, промпты и ответы не пишутся в логи.
 
 ## Email и Web Push уведомления
 
@@ -277,7 +329,7 @@ private файлов и текущего release/environment. Включите m
 миграции `2026_10_08_122755_create_workspace_foundation`,
 `2026_10_08_122756_backfill_legacy_workspaces`,
 `2026_10_08_122757_enforce_project_workspace` через `php artisan migrate --force`
-(или `bin/first-install`), затем
+затем
 `php artisan optimize`. APP_KEY, VAPID keys и персональные ссылки клиентов сохраняются.
 
 Старейший legacy admin становится owner первоначального workspace, остальные legacy

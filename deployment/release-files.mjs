@@ -73,6 +73,17 @@ export function containsPrivateKey(content) {
   )
 }
 
+export function environmentSecrets(content) {
+  return content
+    .split('\n')
+    .map((line) =>
+      line.match(/^([A-Z_]*(?:PASSWORD|SECRET|TOKEN|APP_KEY|PRIVATE_KEY|API_KEY)[A-Z_]*)=(.*)$/),
+    )
+    .filter(Boolean)
+    .map((match) => match[2].trim().replace(/^['"]|['"]$/g, ''))
+    .filter((value) => value.length >= 8)
+}
+
 export async function validateRelease(root, localSecrets = []) {
   const required = [
     'public/index.html',
@@ -107,6 +118,12 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/vendor/autoload.php',
     'private/project-brief-app/bootstrap/app.php',
     'private/project-brief-app/artisan',
+    'private/project-brief-app/app/Services/AiTaskAssistant.php',
+    'private/project-brief-app/app/Http/Controllers/AiTaskAssistantController.php',
+    'private/project-brief-app/app/Http/Requests/AiTaskAssistantRequest.php',
+    'private/project-brief-app/app/Console/Commands/CheckAiBridge.php',
+    'private/project-brief-app/app/Console/Commands/BenchmarkAi.php',
+    'private/project-brief-app/config/ai.php',
     'private/project-brief-app/.env.production.example',
     'private/project-brief-app/bin/check-server',
     'private/project-brief-app/bin/first-install',
@@ -149,9 +166,13 @@ export async function validateRelease(root, localSecrets = []) {
     'MAIL_PASSWORD',
     'VAPID_PUBLIC_KEY',
     'VAPID_PRIVATE_KEY',
+    'GROQ_API_KEY',
+    'ZVENO_API_KEY',
+    'AI_BRIDGE_SECRET',
   ]) {
     if (!new RegExp(`^${key}=$`, 'm').test(env)) throw new Error(`Example must leave ${key} empty`)
   }
+  if (!/^AI_ENABLED=false$/m.test(env)) throw new Error('Release must leave AI disabled')
   const installed = JSON.parse(
     await readFile(path.join(root, 'private/project-brief-app/vendor/composer/installed.json')),
   )

@@ -2,7 +2,13 @@ import { spawnSync } from 'node:child_process'
 import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile, access } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checksums, normalizePermissions, pruneVendor, validateRelease } from './release-files.mjs'
+import {
+  checksums,
+  environmentSecrets,
+  normalizePermissions,
+  pruneVendor,
+  validateRelease,
+} from './release-files.mjs'
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const php = process.env.PHP_BIN || 'php'
@@ -50,12 +56,7 @@ async function knownLocalSecrets() {
   const values = []
   for (const file of ['.env', 'api/.env']) {
     const text = await readFile(path.join(root, file), 'utf8').catch(() => '')
-    for (const line of text.split('\n')) {
-      const match = line.match(
-        /^([A-Z_]*(?:PASSWORD|SECRET|TOKEN|APP_KEY|PRIVATE_KEY)[A-Z_]*)=(.*)$/,
-      )
-      if (match) values.push(match[2].trim().replace(/^['"]|['"]$/g, ''))
-    }
+    values.push(...environmentSecrets(text))
   }
   const credentials = await readFile(path.join(root, '.tools/local-admin.json'), 'utf8').catch(
     () => '{}',

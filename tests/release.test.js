@@ -8,7 +8,33 @@ import {
   pruneVendor,
   checksums,
   containsPrivateKey,
+  environmentSecrets,
 } from '../deployment/release-files.mjs'
+
+test('release scans API keys and bridge secrets without treating AI settings as secrets', () => {
+  assert.deepEqual(
+    environmentSecrets(
+      [
+        'GROQ_API_KEY="synthetic-groq-key"',
+        'ZVENO_API_KEY=synthetic-zveno-key',
+        'AI_BRIDGE_SECRET=synthetic-bridge-secret',
+        'DB_PASSWORD=synthetic-db-password',
+        'APP_KEY=base64:synthetic-key',
+        'AI_ENABLED=false',
+        'AI_PROVIDER=groq_bridge',
+        'GROQ_MODEL=openai/gpt-oss-120b',
+        'GROQ_API_KEY=',
+      ].join('\n'),
+    ),
+    [
+      'synthetic-groq-key',
+      'synthetic-zveno-key',
+      'synthetic-bridge-secret',
+      'synthetic-db-password',
+      'base64:synthetic-key',
+    ],
+  )
+})
 
 test('release rejects local secrets, development directories and source maps at any depth', () => {
   for (const file of [
