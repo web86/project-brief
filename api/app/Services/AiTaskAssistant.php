@@ -14,6 +14,17 @@ use stdClass;
 
 class AiTaskAssistant
 {
+    public const BENCHMARK_MODELS = [
+        'nvidia/nemotron-3-super-120b-a12b:free',
+        'google/gemma-4-26b-a4b-it:free',
+        'dots-studio/dots-3-note-preview:free',
+    ];
+
+    private const ENDPOINTS = [
+        'groq' => 'https://api.groq.com/openai/v1/chat/completions',
+        'zveno' => 'https://api.zveno.ai/v1/chat/completions',
+    ];
+
     private const FIELDS = ['title', 'description', 'expectedResult'];
 
     /** @param array<string, mixed> $input
@@ -21,37 +32,133 @@ class AiTaskAssistant
      */
     public function suggest(Project $project, array $input): array
     {
-        if (! config('ai.enabled') || trim((string) config('ai.key')) === '') {
-            $this->fail('ai_disabled', 503);
+        $provider = (string) config('ai.provider');
+        $this->ensureConfigured($provider);
+        $this->consumeQuota($project->workspace_id);
+        $diagnostics = [];
+
+        return $this->complete($input, $provider, (string) config("ai.providers.$provider.model"), $diagnostics);
+    }
+
+    /** Only the CLI benchmark calls this method, with its built-in synthetic scenarios. */
+    public function benchmark(string $model, array $input, string $format = 'json_schema'): array
+    {
+        $this->ensureConfigured('zveno');
+        if (! in_array($model, self::BENCHMARK_MODELS, true) || ! in_array($format, ['json_schema', 'json_object', 'text'], true)) {
+            $this->fail('ai_invalid_model', 422);
+        }
+        $diagnostics = ['httpStatus' => null, 'elapsedMs' => 0, 'jsonValid' => null, 'schemaValid' => null, 'finishReason' => null, 'usage' => null, 'error' => null, 'suggestion' => null];
+        try {
+            $diagnostics['suggestion'] = $this->complete($input, 'zveno', $model, $diagnostics, true, $format);
+        } catch (HttpResponseException $exception) {
+            $diagnostics['error'] = json_decode($exception->getResponse()->getContent(), true)['code'];
         }
 
-        $this->consumeQuota($project->workspace_id);
+        return $diagnostics;
+    }
+
+    public function benchmarkCatalog(): array
+    {
+        $this->ensureConfigured('zveno');
+        try {
+            $response = Http::withToken(config('ai.providers.zveno.key'))->acceptJson()
+                ->withOptions(['allow_redirects' => false])->connectTimeout(5)->timeout(15)
+                ->get('https://api.zveno.ai/v1/models');
+        } catch (ConnectionException) {
+            $this->fail('ai_timeout', 504);
+        }
+        if (! $response->successful()) {
+            $this->fail('ai_unavailable', 503);
+        }
+        $data = $response->json('data');
+        if (! is_array($data)) {
+            $this->fail('ai_invalid_response', 502);
+        }
+        $models = [];
+        foreach (self::BENCHMARK_MODELS as $id) {
+            $row = collect($data)->first(fn ($row) => is_array($row) && ($row['id'] ?? null) === $id);
+            $prompt = $row['pricing']['prompt'] ?? null;
+            $completion = $row['pricing']['completion'] ?? null;
+            $models[$id] = [
+                'present' => $row !== null,
+                'free' => is_numeric($prompt) && (float) $prompt === 0.0 && is_numeric($completion) && (float) $completion === 0.0,
+                'pricing' => ['prompt' => $prompt, 'completion' => $completion],
+                'supportedParameters' => is_array($row['supported_parameters'] ?? null) ? array_values(array_filter($row['supported_parameters'], 'is_string')) : [],
+            ];
+        }
+
+        return ['httpStatus' => $response->status(), 'models' => $models];
+    }
+
+    private function ensureConfigured(string $provider): void
+    {
+        if (! isset(self::ENDPOINTS[$provider])) {
+            $this->fail('ai_unavailable', 503);
+        }
+        if (! config('ai.enabled') || trim((string) config("ai.providers.$provider.key")) === '') {
+            $this->fail('ai_disabled', 503);
+        }
+    }
+
+    private function complete(array $input, string $provider, string $model, array &$diagnostics, bool $captureProviderError = false, string $format = 'json_schema'): array
+    {
         $fields = [];
         foreach ([...self::FIELDS, 'section', 'location'] as $field) {
             $fields[$field] = $input[$field] ?? '';
         }
-
+        $body = [
+            'model' => $model,
+            'messages' => [
+                ['role' => 'system', 'content' => $this->instructions()],
+                ['role' => 'user', 'content' => json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)],
+            ],
+            'response_format' => ['type' => 'json_schema', 'json_schema' => [
+                'name' => 'task_suggestion', 'strict' => true, 'schema' => $this->schema(),
+            ]],
+            'stream' => false,
+        ];
+        if ($format !== 'json_schema') {
+            $body['messages'][0]['content'] .= "\nDiagnostic output only: return one JSON object with exactly title, description, expectedResult (strings), questions (array of strings), suggestedIdeas (array of objects with title, description, expectedResult). No code fences or commentary.";
+            if ($format === 'json_object') {
+                $body['response_format'] = ['type' => 'json_object'];
+            } else {
+                unset($body['response_format']);
+            }
+        }
+        if ($provider === 'groq') {
+            $body['max_completion_tokens'] = 6000;
+            $body['reasoning_effort'] = 'low';
+        } else {
+            $body['max_tokens'] = 6000;
+            $body['reasoning'] = ['effort' => 'low', 'exclude' => true];
+            $body['provider'] = ['require_parameters' => true, 'allow_fallbacks' => false];
+            if (str_ends_with($model, ':free')) {
+                $body['provider']['max_price'] = ['prompt' => 0, 'completion' => 0];
+            }
+        }
+        $started = hrtime(true);
         try {
-            $response = Http::withToken(config('ai.key'))->acceptJson()
-                ->withOptions(['allow_redirects' => false])
-                ->connectTimeout(5)->timeout(25)
-                ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model' => config('ai.model'),
-                    'messages' => [
-                        ['role' => 'system', 'content' => $this->instructions()],
-                        ['role' => 'user', 'content' => json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)],
-                    ],
-                    'response_format' => ['type' => 'json_schema', 'json_schema' => [
-                        'name' => 'task_suggestion', 'strict' => true, 'schema' => $this->schema(),
-                    ]],
-                    'max_completion_tokens' => 6000,
-                    'reasoning_effort' => 'low',
-                    'stream' => false,
-                ]);
+            $response = Http::withToken(config("ai.providers.$provider.key"))->acceptJson()
+                ->withOptions(['allow_redirects' => false])->connectTimeout(5)->timeout(25)
+                ->post(self::ENDPOINTS[$provider], $body);
         } catch (ConnectionException) {
             $this->fail('ai_timeout', 504);
+        } finally {
+            $diagnostics['elapsedMs'] = round((hrtime(true) - $started) / 1e6, 1);
         }
-
+        $diagnostics['httpStatus'] = $response->status();
+        if ($captureProviderError && ! $response->successful()) {
+            $message = $response->json('error.message');
+            if (is_string($message)) {
+                foreach (config('ai.providers') as $settings) {
+                    $key = (string) $settings['key'];
+                    if ($key !== '') {
+                        $message = str_replace($key, '[REDACTED]', $message);
+                    }
+                }
+                $diagnostics['providerError'] = mb_substr($message, 0, 1000);
+            }
+        }
         if ($response->status() === 429) {
             $this->fail('ai_provider_limit', 429, 60);
         }
@@ -61,17 +168,28 @@ class AiTaskAssistant
         if (strlen($response->body()) > 150000) {
             $this->fail('ai_invalid_response', 502);
         }
+        $diagnostics['finishReason'] = $response->json('choices.0.finish_reason');
+        $usage = [];
+        foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $key) {
+            $value = $response->json('usage.'.$key);
+            if (is_int($value) && $value >= 0) {
+                $usage[$key] = $value;
+            }
+        }
+        $diagnostics['usage'] = $usage ?: null;
         $content = $response->json('choices.0.message.content');
-        if ($response->json('choices.0.finish_reason') !== 'stop' || ! is_string($content)) {
+        $diagnostics['jsonValid'] = false;
+        if (! is_string($content)) {
             $this->fail('ai_invalid_response', 502);
         }
-
         try {
             $object = json_decode($content, false, 32, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             $this->fail('ai_invalid_response', 502);
         }
-        if (! $object instanceof stdClass || ! is_array($object->questions ?? null) || ! is_array($object->suggestedIdeas ?? null)) {
+        $diagnostics['jsonValid'] = true;
+        $diagnostics['schemaValid'] = false;
+        if ($diagnostics['finishReason'] !== 'stop' || ! $object instanceof stdClass || ! is_array($object->questions ?? null) || ! is_array($object->suggestedIdeas ?? null)) {
             $this->fail('ai_invalid_response', 502);
         }
         foreach ($object->suggestedIdeas as $idea) {
@@ -96,6 +214,8 @@ class AiTaskAssistant
         if (Validator::make(['result' => $data], $rules)->fails()) {
             $this->fail('ai_invalid_response', 502);
         }
+
+        $diagnostics['schemaValid'] = true;
 
         return $data;
     }

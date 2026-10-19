@@ -18,12 +18,16 @@ class AiTaskAssistantTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    private const URL = 'https://api.groq.com/openai/v1/chat/completions';
+    protected const PROVIDER = 'groq';
+
+    protected const MODEL = 'openai/gpt-oss-120b';
+
+    protected const URL = 'https://api.groq.com/openai/v1/chat/completions';
 
     protected function setUp(): void
     {
         parent::setUp();
-        config(['ai.enabled' => true, 'ai.key' => 'test-secret-key', 'ai.model' => 'openai/gpt-oss-120b', 'ai.per_minute' => 5, 'ai.daily_limit' => 50]);
+        config(['ai.enabled' => true, 'ai.provider' => static::PROVIDER, 'ai.providers.'.static::PROVIDER.'.key' => 'test-secret-key', 'ai.providers.'.static::PROVIDER.'.model' => static::MODEL, 'ai.per_minute' => 5, 'ai.daily_limit' => 50]);
     }
 
     private function input(): array
@@ -39,7 +43,7 @@ class AiTaskAssistantTest extends TestCase
     private function fakeSuccess(?array $suggestion = null): void
     {
         Http::preventStrayRequests();
-        Http::fake([self::URL => Http::response(['choices' => [['finish_reason' => 'stop', 'message' => ['content' => json_encode($suggestion ?? self::suggestion(), JSON_UNESCAPED_UNICODE)]]]])]);
+        Http::fake([static::URL => Http::response(['choices' => [['finish_reason' => 'stop', 'message' => ['content' => json_encode($suggestion ?? self::suggestion(), JSON_UNESCAPED_UNICODE)]]]])]);
     }
 
     private function admin(Project $project): void
@@ -90,17 +94,28 @@ class AiTaskAssistantTest extends TestCase
             $fields = $this->input();
             unset($fields['consent']);
             $this->assertSame($fields, json_decode($request['messages'][1]['content'], true));
-            $this->assertSame('openai/gpt-oss-120b', $request['model']);
+            $this->assertSame(static::MODEL, $request['model']);
             $this->assertSame('json_schema', $request['response_format']['type']);
             $this->assertTrue($request['response_format']['json_schema']['strict']);
             $this->assertFalse($request['response_format']['json_schema']['schema']['additionalProperties']);
             $this->assertCount(2, $request['messages']);
+            if (static::PROVIDER === 'zveno') {
+                $this->assertSame(6000, $request['max_tokens']);
+                $this->assertArrayNotHasKey('reasoning_effort', $request->data());
+                $this->assertTrue($request['provider']['require_parameters']);
+                $this->assertFalse($request['provider']['allow_fallbacks']);
+                $this->assertSame(['prompt' => 0, 'completion' => 0], $request['provider']['max_price']);
+            } else {
+                $this->assertSame(6000, $request['max_completion_tokens']);
+                $this->assertSame('low', $request['reasoning_effort']);
+                $this->assertArrayNotHasKey('provider', $request->data());
+            }
             $this->assertTrue($request->hasHeader('Authorization', 'Bearer test-secret-key'));
             foreach (['PRIVATE-', 'private@example.test', 'consent', 'locale'] as $private) {
                 $this->assertStringNotContainsString($private, json_encode($request->data()));
             }
 
-            return $request->url() === self::URL;
+            return $request->url() === static::URL;
         });
         Http::assertSentCount(1);
         $this->assertDatabaseCount('tasks', 1);
@@ -187,7 +202,7 @@ class AiTaskAssistantTest extends TestCase
         $project = Project::factory()->create();
         $this->admin($project);
         Http::preventStrayRequests();
-        Http::fake([self::URL => Http::response(['choices' => [['finish_reason' => 'stop', 'message' => ['content' => $content]]]])]);
+        Http::fake([static::URL => Http::response(['choices' => [['finish_reason' => 'stop', 'message' => ['content' => $content]]]])]);
 
         $this->postJson($this->url($project), $this->input())->assertStatus(502)
             ->assertExactJson(['code' => 'ai_invalid_response', 'message' => 'AI request could not be completed.']);
@@ -203,6 +218,9 @@ class AiTaskAssistantTest extends TestCase
             'outage' => [500, ['error' => 'PRIVATE-KEY'], 503, 'ai_unavailable'],
             'redirect' => [302, ['error' => 'PRIVATE-KEY'], 503, 'ai_unavailable'],
             'bad key' => [401, ['error' => 'PRIVATE-KEY'], 503, 'ai_unavailable'],
+            'balance' => [402, ['error' => 'PRIVATE-KEY'], 503, 'ai_unavailable'],
+            'permission' => [403, ['error' => 'PRIVATE-KEY'], 503, 'ai_unavailable'],
+            'gateway timeout' => [504, ['error' => 'PRIVATE-KEY'], 503, 'ai_unavailable'],
             'unsupported model' => [400, ['error' => 'PRIVATE-KEY'], 503, 'ai_unavailable'],
             'invalid envelope' => [200, 'not JSON', 502, 'ai_invalid_response'],
             'truncated' => [200, ['choices' => [['finish_reason' => 'length', 'message' => ['content' => '{}']]]], 502, 'ai_invalid_response'],
@@ -216,7 +234,7 @@ class AiTaskAssistantTest extends TestCase
         $project = Project::factory()->create();
         $this->admin($project);
         Http::preventStrayRequests();
-        Http::fake([self::URL => Http::response($body, $providerStatus)]);
+        Http::fake([static::URL => Http::response($body, $providerStatus)]);
         Log::spy();
 
         $this->postJson($this->url($project), $this->input())->assertStatus($status)
@@ -233,7 +251,7 @@ class AiTaskAssistantTest extends TestCase
         $project = Project::factory()->create();
         $this->admin($project);
         Http::preventStrayRequests();
-        Http::fake([self::URL => Http::failedConnection('PRIVATE-REQUEST-AND-KEY')]);
+        Http::fake([static::URL => Http::failedConnection('PRIVATE-REQUEST-AND-KEY')]);
         Log::spy();
 
         $this->postJson($this->url($project), $this->input())->assertStatus(504)
@@ -254,7 +272,7 @@ class AiTaskAssistantTest extends TestCase
         $project = Project::factory()->create();
         $this->admin($project);
         $this->fakeSuccess();
-        config(['ai.enabled' => $enabled, 'ai.key' => $key]);
+        config(['ai.enabled' => $enabled, 'ai.providers.'.static::PROVIDER.'.key' => $key]);
 
         $this->postJson($this->url($project), $this->input())->assertServiceUnavailable()->assertJsonPath('code', 'ai_disabled');
 
@@ -308,7 +326,7 @@ class AiTaskAssistantTest extends TestCase
         $this->admin($project);
         config(['ai.daily_limit' => 1]);
         Http::preventStrayRequests();
-        Http::fake([self::URL => Http::response([], 500)]);
+        Http::fake([static::URL => Http::response([], 500)]);
 
         $this->postJson($this->url($project), [...$this->input(), 'consent' => false])->assertUnprocessable();
         $this->postJson($this->url($project), $this->input())->assertServiceUnavailable();
@@ -330,6 +348,33 @@ class AiTaskAssistantTest extends TestCase
         } finally {
             $lock->release();
         }
+
+        Http::assertNothingSent();
+    }
+
+    public function test_switching_providers_does_not_reset_workspace_quota(): void
+    {
+        $project = Project::factory()->create();
+        $this->admin($project);
+        $this->fakeSuccess();
+        config(['ai.daily_limit' => 1]);
+        $other = static::PROVIDER === 'groq' ? 'zveno' : 'groq';
+
+        $this->postJson($this->url($project), $this->input())->assertOk();
+        config(['ai.provider' => $other, 'ai.providers.'.$other.'.key' => 'other-provider-key']);
+        $this->postJson($this->url($project), $this->input())->assertTooManyRequests()->assertJsonPath('code', 'ai_daily_limit');
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_unknown_provider_cannot_turn_service_into_arbitrary_http_client(): void
+    {
+        $project = Project::factory()->create();
+        $this->admin($project);
+        $this->fakeSuccess();
+        config(['ai.provider' => 'https://untrusted.invalid', 'ai.providers.https://untrusted.invalid.key' => 'secret']);
+
+        $this->postJson($this->url($project), $this->input())->assertServiceUnavailable()->assertJsonPath('code', 'ai_unavailable');
 
         Http::assertNothingSent();
     }

@@ -1,0 +1,281 @@
+{
+  "date": "2026-10-19",
+  "origin": "Local macOS CLI; not Jino",
+  "syntheticOnly": true,
+  "attemptedPosts": 11,
+  "successfulGenerations": 0,
+  "qualityAssessed": false,
+  "catalog": {
+    "httpStatus": 200,
+    "models": {
+      "nvidia/nemotron-3-super-120b-a12b:free": {
+        "present": true,
+        "free": true,
+        "pricing": {
+          "prompt": "0",
+          "completion": "0"
+        },
+        "supportedParameters": [
+          "include_reasoning",
+          "max_tokens",
+          "reasoning",
+          "reasoning_effort",
+          "response_format",
+          "seed",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_p"
+        ]
+      },
+      "google/gemma-4-26b-a4b-it:free": {
+        "present": true,
+        "free": true,
+        "pricing": {
+          "prompt": "0",
+          "completion": "0"
+        },
+        "supportedParameters": [
+          "include_reasoning",
+          "max_tokens",
+          "reasoning",
+          "response_format",
+          "seed",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_p"
+        ]
+      },
+      "dots-studio/dots-3-note-preview:free": {
+        "present": true,
+        "free": true,
+        "pricing": {
+          "prompt": "0",
+          "completion": "0"
+        },
+        "supportedParameters": [
+          "include_reasoning",
+          "max_tokens",
+          "reasoning",
+          "response_format",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_p"
+        ]
+      }
+    }
+  },
+  "notes": [
+    "Original runs used false for absent model output; with HTTP 400/429 no JSON or schema compliance can be measured. Current command uses null for this case.",
+    "Strict diagnostic repeats the simple Nemotron scenario once to capture the provider rejection.",
+    "Text diagnostics are CLI-only; production format was not weakened. The run stopped immediately on provider daily quota."
+  ],
+  "strictBatch": {
+    "startedAt": "2026-10-19T19:33:47+00:00",
+    "origin": "local CLI; not a Jino hosting measurement",
+    "syntheticOnly": true,
+    "settings": {
+      "timeoutSeconds": 25,
+      "connectTimeoutSeconds": 5,
+      "maxCompletionTokens": 6000,
+      "reasoningEffort": "low",
+      "excludeReasoning": true,
+      "strictJsonSchema": true,
+      "delaySeconds": 10,
+      "retries": 0
+    },
+    "runs": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "scenario": "simple",
+        "input": "Хочу, чтобы фотографии товаров были крупнее и их можно было листать на телефоне",
+        "httpStatus": 400,
+        "elapsedMs": 464.7,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "scenario": "vague",
+        "input": "Сайт работает медленно, особенно каталог. Нужно сделать быстрее",
+        "httpStatus": 400,
+        "elapsedMs": 390.8,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "scenario": "multiple",
+        "input": "Нужно сделать личный кабинет, историю заказов, онлайн-оплату и уведомления о доставке",
+        "httpStatus": 400,
+        "elapsedMs": 407.3,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "google/gemma-4-26b-a4b-it:free",
+        "scenario": "simple",
+        "input": "Хочу, чтобы фотографии товаров были крупнее и их можно было листать на телефоне",
+        "httpStatus": 400,
+        "elapsedMs": 391.7,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "google/gemma-4-26b-a4b-it:free",
+        "scenario": "vague",
+        "input": "Сайт работает медленно, особенно каталог. Нужно сделать быстрее",
+        "httpStatus": 400,
+        "elapsedMs": 402.9,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "google/gemma-4-26b-a4b-it:free",
+        "scenario": "multiple",
+        "input": "Нужно сделать личный кабинет, историю заказов, онлайн-оплату и уведомления о доставке",
+        "httpStatus": 400,
+        "elapsedMs": 355,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "dots-studio/dots-3-note-preview:free",
+        "scenario": "simple",
+        "input": "Хочу, чтобы фотографии товаров были крупнее и их можно было листать на телефоне",
+        "httpStatus": 400,
+        "elapsedMs": 275.3,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "dots-studio/dots-3-note-preview:free",
+        "scenario": "vague",
+        "input": "Сайт работает медленно, особенно каталог. Нужно сделать быстрее",
+        "httpStatus": 400,
+        "elapsedMs": 342.3,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      },
+      {
+        "model": "dots-studio/dots-3-note-preview:free",
+        "scenario": "multiple",
+        "input": "Нужно сделать личный кабинет, историю заказов, онлайн-оплату и уведомления о доставке",
+        "httpStatus": 400,
+        "elapsedMs": 352.5,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null
+      }
+    ],
+    "expertReview": "Not scored automatically. Review Russian, expected result, questions and invented requirements manually.",
+    "finishedAt": "2026-10-19T19:35:12+00:00"
+  },
+  "strictDiagnostic": {
+    "startedAt": "2026-10-19T19:35:32+00:00",
+    "origin": "local CLI; not a Jino hosting measurement",
+    "syntheticOnly": true,
+    "settings": {
+      "timeoutSeconds": 25,
+      "connectTimeoutSeconds": 5,
+      "maxCompletionTokens": 6000,
+      "reasoningEffort": "low",
+      "excludeReasoning": true,
+      "strictJsonSchema": true,
+      "delaySeconds": 10,
+      "retries": 0
+    },
+    "runs": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "scenario": "simple",
+        "input": "Хочу, чтобы фотографии товаров были крупнее и их можно было листать на телефоне",
+        "httpStatus": 400,
+        "elapsedMs": 282.8,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_unavailable",
+        "suggestion": null,
+        "providerError": "model nvidia/nemotron-3-super-120b-a12b:free has no provider supporting response format"
+      }
+    ],
+    "expertReview": "Not scored automatically. Review Russian, expected result, questions and invented requirements manually.",
+    "finishedAt": "2026-10-19T19:35:34+00:00"
+  },
+  "textDiagnostic": {
+    "startedAt": "2026-10-19T19:36:49+00:00",
+    "origin": "local CLI; not a Jino hosting measurement",
+    "syntheticOnly": true,
+    "settings": {
+      "timeoutSeconds": 25,
+      "connectTimeoutSeconds": 5,
+      "maxCompletionTokens": 6000,
+      "reasoningEffort": "low",
+      "excludeReasoning": true,
+      "format": "text",
+      "strictJsonSchema": false,
+      "diagnosticOnly": true,
+      "delaySeconds": 10,
+      "retries": 0
+    },
+    "runs": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "scenario": "simple",
+        "input": "Хочу, чтобы фотографии товаров были крупнее и их можно было листать на телефоне",
+        "httpStatus": 429,
+        "elapsedMs": 382.5,
+        "jsonValid": false,
+        "schemaValid": false,
+        "finishReason": null,
+        "usage": null,
+        "error": "ai_provider_limit",
+        "suggestion": null,
+        "providerError": "Дневной лимит бесплатных моделей платформы исчерпан, сброс в 03:00 МСК"
+      }
+    ],
+    "expertReview": "Not scored automatically. Review Russian, expected result, questions and invented requirements manually.",
+    "finishedAt": "2026-10-19T19:36:50+00:00"
+  }
+}

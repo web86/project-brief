@@ -315,12 +315,12 @@ Counts are personal and tenant-scoped, with no polling or delivery/read-state mi
 See [Milestone 3 report](docs/milestone-3.md) for schema, routes, load/query behavior,
 mobile accessibility, tests, screenshots and deployment limitations.
 
-## Milestone 4.1 — AI Task Assistant (Groq)
+## AI Task Assistant — Groq / ZvenoAI
 
 В форме создания и редактирования задачи кнопка **«Улучшить с AI»** доступна, если
 заполнено хотя бы одно из полей: название, описание, ожидаемый результат. Перед
 отправкой окно сообщает о передаче текста внешнему провайдеру. Только нажатие
-**«Отправить в Groq»** запускает запрос. Удалите персональные данные и секреты из
+**«Отправить в AI»** запускает запрос. Удалите персональные данные и секреты из
 текста формы перед отправкой.
 
 Предложение можно проверить и отредактировать. **«Применить»** переносит название,
@@ -335,13 +335,14 @@ mobile accessibility, tests, screenshots and deployment limitations.
 
 ```dotenv
 AI_ENABLED=true
+AI_PROVIDER=groq
 GROQ_API_KEY=your-server-side-groq-key
 GROQ_MODEL=openai/gpt-oss-120b
 AI_REQUESTS_PER_MINUTE=5
 AI_WORKSPACE_DAILY_LIMIT=50
 ```
 
-По умолчанию `AI_ENABLED=false`. При выключенной функции или пустом ключе сервер
+По умолчанию `AI_ENABLED=false`. При выключенной функции или пустом ключе выбранного провайдера сервер
 возвращает `503 / ai_disabled`, а окно объясняет причину. Локальный demo-режим
 без API показывает сообщение о недоступности и вообще не делает запросов.
 Для локального запуска с backend задайте `VITE_DATA_SOURCE=api` в frontend `.env`,
@@ -349,8 +350,11 @@ AI_WORKSPACE_DAILY_LIMIT=50
 закэшированный Laravel config: `cd api && php artisan config:clear`.
 
 Backend использует Laravel HTTP Client без новых Composer-зависимостей:
-`POST https://api.groq.com/openai/v1/chat/completions`, JSON Schema с `strict: true`.
-Модель по умолчанию поддерживает [Groq Structured Outputs](https://console.groq.com/docs/structured-outputs).
+`POST https://api.groq.com/openai/v1/chat/completions` или
+`POST https://api.zveno.ai/v1/chat/completions`, JSON Schema с `strict: true`.
+Groq остаётся провайдером по умолчанию; без `AI_PROVIDER` прежние `GROQ_API_KEY` и
+`GROQ_MODEL` работают как раньше. Groq-модель по умолчанию поддерживает
+[Structured Outputs](https://console.groq.com/docs/structured-outputs).
 При замене модели выбирайте совместимую с этими параметрами; автоматического
 перехода к неструктурированным ответам и повторных платных запросов нет.
 
@@ -409,3 +413,82 @@ vendor/bin/pint --dirty --format agent
 Frontend-тесты проверяют состав запроса, применение только к локальным полям,
 редактирование/отмену предложения, повторные нажатия, закрытие/размонтирование,
 изменение исходного черновика и независимость языка ответа от RU/EN.
+
+## Milestone 4.1.1 — ZvenoAI и benchmark
+
+Для явного выбора ZvenoAI в `api/.env`:
+
+```dotenv
+AI_ENABLED=true
+AI_PROVIDER=zveno
+ZVENO_API_KEY=your-server-side-zveno-key
+AI_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+```
+
+Здесь Nemotron — пример кандидата из задания, **не победитель benchmark**.
+Настройки `GROQ_API_KEY` и `GROQ_MODEL` сохраняются и используются при
+`AI_PROVIDER=groq`; `AI_MODEL` относится только к ZvenoAI. Адреса провайдеров
+фиксированы на сервере, произвольные base URL из формы или `.env` не принимаются.
+Лимиты workspace общие для обоих провайдеров: переключение не сбрасывает квоту.
+Все запросы формы требуют строгую JSON Schema; HTTP 400/401/402/403/429/5xx и timeout
+не вызывают смены модели, платного маршрута или формата ответа. Для `:free` дополнительно
+задан потолок цены входа/выхода 0 и запрещён provider fallback.
+
+**Фактический результат 19.10.2026:** три точных бесплатных ID присутствуют в каталоге,
+но все девять строгих POST завершились HTTP 400. Диагностика Nemotron уточнила:
+`no provider supporting response format`. Отдельный текстовый диагностический POST
+получил HTTP 429: дневная квота бесплатных моделей платформы исчерпана.
+Успешных генераций ТЗ нет, сравнение качества не состоялось; лучшая бесплатная модель
+не определена. Прежняя интеграция Groq сохранена. До подтверждения обработки данных бесплатными
+провайдерами отправляйте через ZvenoAI только синтетический текст.
+[Полный отчёт](docs/milestone-4-1-1.md) содержит измерения и ограничения.
+
+Изолированный Artisan-инструмент использует тот же `AiTaskAssistant`, prompt,
+JSON Schema, валидатор и тайм-аут 25 секунд. Он не обращается к проектам/задачам/БД,
+использует только три встроенных синтетических сценария. Без `--live` сеть не используется:
+
+```sh
+cd api
+php artisan ai:benchmark
+php artisan ai:benchmark --live --delay=10 --output=/tmp/zveno-benchmark.json
+```
+
+Максимум девять генераций за запуск (три модели × три сценария), последовательно,
+без автоматических повторов. Каталог проверяется до генераций: отсутствующий ID или
+ненулевые цены токенов приводят к пропуску, без замены модели. HTTP 400 пропускает
+оставшиеся сценарии этой модели; HTTP 401/402/403/429 останавливает весь запуск.
+`--model=<exact-free-id>` и `--scenario=simple|vague|multiple` сужают выборку.
+`--delay` от 10 до 60 секунд. Существующий output-файл не перезаписывается.
+
+Для отдельной диагностики доступны `--format=json_object` и `--format=text`.
+Это явный выбор **только CLI**: production-форма продолжает отправлять JSON Schema
+независимо от запусков команды. Диагностический prompt дополнительно просит один JSON
+объект без code fences, а ответ проходит тот же серверный валидатор. Такие результаты
+не доказывают поддержку Structured Outputs и не выбирают production-модель автоматически.
+
+Отчёт JSON содержит модель, сценарий, HTTP status, latency, отдельные результаты
+проверки JSON/схемы, finish reason, usage, код ошибки и валидное предложение, если оно
+получено. При отсутствии ответа модели JSON/схема не измерены (`null`); это не оценка
+качества текста. Для синтетических ошибок CLI сохраняет ограниченное диагностическое
+сообщение с редактированием ключей. Серверные API-ошибки его не раскрывают.
+Русский язык, полнота результата, вопросы и выдуманные требования оцениваются вручную;
+команда не выдаёт автоматические баллы за объективную оценку качества.
+
+Проверка выполнена с локального Mac, **не с Jino**. Каталог HTTP 200 на Jino,
+проверенный ранее пользователем, не доказывает успешность авторизованной генерации.
+После восстановления квоты и появления совместимого маршрута повторите одиночный
+строгий POST-командой на Jino и проверьте фактический PHP/web timeout. Текущий request
+budget 25 секунд, connect timeout 5, frontend timeout 35; время реальной генерации
+этих моделей пока неизвестно. Дополнительных очередей и серверов нет.
+
+На этом Mac у PHP был указан отсутствующий CA bundle. Для локального benchmark
+использован существующий файл с проверкой TLS (это локальный путь, не настройка Jino):
+
+```sh
+AI_ENABLED=true php -d openssl.cafile=/usr/local/etc/ca-certificates/cert.pem \
+  -d curl.cainfo=/usr/local/etc/ca-certificates/cert.pem artisan ai:benchmark \
+  --live --model=nvidia/nemotron-3-super-120b-a12b:free --scenario=simple \
+  --output=/tmp/zveno-single.json
+```
+
+Ключ вводится только в `api/.env`, не передаётся в аргументах команды, frontend или Git.

@@ -3,8 +3,8 @@ export default {
     improve: 'Improve with AI',
     title: 'AI suggestion',
     disclosure:
-      'When you click “Send to Groq”, the title, description, expected result, section and location from this form will be sent to the external AI provider Groq. Remove personal and confidential information from these fields before sending.',
-    demo: 'AI is unavailable in the local demo. No text is sent. Generation requires API mode with Groq configured.',
+      'When you click “Send to AI”, the title, description, expected result, section and location from this form will be sent to an external AI provider: Groq or ZvenoAI, as configured by your administrator. Free models may use the text for training. Remove personal and confidential information from these fields before sending.',
+    demo: 'AI is unavailable in the local demo. No text is sent. Generation requires API mode with an AI provider configured.',
     generating:
       'AI is preparing a suggestion… You can close this dialog: your draft will stay in the form.',
     sourceChanged:
@@ -17,16 +17,19 @@ export default {
     questions: 'Clarifying questions',
     split: 'Consider splitting into separate tasks',
     splitNote: 'These are suggestions for discussion. No new tasks are created automatically.',
-    send: 'Send to Groq',
+    send: 'Send to AI',
     apply: 'Apply',
     errors: {
-      ai_disabled: 'AI is disabled or the Groq key is not configured. Contact your administrator.',
+      ai_disabled:
+        'AI is disabled or the selected AI provider key is not configured. Contact your administrator.',
       ai_demo: 'AI is unavailable in the local demo. No text is sent.',
-      ai_timeout: 'Groq did not respond in time. Your draft is still in the form. Try again later.',
-      ai_unavailable: 'Groq is unavailable. Try again later or contact your administrator.',
+      ai_timeout:
+        'The AI provider did not respond in time. Your draft is still in the form. Try again later.',
+      ai_unavailable:
+        'The AI provider is unavailable. Try again later or contact your administrator.',
       ai_invalid_response:
         'AI returned an invalid suggestion. Your form has not changed. Try again.',
-      ai_provider_limit: 'The Groq request limit has been reached. Try again later.',
+      ai_provider_limit: 'The AI provider request limit has been reached. Try again later.',
       ai_rate_limit: 'Too many AI requests in this workspace. Please wait a minute.',
       ai_daily_limit: 'The workspace daily AI limit has been reached. It resets at 00:00 UTC.',
     },
