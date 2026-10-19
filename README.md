@@ -551,3 +551,42 @@ php artisan ai:benchmark --live --format=prompt_json \
 **129/129**, production build, Prettier и Pint — успешно. Новый режим проходит
 полный общий набор проверок доступа/приватности/квот и дополнительные тесты отказа
 от Markdown, пояснений, нескольких JSON-объектов и скрытого переключения формата.
+
+## Milestone 4.1.3 — Groq через Deno Bridge
+
+Для существующего моста настроены отдельные backend-параметры:
+
+```dotenv
+AI_ENABLED=true
+AI_PROVIDER=groq_bridge
+AI_BRIDGE_URL=https://projectbrief-ai-bridge.web86.deno.net/ai
+AI_BRIDGE_SECRET=your-server-side-bridge-secret
+GROQ_MODEL=openai/gpt-oss-120b
+```
+
+Секрет должен совпадать с `AI_BRIDGE_SECRET` на Deno и иметь не менее 32 символов;
+используется Bearer-авторизация. `GROQ_API_KEY` для этого провайдера хранится на Deno,
+Laravel его не передаёт. Разрешён только указанный HTTPS URL `/ai`; произвольные
+адреса из конфигурации отклоняются. После изменения cached config выполните в `api`
+`php artisan config:clear`. Настройки прямого Groq и ZvenoAI продолжают работать.
+
+Payload полностью совпадает с прямым Groq, включая system prompt и строгую JSON
+Schema. Доступ, квоты и серверный валидатор сохранены; AI-предложение применяется и
+сохраняется пользователем прежними действиями формы. Интерфейс не менялся.
+Нет автоматического fallback, повторов или смены региона. Bridge/upstream 403
+останавливает одиночную диагностическую проверку; никаких обходов доступа нет.
+
+**Live 19.10.2026:** один синтетический запрос через Deno → Groq завершился HTTP 200
+за **1614.9 мс**, JSON и Laravel-контракт пройдены, модель `openai/gpt-oss-120b`.
+Использовано 786 токенов. Проверка выполнена локально, не с Jino.
+[Отчёт, пример ответа и рекомендации](docs/milestone-4-1-3.md),
+[JSON измерений](docs/milestone-4-1-3-results.json).
+
+Тайм-ауты оставлены: Deno 20 секунд, Laravel 25, frontend 35; один быстрый запрос
+не является нагрузочным измерением. На Jino отдельно проверьте PHP/web request
+budget, желательно не менее 30 секунд. Размер payload моста ограничен 100000 байт.
+
+`cd api && php artisan ai:bridge-check` показывает план без сети и БД.
+`php artisan ai:bridge-check --live --output=/tmp/groq-bridge-check.json` выполняет
+ровно один синтетический POST через тот же сервис и валидатор. Без секрета запрос
+не отправляется; существующий файл не перезаписывается. Ключи в CLI не передавайте.

@@ -8,6 +8,11 @@ return [
             'key' => env('GROQ_API_KEY', ''),
             'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
         ],
+        'groq_bridge' => [
+            'url' => env('AI_BRIDGE_URL', 'https://projectbrief-ai-bridge.web86.deno.net/ai'),
+            'key' => env('AI_BRIDGE_SECRET', ''),
+            'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
+        ],
         'zveno' => [
             'key' => env('ZVENO_API_KEY', ''),
             'model' => env('AI_MODEL', 'nvidia/nemotron-3-super-120b-a12b:free'),

@@ -22,6 +22,7 @@ class AiTaskAssistant
 
     private const ENDPOINTS = [
         'groq' => 'https://api.groq.com/openai/v1/chat/completions',
+        'groq_bridge' => 'https://projectbrief-ai-bridge.web86.deno.net/ai',
         'zveno' => 'https://api.zveno.ai/v1/chat/completions',
     ];
 
@@ -51,9 +52,23 @@ class AiTaskAssistant
         if (! in_array($model, self::BENCHMARK_MODELS, true) || ! in_array($format, ['json_schema', 'prompt_json', 'json_object', 'text'], true)) {
             $this->fail('ai_invalid_model', 422);
         }
+
+        return $this->diagnose($input, 'zveno', $model, $format);
+    }
+
+    /** Only the single-request CLI check calls this method, with synthetic task text. */
+    public function checkBridge(array $input): array
+    {
+        $this->ensureConfigured('groq_bridge');
+
+        return $this->diagnose($input, 'groq_bridge', (string) config('ai.providers.groq_bridge.model'), 'json_schema');
+    }
+
+    private function diagnose(array $input, string $provider, string $model, string $format): array
+    {
         $diagnostics = ['httpStatus' => null, 'elapsedMs' => 0, 'jsonValid' => null, 'schemaValid' => null, 'finishReason' => null, 'usage' => null, 'error' => null, 'suggestion' => null];
         try {
-            $diagnostics['suggestion'] = $this->complete($input, 'zveno', $model, $diagnostics, true, $format);
+            $diagnostics['suggestion'] = $this->complete($input, $provider, $model, $diagnostics, true, $format);
         } catch (HttpResponseException $exception) {
             $diagnostics['error'] = json_decode($exception->getResponse()->getContent(), true)['code'];
         }
@@ -102,6 +117,14 @@ class AiTaskAssistant
         if (! config('ai.enabled') || trim((string) config("ai.providers.$provider.key")) === '') {
             $this->fail('ai_disabled', 503);
         }
+        if ($provider === 'groq_bridge') {
+            if (config('ai.providers.groq_bridge.url') !== self::ENDPOINTS['groq_bridge']) {
+                $this->fail('ai_unavailable', 503);
+            }
+            if (strlen((string) config('ai.providers.groq_bridge.key')) < 32) {
+                $this->fail('ai_disabled', 503);
+            }
+        }
     }
 
     private function complete(array $input, string $provider, string $model, array &$diagnostics, bool $captureProviderError = false, string $format = 'json_schema'): array
@@ -132,7 +155,7 @@ class AiTaskAssistant
                 unset($body['response_format']);
             }
         }
-        if ($provider === 'groq') {
+        if (in_array($provider, ['groq', 'groq_bridge'], true)) {
             $body['max_completion_tokens'] = 6000;
             $body['reasoning_effort'] = 'low';
         } else {
@@ -150,13 +173,26 @@ class AiTaskAssistant
         try {
             $response = Http::withToken(config("ai.providers.$provider.key"))->acceptJson()
                 ->withOptions(['allow_redirects' => false])->connectTimeout(5)->timeout(25)
-                ->post(self::ENDPOINTS[$provider], $body);
+                ->post($provider === 'groq_bridge' ? config('ai.providers.groq_bridge.url') : self::ENDPOINTS[$provider], $body);
         } catch (ConnectionException) {
             $this->fail('ai_timeout', 504);
         } finally {
             $diagnostics['elapsedMs'] = round((hrtime(true) - $started) / 1e6, 1);
         }
         $diagnostics['httpStatus'] = $response->status();
+        if ($provider === 'groq_bridge') {
+            $providerStatus = $response->json('providerStatus');
+            if (is_int($providerStatus) && $providerStatus >= 100 && $providerStatus <= 599) {
+                $diagnostics['providerStatus'] = $providerStatus;
+            }
+            $bridgeError = $response->json('error');
+            if (in_array($bridgeError, ['unauthorized', 'not_configured', 'groq_request_failed', 'upstream_timeout_or_network_error', 'unsupported_request', 'invalid_upstream_reply', 'response_too_large', 'request_too_large', 'invalid_json', 'json_required'], true)) {
+                $diagnostics['bridgeError'] = $bridgeError;
+            }
+            if ($response->status() === 504) {
+                $this->fail('ai_timeout', 504);
+            }
+        }
         if ($captureProviderError && ! $response->successful()) {
             $message = $response->json('error.message');
             if (is_string($message)) {

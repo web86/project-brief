@@ -24,12 +24,14 @@ class AiTaskAssistantTest extends TestCase
 
     protected const OUTPUT_MODE = 'json_schema';
 
+    protected const KEY = 'test-secret-key';
+
     protected const URL = 'https://api.groq.com/openai/v1/chat/completions';
 
     protected function setUp(): void
     {
         parent::setUp();
-        config(['ai.enabled' => true, 'ai.provider' => static::PROVIDER, 'ai.providers.'.static::PROVIDER.'.key' => 'test-secret-key', 'ai.providers.'.static::PROVIDER.'.model' => static::MODEL, 'ai.providers.zveno.output_mode' => static::OUTPUT_MODE, 'ai.per_minute' => 5, 'ai.daily_limit' => 50]);
+        config(['ai.enabled' => true, 'ai.provider' => static::PROVIDER, 'ai.providers.'.static::PROVIDER.'.key' => static::KEY, 'ai.providers.'.static::PROVIDER.'.model' => static::MODEL, 'ai.providers.zveno.output_mode' => static::OUTPUT_MODE, 'ai.per_minute' => 5, 'ai.daily_limit' => 50]);
     }
 
     private function input(): array
@@ -128,7 +130,7 @@ class AiTaskAssistantTest extends TestCase
                 $this->assertSame('low', $request['reasoning_effort']);
                 $this->assertArrayNotHasKey('provider', $request->data());
             }
-            $this->assertTrue($request->hasHeader('Authorization', 'Bearer test-secret-key'));
+            $this->assertTrue($request->hasHeader('Authorization', 'Bearer '.static::KEY));
             foreach (['PRIVATE-', 'private@example.test', 'consent', 'locale'] as $private) {
                 $this->assertStringNotContainsString($private, json_encode($request->data()));
             }
