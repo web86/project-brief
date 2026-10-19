@@ -19,7 +19,7 @@ class BenchmarkAi extends Command
         {--live : Send only the built-in synthetic scenarios to ZvenoAI}
         {--model=* : Exact free model ID; defaults to the three benchmark models}
         {--scenario=* : simple, vague or multiple; defaults to all three}
-        {--format=json_schema : json_schema, or diagnostic-only json_object/text; never changes production}
+        {--format=json_schema : json_schema, prompt_json, or diagnostic-only json_object/text}
         {--delay=10 : Seconds between requests, from 10 to 60}
         {--output= : Optional JSON report file, created without overwriting an existing file}';
 
@@ -31,7 +31,7 @@ class BenchmarkAi extends Command
         $scenarios = array_values(array_unique($this->option('scenario') ?: array_keys(self::SCENARIOS)));
         $delay = filter_var($this->option('delay'), FILTER_VALIDATE_INT);
         $format = $this->option('format');
-        if (array_diff($models, AiTaskAssistant::BENCHMARK_MODELS) || array_diff($scenarios, array_keys(self::SCENARIOS)) || ! in_array($format, ['json_schema', 'json_object', 'text'], true) || $delay === false || $delay < 10 || $delay > 60) {
+        if (array_diff($models, AiTaskAssistant::BENCHMARK_MODELS) || array_diff($scenarios, array_keys(self::SCENARIOS)) || ! in_array($format, ['json_schema', 'prompt_json', 'json_object', 'text'], true) || $delay === false || $delay < 10 || $delay > 60) {
             $this->error('Use only the three exact free model IDs, built-in scenarios and delay 10..60.');
 
             return self::INVALID;
@@ -56,7 +56,7 @@ class BenchmarkAi extends Command
             'startedAt' => now('UTC')->toIso8601String(),
             'origin' => 'local CLI; not a Jino hosting measurement',
             'syntheticOnly' => true,
-            'settings' => ['timeoutSeconds' => 25, 'connectTimeoutSeconds' => 5, 'maxCompletionTokens' => 6000, 'reasoningEffort' => 'low', 'excludeReasoning' => true, 'format' => $format, 'strictJsonSchema' => $format === 'json_schema', 'diagnosticOnly' => $format !== 'json_schema', 'delaySeconds' => $delay, 'retries' => 0],
+            'settings' => ['timeoutSeconds' => 25, 'connectTimeoutSeconds' => 5, 'maxCompletionTokens' => 6000, 'reasoningEffort' => $format === 'prompt_json' ? null : 'low', 'excludeReasoning' => $format === 'prompt_json' ? null : true, 'format' => $format, 'strictJsonSchema' => $format === 'json_schema', 'serverValidation' => true, 'diagnosticOnly' => in_array($format, ['json_object', 'text'], true), 'delaySeconds' => $delay, 'retries' => 0],
             'plannedRequests' => count($models) * count($scenarios),
             'catalog' => null, 'runs' => [],
             'expertReview' => 'Not scored automatically. Review Russian, expected result, questions and invented requirements manually.',

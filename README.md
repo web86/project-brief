@@ -492,3 +492,62 @@ AI_ENABLED=true php -d openssl.cafile=/usr/local/etc/ca-certificates/cert.pem \
 ```
 
 Ключ вводится только в `api/.env`, не передаётся в аргументах команды, frontend или Git.
+
+## Milestone 4.1.2 — JSON через prompt для ZvenoAI
+
+Для ZvenoAI добавлен **явно выбираемый** режим без `response_format`:
+
+```dotenv
+AI_PROVIDER=zveno
+ZVENO_OUTPUT_MODE=prompt_json
+AI_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+```
+
+Ключ остаётся в `api/.env` (`ZVENO_API_KEY`), включение — через `AI_ENABLED=true`.
+По умолчанию `ZVENO_OUTPUT_MODE=json_schema`, прежний режим не меняется.
+Настройка относится только к ZvenoAI; Groq всегда отправляет прежнюю строгую
+`response_format: json_schema`, `reasoning_effort=low` и лимит 6000 completion-токенов.
+Неизвестное значение режима отклоняется до provider-запроса и расходования квоты.
+После изменения закэшированного config выполните `cd api && php artisan config:clear`.
+
+В `prompt_json` JSON Schema Milestone 4.1 целиком добавляется в системный prompt как
+контракт. Модель должна вернуть ровно один JSON object, без Markdown, code fences,
+рассуждений и пояснений; пустые списки — `[]`. Запрос содержит только `model`,
+два `messages`, `max_tokens=6000` и `provider` с запретом fallback и потолком цены 0
+для `:free`. `response_format`, `reasoning`, `reasoning_effort`, `stream` и
+`provider.require_parameters` не передаются.
+
+Ответ не извлекается из произвольного текста и не исправляется автоматически:
+`json_decode` → проверка объекта/массивов → существующий Laravel validator с whitelist
+полей и прежними ограничениями длины. Невалидный JSON, лишние/пропущенные поля,
+неправильные типы, слишком длинные поля/списки, Markdown-обёртки и обрыв по токенам
+возвращают `ai_invalid_response`, без повторного запроса и без изменения формы.
+Доступ по workspace/проектам, общие квоты, приватность, уведомление о внешнем AI и
+ручное применение предложения сохраняются.
+
+**Первая live-проверка после восстановления квоты — один синтетический запрос:**
+
+```sh
+cd api
+php artisan ai:benchmark --live --format=prompt_json \
+  --model=nvidia/nemotron-3-super-120b-a12b:free --scenario=simple \
+  --output=/tmp/zveno-prompt-nemotron.json
+```
+
+Для локального PHP с отсутствующим CA bundle используйте описанные выше `php -d`
+параметры; проверка TLS остаётся включённой. Параметр CLI не меняет production config.
+Сначала проверьте HTTP, валидность JSON и русский текст Nemotron. Только после
+успешного ответа последовательно проверяйте аналогичный сценарий у
+`google/gemma-4-26b-a4b-it:free` и `dots-studio/dots-3-note-preview:free`, делая паузу
+не менее 10 секунд. На ошибке квоты/доступа остановитесь; не повторяйте запросы,
+не ослабляйте режим автоматически и не меняйте бесплатные ID на платные.
+
+В Milestone 4.1.1 провайдер сообщил о сбросе бесплатной суточной квоты в 03:00 МСК.
+Для текущего продолжения это 20.10.2026, 03:00 Europe/Istanbul. До этого момента
+новые live-генерации в Milestone 4.1.2 не запускались. Автоматические fake-тесты
+не являются подтверждением реальной генерации.
+
+Проверки Milestone 4.1.2: Laravel **391/391** (4170 assertions), frontend
+**129/129**, production build, Prettier и Pint — успешно. Новый режим проходит
+полный общий набор проверок доступа/приватности/квот и дополнительные тесты отказа
+от Markdown, пояснений, нескольких JSON-объектов и скрытого переключения формата.

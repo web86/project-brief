@@ -280,4 +280,28 @@ class AiBenchmarkTest extends TestCase
         $this->assertStringNotContainsString('benchmark-test-secret', json_encode($result));
         Http::assertSentCount(1);
     }
+
+    public function test_prompt_json_benchmark_uses_same_minimal_validated_mode_as_form(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake([self::CATALOG => Http::response($this->catalog()), self::URL => Http::response($this->completion())]);
+        $configuration = config('ai');
+
+        $this->artisan('ai:benchmark', ['--live' => true, '--format' => 'prompt_json', '--model' => [AiTaskAssistant::BENCHMARK_MODELS[0]], '--scenario' => ['simple']])->assertSuccessful();
+
+        Http::assertSent(function (Request $request): bool {
+            if ($request->url() !== self::URL) {
+                return false;
+            }
+            $this->assertSame(['model', 'messages', 'max_tokens', 'provider'], array_keys($request->data()));
+            $this->assertSame(['allow_fallbacks' => false, 'max_price' => ['prompt' => 0, 'completion' => 0]], $request['provider']);
+            $this->assertStringContainsString('Return exactly one JSON object conforming to this JSON Schema', $request['messages'][0]['content']);
+            $this->assertArrayNotHasKey('response_format', $request->data());
+            $this->assertArrayNotHasKey('reasoning', $request->data());
+
+            return true;
+        });
+        Http::assertSentCount(2);
+        $this->assertSame($configuration, config('ai'));
+    }
 }

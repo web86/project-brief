@@ -11,6 +11,7 @@ return [
         'zveno' => [
             'key' => env('ZVENO_API_KEY', ''),
             'model' => env('AI_MODEL', 'nvidia/nemotron-3-super-120b-a12b:free'),
+            'output_mode' => env('ZVENO_OUTPUT_MODE', 'json_schema'),
         ],
     ],
     'per_minute' => (int) env('AI_REQUESTS_PER_MINUTE', 5),

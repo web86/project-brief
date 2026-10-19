@@ -34,17 +34,21 @@ class AiTaskAssistant
     {
         $provider = (string) config('ai.provider');
         $this->ensureConfigured($provider);
+        $format = $provider === 'zveno' ? (string) config('ai.providers.zveno.output_mode') : 'json_schema';
+        if (! in_array($format, ['json_schema', 'prompt_json'], true)) {
+            $this->fail('ai_unavailable', 503);
+        }
         $this->consumeQuota($project->workspace_id);
         $diagnostics = [];
 
-        return $this->complete($input, $provider, (string) config("ai.providers.$provider.model"), $diagnostics);
+        return $this->complete($input, $provider, (string) config("ai.providers.$provider.model"), $diagnostics, false, $format);
     }
 
     /** Only the CLI benchmark calls this method, with its built-in synthetic scenarios. */
     public function benchmark(string $model, array $input, string $format = 'json_schema'): array
     {
         $this->ensureConfigured('zveno');
-        if (! in_array($model, self::BENCHMARK_MODELS, true) || ! in_array($format, ['json_schema', 'json_object', 'text'], true)) {
+        if (! in_array($model, self::BENCHMARK_MODELS, true) || ! in_array($format, ['json_schema', 'prompt_json', 'json_object', 'text'], true)) {
             $this->fail('ai_invalid_model', 422);
         }
         $diagnostics = ['httpStatus' => null, 'elapsedMs' => 0, 'jsonValid' => null, 'schemaValid' => null, 'finishReason' => null, 'usage' => null, 'error' => null, 'suggestion' => null];
@@ -117,7 +121,10 @@ class AiTaskAssistant
             ]],
             'stream' => false,
         ];
-        if ($format !== 'json_schema') {
+        if ($format === 'prompt_json') {
+            unset($body['response_format'], $body['stream']);
+            $body['messages'][0]['content'] .= "\nReturn exactly one JSON object conforming to this JSON Schema. Do not wrap it in Markdown, code fences, reasoning or commentary. Empty questions and suggestedIdeas must be JSON arrays [].\n".json_encode($this->schema(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        } elseif ($format !== 'json_schema') {
             $body['messages'][0]['content'] .= "\nDiagnostic output only: return one JSON object with exactly title, description, expectedResult (strings), questions (array of strings), suggestedIdeas (array of objects with title, description, expectedResult). No code fences or commentary.";
             if ($format === 'json_object') {
                 $body['response_format'] = ['type' => 'json_object'];
@@ -130,8 +137,11 @@ class AiTaskAssistant
             $body['reasoning_effort'] = 'low';
         } else {
             $body['max_tokens'] = 6000;
-            $body['reasoning'] = ['effort' => 'low', 'exclude' => true];
-            $body['provider'] = ['require_parameters' => true, 'allow_fallbacks' => false];
+            $body['provider'] = ['allow_fallbacks' => false];
+            if ($format !== 'prompt_json') {
+                $body['reasoning'] = ['effort' => 'low', 'exclude' => true];
+                $body['provider']['require_parameters'] = true;
+            }
             if (str_ends_with($model, ':free')) {
                 $body['provider']['max_price'] = ['prompt' => 0, 'completion' => 0];
             }

@@ -22,12 +22,14 @@ class AiTaskAssistantTest extends TestCase
 
     protected const MODEL = 'openai/gpt-oss-120b';
 
+    protected const OUTPUT_MODE = 'json_schema';
+
     protected const URL = 'https://api.groq.com/openai/v1/chat/completions';
 
     protected function setUp(): void
     {
         parent::setUp();
-        config(['ai.enabled' => true, 'ai.provider' => static::PROVIDER, 'ai.providers.'.static::PROVIDER.'.key' => 'test-secret-key', 'ai.providers.'.static::PROVIDER.'.model' => static::MODEL, 'ai.per_minute' => 5, 'ai.daily_limit' => 50]);
+        config(['ai.enabled' => true, 'ai.provider' => static::PROVIDER, 'ai.providers.'.static::PROVIDER.'.key' => 'test-secret-key', 'ai.providers.'.static::PROVIDER.'.model' => static::MODEL, 'ai.providers.zveno.output_mode' => static::OUTPUT_MODE, 'ai.per_minute' => 5, 'ai.daily_limit' => 50]);
     }
 
     private function input(): array
@@ -95,14 +97,30 @@ class AiTaskAssistantTest extends TestCase
             unset($fields['consent']);
             $this->assertSame($fields, json_decode($request['messages'][1]['content'], true));
             $this->assertSame(static::MODEL, $request['model']);
-            $this->assertSame('json_schema', $request['response_format']['type']);
-            $this->assertTrue($request['response_format']['json_schema']['strict']);
-            $this->assertFalse($request['response_format']['json_schema']['schema']['additionalProperties']);
+            if (static::PROVIDER === 'zveno' && static::OUTPUT_MODE === 'prompt_json') {
+                $this->assertArrayNotHasKey('response_format', $request->data());
+                $this->assertArrayNotHasKey('reasoning', $request->data());
+                $this->assertArrayNotHasKey('stream', $request->data());
+                $this->assertArrayNotHasKey('require_parameters', $request['provider']);
+                $this->assertSame(['model', 'messages', 'max_tokens', 'provider'], array_keys($request->data()));
+                $prompt = $request['messages'][0]['content'];
+                $contract = json_decode(substr(strrchr($prompt, "\n"), 1), true, 32, JSON_THROW_ON_ERROR);
+                $this->assertSame(['title', 'description', 'expectedResult', 'questions', 'suggestedIdeas'], $contract['required']);
+                $this->assertFalse($contract['additionalProperties']);
+                $this->assertFalse($contract['properties']['suggestedIdeas']['items']['additionalProperties']);
+                $this->assertStringContainsString('Empty questions and suggestedIdeas must be JSON arrays []', $prompt);
+            } else {
+                $this->assertSame('json_schema', $request['response_format']['type']);
+                $this->assertTrue($request['response_format']['json_schema']['strict']);
+                $this->assertFalse($request['response_format']['json_schema']['schema']['additionalProperties']);
+            }
             $this->assertCount(2, $request['messages']);
             if (static::PROVIDER === 'zveno') {
                 $this->assertSame(6000, $request['max_tokens']);
                 $this->assertArrayNotHasKey('reasoning_effort', $request->data());
-                $this->assertTrue($request['provider']['require_parameters']);
+                if (static::OUTPUT_MODE === 'json_schema') {
+                    $this->assertTrue($request['provider']['require_parameters']);
+                }
                 $this->assertFalse($request['provider']['allow_fallbacks']);
                 $this->assertSame(['prompt' => 0, 'completion' => 0], $request['provider']['max_price']);
             } else {
