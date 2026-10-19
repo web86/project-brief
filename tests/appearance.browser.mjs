@@ -13,7 +13,10 @@ const server = await createServer({
   server: { host: '127.0.0.1', port: 5182, strictPort: true },
   logLevel: 'error',
 })
-const directory = new URL('../docs/milestone-4-2/', import.meta.url)
+const directory = new URL(
+  process.env.APPEARANCE_OUTPUT_DIR || '../docs/milestone-4-2/',
+  import.meta.url,
+)
 await mkdir(directory, { recursive: true })
 const results = []
 let browser, production

@@ -1,5 +1,6 @@
 <script setup>
-import PushControls from './components/PushControls.vue'
+import ResponsivePushControls from './components/ResponsivePushControls.vue'
+import MobilePushFooter from './components/MobilePushFooter.vue'
 import ToastViewport from './components/ToastViewport.vue'
 import { toast } from './services/toast.js'
 import { confirmDeveloperLeave } from './utils/developerEditor.js'
@@ -88,15 +89,18 @@ watch(
           class="brand"
           :aria-label="t('ui.projectBriefOpenTheProject')"
           ><span class="brand-mark">p<span class="brand-dot">.</span></span
-          ><span>project<span class="brand-light">brief</span></span></RouterLink
+          ><span class="brand-wordmark"
+            >project<span class="brand-light">brief</span></span
+          ></RouterLink
         ><ModeSwitcher v-if="!store.apiMode" />
         <span v-else-if="store.currentClient" class="current-client-name">{{
           store.currentClient.name
         }}</span>
-        <PushControls
+        <ResponsivePushControls
           v-if="store.apiMode && (store.admin || store.currentClient)"
           :key="store.admin ? 'admin:' + store.admin.email : 'client:' + store.currentClient.id"
           :persona="store.admin ? 'admin' : 'client'"
+          footer="#client-push-footer"
         />
         <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
       </div>
@@ -122,6 +126,10 @@ watch(
         </button>
       </div>
       <main id="main-content" tabindex="-1"><RouterView /></main>
+      <MobilePushFooter
+        v-if="store.apiMode && (store.admin || store.currentClient)"
+        id="client-push-footer"
+      />
     </div>
   </div>
   <ToastViewport />

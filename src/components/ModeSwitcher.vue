@@ -15,6 +15,7 @@ function switchMode(mode) {
 <template>
   <div class="mode-switch" role="group" :aria-label="t('ui.viewMode')">
     <button
+      :aria-label="t('ui.clientMode')"
       :class="{ active: !store.isDeveloper }"
       :aria-pressed="!store.isDeveloper"
       @click="switchMode('client')"
@@ -22,6 +23,7 @@ function switchMode(mode) {
       <AppIcon name="user" :size="15" /><span>{{ t('ui.clientMode') }}</span>
     </button>
     <button
+      :aria-label="t('ui.developerMode')"
       :class="{ active: store.isDeveloper }"
       :aria-pressed="store.isDeveloper"
       @click="switchMode('developer')"

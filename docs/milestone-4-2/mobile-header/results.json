@@ -1,0 +1,9 @@
+{
+  "passed": 4,
+  "results": [
+    "Single-row 320/360/390px portrait and 640px landscape: client/admin/login, long names, RU/EN, light/dark, 44px icon controls, keyboard focus and drawer",
+    "Client/admin Push default/granted/denied, one live component across resizes, preserved modal and state, no duplicate status/subscriptions and permission only after explicit Enable",
+    "Push error/retry state remains available in the mobile footer without requesting permission",
+    "Desktop client/admin/login match 86ea458 geometry and rendered pixels (two RGB levels of antialiasing tolerance) in light/dark; original Push position and native selects preserved"
+  ]
+}

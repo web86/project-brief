@@ -118,6 +118,7 @@ export default {
   notifications: {
     title: 'Notifications',
     push: 'Push notifications',
+    configure: 'Configure',
     enable: 'Enable push notifications',
     disable: 'Disable on this device',
     deviceHint:

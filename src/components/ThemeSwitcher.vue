@@ -6,7 +6,7 @@ import AppIcon from './AppIcon.vue'
 const { mode, resolved } = theme
 </script>
 <template>
-  <label class="theme-switcher">
+  <label class="theme-switcher" :title="`${t('appearance.theme')}: ${t(`appearance.${mode}`)}`">
     <AppIcon :name="resolved === 'dark' ? 'moon' : 'sun'" :size="18" />
     <span class="sr-only">{{ t('appearance.theme') }}</span>
     <select :value="mode" @change="theme.select($event.target.value)">

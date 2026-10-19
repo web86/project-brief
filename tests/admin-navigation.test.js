@@ -402,6 +402,37 @@ test('client and login pages remain outside authenticated shell', async () => {
   }
 })
 
+test('authenticated shells render one Push control and its mobile footer outlet', async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'document')
+  globalThis.document = { title: '', documentElement: {}, getElementById: () => null }
+  try {
+    const { request } = backend()
+    const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
+    await router.push('/admin')
+    const nav = navStore()
+    const admin = await renderToString(createSSRApp(App).use(nav._p).use(router).use(i18n))
+    assert.equal((admin.match(/class="text-button push-trigger"/g) || []).length, 1)
+    assert.match(admin, /id="admin-push-footer"/)
+    assert.ok(admin.indexOf('id="admin-push-footer"') > admin.indexOf('</main>'))
+
+    await router.push('/admin/login')
+    const store = projectStore()
+    store.admin = null
+    store.currentClient = null
+    const guest = await renderToString(createSSRApp(App).use(nav._p).use(router).use(i18n))
+    assert.equal(guest.includes('push-trigger'), false)
+    assert.equal(guest.includes('id="client-push-footer"'), false)
+    store.currentClient = { id: 'client', name: 'Client' }
+    const client = await renderToString(createSSRApp(App).use(nav._p).use(router).use(i18n))
+    assert.equal((client.match(/class="text-button push-trigger"/g) || []).length, 1)
+    assert.match(client, /id="client-push-footer"/)
+    assert.ok(client.indexOf('id="client-push-footer"') > client.indexOf('</main>'))
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'document', previous)
+    else delete globalThis.document
+  }
+})
+
 test('mobile native drawer opens, closes on Escape/backdrop and restores trigger focus; route change closes it', async () => {
   const actions = [],
     dialog = { showModal: () => actions.push('open'), close: () => actions.push('close') },

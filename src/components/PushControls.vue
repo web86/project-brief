@@ -7,6 +7,7 @@ import { createPushEnrollment } from '../services/pushEnrollment.js'
 import { toast } from '../services/toast.js'
 import BaseDialog from './BaseDialog.vue'
 import PushDevicePanel from './PushDevicePanel.vue'
+import AppIcon from './AppIcon.vue'
 const props = defineProps({ persona: { type: String, required: true } })
 const open = ref(false)
 const state = ref('loading')
@@ -27,21 +28,25 @@ onUnmounted(enrollment.dispose)
 </script>
 <template>
   <button type="button" class="text-button push-trigger" @click="open = true">
-    {{ t('notifications.push') }}
+    <AppIcon name="bell" :size="18" class="push-mobile-icon" />
+    <span>{{ t('notifications.push') }}</span>
+    <span class="push-mobile-action">{{ t('notifications.configure') }}</span>
   </button>
-  <BaseDialog
-    :open="open"
-    :title="t('notifications.push')"
-    id="push-settings-title"
-    @close="open = false"
-  >
-    <PushDevicePanel
-      :state="state"
-      :busy="busy"
-      :error="error"
-      @enable="enrollment.enable"
-      @disable="enrollment.disable"
-      @retry="enrollment.retry"
-    />
-  </BaseDialog>
+  <Teleport to="body" defer>
+    <BaseDialog
+      :open="open"
+      :title="t('notifications.push')"
+      id="push-settings-title"
+      @close="open = false"
+    >
+      <PushDevicePanel
+        :state="state"
+        :busy="busy"
+        :error="error"
+        @enable="enrollment.enable"
+        @disable="enrollment.disable"
+        @retry="enrollment.retry"
+      />
+    </BaseDialog>
+  </Teleport>
 </template>

@@ -10,7 +10,8 @@ import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t, formatApiError } from '../i18n/index.js'
 import AdminSidebar from '../components/AdminSidebar.vue'
 import AppIcon from '../components/AppIcon.vue'
-import PushControls from '../components/PushControls.vue'
+import ResponsivePushControls from '../components/ResponsivePushControls.vue'
+import MobilePushFooter from '../components/MobilePushFooter.vue'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 const route = useRoute(),
@@ -85,9 +86,21 @@ async function logout() {
         >
           <AppIcon name="menu" />
         </button>
+        <RouterLink
+          to="/admin"
+          class="brand mobile-toolbar-brand"
+          :aria-label="t('ui.projectBriefOpenTheProject')"
+        >
+          <span class="brand-mark">p<span class="brand-dot">.</span></span>
+        </RouterLink>
         <span class="admin-toolbar-workspace">{{ nav.workspace?.name }}</span>
         <div class="admin-toolbar-controls">
-          <PushControls v-if="store.admin" :key="store.admin.email" persona="admin" />
+          <ResponsivePushControls
+            v-if="store.admin"
+            :key="store.admin.email"
+            persona="admin"
+            footer="#admin-push-footer"
+          />
           <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
         </div>
       </header>
@@ -108,6 +121,7 @@ async function logout() {
         <RouterView v-else-if="nav.ready" />
         <p v-else role="status">{{ t('nav.loading') }}</p>
       </main>
+      <MobilePushFooter v-if="store.admin" id="admin-push-footer" />
     </div>
     <dialog
       id="admin-drawer"

@@ -118,6 +118,7 @@ export default {
   notifications: {
     title: 'Уведомления',
     push: 'Push-уведомления',
+    configure: 'Настроить',
     enable: 'Включить push-уведомления',
     disable: 'Отключить на этом устройстве',
     deviceHint:
