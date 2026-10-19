@@ -15,7 +15,10 @@ export function createApiClient({
 } = {}) {
   let csrf = null
   let csrfRequest = null
-  async function request(path, { method = 'GET', body, responseType = 'json' } = {}) {
+  async function request(
+    path,
+    { method = 'GET', body, responseType = 'json', timeoutMs: requestTimeoutMs = timeoutMs } = {},
+  ) {
     if (method !== 'GET' && !csrf) {
       csrfRequest ||= request('/api/csrf')
         .then((data) => (csrf = data.token))
@@ -31,7 +34,7 @@ export function createApiClient({
     const hasFiles = multipart && [...body.values()].some((value) => value instanceof Blob)
     const timer = setTimeout(
       () => controller.abort(),
-      hasFiles || responseType === 'blob' ? Math.max(timeoutMs, 120000) : timeoutMs,
+      hasFiles || responseType === 'blob' ? Math.max(requestTimeoutMs, 120000) : requestTimeoutMs,
     )
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {

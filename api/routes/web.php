@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AiTaskAssistantController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\CommentController;
@@ -51,6 +52,7 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
+    Route::post('/ai/task-assistant', AiTaskAssistantController::class);
     Route::post('/export', ProjectExportController::class);
     Route::get('/activity', [ProjectActivityController::class, 'show']);
     Route::post('/activity/read', [ProjectActivityController::class, 'read']);
@@ -66,6 +68,7 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
 });
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
+    Route::post('/project/{project}/ai/task-assistant', AiTaskAssistantController::class);
     Route::get('/me', fn (Request $r) => response()->json(['id' => $r->attributes->get('project_client')->uuid, 'name' => $r->attributes->get('project_client')->name, 'email' => $r->attributes->get('project_client')->email, 'preferredLocale' => $r->attributes->get('project_client')->preferred_locale, 'project' => new ProjectResource($r->attributes->get('client_project'))]));
     Route::patch('/me/locale', [ClientLocaleController::class, 'update']);
     Route::get('/project', fn (Request $r) => new ProjectResource($r->attributes->get('client_project')));

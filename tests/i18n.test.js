@@ -44,7 +44,7 @@ test('RU and EN have exact key parity and all static translation references exis
       if (entry.isDirectory() && !['locales', 'data', 'assets'].includes(entry.name)) audit(path)
       else if (entry.isFile() && /\.(vue|js)$/.test(path)) {
         const text = readFileSync(path, 'utf8')
-        for (const match of text.matchAll(/\bt\(['"]((?:ui|common|counts|flow)\.[^'"]+)['"]/g))
+        for (const match of text.matchAll(/\bt\(['"]((?:ui|common|counts|flow|ai)\.[^'"]+)['"]/g))
           assert.ok(keys.has(match[1]), `${path}: missing ${match[1]}`)
       }
     }

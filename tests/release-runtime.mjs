@@ -16,7 +16,10 @@ let server
 // Never inherit developer DB/session settings into an isolated release test.
 const env = Object.fromEntries(
   Object.entries(process.env).filter(
-    ([key]) => !/^(APP_|DB_|DATABASE_|SESSION_|CACHE_|FRONTEND_|DEMO_|LOG_|QUEUE_|MAIL_)/.test(key),
+    ([key]) =>
+      !/^(APP_|DB_|DATABASE_|SESSION_|CACHE_|FRONTEND_|DEMO_|LOG_|QUEUE_|MAIL_|AI_|GROQ_|ZVENO_)/.test(
+        key,
+      ),
   ),
 )
 
@@ -37,6 +40,10 @@ try {
   const database = path.join(application, 'database/release-test.sqlite')
   await writeFile(database, '')
   const example = await readFile(path.join(application, '.env.production.example'), 'utf8')
+  assert.match(example, /^AI_ENABLED=false$/m)
+  for (const key of ['GROQ_API_KEY', 'ZVENO_API_KEY', 'AI_BRIDGE_SECRET']) {
+    assert.match(example, new RegExp(`^${key}=$`, 'm'))
+  }
   const localEnvironment = example
     .replace('DB_CONNECTION=mysql', 'DB_CONNECTION=sqlite')
     .replace('DB_DATABASE=specchina_breaf_tz', `DB_DATABASE="${database}"`)
