@@ -153,3 +153,96 @@ test('developer editor renders localized dirty state and explicit save for all p
     assert.ok(clean.includes(save))
   }
 })
+
+test('actual create and edit TaskForm apply AI text locally without saving or changing other fields', async () => {
+  const TaskForm = (await server.ssrLoadModule('/src/components/TaskForm.vue')).default
+  i18n.global.locale.value = 'en'
+  for (const editing of [false, true]) {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useProjectStore(pinia)
+    store.currentMode = 'client'
+    const task = editing ? store.findTask('demo-1') : undefined
+    const originalTasks = JSON.stringify(store.tasks)
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: TaskForm },
+        { path: '/task/:id', component: TaskForm },
+      ],
+    })
+    await router.push('/')
+    const instances = new Map()
+    const app = createSSRApp(TaskForm, { task }).use(pinia).use(router).use(i18n)
+    app.mixin({
+      created() {
+        instances.set(this.$options.__name, this.$)
+      },
+    })
+    const html = await renderToString(app)
+    const form = instances.get('TaskForm').setupState
+    const assistant = instances.get('AiTaskAssistant').setupState
+    const originalLocation = form.location
+    const originalPriority = form.priority
+    const originalAttachments = [...form.attachments]
+    let saves = 0
+    store.addTask = store.updateTask = async () => {
+      saves++
+      return true
+    }
+    assistant.open = true
+    assistant.response = {
+      title: '<script>alert(1)</script>',
+      description: 'AI description',
+      expectedResult: 'AI result',
+      questions: [],
+      suggestedIdeas: [],
+    }
+    assistant.draft = {
+      title: 'Reviewed title',
+      description: 'Reviewed description',
+      expectedResult: 'Reviewed result',
+    }
+
+    assert.equal(assistant.applyResult(), true)
+    assert.equal(form.title, 'Reviewed title')
+    assert.equal(form.description, 'Reviewed description')
+    assert.equal(form.expectedResult, 'Reviewed result')
+    assert.equal(form.location, originalLocation)
+    assert.equal(form.priority, originalPriority)
+    assert.deepEqual(form.attachments, originalAttachments)
+    assert.equal(saves, 0)
+    assert.equal(JSON.stringify(store.tasks), originalTasks)
+    assert.equal(assistant.open, false)
+    assert.ok(html.includes('AI is unavailable in the local demo'))
+  }
+})
+
+test('actual AI dialog escapes model text in editable fields, questions and split suggestions', async () => {
+  const AiTaskAssistant = (await server.ssrLoadModule('/src/components/AiTaskAssistant.vue'))
+    .default
+  const hostile = '<script>alert(1)</script>'
+  const task = { title: hostile, description: hostile, expectedResult: hostile }
+  const app = createSSRApp(AiTaskAssistant, {
+    source: { title: 'Task', description: 'Brief', expectedResult: '' },
+    context: { apiMode: true, projectId: 'project', isDeveloper: false },
+  }).use(i18n)
+  app.mixin({
+    created() {
+      if (this.$options.__name === 'AiTaskAssistant') {
+        Object.assign(this.$.setupState, {
+          open: true,
+          draft: task,
+          response: { ...task, questions: [hostile], suggestedIdeas: [task] },
+        })
+      }
+    },
+  })
+
+  const html = await renderToString(app)
+
+  assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'))
+  assert.ok(html.includes('Clarifying questions'))
+  assert.ok(html.includes('Consider splitting into separate tasks'))
+  assert.ok(!html.includes(hostile))
+})

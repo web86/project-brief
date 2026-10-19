@@ -1,4 +1,36 @@
 export default {
+  ai: {
+    improve: 'Improve with AI',
+    title: 'AI suggestion',
+    disclosure:
+      'When you click “Send to Groq”, the title, description, expected result, section and location from this form will be sent to the external AI provider Groq. Remove personal and confidential information from these fields before sending.',
+    demo: 'AI is unavailable in the local demo. No text is sent. Generation requires API mode with Groq configured.',
+    generating:
+      'AI is preparing a suggestion… You can close this dialog: your draft will stay in the form.',
+    sourceChanged:
+      'The source text or project has changed. This suggestion cannot be applied. Close this dialog and start AI again for the current draft.',
+    review:
+      'Review and edit the text as needed. Apply replaces only the form fields. Save the task using the regular form button after reviewing.',
+    taskTitle: 'Task title',
+    description: 'Description',
+    expectedResult: 'Expected result',
+    questions: 'Clarifying questions',
+    split: 'Consider splitting into separate tasks',
+    splitNote: 'These are suggestions for discussion. No new tasks are created automatically.',
+    send: 'Send to Groq',
+    apply: 'Apply',
+    errors: {
+      ai_disabled: 'AI is disabled or the Groq key is not configured. Contact your administrator.',
+      ai_demo: 'AI is unavailable in the local demo. No text is sent.',
+      ai_timeout: 'Groq did not respond in time. Your draft is still in the form. Try again later.',
+      ai_unavailable: 'Groq is unavailable. Try again later or contact your administrator.',
+      ai_invalid_response:
+        'AI returned an invalid suggestion. Your form has not changed. Try again.',
+      ai_provider_limit: 'The Groq request limit has been reached. Try again later.',
+      ai_rate_limit: 'Too many AI requests in this workspace. Please wait a minute.',
+      ai_daily_limit: 'The workspace daily AI limit has been reached. It resets at 00:00 UTC.',
+    },
+  },
   export: {
     done: 'Completed tasks only',
     documentTitle: 'Document title',

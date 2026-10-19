@@ -26,6 +26,25 @@ const detailLocation = ref(
 )
 const description = ref(props.task?.description || '')
 const expectedResult = ref(props.task?.expectedResult || '')
+const aiSource = computed(() => ({
+  title: title.value,
+  description: description.value,
+  expectedResult: expectedResult.value,
+  section: location.value,
+  location: detailLocation.value || location.value,
+}))
+const aiContext = computed(() => ({
+  apiMode: store.apiMode,
+  projectId: store.project.id,
+  isDeveloper: store.isDeveloper,
+  taskId: props.task?.id || null,
+}))
+function applyAiSuggestion(values) {
+  if (saving.value) return
+  title.value = values.title
+  description.value = values.description
+  expectedResult.value = values.expectedResult
+}
 const priority = ref(props.task?.priority || 'normal')
 const attachments = ref([])
 const processingFiles = ref(false)
@@ -131,7 +150,12 @@ async function submit() {
       <div class="field-label-row">
         <label for="idea-description"
           >{{ t('ui.tellUsMore') }} <span class="required-dot" aria-hidden="true">*</span></label
-        ><AiTaskAssistant :description="description" />
+        ><AiTaskAssistant
+          :source="aiSource"
+          :context="aiContext"
+          :disabled="saving"
+          @apply="applyAiSuggestion"
+        />
       </div>
       <textarea
         id="idea-description"

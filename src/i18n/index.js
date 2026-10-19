@@ -108,6 +108,8 @@ export function formatCurrency(value, project) {
 export function formatApiError(error) {
   if (!error) return ''
   if (typeof error === 'string') return error
+  if (Object.hasOwn(i18n.global.messages.value.en.ai.errors, error.code))
+    return t(`ai.errors.${error.code}`)
   if (error.code === 'timeout') return t('flow.requestTimeout')
   if (error.code === 'invalid_credentials') return t('flow.invalidCredentials')
   if (error.messageKey) return t(error.messageKey, error.params || {})
