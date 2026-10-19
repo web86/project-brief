@@ -250,7 +250,7 @@ Unread counts must be independent for each team member.
 
 # Milestone 3.5 — Project export and large-project UX
 
-Status: **implemented, 19 October 2026**. See [export architecture, privacy, collapse preferences and verification](milestone-3.5.md).
+Status: **implemented and fully verified, 19 October 2026**. See [export architecture, privacy, collapse preferences and verification](milestone-3.5.md).
 
 - Manager-only PDF/DOCX specification export inside the existing project shell.
 - Existing ProjectAccess tenant/project authorization, with no client export access.
@@ -382,6 +382,6 @@ Do not mix Milestone 4 authentication changes into Milestones 1–3.
 
 ## Current next step
 
-**Milestones 1–3.5 are implemented** on `feature/saas-foundation`. Milestone 3.5 adds project export and collapsible sections while preserving explicit editing, notifications, tenant boundaries, navigation and personal unread state.
+**Milestones 1–3.5 are complete** on `feature/saas-foundation`. Milestone 3.5 adds project export and collapsible sections while preserving explicit editing, notifications, tenant boundaries, navigation and personal unread state.
 
 Milestone 4 requires a separate implementation request. Public registration, password reset, email verification, team invitations/management, profile editing and billing remain unimplemented.

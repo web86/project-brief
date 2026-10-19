@@ -178,8 +178,68 @@ loading/marking behavior is retained.
 
 ## Verification
 
-The final checkpoint below records exact commands, suite totals, compatibility,
-rendering and release archive details after release verification.
+| Check                                        | Result                                                                                                     |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `npm test`                                   | PASS — 113 tests (106 existing + 7 export/collapse tests)                                                  |
+| `npm run build`                              | PASS — production Vite build                                                                               |
+| `npm run format:check`                       | PASS — Prettier                                                                                            |
+| `php artisan test` / PHP 8.5.10 + SQLite     | PASS — 176 tests, 2,300 assertions                                                                         |
+| Full PHP 8.5.10 + MariaDB 11.8 suite         | PASS — 176 tests, 2,300 assertions                                                                         |
+| Full PHP 8.4.26 + MariaDB 11.8 suite         | PASS — 176 tests, 2,300 assertions                                                                         |
+| `vendor/bin/pint --dirty --format agent`     | PASS                                                                                                       |
+| `./bin/build-release`                        | PASS — 7,762 packaged files, production dependencies, checksums, ZIP and disposable runtime                |
+| Desktop 1440px / mobile 390px browser checks | PASS — downloads, native keyboard collapse, persistence, deep links, no horizontal overflow or page errors |
+| RU/EN document QA                            | PASS — real endpoint samples, text extraction and all PDF/DOCX page images reviewed                        |
+
+The six new backend feature tests add 283 assertions covering owner/assigned-admin
+access, unassigned/foreign/client denial, guessed representations, both scopes,
+empty sections and empty all/approved results, canonical numbering/order, omitted
+and enabled fields, all status/priority translations, user text, strict input
+validation, safe filenames, correct MIME/disposition, ZIP/XML structure, escaped
+markup, PDF signature/embedded Unicode font, private-data exclusion and temporary
+DOCX cleanup. Actual synthetic comments, history, token hashes, attachment paths,
+Push endpoints and foreign tasks are excluded from the shared/PDF source and DOCX.
+No unstable binary snapshots are used.
+
+Seven new frontend tests exercise the real Vue templates, router/store and CSRF
+API client: manager-only route/tab and summary-only loading, RU/EN default controls,
+request payload, pending duplicate guard, binary filename handling, API/empty-scope
+feedback, independent collapse and persistence, rename/reorder/project isolation,
+corrupt/unavailable localStorage and client/admin brief/task behavior. Browser
+verification additionally activates native buttons with Enter/Space on desktop
+and mobile, reloads collapsed sections, opens both personas' deep links, downloads
+both formats in both languages, checks control dimensions and examines responsive
+page screenshots. Project navigation wraps so the last tab remains visible.
+
+Real RU/EN PDF text extraction confirms Cyrillic user text, localized labels and
+absence of private notes. RU/EN DOCX files render through the bundled QA-only
+LibreOffice; every page image is reviewed, with no missing glyphs, clipping or
+orphaned final status page after compact metadata layout. This QA tool is never
+called by the application or release runtime.
+
+MariaDB checks use a newly created disposable container with synthetic credentials;
+the PHP 8.4.26 image derives from the existing verification image with GD added.
+The copied source excludes real environments and credentials. Initial isolated-run
+setup errors (missing synthetic APP_KEY/example files) were corrected before the
+clean full passes above. Existing databases were never migrated, reset or removed.
+No external SMTP/Push delivery was attempted.
+
+## Release checkpoint
+
+- Implementation and archive source commit: `f693156065c23cb6793cc5dfc3a69f8074e499c5`.
+- Local archive: `release/project-brief-20261019-120543-f693156.zip` (ignored, about 14 MiB).
+- The release build reran all 113 frontend tests and 176 PHP tests (2,300 SQLite
+  assertions), rebuilt the frontend, installed production-only Composer dependencies,
+  checked platform requirements, validated 7,762 files, verified checksums/ZIP and
+  passed the disposable packaged runtime, including the new export HTTP checks.
+- The packaged runtime preserves all previous split HOME, CLI/install/key,
+  migration/tenant, CSRF/session/client, unread, route/assets and maintenance checks.
+- This final documentation checkpoint changes documentation only; application code
+  remains identical to the verified archive source commit. The final documentation
+  commit identifier is reported in the completion message.
+- Disposable preview processes, MariaDB container and custom PHP test image are
+  removed after verification. Existing local services/images are retained.
+- No production deployment or remote push. Final committed working tree is clean.
 
 ## Changed files
 
