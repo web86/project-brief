@@ -10,7 +10,8 @@
     "test": "node --test tests/*.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "api:dev": "cd api && PHP_INI_SCAN_DIR=:$PWD/dev-php php artisan serve --host=127.0.0.1 --port=8000 --quiet"
+    "api:dev": "cd api && PHP_INI_SCAN_DIR=:$PWD/dev-php php artisan serve --host=127.0.0.1 --port=8000 --quiet",
+    "test:appearance": "node tests/appearance.browser.mjs"
   },
   "dependencies": {
     "pinia": "^3.0.3",

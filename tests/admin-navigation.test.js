@@ -50,6 +50,59 @@ beforeEach(() => {
   setActivePinia(createPinia())
   toast.clear()
 })
+test('native language select uses the shared native-name catalog and persists only the current client locale', async () => {
+  const { default: Switcher } = await server.ssrLoadModule('/src/components/LanguageSwitcher.vue')
+  const localization = await server.ssrLoadModule('/src/i18n/index.js')
+  const previousStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const previousRequest = api.request
+  const values = new Map()
+  const calls = []
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+    },
+  })
+  api.request = async (path, options) => {
+    calls.push({ path, ...options })
+    return { preferredLocale: options.body.locale }
+  }
+  try {
+    const store = projectStore()
+    store.currentClient = { id: 'current-client', preferredLocale: 'ru' }
+    const snapshot = JSON.stringify({ project: store.project, tasks: store.tasks })
+    for (const language of ['ru', 'en']) {
+      localization.setManualLocale(language)
+      const html = await renderToString(createSSRApp(Switcher).use(createPinia()).use(i18n))
+      assert.match(html, /<select\b/)
+      assert.match(html, /value="ru" lang="ru">Русский<\/option>/)
+      assert.match(html, /value="en" lang="en">English<\/option>/)
+      assert.equal(html.includes('<button'), false)
+    }
+    await Promise.all([store.selectLocale('en'), store.selectLocale('ru')])
+    assert.deepEqual(
+      calls.map(({ path, method, body }) => ({ path, method, body })),
+      [
+        { path: '/api/client/me/locale', method: 'PATCH', body: { locale: 'en' } },
+        { path: '/api/client/me/locale', method: 'PATCH', body: { locale: 'ru' } },
+      ],
+    )
+    assert.equal(store.currentClient.preferredLocale, 'ru')
+    assert.equal(values.get('projectbrief.locale'), 'ru')
+    assert.equal(JSON.stringify({ project: store.project, tasks: store.tasks }), snapshot)
+    await store.selectLocale('de')
+    assert.equal(calls.length, 2)
+    store.admin = { name: 'Admin' }
+    await store.selectLocale('en')
+    assert.equal(calls.length, 2, 'admin selection must not update a client')
+    assert.equal(values.get('projectbrief.locale'), 'en')
+  } finally {
+    api.request = previousRequest
+    if (previousStorage) Object.defineProperty(globalThis, 'localStorage', previousStorage)
+    else delete globalThis.localStorage
+  }
+})
 const uuid = '11111111-1111-4111-8111-111111111111'
 const task = {
   id: 'task',

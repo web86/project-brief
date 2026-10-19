@@ -5,6 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#246c43" />
+    <script id="theme-bootstrap">
+      ;(() => {
+        let mode = 'system'
+        try {
+          const stored = localStorage.getItem('projectbrief.theme')
+          if (['light', 'dark', 'system'].includes(stored)) mode = stored
+        } catch {}
+        const theme =
+          mode === 'system'
+            ? matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+            : mode
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', theme === 'dark' ? '#15191f' : '#246c43')
+      })()
+    </script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta
       name="description"
@@ -13,10 +33,18 @@
     <title>Project Brief — идеи для вашего сайта</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <style>
+      :root {
+        --bootstrap-bg: #246c43;
+        color-scheme: light;
+      }
+      :root[data-theme='dark'] {
+        --bootstrap-bg: #15191f;
+        color-scheme: dark;
+      }
       html,
       body {
         margin: 0;
-        background: #246c43;
+        background: var(--bootstrap-bg);
       }
       #bootstrap-splash {
         position: fixed;
@@ -28,7 +56,7 @@
         gap: 20px;
         padding: 24px;
         color: white;
-        background: #246c43;
+        background: var(--bootstrap-bg);
         font-family: system-ui, sans-serif;
         text-align: center;
         transition: opacity 0.18s ease;

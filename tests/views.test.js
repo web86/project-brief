@@ -242,7 +242,92 @@ test('actual AI dialog escapes model text in editable fields, questions and spli
   const html = await renderToString(app)
 
   assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'))
-  assert.ok(html.includes('Clarifying questions'))
-  assert.ok(html.includes('Consider splitting into separate tasks'))
+  assert.ok(html.includes('What else should we clarify?'))
+  assert.ok(html.includes('This idea might work better as separate tasks'))
   assert.ok(!html.includes(hostile))
+})
+
+test('AI trigger guards empty descriptions, saving and pending without requiring other fields', async () => {
+  const AiTaskAssistant = (await server.ssrLoadModule('/src/components/AiTaskAssistant.vue'))
+    .default
+  const service = (await server.ssrLoadModule('/src/services/ideaAssistant.js')).ideaAssistant
+  const original = service.help
+  let requests = 0
+  service.help = async () => {
+    requests++
+    throw new Error('unexpected request')
+  }
+  try {
+    for (const [source, disabled, pending, allowed] of [
+      [{ title: 'Title', description: '  ', expectedResult: 'Result' }, false, false, false],
+      [{ description: 'Only a description' }, false, false, true],
+      [{ description: 'Description' }, true, false, false],
+      [{ description: 'Description' }, false, true, false],
+    ]) {
+      let setup
+      const app = createSSRApp(AiTaskAssistant, {
+        source,
+        disabled,
+        context: { apiMode: true, projectId: 'project' },
+      }).use(i18n)
+      app.mixin({
+        created() {
+          if (this.$options.__name === 'AiTaskAssistant') setup = this.$.setupState
+        },
+      })
+      const html = await renderToString(app)
+      setup.pending = pending
+      setup.openAssistant()
+      assert.equal(setup.open, allowed)
+      assert.equal(requests, 0)
+      if (!allowed) {
+        setup.requestSuggestion()
+        assert.equal(requests, 0)
+      }
+      if (!source.description.trim()) {
+        assert.match(html, /aria-disabled="true"/)
+        assert.match(html, /aria-describedby="[^"]+"/)
+        assert.ok(html.includes('Describe your idea first'))
+        assert.equal(/class="ai-button" disabled/.test(html), false)
+      }
+      setup.dispose()
+    }
+  } finally {
+    service.help = original
+  }
+})
+
+test('AI ready view explains manual application and an empty expected result in both locales', async () => {
+  const AiTaskAssistant = (await server.ssrLoadModule('/src/components/AiTaskAssistant.vue'))
+    .default
+  for (const language of ['ru', 'en']) {
+    i18n.global.locale.value = language
+    const task = { title: 'Title', description: 'Description', expectedResult: '' }
+    const app = createSSRApp(AiTaskAssistant, {
+      source: task,
+      context: { apiMode: true, projectId: 'project' },
+    }).use(i18n)
+    app.mixin({
+      created() {
+        if (this.$options.__name === 'AiTaskAssistant')
+          Object.assign(this.$.setupState, {
+            open: true,
+            draft: task,
+            response: { ...task, questions: ['Question'], suggestedIdeas: [] },
+          })
+      },
+    })
+    const html = await renderToString(app)
+    for (const key of [
+      'ready',
+      'review',
+      'questions',
+      'questionsNote',
+      'emptyResult',
+      'saveReminder',
+      'close',
+      'apply',
+    ])
+      assert.ok(html.includes(i18n.global.t('ai.' + key)), key)
+  }
 })

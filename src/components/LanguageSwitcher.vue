@@ -1,19 +1,20 @@
 <script setup>
-import { locale, t, SUPPORTED_LOCALES } from '../i18n/index.js'
+import { locale, t, LANGUAGE_CATALOG } from '../i18n/index.js'
 import { useProjectStore } from '../stores/project.js'
 const store = useProjectStore()
 </script>
 <template>
-  <div class="language-switcher" role="group" :aria-label="t('flow.language')">
-    <button
-      v-for="language in SUPPORTED_LOCALES"
-      :key="language"
-      type="button"
-      :aria-pressed="locale === language"
-      :class="{ active: locale === language }"
-      @click="store.selectLocale(language)"
-    >
-      {{ language.toUpperCase() }}
-    </button>
-  </div>
+  <label class="language-switcher">
+    <span class="sr-only">{{ t('flow.language') }}</span>
+    <select :value="locale" @change="store.selectLocale($event.target.value)">
+      <option
+        v-for="language in LANGUAGE_CATALOG"
+        :key="language.code"
+        :value="language.code"
+        :lang="language.code"
+      >
+        {{ language.name }}
+      </option>
+    </select>
+  </label>
 </template>

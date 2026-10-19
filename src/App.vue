@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from './stores/adminNavigation.js'
 import { useProjectStore } from './stores/project'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
+import ThemeSwitcher from './components/ThemeSwitcher.vue'
 import LoadingOverlay from './components/LoadingOverlay.vue'
 import ModeSwitcher from './components/ModeSwitcher.vue'
 import { api } from './api/client'
@@ -97,7 +98,7 @@ watch(
           :key="store.admin ? 'admin:' + store.admin.email : 'client:' + store.currentClient.id"
           :persona="store.admin ? 'admin' : 'client'"
         />
-        <LanguageSwitcher />
+        <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
       </div>
     </header>
     <LoadingOverlay :active="store.apiLoading" />

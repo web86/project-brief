@@ -5,6 +5,9 @@ import ru from '../src/locales/ru.js'
 import en from '../src/locales/en.js'
 import {
   LOCALE_KEY,
+  LANGUAGE_CATALOG,
+  SUPPORTED_LOCALES,
+  INTL_LOCALES,
   resolveLocale,
   initializeLocale,
   setManualLocale,
@@ -76,6 +79,44 @@ test('client preference precedes browser without persisting detected locale', ()
   assert.equal(values.has(LOCALE_KEY), false)
   assert.equal(initializeLocale({ browser: { languages: ['tr'] }, preferred: 'ru' }), 'ru')
   assert.equal(initializeLocale({ browser: { languages: ['tr'] }, preferred: 'tr' }), 'en')
+})
+test('language catalog supplies native names, complete messages and Intl locales in sync with Laravel', () => {
+  assert.deepEqual(
+    LANGUAGE_CATALOG.map(({ code, name }) => [code, name]),
+    [
+      ['ru', 'Русский'],
+      ['en', 'English'],
+    ],
+  )
+  for (const language of LANGUAGE_CATALOG) {
+    assert.equal(INTL_LOCALES[language.code], language.intl)
+    assert.deepEqual(flatten(language.messages).sort(), flatten(en).sort())
+  }
+  const controller = readFileSync('api/app/Http/Controllers/ClientLocaleController.php', 'utf8')
+  const allowlist = [...controller.match(/Rule::in\(\[([^\]]+)\]/)[1].matchAll(/'([^']+)'/g)].map(
+    (match) => match[1],
+  )
+  assert.deepEqual(allowlist.sort(), [...SUPPORTED_LOCALES].sort())
+})
+test('unknown and corrupt locale choices fall back; blocked storage still allows live selection', () => {
+  for (const value of ['tr', '{broken', 'null', '__proto__']) {
+    values.set(LOCALE_KEY, value)
+    assert.equal(initializeLocale({ browser: { languages: ['de-DE'] } }), 'en')
+    assert.equal(initializeLocale({ preferred: 'ru', browser: { language: 'en' } }), 'ru')
+  }
+  assert.equal(resolveLocale({ languages: ['rubbish'] }), 'en')
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    get() {
+      throw new Error('SecurityError')
+    },
+  })
+  assert.equal(initializeLocale({ browser: { language: 'ru-RU' } }), 'ru')
+  setManualLocale('en')
+  assert.equal(locale.value, 'en')
+  assert.equal(document.documentElement.lang, 'en')
+  applyClientLocale('ru')
+  assert.equal(locale.value, 'en')
 })
 test('dates, currency, pluralization, errors and confirmation react to locale changes', () => {
   locale.value = 'ru'

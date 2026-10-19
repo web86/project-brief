@@ -1,37 +1,48 @@
 export default {
+  appearance: { theme: 'Color theme', light: 'Light', dark: 'Dark', system: 'System' },
   ai: {
     improve: 'Improve with AI',
-    title: 'AI suggestion',
+    describeFirst: 'Describe your idea first',
+    title: 'Let’s put your idea into words',
+    explanation:
+      'AI can make your task description clearer, suggest questions to clarify it, and help you decide whether a large task would work better as several smaller ones.',
+    instruction:
+      'Click the button below to get a suggestion. You can review and edit the text before applying it.',
     disclosure:
-      'When you click “Send to AI”, the title, description, expected result, section and location from this form will be sent to an external AI provider: Groq or ZvenoAI, as configured by your administrator. Free models may use the text for training. Remove personal and confidential information from these fields before sending.',
+      'Your idea text will be sent to an external AI service. Do not include personal or confidential information. Free models may use the text for training.',
+    dataUsage: 'How your data is used',
+    dataDetails:
+      'The title, description, expected result, section and location from this form will be sent. The app is configured to use Groq or ZvenoAI. Comments, attachments and technical notes are not sent.',
     demo: 'AI is unavailable in the local demo. No text is sent. Generation requires API mode with an AI provider configured.',
-    generating:
-      'AI is preparing a suggestion… You can close this dialog: your draft will stay in the form.',
+    generating: 'AI is improving your idea…',
     sourceChanged:
       'The source text or project has changed. This suggestion cannot be applied. Close this dialog and start AI again for the current draft.',
-    review:
-      'Review and edit the text as needed. Apply replaces only the form fields. Save the task using the regular form button after reviewing.',
+    ready: 'Ready! Review the suggestion',
+    review: 'You can edit any text. When you’re ready, click “Apply to task”.',
     taskTitle: 'Task title',
     description: 'Description',
     expectedResult: 'Expected result',
-    questions: 'Clarifying questions',
-    split: 'Consider splitting into separate tasks',
+    emptyResult: 'You can describe the result you want to achieve yourself.',
+    questions: 'What else should we clarify?',
+    questionsNote: 'Answering these questions will help make the task more precise.',
+    split: 'This idea might work better as separate tasks',
     splitNote: 'These are suggestions for discussion. No new tasks are created automatically.',
-    send: 'Send to AI',
-    apply: 'Apply',
+    saveReminder: 'Remember to save the task after applying.',
+    send: 'Improve description',
+    apply: 'Apply to task',
+    close: 'Close',
     errors: {
-      ai_disabled:
-        'AI is disabled or the selected AI provider key is not configured. Contact your administrator.',
+      ai_disabled: 'AI is currently unavailable. Please contact your administrator.',
       ai_demo: 'AI is unavailable in the local demo. No text is sent.',
       ai_timeout:
-        'The AI provider did not respond in time. Your draft is still in the form. Try again later.',
+        'AI could not prepare a suggestion in time. Your text is still in the form. Try again later.',
       ai_unavailable:
-        'The AI provider is unavailable. Try again later or contact your administrator.',
+        'We could not improve your idea right now. Your text is still in the form. Try again later.',
       ai_invalid_response:
         'AI returned an invalid suggestion. Your form has not changed. Try again.',
-      ai_provider_limit: 'The AI provider request limit has been reached. Try again later.',
-      ai_rate_limit: 'Too many AI requests in this workspace. Please wait a minute.',
-      ai_daily_limit: 'The workspace daily AI limit has been reached. It resets at 00:00 UTC.',
+      ai_provider_limit: 'AI is temporarily busy. Try again later.',
+      ai_rate_limit: 'Too many AI requests. Please wait a minute.',
+      ai_daily_limit: 'The daily AI limit has been reached. Please try again tomorrow.',
     },
   },
   export: {

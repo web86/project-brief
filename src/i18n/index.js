@@ -4,15 +4,24 @@ import ru from '../locales/ru.js'
 import en from '../locales/en.js'
 
 export const LOCALE_KEY = 'projectbrief.locale'
-export const SUPPORTED_LOCALES = ['ru', 'en']
-export const INTL_LOCALES = { ru: 'ru-RU', en: 'en-GB' }
+// Add only complete translations here and extend ClientLocaleController's allowlist together.
+// tests/i18n.test.js verifies that the frontend and server accept the same locale codes.
+export const LANGUAGE_CATALOG = [
+  { code: 'ru', name: 'Русский', intl: 'ru-RU', messages: ru },
+  { code: 'en', name: 'English', intl: 'en-GB', messages: en },
+]
+export const SUPPORTED_LOCALES = LANGUAGE_CATALOG.map(({ code }) => code)
+export const INTL_LOCALES = Object.fromEntries(
+  LANGUAGE_CATALOG.map(({ code, intl }) => [code, intl]),
+)
 export const intlLocale = () => INTL_LOCALES[i18n.global.locale.value] || INTL_LOCALES.en
 export function resolveLocale({ manual, preferred, languages, language } = {}) {
   if (SUPPORTED_LOCALES.includes(manual)) return manual
   if (SUPPORTED_LOCALES.includes(preferred)) return preferred
   const browserLanguage =
     languages?.find((value) => typeof value === 'string' && value.trim()) || language || 'en'
-  return /^ru/i.test(browserLanguage) ? 'ru' : 'en'
+  const code = browserLanguage.toLowerCase().split('-')[0]
+  return SUPPORTED_LOCALES.includes(code) ? code : 'en'
 }
 function storedChoice() {
   try {
@@ -31,7 +40,7 @@ export const i18n = createI18n({
     language: globalThis.navigator?.language,
   }),
   fallbackLocale: 'en',
-  messages: { ru, en },
+  messages: Object.fromEntries(LANGUAGE_CATALOG.map(({ code, messages }) => [code, messages])),
   pluralRules: {
     ru: (choice, length) => {
       const n = Math.abs(choice)
@@ -46,13 +55,9 @@ export const i18n = createI18n({
 })
 export const locale = i18n.global.locale
 export const t = (...args) => i18n.global.t(...args)
-export function initializeLocale({
-  storage = globalThis.localStorage,
-  browser = globalThis.navigator,
-  preferred,
-} = {}) {
+export function initializeLocale({ storage, browser = globalThis.navigator, preferred } = {}) {
   try {
-    manualChoice = storage?.getItem(LOCALE_KEY)
+    manualChoice = (storage === undefined ? globalThis.localStorage : storage)?.getItem(LOCALE_KEY)
   } catch {
     manualChoice = null
   }

@@ -380,7 +380,7 @@ test('manifest uses neutral entry and regular/maskable icons with the correct PN
 })
 test('HTML shell immediately displays a branded accessible loader and provides failure/reduced motion fallbacks', async (context) => {
   const html = await readFile('index.html', 'utf8')
-  assert.equal((html.match(/name="theme-color"/g) || []).length, 1)
+  assert.equal((html.match(/<meta name="theme-color"/g) || []).length, 1)
   assert.ok(html.includes('prefers-reduced-motion'))
   assert.match(html, /<noscript\b/)
   assert.ok(html.indexOf('id="bootstrap-splash"') < html.indexOf('src="/src/main.js"'))
@@ -408,7 +408,7 @@ test('HTML shell immediately displays a branded accessible loader and provides f
   elements.get('bootstrap-fallback').hidden = true
   elements.get('bootstrap-splash').querySelector = () => elements.get('spinner')
   const window = { addEventListener() {}, removeEventListener() {} }
-  const source = html.match(/<script>([\s\S]*?)<\/script>/)[1]
+  const source = html.match(/<body>[\s\S]*?<script>([\s\S]*?)<\/script>/)[1]
   vm.runInNewContext(source, {
     window,
     document: { getElementById: (id) => elements.get(id) },

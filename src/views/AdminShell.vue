@@ -12,6 +12,7 @@ import AdminSidebar from '../components/AdminSidebar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import PushControls from '../components/PushControls.vue'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 const route = useRoute(),
   router = useRouter(),
   nav = useAdminNavigationStore(),
@@ -86,11 +87,8 @@ async function logout() {
         </button>
         <span class="admin-toolbar-workspace">{{ nav.workspace?.name }}</span>
         <div class="admin-toolbar-controls">
-          <PushControls
-            v-if="store.admin"
-            :key="store.admin.email"
-            persona="admin"
-          /><LanguageSwitcher />
+          <PushControls v-if="store.admin" :key="store.admin.email" persona="admin" />
+          <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
         </div>
       </header>
       <main

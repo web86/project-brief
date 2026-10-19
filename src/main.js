@@ -4,6 +4,10 @@ import App from './App.vue'
 import { i18n } from './i18n/index.js'
 import router from './router'
 import './assets/main.css'
+import { theme } from './services/theme.js'
+
+theme.initialize()
+if (import.meta.hot) import.meta.hot.dispose(theme.dispose)
 
 async function start() {
   const app = createApp(App).use(createPinia()).use(i18n).use(router)
