@@ -64,7 +64,10 @@ $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFai
 $workspace = $owner->workspaceMembers()->active()->firstOrFail()->workspace;
 $project = $workspace->projects()->create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
 $section = $project->briefSections()->create(['name'=>'Главная', 'position'=>1]);
-$project->tasks()->create(['project_section_id'=>$section->id, 'position'=>1, 'title'=>'Кириллица: задача', 'description'=>'Описание проекта & результат', 'developer_notes'=>'PRIVATE_RELEASE_NOTE', 'client_approved'=>true]);
+$exportTask = $project->tasks()->create(['project_section_id'=>$section->id, 'position'=>1, 'title'=>'Кириллица: задача', 'description'=>'Описание проекта & результат', 'developer_notes'=>'PRIVATE_RELEASE_NOTE', 'client_approved'=>true, 'client_approved_at'=>'2026-10-18 12:00:00', 'estimate_hours'=>6, 'price'=>18000]);
+$exportTask->attachments()->create(['uploaded_by_type'=>'admin', 'original_name'=>'requirements.pdf', 'stored_name'=>'PRIVATE_STORED_NAME', 'disk'=>'local', 'path'=>'PRIVATE_STORAGE_PATH', 'mime_type'=>'application/pdf', 'size'=>1]);
+$exportSection = $project->briefSections()->create(['name'=>'Каталог', 'position'=>2]);
+$project->tasks()->create(['project_section_id'=>$exportSection->id, 'position'=>1, 'title'=>'Готовая задача', 'description'=>'Результат', 'status'=>'done', 'client_approved'=>true, 'estimate_hours'=>0]);
 $token = str_repeat('a', 64);
 $client = $project->clients()->create(['name'=>'Release client']);
 $project->accessTokens()->create(['project_client_id'=>$client->id, 'token_hash'=>hash('sha256', $token)]);
@@ -261,7 +264,14 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': workspaceCsrf.token,
       },
-      body: JSON.stringify({ format, scope: 'approved', locale: 'ru' }),
+      body: JSON.stringify({
+        format,
+        scope: 'approved',
+        locale: 'ru',
+        documentTitle: 'План работ',
+        pageBreakBySection: true,
+        fields: { estimateHours: true, price: true, attachments: true, approvalDate: true },
+      }),
     })
     assert.equal(exported.status, 200)
     assert.match(
@@ -288,7 +298,14 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
         docx,
       ])
       assert.match(xml, /Кириллица: задача/)
-      assert.match(xml, /ТЕХНИЧЕСКОЕ ЗАДАНИЕ/)
+      assert.match(xml, /План работ/)
+      assert.match(xml, /Общая оценка: 6 ч/)
+      assert.match(xml, /Общая стоимость: 18\u00a0000\u00a0₽/)
+      assert.match(xml, /Стоимость указана для 1 из 2 задач/)
+      assert.match(xml, /requirements.pdf/)
+      assert.match(xml, /18.10.2026/)
+      assert.match(xml, /SectionStart/)
+      assert.doesNotMatch(xml, /PRIVATE_STORED_NAME|PRIVATE_STORAGE_PATH/)
       assert.doesNotMatch(xml, /PRIVATE_RELEASE_NOTE/)
     }
     assert.equal(
@@ -306,6 +323,22 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       404,
     )
   }
+  const completedExport = await request('/api/admin/projects/' + fixture.project + '/export', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': workspaceCsrf.token,
+    },
+    body: JSON.stringify({ format: 'pdf', scope: 'done', locale: 'en' }),
+  })
+  assert.equal(completedExport.status, 200)
+  assert.equal(
+    Buffer.from(await completedExport.arrayBuffer())
+      .subarray(0, 5)
+      .toString(),
+    '%PDF-',
+  )
   const entered = await request(`/access/${'a'.repeat(64)}`)
   assert.equal(entered.status, 302)
   assert.equal(

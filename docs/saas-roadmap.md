@@ -254,7 +254,9 @@ Status: **implemented and fully verified, 19 October 2026**. See [export archite
 
 - Manager-only PDF/DOCX specification export inside the existing project shell.
 - Existing ProjectAccess tenant/project authorization, with no client export access.
-- Shared export data, canonical ordering/numbering, all/approved scopes and RU/EN system labels.
+- Shared export data, canonical ordering/numbering, all/approved/completed scopes and RU/EN system labels.
+- Compact document metadata, scoped totals/coverage and a final summary.
+- Custom title, optional filename list/approval dates and section page breaks.
 - Explicit optional estimate/price; developer notes and private records excluded.
 - Accessible collapsible brief sections for managers and clients with local preferences.
 - Production renderer/font resources and disposable runtime export checks.

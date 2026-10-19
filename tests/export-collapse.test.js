@@ -136,7 +136,7 @@ test('actual RU/EN export form defaults, every format/scope/language and optiona
       (output.match(/<input(?=[^>]*checked)(?=[^>]*type="checkbox")[^>]*>/g) || []).length,
       4,
     )
-    assert.equal((output.match(/type="checkbox"/g) || []).length, 6)
+    assert.equal((output.match(/type="checkbox"/g) || []).length, 9)
   }
 })
 
@@ -169,6 +169,7 @@ test('download submits current controls with loading guard, saves binary and pre
     state.language = 'ru'
     state.fields.estimateHours = true
     state.fields.price = true
+    state.documentTitle = 'План работ'
     const pending = state.download()
     assert.equal(state.pending, true)
     await state.download()
@@ -181,6 +182,8 @@ test('download submits current controls with loading guard, saves binary and pre
         format: 'docx',
         scope: 'approved',
         locale: 'ru',
+        documentTitle: 'План работ',
+        pageBreakBySection: false,
         fields: {
           description: true,
           expectedResult: true,
@@ -188,6 +191,8 @@ test('download submits current controls with loading guard, saves binary and pre
           status: true,
           estimateHours: true,
           price: true,
+          attachments: false,
+          approvalDate: false,
         },
       },
     })
@@ -334,5 +339,109 @@ test('client/admin brief share collapse with separate order controls; task deep 
       false,
       'native button handles Enter and Space',
     )
+  }
+})
+
+test('document title defaults follow document language until customized; optional controls default off', async () => {
+  managementFactory().adopt({ id: 'project' })
+  const { app, state } = mount(Export)
+  try {
+    assert.equal(state.documentTitle, 'Technical specification')
+    assert.equal(state.pageBreakBySection, false)
+    assert.equal(state.fields.attachments, false)
+    assert.equal(state.fields.approvalDate, false)
+    state.language = 'ru'
+    await nextTick()
+    assert.equal(state.documentTitle, 'Техническое задание')
+    state.documentTitle = 'Перечень доработок'
+    state.language = 'en'
+    await nextTick()
+    assert.equal(state.documentTitle, 'Перечень доработок')
+    state.documentTitle = ''
+    state.language = 'ru'
+    await nextTick()
+    assert.equal(state.documentTitle, 'Техническое задание')
+    for (const [language, labels, defaultTitle] of [
+      [
+        'en',
+        [
+          'Document title',
+          'Attachment list',
+          'Approval date',
+          'Start each section on a new page',
+          'Completed tasks only',
+        ],
+        'Technical specification',
+      ],
+      [
+        'ru',
+        [
+          'Заголовок документа',
+          'Список вложений',
+          'Дата согласования',
+          'Каждый раздел с новой страницы',
+          'Только готовые',
+        ],
+        'Техническое задание',
+      ],
+    ]) {
+      i18n.global.locale.value = language
+      const output = await html(Export)
+      for (const label of labels) assert.ok(output.includes(label), label)
+      assert.match(
+        output,
+        new RegExp(
+          `<input(?=[^>]*id="export-document-title")(?=[^>]*value="${defaultTitle}")(?=[^>]*maxlength="160")[^>]*>`,
+        ),
+      )
+      assert.match(output, /type="radio" value="done" name="scope"/)
+      assert.equal(output.includes('Show totals'), false)
+      assert.equal(output.includes('Показывать итоги'), false)
+    }
+  } finally {
+    app.unmount()
+  }
+})
+
+test('refined export payload trims custom title, supports completed scope and opts into each new field', async () => {
+  managementFactory().adopt({ id: 'project' })
+  const { app, state } = mount(Export)
+  const calls = []
+  api.request = async (path, options) => {
+    calls.push({ path, ...options })
+    throw { status: 422 }
+  }
+  try {
+    await state.download()
+    assert.equal(calls[0].body.documentTitle, 'Technical specification')
+    assert.equal(calls[0].body.pageBreakBySection, false)
+    assert.equal(calls[0].body.fields.attachments, false)
+    assert.equal(calls[0].body.fields.approvalDate, false)
+    assert.equal(calls[0].body.fields.estimateHours, false)
+    assert.equal(calls[0].body.fields.price, false)
+    assert.equal('totals' in calls[0].body, false)
+    state.documentTitle = '  Смета <работ> & план  '
+    state.scope = 'done'
+    state.format = 'pdf'
+    state.fields.attachments = true
+    state.fields.approvalDate = true
+    state.fields.estimateHours = true
+    state.fields.price = true
+    state.pageBreakBySection = true
+    state.language = 'ru'
+    await nextTick()
+    await state.download()
+    assert.equal(calls[1].body.documentTitle, 'Смета <работ> & план')
+    assert.equal(calls[1].body.format, 'pdf')
+    assert.equal(calls[1].body.scope, 'done')
+    assert.equal(calls[1].body.locale, 'ru')
+    assert.equal(calls[1].body.pageBreakBySection, true)
+    assert.equal(calls[1].body.fields.attachments, true)
+    assert.equal(calls[1].body.fields.approvalDate, true)
+    assert.equal(calls[1].body.fields.estimateHours, true)
+    assert.equal(calls[1].body.fields.price, true)
+    assert.equal('totals' in calls[1].body, false)
+  } finally {
+    app.unmount()
   }
 })

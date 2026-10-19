@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'TECHNICAL SPECIFICATION',
+    'title' => 'Technical specification',
     'project' => 'Project',
     'website' => 'Website',
     'generated' => 'Generated',
@@ -12,9 +12,18 @@ return [
     'status' => 'Status',
     'estimateHours' => 'Estimate',
     'price' => 'Price',
-    'hours' => 'hours',
+    'hours' => 'h',
     'unknown' => 'Unspecified',
     'empty' => 'No tasks for the selected export option.',
+    'attachments' => 'Attachments',
+    'approvedOn' => 'Approved by client',
+    'summary' => 'SUMMARY',
+    'taskCount' => 'Tasks',
+    'approvedCount' => 'Approved',
+    'estimateHoursTotal' => 'Total estimate',
+    'priceTotal' => 'Total price',
+    'estimateHoursCoverage' => 'Estimate provided for :provided of :total task|Estimate provided for :provided of :total tasks',
+    'priceCoverage' => 'Price provided for :provided of :total task|Price provided for :provided of :total tasks',
     'statuses' => [
         'new' => 'New idea',
         'clarification' => 'Needs clarification',

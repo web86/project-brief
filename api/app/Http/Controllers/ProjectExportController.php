@@ -15,7 +15,10 @@ class ProjectExportController extends Controller
     public function __invoke(ProjectExportRequest $request, Project $project, ProjectExportData $builder): StreamedResponse
     {
         $options = $request->validated();
-        $document = $builder->build($project, $options['scope'], $options['locale'], $options['fields'] ?? []);
+        $document = $builder->build($project, $options['scope'], $options['locale'], $options['fields'] ?? [], [
+            'documentTitle' => $options['documentTitle'] ?? null,
+            'pageBreakBySection' => $options['pageBreakBySection'] ?? false,
+        ]);
         $format = $options['format'];
         $bytes = $format === 'pdf' ? app(PdfProjectExporter::class)->render($document) : app(DocxProjectExporter::class)->render($document);
         $slug = substr(Str::slug($project->title), 0, 100) ?: 'project';

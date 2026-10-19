@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'ТЕХНИЧЕСКОЕ ЗАДАНИЕ',
+    'title' => 'Техническое задание',
     'project' => 'Проект',
     'website' => 'Сайт',
     'generated' => 'Сформировано',
@@ -12,9 +12,18 @@ return [
     'status' => 'Статус',
     'estimateHours' => 'Оценка',
     'price' => 'Стоимость',
-    'hours' => 'ч.',
+    'hours' => 'ч',
     'unknown' => 'Не указан',
     'empty' => 'Нет задач для выбранного варианта экспорта.',
+    'attachments' => 'Вложения',
+    'approvedOn' => 'Согласовано клиентом',
+    'summary' => 'ИТОГО',
+    'taskCount' => 'Задач',
+    'approvedCount' => 'Согласовано',
+    'estimateHoursTotal' => 'Общая оценка',
+    'priceTotal' => 'Общая стоимость',
+    'estimateHoursCoverage' => 'Оценка указана для :provided из :total задачи|Оценка указана для :provided из :total задач|Оценка указана для :provided из :total задач',
+    'priceCoverage' => 'Стоимость указана для :provided из :total задачи|Стоимость указана для :provided из :total задач|Стоимость указана для :provided из :total задач',
     'statuses' => [
         'new' => 'Новая идея',
         'clarification' => 'Нужно уточнить',

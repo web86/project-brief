@@ -1,5 +1,13 @@
 export default {
   export: {
+    done: 'Completed tasks only',
+    documentTitle: 'Document title',
+    defaultDocumentTitle: 'Technical specification',
+    attachments: 'Attachment list',
+    approvalDate: 'Approval date',
+    layout: 'Layout',
+    pageBreakBySection: 'Start each section on a new page',
+
     title: 'Export specification',
     format: 'Format',
     tasks: 'Tasks',

@@ -1,5 +1,13 @@
 export default {
   export: {
+    done: 'Только готовые',
+    documentTitle: 'Заголовок документа',
+    defaultDocumentTitle: 'Техническое задание',
+    attachments: 'Список вложений',
+    approvalDate: 'Дата согласования',
+    layout: 'Оформление',
+    pageBreakBySection: 'Каждый раздел с новой страницы',
+
     title: 'Экспорт технического задания',
     format: 'Формат',
     tasks: 'Задачи',

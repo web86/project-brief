@@ -47,11 +47,13 @@ class ProjectExportTest extends TestCase
             $this->assertNotFalse($xml);
             $footer = $zip->getFromName('word/footer1.xml');
             $this->assertNotFalse($footer);
+            $styles = $zip->getFromName('word/styles.xml');
+            $this->assertNotFalse($styles);
             $zip->close();
             $dom = new \DOMDocument;
             $this->assertTrue($dom->loadXML($xml));
 
-            return $xml.$footer;
+            return $xml.$footer.$styles;
         } finally {
             unlink($file);
         }
@@ -102,7 +104,7 @@ class ProjectExportTest extends TestCase
         $this->assertSame(['1.2'], array_column($approved['sections'][0]['tasks'], 'number'));
         $this->assertSame('2.1', $approved['sections'][1]['tasks'][0]['number']);
         $text = json_encode($approved, JSON_UNESCAPED_UNICODE);
-        foreach (['23.5 hours', '987.25 RUB', 'Description', 'Expected result', 'Priority', 'High', 'In progress', 'Описание каталога'] as $expected) {
+        foreach (['23.5 h', "987.25\u{00A0}₽", 'Description', 'Expected result', 'Priority', 'High', 'In progress', 'Описание каталога'] as $expected) {
             $this->assertStringContainsString($expected, $text);
         }
         $bare = $builder->build($project, 'all', 'en', array_fill_keys(array_keys(ProjectExportData::DEFAULT_FIELDS), false));
@@ -124,7 +126,7 @@ class ProjectExportTest extends TestCase
     {
         $project = $this->project();
         $project->tasks()->first()->update(['description' => 'Текст <img src="https://private.test/SECRET_PUSH"> & результат']);
-        foreach (['ru' => 'ТЕХНИЧЕСКОЕ ЗАДАНИЕ', 'en' => 'TECHNICAL SPECIFICATION'] as $locale => $title) {
+        foreach (['ru' => 'Техническое задание', 'en' => 'Technical specification'] as $locale => $title) {
             $response = $this->postJson('/api/admin/projects/'.$project->uuid.'/export', $this->payload('docx', $locale))->assertOk()
                 ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
             $this->assertMatchesRegularExpression('/attachment; filename=[a-z0-9-]+-specification-\d{4}-\d{2}-\d{2}\.docx/', $response->headers->get('Content-Disposition'));
@@ -138,8 +140,8 @@ class ProjectExportTest extends TestCase
             $options = [...$this->payload('docx', $locale), 'scope' => 'approved', 'fields' => ['price' => true, 'estimateHours' => true]];
             $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', $options)->assertOk()->streamedContent());
             $this->assertStringNotContainsString('Первая задача', $xml);
-            $this->assertStringContainsString('987.25 RUB', $xml);
-            $this->assertStringContainsString('23.5', $xml);
+            $this->assertStringContainsString(($locale === 'ru' ? '987,25' : '987.25')."\u{00A0}₽", $xml);
+            $this->assertStringContainsString($locale === 'ru' ? '23,5' : '23.5', $xml);
         }
     }
 
@@ -207,6 +209,256 @@ class ProjectExportTest extends TestCase
                     $this->assertContains(trans('exports.priorities.'.$priority, [], $locale), array_column($content, 'value'));
                 }
             }
+        }
+    }
+
+    private function documentXPath(string $xml): \DOMXPath
+    {
+        $dom = new \DOMDocument;
+        $this->assertTrue($dom->loadXML(substr($xml, 0, strpos($xml, '</w:document>') + strlen('</w:document>'))));
+
+        return new \DOMXPath($dom);
+    }
+
+    public function test_totals_use_exported_tasks_and_distinguish_zero_from_missing_values(): void
+    {
+        $project = $this->project();
+        $ordered = $project->tasks()->orderBy('project_section_id')->orderBy('position')->get();
+        $ordered[0]->update(['estimate_hours' => '10.10', 'price' => '1000.10']);
+        $ordered[1]->update(['estimate_hours' => 0, 'price' => 0]);
+        $builder = app(ProjectExportData::class);
+        $fields = ['estimateHours' => true, 'price' => true];
+        $all = $builder->build($project, 'all', 'en', $fields);
+        $this->assertSame(3, $all['totals']['taskCount']);
+        $this->assertSame(2, $all['totals']['approvedCount']);
+        $this->assertSame('33.60', $all['totals']['estimateHours']['value']);
+        $this->assertSame('1987.35', $all['totals']['price']['value']);
+        foreach (['estimateHours', 'price'] as $key) {
+            $this->assertSame(3, $all['totals'][$key]['providedTaskCount']);
+            $this->assertNull($all['totals'][$key]['coverage']);
+        }
+        $approved = $builder->build($project, 'approved', 'en', $fields);
+        $this->assertSame(2, $approved['totals']['taskCount']);
+        $this->assertSame(2, $approved['totals']['approvedCount']);
+        $this->assertSame('23.50', $approved['totals']['estimateHours']['value']);
+        $this->assertSame('987.25', $approved['totals']['price']['value']);
+        $this->assertNull($approved['totals']['price']['coverage']);
+        $ordered[1]->update(['estimate_hours' => null, 'price' => null]);
+        foreach (['ru', 'en'] as $locale) {
+            $data = $builder->build($project, 'approved', $locale, $fields);
+            $this->assertSame(1, $data['totals']['estimateHours']['providedTaskCount']);
+            $this->assertSame(1, $data['totals']['price']['providedTaskCount']);
+            $this->assertSame($locale === 'ru' ? 'Оценка указана для 1 из 2 задач' : 'Estimate provided for 1 of 2 tasks', $data['totals']['estimateHours']['coverage']);
+            $this->assertSame($locale === 'ru' ? 'Стоимость указана для 1 из 2 задач' : 'Price provided for 1 of 2 tasks', $data['totals']['price']['coverage']);
+        }
+        $project->tasks()->update(['estimate_hours' => null, 'price' => null]);
+        $missing = $builder->build($project, 'all', 'en', $fields);
+        $this->assertSame('0.00', $missing['totals']['estimateHours']['value']);
+        $this->assertSame('0.00', $missing['totals']['price']['value']);
+        $this->assertSame('Price provided for 0 of 3 tasks', $missing['totals']['price']['coverage']);
+        $default = $builder->build($project, 'all', 'en');
+        $this->assertSame(['taskCount' => 3, 'approvedCount' => 2], $default['totals']);
+        $this->assertCount(2, $default['summary']);
+        $project->tasks()->where('id', '!=', $ordered[0]->id)->delete();
+        $this->assertSame('Estimate provided for 0 of 1 task', $builder->build($project, 'all', 'en', $fields)['totals']['estimateHours']['coverage']);
+        $this->assertSame('Оценка указана для 0 из 1 задачи', $builder->build($project, 'all', 'ru', $fields)['totals']['estimateHours']['coverage']);
+    }
+
+    public function test_currency_and_decimal_totals_are_localized_and_exact(): void
+    {
+        $project = $this->project();
+        $tasks = $project->tasks()->get();
+        $tasks[0]->update(['estimate_hours' => '0.10', 'price' => '0.10']);
+        $tasks[1]->update(['estimate_hours' => '0.20', 'price' => '0.20']);
+        $tasks[2]->update(['estimate_hours' => 0, 'price' => 0]);
+        $builder = app(ProjectExportData::class);
+        $small = $builder->build($project, 'all', 'en', ['estimateHours' => true, 'price' => true]);
+        $this->assertSame('0.30', $small['totals']['price']['value']);
+        $this->assertSame('0.30', $small['totals']['estimateHours']['value']);
+        $project->tasks()->update(['price' => '333333333333.33']);
+        $large = $builder->build($project, 'all', 'en', ['price' => true]);
+        $this->assertSame('999999999999.99', $large['totals']['price']['value']);
+        $project->tasks()->update(['price' => 42000]);
+        foreach (['RUB' => '₽', 'USD' => '$', 'EUR' => '€', 'TRY' => '₺', 'GBP' => 'GBP'] as $currency => $symbol) {
+            $project->update(['currency' => $currency]);
+            foreach (['ru', 'en'] as $locale) {
+                $data = $builder->build($project, 'all', $locale, ['price' => true]);
+                $this->assertSame(($locale === 'ru' ? "126\u{00A0}000" : '126,000')."\u{00A0}".$symbol, $data['totals']['price']['formatted']);
+                $metadata = $data['sections'][0]['tasks'][0]['metadata'];
+                $this->assertStringContainsString(($locale === 'ru' ? "42\u{00A0}000" : '42,000')."\u{00A0}".$symbol, $metadata);
+            }
+        }
+    }
+
+    public function test_compact_metadata_and_summary_render_consistently_for_each_financial_option(): void
+    {
+        $project = $this->project();
+        foreach (['ru', 'en'] as $locale) {
+            foreach ([[false, false], [true, false], [false, true], [true, true]] as [$hours, $price]) {
+                $fields = ['estimateHours' => $hours, 'price' => $price];
+                $data = app(ProjectExportData::class)->build($project, 'all', $locale, $fields);
+                $source = view('exports.specification', ['document' => $data])->render();
+                $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('docx', $locale), 'fields' => $fields])->assertOk()->streamedContent());
+                $xpath = $this->documentXPath($xml);
+                foreach ($data['sections'] as $section) {
+                    foreach ($section['tasks'] as $task) {
+                        $this->assertStringContainsString('<p class="task-metadata">'.$task['metadata'].'</p>', $source);
+                        $metadataNodes = $xpath->query('//w:p[w:r/w:t[contains(., " · ")]]');
+                        $found = false;
+                        foreach ($metadataNodes as $node) {
+                            if ($node->textContent === $task['metadata']) {
+                                $this->assertSame('18', $xpath->evaluate('string(w:r/w:rPr/w:sz/@w:val)', $node));
+                                $this->assertSame('586174', $xpath->evaluate('string(w:r/w:rPr/w:color/@w:val)', $node));
+                                $found = true;
+                                break;
+                            }
+                        }
+                        $this->assertTrue($found, 'Task metadata occupies one smaller styled paragraph.');
+                    }
+                }
+                $this->assertStringContainsString('font-size: 8.5pt', $source);
+                $this->assertGreaterThan(strpos($source, 'Каталог товаров'), strpos($source, '<div class="summary">'));
+                foreach ($data['summary'] as $row) {
+                    $this->assertStringContainsString($row['label'], $source);
+                    $this->assertStringContainsString($row['label'].': '.$row['value'], $xml);
+                    if ($row['coverage']) {
+                        $this->assertStringContainsString($row['coverage'], $source);
+                        $this->assertStringContainsString($row['coverage'], $xml);
+                    }
+                }
+                foreach (['estimateHours' => $hours, 'price' => $price] as $key => $enabled) {
+                    $label = trans('exports.'.$key.'Total', [], $locale);
+                    $this->assertSame($enabled, str_contains($source, $label));
+                    $this->assertSame($enabled, str_contains($xml, $label));
+                }
+                $pdf = $this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('pdf', $locale), 'fields' => $fields])->assertOk()->streamedContent();
+                $this->assertStringStartsWith('%PDF-', $pdf);
+            }
+        }
+        $fields = array_fill_keys(array_keys(ProjectExportData::DEFAULT_FIELDS), false);
+        $bare = app(ProjectExportData::class)->build($project, 'all', 'en', $fields);
+        $this->assertSame('', $bare['sections'][0]['tasks'][0]['metadata']);
+        $this->assertStringNotContainsString('<p class="task-metadata">', view('exports.specification', ['document' => $bare])->render());
+        $financialOnly = app(ProjectExportData::class)->build($project, 'all', 'en', [...$fields, 'estimateHours' => true, 'price' => true]);
+        $metadata = $financialOnly['sections'][1]['tasks'][0]['metadata'];
+        $this->assertSame("Estimate: 23.5 h · Price: 987.25\u{00A0}₽", $metadata);
+    }
+
+    public function test_optional_filenames_dates_and_custom_title_are_safe_in_both_formats(): void
+    {
+        $project = $this->project();
+        $task = $project->tasks()->where('title', 'Каталог товаров')->firstOrFail();
+        $task->update(['client_approved_at' => '2026-10-18 12:00:00']);
+        $unapproved = $project->tasks()->where('client_approved', false)->firstOrFail();
+        $unapproved->update(['client_approved_at' => '2026-10-17 12:00:00']);
+        foreach (['C:\\SECRET_PATH\\requirements & scope.pdf', '../../homepage-reference.jpg', "draft\u{202E}.pdf", '<draft & plan>.pdf', '.'] as $filename) {
+            $task->attachments()->create(['uploaded_by_type' => 'admin', 'original_name' => $filename, 'stored_name' => 'SECRET_INTERNAL_UUID.pdf', 'disk' => 'local', 'path' => 'SECRET_STORAGE_PATH', 'mime_type' => 'application/pdf', 'size' => 1]);
+        }
+        $fields = ['attachments' => true, 'approvalDate' => true];
+        foreach (['ru', 'en'] as $locale) {
+            $data = app(ProjectExportData::class)->build($project, 'all', $locale, $fields, ['documentTitle' => '  План <работ> & estimate  ']);
+            $this->assertSame('План <работ> & estimate', $data['title']);
+            $this->assertSame(['requirements & scope.pdf', 'homepage-reference.jpg', 'draft.pdf', '<draft & plan>.pdf'], $data['sections'][1]['tasks'][0]['attachments']);
+            $date = $locale === 'ru' ? '18.10.2026' : '18 Oct 2026';
+            $this->assertStringContainsString($date, $data['sections'][1]['tasks'][0]['metadata']);
+            $this->assertStringNotContainsString('17.10.2026', json_encode($data));
+            $this->assertStringNotContainsString('17 Oct 2026', json_encode($data));
+            foreach ($data['sections'][0]['tasks'] as $withoutDate) {
+                $this->assertStringNotContainsString(trans('exports.approvedOn', [], $locale), $withoutDate['metadata']);
+                $this->assertSame([], $withoutDate['attachments']);
+            }
+            $source = view('exports.specification', ['document' => $data])->render();
+            $this->assertStringContainsString('План &lt;работ&gt; &amp; estimate', $source);
+            $this->assertStringContainsString('&lt;draft &amp; plan&gt;.pdf', $source);
+            $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('docx', $locale), 'fields' => $fields, 'documentTitle' => '  План <работ> & estimate  '])->assertOk()->streamedContent());
+            $this->assertStringContainsString('План &lt;работ&gt; &amp; estimate', $xml);
+            $this->assertStringContainsString('requirements &amp; scope.pdf', $xml);
+            $this->assertStringContainsString($date, $xml);
+            foreach (['SECRET_PATH', 'SECRET_INTERNAL_UUID', 'SECRET_STORAGE_PATH', $task->uuid, $project->uuid] as $secret) {
+                $this->assertStringNotContainsString($secret, $source);
+                $this->assertStringNotContainsString($secret, $xml);
+            }
+            $this->assertStringStartsWith('%PDF-', $this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('pdf', $locale), 'fields' => $fields, 'documentTitle' => 'План <работ> & estimate'])->assertOk()->streamedContent());
+            $off = app(ProjectExportData::class)->build($project, 'all', $locale);
+            $this->assertSame([], $off['sections'][1]['tasks'][0]['attachments']);
+            $this->assertStringNotContainsString($date, json_encode($off));
+        }
+    }
+
+    public function test_section_page_breaks_only_precede_exported_sections_after_the_first(): void
+    {
+        $project = $this->project();
+        $fields = array_fill_keys(array_keys(ProjectExportData::DEFAULT_FIELDS), false);
+        foreach ([false, true] as $breaks) {
+            $data = app(ProjectExportData::class)->build($project, 'all', 'en', $fields, ['pageBreakBySection' => $breaks]);
+            $source = view('exports.specification', ['document' => $data])->render();
+            $this->assertSame($breaks ? 1 : 0, substr_count($source, 'class="section-page-break"'));
+            $payload = [...$this->payload('docx', 'en'), 'fields' => $fields, 'pageBreakBySection' => $breaks];
+            $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', $payload)->assertOk()->streamedContent());
+            $xpath = $this->documentXPath($xml);
+            $this->assertSame($breaks ? 1 : 0, $xpath->query('//w:p[w:pPr/w:pStyle/@w:val="SectionStart"]')->length);
+            $this->assertSame(0, $xpath->query('//w:br[@w:type="page"]')->length, 'Heading page-break-before avoids boundary/trailing blank pages.');
+            if ($breaks) {
+                $this->assertSame('2. Каталог', $xpath->query('//w:p[w:pPr/w:pStyle/@w:val="SectionStart"]')->item(0)->textContent);
+                $this->assertStringContainsString('<w:pageBreakBefore', $xml);
+            }
+            $bytes = $this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$payload, 'format' => 'pdf'])->assertOk()->streamedContent();
+            $this->assertStringStartsWith('%PDF-', $bytes);
+            $this->assertSame($breaks ? 2 : 1, preg_match_all('/\/Type\s*\/Page\b/', $bytes));
+        }
+        $project->tasks()->where('project_section_id', $project->briefSections->first()->id)->update(['client_approved' => false]);
+        $data = app(ProjectExportData::class)->build($project, 'approved', 'en', $fields, ['pageBreakBySection' => true]);
+        $this->assertSame(2, $data['sections'][0]['number']);
+        $this->assertStringNotContainsString('class="section-page-break"', view('exports.specification', ['document' => $data])->render());
+    }
+
+    public function test_new_export_options_are_strict_and_title_fallback_is_localized(): void
+    {
+        $project = $this->project();
+        $url = '/api/admin/projects/'.$project->uuid.'/export';
+        foreach ([['documentTitle' => str_repeat('x', 161)], ['documentTitle' => ['title' => 'Nested']], ['documentTitle' => false], ['documentTitle' => 0], ['documentTitle' => "Good\nBad"], ['documentTitle' => "Good\0Bad"], ['documentTitle' => "Good\u{202E}Bad"], ['pageBreakBySection' => 'true'], ['pageBreakBySection' => null], ['pageBreakBySection' => ['enabled' => true]], ['fields' => ['attachments' => ['enabled' => true]]], ['fields' => ['approvalDate' => 1]], ['fields' => ['pageBreakBySection' => true]], ['presentation' => ['unknown' => true]], ['totals' => ['price' => 1]]] as $invalid) {
+            $this->postJson($url, [...$this->payload(), ...$invalid])->assertUnprocessable();
+        }
+        foreach (['ru', 'en'] as $locale) {
+            foreach (['', '  ', null, "\u{00A0}"] as $blank) {
+                $response = $this->postJson($url, [...$this->payload('docx', $locale), 'documentTitle' => $blank])->assertOk();
+                $this->assertStringContainsString(trans('exports.title', [], $locale), $this->xml($response->streamedContent()));
+            }
+        }
+        $this->assertSame('0', app(ProjectExportData::class)->build($project, 'all', 'en', [], ['documentTitle' => '0'])['title']);
+        $this->assertSame(str_repeat('А', 160), app(ProjectExportData::class)->build($project, 'all', 'en', [], ['documentTitle' => str_repeat('А', 160)])['title']);
+    }
+
+    public function test_completed_scope_uses_done_status_and_its_own_totals_and_approval_count(): void
+    {
+        $project = $this->project();
+        $project->tasks()->where('title', 'Первая задача')->update(['status' => 'done', 'estimate_hours' => 6, 'price' => 18000]);
+        $project->tasks()->where('title', 'Вторая задача')->update(['status' => 'done', 'estimate_hours' => 0, 'price' => 0]);
+        $fields = ['estimateHours' => true, 'price' => true];
+        $data = app(ProjectExportData::class)->build($project, 'done', 'en', $fields);
+        $this->assertSame(2, $data['totals']['taskCount']);
+        $this->assertSame(1, $data['totals']['approvedCount']);
+        $this->assertSame('6.00', $data['totals']['estimateHours']['value']);
+        $this->assertSame('18000.00', $data['totals']['price']['value']);
+        $this->assertSame(['1.1', '1.2'], array_column($data['sections'][0]['tasks'], 'number'));
+        $this->assertCount(1, $data['sections']);
+        $this->assertNull($data['totals']['estimateHours']['coverage']);
+        $url = '/api/admin/projects/'.$project->uuid.'/export';
+        foreach (['pdf', 'docx'] as $format) {
+            $response = $this->postJson($url, [...$this->payload($format, 'en'), 'scope' => 'done', 'fields' => $fields])->assertOk();
+            if ($format === 'docx') {
+                $xml = $this->xml($response->streamedContent());
+                $this->assertStringNotContainsString('Каталог товаров', $xml);
+                $this->assertStringContainsString('Tasks: 2', $xml);
+                $this->assertStringContainsString('Approved: 1', $xml);
+                $this->assertStringContainsString("Total price: 18,000\u{00A0}₽", $xml);
+            } else {
+                $this->assertStringStartsWith('%PDF-', $response->streamedContent());
+            }
+        }
+        $project->tasks()->where('status', 'done')->update(['status' => 'new']);
+        foreach (['ru', 'en'] as $locale) {
+            $this->postJson($url, [...$this->payload('pdf', $locale), 'scope' => 'done'])->assertUnprocessable()->assertJsonPath('errors.scope.0', trans('exports.empty', [], $locale));
         }
     }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { api } from '../api/client.js'
 import { locale, t, formatApiError } from '../i18n/index.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
@@ -11,6 +11,13 @@ const store = useProjectManagementStore()
 const format = ref('pdf'),
   scope = ref('all'),
   language = ref(locale.value)
+const defaultTitle = (language) => t('export.defaultDocumentTitle', {}, { locale: language })
+const documentTitle = ref(defaultTitle(language.value))
+const pageBreakBySection = ref(false)
+watch(language, (value, previous) => {
+  if (!documentTitle.value.trim() || documentTitle.value === defaultTitle(previous))
+    documentTitle.value = defaultTitle(value)
+})
 const fields = ref({
   description: true,
   expectedResult: true,
@@ -18,6 +25,8 @@ const fields = ref({
   status: true,
   estimateHours: false,
   price: false,
+  attachments: false,
+  approvalDate: false,
 })
 const pending = ref(false),
   error = ref('')
@@ -34,6 +43,8 @@ async function download() {
         format: format.value,
         scope: scope.value,
         locale: language.value,
+        documentTitle: documentTitle.value.trim(),
+        pageBreakBySection: pageBreakBySection.value,
         fields: { ...fields.value },
       },
     })
@@ -56,6 +67,21 @@ async function download() {
       <label><input v-model="format" type="radio" value="docx" name="format" /> Word (.docx)</label>
     </fieldset>
     <fieldset :disabled="pending">
+      <legend>{{ t('export.language') }}</legend>
+      <label><input v-model="language" type="radio" value="ru" name="language" /> Русский</label>
+      <label><input v-model="language" type="radio" value="en" name="language" /> English</label>
+    </fieldset>
+    <div class="field">
+      <label for="export-document-title">{{ t('export.documentTitle') }}</label>
+      <input
+        id="export-document-title"
+        v-model="documentTitle"
+        type="text"
+        maxlength="160"
+        :disabled="pending"
+      />
+    </div>
+    <fieldset :disabled="pending">
       <legend>{{ t('export.tasks') }}</legend>
       <label
         ><input v-model="scope" type="radio" value="all" name="scope" />
@@ -65,17 +91,23 @@ async function download() {
         ><input v-model="scope" type="radio" value="approved" name="scope" />
         {{ t('export.approved') }}</label
       >
-    </fieldset>
-    <fieldset :disabled="pending">
-      <legend>{{ t('export.language') }}</legend>
-      <label><input v-model="language" type="radio" value="ru" name="language" /> Русский</label>
-      <label><input v-model="language" type="radio" value="en" name="language" /> English</label>
+      <label
+        ><input v-model="scope" type="radio" value="done" name="scope" />
+        {{ t('export.done') }}</label
+      >
     </fieldset>
     <fieldset :disabled="pending">
       <legend>{{ t('export.contents') }}</legend>
       <label v-for="(_, field) in fields" :key="field">
         <input v-model="fields[field]" type="checkbox" /> {{ t('export.' + field) }}
       </label>
+    </fieldset>
+    <fieldset :disabled="pending">
+      <legend>{{ t('export.layout') }}</legend>
+      <label
+        ><input v-model="pageBreakBySection" type="checkbox" />
+        {{ t('export.pageBreakBySection') }}</label
+      >
     </fieldset>
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
     <LoadingButton type="submit" :busy="pending" class="button primary">{{
