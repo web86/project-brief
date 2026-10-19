@@ -397,8 +397,60 @@ or oversized titles are rejected server-side.
 
 ### Refinement verification and release
 
-Final commands, suite totals and the clean release source/archive are recorded at
-the final documentation checkpoint after full release verification.
+| Check                                    | Result                                                                                                           |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `npm test`                               | PASS — 115 tests, including all previous export/collapse cases and 2 new refinement UI cases                     |
+| `npm run build`                          | PASS — production Vite build                                                                                     |
+| `npm run format:check`                   | PASS                                                                                                             |
+| `php artisan test` / PHP 8.5.10 + SQLite | PASS — 183 tests, 2,876 assertions                                                                               |
+| Full PHP 8.5.10 + MariaDB 11.8 suite     | PASS — 183 tests, 2,876 assertions                                                                               |
+| Full PHP 8.4.26 + MariaDB 11.8 suite     | PASS — 183 tests, 2,876 assertions                                                                               |
+| `vendor/bin/pint --dirty --format agent` | PASS                                                                                                             |
+| `./bin/build-release`                    | PASS — 7,762 files, platform checks, checksums, ZIP and disposable packaged runtime                              |
+| Browser / document rendering             | PASS — 12 real RU/EN PDF/DOCX downloads, desktop/mobile UI, text extraction and complete final page-image review |
+
+The export feature file now has 13 tests and 859 assertions. Its original 6 cases
+remain, with expectations updated for the requested title/unit/currency formatting.
+Seven new cases cover scoped/exact totals, zero/null distinction and complete,
+partial and zero coverage; RUB/USD/EUR/TRY/code fallback; all hours/price option
+combinations; compact metadata paragraphs and smaller styles; custom/blank titles
+and strict input validation; filename/date opt-ins and privacy; section breaks and
+page count; completed-scope filtering, counts, totals and empty-result validation.
+
+Frontend export/collapse coverage now has 9 tests. The two added cases verify title
+defaults and language/custom preservation, all new localized controls, unchanged
+default-off options, completed scope and exact submitted options. There is no totals
+checkbox or authoritative browser-side calculation. Existing authorization, tenant,
+Save/unread, client-link, notification/Push, PWA and collapse suites continue passing.
+
+Browser QA generated default RU/EN, full-option RU/EN, section-break RU and completed
+EN samples in both formats. PDF extraction and rendered DOCX text verify Cyrillic,
+custom titles, numeric summaries, missing-value explanations, filenames/dates and
+absence of private fixtures. Every page of the final RU/EN full-option and RU
+section-break layouts was inspected. Six-task full-option samples fit two pages;
+three-section break mode fits three pages without blank leading/trailing pages.
+Task metadata is one smaller secondary paragraph and stays with preceding content.
+
+No dependencies changed. MariaDB and PHP 8.4 checks used isolated synthetic data and
+a source copy excluding real environment secrets, with GD in a disposable test image.
+Existing databases and services were not migrated or reset. The temporary preview,
+custom image and database container were removed after checks. No external mail or
+Push delivery, production deployment or remote push was performed.
+
+Refinement implementation / archive source:
+`76517ad85b8473785a032b4c33988747e6ce00e3`.
+Local archive: `release/project-brief-20261019-125511-76517ad.zip` (ignored).
+The release reran all 115 frontend and 183 PHP tests (2,876 SQLite assertions),
+built the frontend, installed production-only vendor, checked platform requirements,
+validated 7,762 packaged files, verified checksums/ZIP and passed the disposable
+runtime. Runtime checks now exercise the custom title, scoped totals/coverage,
+filenames, approval date, section style and completed scope in addition to previous
+export denial and CLI/session/tenant/unread/client/maintenance checks.
+
+The final documentation commit changes documentation only; runtime code matches
+the verified archive source. Its identifier is reported in the completion message.
+Final committed working tree is clean. No migrations are introduced; applying this
+change uses the existing release installation process. Nothing is deployed.
 
 ## Limitations and deployment
 
