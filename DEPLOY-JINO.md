@@ -85,7 +85,7 @@ Apache должен поддерживать `mod_rewrite` и разрешать
 
 ## Расширения PHP и права
 
-Требуются `ctype`, `curl`, `dom`, `xml`, `libxml`, `fileinfo`, `filter`, `hash`, `iconv`, `json`, `mbstring`, `openssl`, `pcre`, `pdo`, `pdo_mysql`, `session`, `tokenizer`, **`zip`** (проверка ZIP/DOCX). `pdo_sqlite` и `gd` нужны только локальным тестам. Composer platform requirements также проверяются локально при сборке.
+Требуются `ctype`, `curl`, `dom`, `gd`, `xml`, `xmlwriter`, `libxml`, `fileinfo`, `filter`, `hash`, `iconv`, `json`, `mbstring`, `openssl`, `pcre`, `pdo`, `pdo_mysql`, `session`, `tokenizer`, **`zip`** (проверка ZIP/DOCX). `pdo_sqlite` нужен только локальным тестам. `gd` и `xmlwriter` также нужны production-зависимости PHPWord для DOCX; PDF использует включённые в vendor шрифты DejaVu, без системных binaries или сети. Composer platform requirements также проверяются локально при сборке.
 
 Начальные права пакета: **755 directories / 644 files**. `.env` — 600. PHP process должен иметь запись в `storage/` (включая private uploads, framework/cache/data, sessions, views, logs) и `bootstrap/cache/`. На shared hosting обычно достаточно прав владельца; если процесс имеет другого владельца, настройте группу/права с поддержкой Jino. **Не используйте 777.**
 

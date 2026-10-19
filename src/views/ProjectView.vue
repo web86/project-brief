@@ -63,6 +63,7 @@ const groups = computed(() =>
         :name="group.name"
         :position="group.position"
         :tasks="group.tasks"
+        :total-count="store.tasks.filter((task) => task.sectionId === group.id).length"
       />
     </div>
     <div v-if="!groups.some((group) => group.tasks.length)" class="empty-state">

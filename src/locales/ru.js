@@ -1,4 +1,20 @@
 export default {
+  export: {
+    title: 'Экспорт технического задания',
+    format: 'Формат',
+    tasks: 'Задачи',
+    all: 'Все задачи',
+    approved: 'Только согласованные клиентом',
+    language: 'Язык',
+    contents: 'Содержимое документа',
+    description: 'Описание',
+    expectedResult: 'Ожидаемый результат',
+    priority: 'Приоритет',
+    status: 'Статус',
+    estimateHours: 'Оценка часов',
+    price: 'Стоимость',
+    download: 'Скачать техническое задание',
+  },
   nav: {
     unavailableTitle: 'Проект недоступен',
     unavailableBody: 'Этот проект недоступен в выбранном рабочем пространстве.',
@@ -12,6 +28,7 @@ export default {
     clients: 'Клиенты',
     structure: 'Структура',
     notifications: 'Уведомления',
+    export: 'Экспорт',
     settings: 'Настройки',
     project: 'Проект',
     projectNavigation: 'Навигация по проекту',

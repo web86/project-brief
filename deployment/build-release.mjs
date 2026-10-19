@@ -98,6 +98,7 @@ try {
     'config',
     'lang',
     'resources/views',
+    'resources/fonts',
     'routes',
     'database/migrations',
     'artisan',

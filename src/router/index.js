@@ -73,13 +73,14 @@ export function createProjectRouter({
                   hash: '',
                 }),
               },
-              ...['clients', 'structure', 'notifications', 'settings'].map((section) => ({
+              ...['clients', 'structure', 'notifications', 'settings', 'export'].map((section) => ({
                 path: section,
                 component: {
                   clients: () => import('../views/AdminProjectClientsView.vue'),
                   structure: () => import('../views/AdminProjectStructureView.vue'),
                   notifications: () => import('../views/AdminProjectNotificationsView.vue'),
                   settings: () => import('../views/AdminProjectSettingsView.vue'),
+                  export: () => import('../views/AdminProjectExportView.vue'),
                 }[section],
                 meta: {
                   projectSection: section,

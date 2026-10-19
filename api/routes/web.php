@@ -9,6 +9,7 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectExportController;
 use App\Http\Controllers\ProjectSectionController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SessionController;
@@ -50,6 +51,7 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
+    Route::post('/export', ProjectExportController::class);
     Route::get('/activity', [ProjectActivityController::class, 'show']);
     Route::post('/activity/read', [ProjectActivityController::class, 'read']);
     Route::get('/clients', [ProjectClientController::class, 'index']);

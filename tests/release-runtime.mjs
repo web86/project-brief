@@ -63,6 +63,8 @@ $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
 $workspace = $owner->workspaceMembers()->active()->firstOrFail()->workspace;
 $project = $workspace->projects()->create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
+$section = $project->briefSections()->create(['name'=>'Главная', 'position'=>1]);
+$project->tasks()->create(['project_section_id'=>$section->id, 'position'=>1, 'title'=>'Кириллица: задача', 'description'=>'Описание проекта & результат', 'developer_notes'=>'PRIVATE_RELEASE_NOTE', 'client_approved'=>true]);
 $token = str_repeat('a', 64);
 $client = $project->clients()->create(['name'=>'Release client']);
 $project->accessTokens()->create(['project_client_id'=>$client->id, 'token_hash'=>hash('sha256', $token)]);
@@ -248,8 +250,61 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     ).status,
     404,
   )
-  for (const section of ['clients', 'structure', 'notifications', 'settings']) {
+  for (const section of ['clients', 'structure', 'notifications', 'settings', 'export']) {
     assert.equal((await request('/admin/projects/' + fixture.project + '/' + section)).status, 200)
+  }
+  for (const format of ['pdf', 'docx']) {
+    const exported = await request('/api/admin/projects/' + fixture.project + '/export', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': workspaceCsrf.token,
+      },
+      body: JSON.stringify({ format, scope: 'approved', locale: 'ru' }),
+    })
+    assert.equal(exported.status, 200)
+    assert.match(
+      exported.headers.get('content-disposition'),
+      new RegExp('specification-.*\\.' + format),
+    )
+    const bytes = Buffer.from(await exported.arrayBuffer())
+    assert.ok(bytes.length > 1000)
+    if (format === 'pdf') {
+      assert.equal(exported.headers.get('content-type'), 'application/pdf')
+      assert.equal(bytes.subarray(0, 5).toString(), '%PDF-')
+      assert.ok(bytes.includes(Buffer.from('DejaVuSans')))
+    } else {
+      assert.equal(
+        exported.headers.get('content-type'),
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      )
+      assert.equal(bytes.subarray(0, 2).toString(), 'PK')
+      const docx = path.join(fixtureRoot, 'runtime-export.docx')
+      await writeFile(docx, bytes)
+      const xml = command([
+        '-r',
+        '$zip = new ZipArchive; $zip->open($argv[1]); echo $zip->getFromName("word/document.xml");',
+        docx,
+      ])
+      assert.match(xml, /Кириллица: задача/)
+      assert.match(xml, /ТЕХНИЧЕСКОЕ ЗАДАНИЕ/)
+      assert.doesNotMatch(xml, /PRIVATE_RELEASE_NOTE/)
+    }
+    assert.equal(
+      (
+        await request('/api/admin/projects/' + fixture.foreignProject + '/export', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': workspaceCsrf.token,
+          },
+          body: JSON.stringify({ format, scope: 'all', locale: 'ru' }),
+        })
+      ).status,
+      404,
+    )
   }
   const entered = await request(`/access/${'a'.repeat(64)}`)
   assert.equal(entered.status, 302)
@@ -268,6 +323,21 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal((await clientProject.json()).data.name, 'Release QA project')
   assert.equal(
     (await request('/api/admin/me', { headers: { Accept: 'application/json' } })).status,
+    401,
+  )
+  const clientCsrf = await (await request('/api/csrf')).json()
+  assert.equal(
+    (
+      await request('/api/admin/projects/' + fixture.project + '/export', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': clientCsrf.token,
+        },
+        body: JSON.stringify({ format: 'pdf', scope: 'all', locale: 'ru' }),
+      })
+    ).status,
     401,
   )
   const failedLink = await request(`/access/${'b'.repeat(64)}`)

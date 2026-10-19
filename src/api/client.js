@@ -15,7 +15,7 @@ export function createApiClient({
 } = {}) {
   let csrf = null
   let csrfRequest = null
-  async function request(path, { method = 'GET', body } = {}) {
+  async function request(path, { method = 'GET', body, responseType = 'json' } = {}) {
     if (method !== 'GET' && !csrf) {
       csrfRequest ||= request('/api/csrf')
         .then((data) => (csrf = data.token))
@@ -31,7 +31,7 @@ export function createApiClient({
     const hasFiles = multipart && [...body.values()].some((value) => value instanceof Blob)
     const timer = setTimeout(
       () => controller.abort(),
-      hasFiles ? Math.max(timeoutMs, 120000) : timeoutMs,
+      hasFiles || responseType === 'blob' ? Math.max(timeoutMs, 120000) : timeoutMs,
     )
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {
@@ -45,6 +45,14 @@ export function createApiClient({
         },
         ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
       })
+      if (response.ok && responseType === 'blob') {
+        const blob = await response.blob()
+        const disposition = response.headers.get('Content-Disposition') || ''
+        const filename = disposition.match(
+          /filename="?([a-zA-Z0-9_-]+\.(?:pdf|docx))"?(?:;|$)/,
+        )?.[1]
+        return { blob, filename: filename || 'project-specification' }
+      }
       data = await response.json().catch((error) => {
         if (controller.signal.aborted) throw error
         return {}

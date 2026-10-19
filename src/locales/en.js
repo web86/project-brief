@@ -1,4 +1,20 @@
 export default {
+  export: {
+    title: 'Export specification',
+    format: 'Format',
+    tasks: 'Tasks',
+    all: 'All tasks',
+    approved: 'Approved by client only',
+    language: 'Language',
+    contents: 'Document contents',
+    description: 'Description',
+    expectedResult: 'Expected result',
+    priority: 'Priority',
+    status: 'Status',
+    estimateHours: 'Estimate hours',
+    price: 'Price',
+    download: 'Download specification',
+  },
   nav: {
     unavailableTitle: 'Project unavailable',
     unavailableBody: 'This project is not available in the selected workspace.',
@@ -12,6 +28,7 @@ export default {
     clients: 'Clients',
     structure: 'Structure',
     notifications: 'Notifications',
+    export: 'Export',
     settings: 'Settings',
     project: 'Project',
     projectNavigation: 'Project navigation',

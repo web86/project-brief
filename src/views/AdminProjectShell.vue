@@ -4,7 +4,7 @@ import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { t } from '../i18n/index.js'
 const route = useRoute(),
   store = useProjectManagementStore()
-const sections = ['brief', 'clients', 'structure', 'notifications', 'settings']
+const sections = ['brief', 'clients', 'structure', 'notifications', 'settings', 'export']
 </script>
 <template>
   <div v-if="store.project" class="admin-project-shell" :key="route.params.uuid">
