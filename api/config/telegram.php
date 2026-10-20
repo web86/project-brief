@@ -5,6 +5,9 @@ return [
     'bot_token' => env('TELEGRAM_BOT_TOKEN'),
     'bot_username' => env('TELEGRAM_BOT_USERNAME'),
     'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+    'webhook_transport' => env('TELEGRAM_WEBHOOK_TRANSPORT', 'direct'),
+    'forward_secret' => env('TELEGRAM_FORWARD_SECRET'),
+    'default_locale' => env('TELEGRAM_DEFAULT_LOCALE', 'ru'),
     'bridge_url' => env('TELEGRAM_BRIDGE_URL'),
     'bridge_secret' => env('TELEGRAM_BRIDGE_SECRET'),
 ];

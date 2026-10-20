@@ -1,75 +1,67 @@
 {
   "date": "2026-10-20",
-  "stage": "temporary-diagnostics-only",
+  "stage": "bidirectional-bridge-local-complete",
   "branch": "codex/milestone-4-5-1-bidirectional-telegram-bridge",
-  "baseCommit": "cc5cd445c27759b5aa060fd83ba79dccfcef0b9a",
-  "targeted": {
-    "command": "node --test tests/telegram-diagnostics.test.js tests/milestone45.test.js",
-    "passed": 15,
-    "failed": 0
-  },
-  "frontend": {
-    "command": "npm test",
-    "passed": 180,
-    "failed": 0
-  },
+  "baseCommit": "b1b0e73",
   "backend": {
+    "command": "cd api && php artisan test --compact",
     "tool": "phpunit",
     "result": "passed",
-    "tests": 498,
-    "passed": 498,
-    "assertions": 5054,
-    "duration_ms": 17367
+    "tests": 512,
+    "passed": 512,
+    "assertions": 5251,
+    "duration_ms": 17729
   },
+  "node": {
+    "command": "npm test",
+    "passed": 182,
+    "failed": 0
+  },
+  "targetedNode": {
+    "command": "node --test tests/telegram-bridge.test.js tests/milestone45.test.js",
+    "passed": 17,
+    "failed": 0
+  },
+  "newLaravelTests": 14,
+  "existingTelegramTests": 9,
   "build": "passed",
-  "prettier": "passed",
-  "phpChanges": false,
-  "outgoingImplementation": "byte-for-byte unchanged from base",
-  "localMacProbes": [
-    {
-      "probe": "laravel_health",
-      "origin": "local Mac (not Deno)",
-      "method": "GET",
-      "url": "https://brief.web86.site/api/health",
-      "metrics": "200 0.949694 0.223783 0.949497",
-      "exitCode": 0,
-      "error": ""
-    },
-    {
-      "probe": "laravel_webhook_unauthenticated",
-      "origin": "local Mac (not Deno)",
-      "method": "POST",
-      "url": "https://brief.web86.site/api/telegram/webhook",
-      "metrics": "403 1.148183 0.214959 1.147664",
-      "exitCode": 0,
-      "error": ""
-    },
-    {
-      "probe": "deno_webhook_unauthenticated",
-      "origin": "local Mac (not Deno)",
-      "method": "POST",
-      "url": "https://projectbrief-telegram-bridge.web86.deno.net/telegram/webhook",
-      "metrics": "404 0.645500 0.161391 0.645143",
-      "exitCode": 0,
-      "error": ""
-    },
-    {
-      "probe": "deno_send_unauthenticated",
-      "origin": "local Mac (not Deno)",
-      "method": "POST",
-      "url": "https://projectbrief-telegram-bridge.web86.deno.net/telegram/send",
-      "metrics": "401 0.791811 0.163975 0.791506",
-      "exitCode": 0,
-      "error": ""
-    }
-  ],
-  "denoToLaravelProbe": {
-    "executed": false,
-    "reason": "User will manually deploy the temporary endpoint and provide results before bidirectional implementation."
+  "pint": "passed",
+  "outgoingImplementation": "byte-for-byte unchanged from b1b0e73",
+  "operatorPythonExamples": {
+    "syntaxChecked": 2,
+    "executed": false
   },
+  "productionDiagnostics": {
+    "source": "User-supplied results from production Deno, prior to this implementation",
+    "ok": true,
+    "checks": [
+      {
+        "name": "health",
+        "status": 200,
+        "durationMs": 1081,
+        "errorCode": null
+      },
+      {
+        "name": "webhook",
+        "status": 403,
+        "durationMs": 1072,
+        "errorCode": null
+      }
+    ],
+    "unauthorizedDiagnosticsStatus": 401
+  },
+  "temporaryDiagnosticsEndpoint": "removed",
+  "localTestLimitations": [
+    "Deno handler tested under Node Fetch mocks, no local Deno runtime",
+    "Laravel tests use SQLite and Http fake; no MySQL concurrent-load test",
+    "New production Telegram end-to-end path not deployed or tested"
+  ],
   "push": false,
   "deployment": false,
   "telegramWebhookChanged": false,
-  "secretsChanged": false,
-  "pendingUpdatesDiscarded": false
+  "githubReleaseCreated": false,
+  "realTelegramMessageSent": false,
+  "pendingUpdatesDiscarded": false,
+  "prettier": "passed",
+  "gitDiffCheck": "passed"
 }

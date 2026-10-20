@@ -38,7 +38,7 @@ class TelegramTransport
         if ($result['error_code'] === 'telegram_blocked') {
             // Never disconnect a newer binding created while the network request was in flight.
             TelegramConnection::whereKey($connection->id)->where('chat_id', $connection->getRawOriginal('chat_id'))
-                ->update(['chat_id' => null, 'connected_at' => null]);
+                ->update(['chat_id' => null, 'chat_hash' => null, 'connected_at' => null]);
         }
 
         return $result;
@@ -47,6 +47,16 @@ class TelegramTransport
     public function diagnose(): array
     {
         return $this->request('getMe', []);
+    }
+
+    /** Only called internally after authentication and an atomic receipt claim. */
+    public function replyToStart(array $update, string $text): array
+    {
+        if (! TelegramWebhook::isPrivateStart($update)) {
+            return ['status' => 'skipped', 'error_code' => 'telegram_invalid_start'];
+        }
+
+        return $this->request('sendMessage', ['chat_id' => (string) $update['message']['chat']['id'], 'text' => $text]);
     }
 
     private function request(string $method, array $payload): array

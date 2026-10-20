@@ -43,7 +43,7 @@ class TelegramLinking
             return null;
         }
 
-        return DB::transaction(function () use ($candidate, $hash, $chat, $update): ?TelegramConnection {
+        return DB::transaction(function () use ($candidate, $hash, $chat): ?TelegramConnection {
             $recipient = $candidate->user_id ? User::find($candidate->user_id) : ProjectClient::find($candidate->project_client_id);
             if (! $recipient) {
                 return null;
@@ -51,9 +51,6 @@ class TelegramLinking
             $recipient = $recipient->newQuery()->whereKey($recipient->id)->lockForUpdate()->firstOrFail();
             $connection = self::query($recipient)->where('code_hash', $hash)->lockForUpdate()->first();
             if (! $connection || ! $connection->code_expires_at?->isFuture() || ! $this->eligible($recipient)) {
-                return null;
-            }
-            if (! DB::table('telegram_updates')->insertOrIgnore(['update_id' => $update['update_id'], 'created_at' => now()])) {
                 return null;
             }
             $connection->update(['chat_id' => (string) $chat['id'], 'connected_at' => now(), 'code_hash' => null, 'code_expires_at' => null]);
@@ -75,7 +72,7 @@ class TelegramLinking
     {
         DB::transaction(function () use ($recipient): void {
             $recipient->newQuery()->whereKey($recipient->id)->lockForUpdate()->firstOrFail();
-            self::query($recipient)->update(['chat_id' => null, 'connected_at' => null, 'code_hash' => null, 'code_expires_at' => null]);
+            self::query($recipient)->update(['chat_id' => null, 'chat_hash' => null, 'connected_at' => null, 'code_hash' => null, 'code_expires_at' => null]);
         });
     }
 }

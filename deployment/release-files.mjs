@@ -125,6 +125,8 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/app/Console/Commands/BenchmarkAi.php',
     'private/project-brief-app/app/Services/TelegramTransport.php',
     'private/project-brief-app/app/Services/TelegramLinking.php',
+    'private/project-brief-app/app/Services/TelegramWebhook.php',
+    'private/project-brief-app/database/migrations/2026_10_20_184031_add_chat_hash_to_telegram_connections.php',
     'private/project-brief-app/app/Http/Controllers/TelegramController.php',
     'private/project-brief-app/app/Http/Controllers/ClientNotificationController.php',
     'private/project-brief-app/app/Services/ProjectDiscussions.php',
@@ -179,6 +181,7 @@ export async function validateRelease(root, localSecrets = []) {
     'AI_BRIDGE_SECRET',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_WEBHOOK_SECRET',
+    'TELEGRAM_FORWARD_SECRET',
     'TELEGRAM_BRIDGE_SECRET',
   ]) {
     if (!new RegExp(`^${key}=$`, 'm').test(env)) throw new Error(`Example must leave ${key} empty`)

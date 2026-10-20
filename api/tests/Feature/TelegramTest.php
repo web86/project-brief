@@ -71,7 +71,7 @@ class TelegramTest extends TestCase
         Http::assertSentCount(1);
         $this->postWebhook($update)->assertOk();
         $this->postWebhook($this->webhook($url, 2, 99999))->assertOk();
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
         $pending = $this->postJson('/api/admin/telegram/connect')->json('url');
         $this->deleteJson('/api/admin/telegram')->assertOk();
         $this->postWebhook($this->webhook($pending, 3))->assertOk();
@@ -87,17 +87,17 @@ class TelegramTest extends TestCase
         $new = $linking->issue($user)['url'];
         $this->postWebhook($this->webhook($old))->assertOk();
         $this->assertNull(TelegramLinking::query($user)->first()->chat_id);
-        $this->postWebhook($this->webhook($new))->assertOk();
+        $this->postWebhook($this->webhook($new, 2))->assertOk();
         $rebind = $linking->issue($user)['url'];
         $this->postWebhook($this->webhook($rebind, 1, 54321))->assertOk();
         $this->assertSame('12345', TelegramLinking::query($user)->first()->chat_id);
-        $this->postWebhook($this->webhook($rebind, 2, 54321))->assertOk();
+        $this->postWebhook($this->webhook($rebind, 3, 54321))->assertOk();
         $this->assertSame('54321', TelegramLinking::query($user)->first()->chat_id);
         $expired = $linking->issue($user)['url'];
         $this->travel(11)->minutes();
-        $this->postWebhook($this->webhook($expired, 3, 77777))->assertOk();
+        $this->postWebhook($this->webhook($expired, 4, 77777))->assertOk();
         $this->assertSame('54321', TelegramLinking::query($user)->first()->chat_id);
-        Http::assertSentCount(2);
+        Http::assertSentCount(4);
     }
 
     public function test_client_links_are_personal_and_refuse_arbitrary_chat_ids_groups_and_revoked_access(): void
@@ -124,7 +124,7 @@ class TelegramTest extends TestCase
         $this->postWebhook($this->webhook($url, 2, 99999))->assertOk();
         $this->assertSame('12345', TelegramLinking::query($client)->first()->chat_id);
         $this->postJson('/api/client/telegram/test')->assertUnauthorized();
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public function test_direct_and_deno_use_only_expected_endpoints_and_separate_secrets_without_retry(): void
