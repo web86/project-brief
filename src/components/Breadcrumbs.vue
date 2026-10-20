@@ -9,7 +9,7 @@ const route = useRoute(),
   management = useProjectManagementStore(),
   store = useProjectStore()
 const items = computed(() => {
-  if (!route.meta.adminShell) return []
+  if (!route.meta.adminShell || route.meta.taskDetail) return []
   const projects = { label: t('nav.projects'), to: '/admin' }
   if (route.path === '/admin/projects/new') return [projects, { label: t('nav.newProject') }]
   const project = management.project
@@ -18,7 +18,7 @@ const items = computed(() => {
   const path = [projects, { label: project.name, to: root }]
   if (route.meta.projectSection !== 'brief') {
     path.push({ label: t('nav.' + route.meta.projectSection) })
-  } else if (route.meta.taskDetail || route.meta.editTask || route.path.endsWith('/task/new')) {
+  } else if (route.meta.editTask || route.path.endsWith('/task/new')) {
     path.push({ label: t('nav.brief'), to: root })
     const task = store.findTask(route.params.id)
     if (task) {

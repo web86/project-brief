@@ -292,7 +292,6 @@ test('administrative breadcrumbs use existing project routes, localized names an
       }
     }
     for (const [destination, current, links] of [
-      [path(data.tasks[0].id), '#1.1', 3],
       [path(data.tasks[0].id) + '/edit', i18n.global.t('flow.editTitle'), 4],
       [`/admin/projects/${uuid}/brief/task/new`, i18n.global.t('ui.newIdea'), 3],
       ['/admin/projects/new', i18n.global.t('nav.newProject'), 1],
@@ -305,11 +304,21 @@ test('administrative breadcrumbs use existing project routes, localized names an
     }
   }
 })
-test('breadcrumbs stay absent on the project list, login and all client pages', async () => {
-  const { router } = await fixture()
-  for (const destination of ['/admin', '/admin/login', `/project/${uuid}`]) {
+test('breadcrumbs stay absent on task details with a back control, the project list, login and client pages', async () => {
+  const { router, data, path } = await fixture()
+  for (const destination of [
+    path(data.tasks[0].id),
+    '/admin',
+    '/admin/login',
+    `/project/${uuid}`,
+  ]) {
     await router.push(destination)
     assert.equal((await html(Breadcrumbs, router)).includes('<nav'), false)
+    if (router.currentRoute.value.meta.taskDetail) {
+      const output = await html(App, router)
+      assert.ok(output.includes('task-header-back'))
+      assert.equal(output.includes('class="breadcrumbs"'), false)
+    }
   }
 })
 test('the task logo targets the admin project list or the current client project and precedes the toolbar', async () => {

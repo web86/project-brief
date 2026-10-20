@@ -3871,10 +3871,6 @@ button.attachment-item:hover {
 .breadcrumbs [aria-current] {
   color: var(--text-subtle);
 }
-.task-admin-main > .breadcrumbs {
-  padding: 22px 30px 0;
-  margin: 0;
-}
 .sidebar-workspace-label {
   display: flex;
   align-items: center;
@@ -3919,9 +3915,5 @@ button.attachment-item:hover {
   .breadcrumbs a,
   .breadcrumbs [aria-current] {
     max-width: 18ch;
-  }
-  .task-admin-main > .breadcrumbs {
-    padding: 16px 16px 0;
-    margin: 0;
   }
 }

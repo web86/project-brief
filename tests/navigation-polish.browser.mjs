@@ -116,7 +116,7 @@ try {
         label,
       )
       assert.equal(await page.locator('.task-header-back').isVisible(), true)
-      assert.equal(await page.locator('.breadcrumbs').count(), config.admin ? 1 : 0)
+      assert.equal(await page.locator('.breadcrumbs').count(), 0)
       if (!mobile) {
         const aside = await page.locator('.task-navigation').boundingBox()
         const header = await page.locator('.task-topbar').boundingBox()
@@ -171,15 +171,12 @@ try {
       await page.evaluate(() => scrollTo(0, 0))
       if (config.admin) {
         const crumbs = page.locator('.breadcrumbs')
-        assert.equal(await crumbs.locator('li').count(), 4)
-        assert.equal(await crumbs.locator('[aria-current="page"]').innerText(), '#1.1')
-        assert.equal(await crumbs.locator('li:last-child a').count(), 0)
-        assert.equal((await crumbs.innerText()).includes(uuid), false)
+        assert.equal(await crumbs.count(), 0)
         if ((config.width === 1440 && config.language === 'ru') || config.short) {
           await page.locator('.notes-disclosure summary').click()
           await page.locator('#developer-notes').fill('NAVIGATION_POLISH_DRAFT')
           page.once('dialog', (dialog) => dialog.dismiss())
-          await crumbs.locator('a').first().click()
+          await page.locator('.task-header-back').click()
           assert.ok(page.url().endsWith(f.path(f.first.id)))
           assert.equal(
             await page.locator('#developer-notes').inputValue(),
@@ -196,7 +193,7 @@ try {
           await page.keyboard.press('Control+s')
           await page.locator('.developer-save-actions').waitFor({ state: 'detached' })
         }
-        await crumbs.locator('a').nth(1).click()
+        await page.locator('.task-header-back').click()
         await f.waitRoute(`${adminRoot}/brief`)
         assert.equal(await crumbs.locator('li').count(), 2)
         for (const section of [
