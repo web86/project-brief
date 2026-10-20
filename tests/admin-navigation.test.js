@@ -283,7 +283,8 @@ test('successful brief/task loading precedes explicit read POST and clears the s
   assert.equal(navStore().projects[0].unreadCount, 0)
   assert.equal(calls.filter(({ path }) => path === '/api/admin/projects').length, 1)
   await router.push(`/admin/projects/${uuid}/brief/task/task`)
-  assert.equal(calls.filter(({ path }) => path.endsWith('/activity/read')).length, 2)
+  assert.equal(calls.filter(({ path }) => path.endsWith('/activity/read')).length, 1)
+  assert.equal(calls.filter(({ path }) => path.endsWith('/tasks')).length, 1)
 })
 
 test('failed/unauthorized brief load never marks read or switches workspace implicitly', async () => {

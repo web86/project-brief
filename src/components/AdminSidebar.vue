@@ -5,6 +5,7 @@ import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t, formatApiError } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
 import UnreadBadge from './UnreadBadge.vue'
+defineProps({ compact: Boolean })
 const emit = defineEmits(['navigate'])
 const nav = useAdminNavigationStore(),
   router = useRouter(),
@@ -18,8 +19,9 @@ async function select(event) {
 }
 </script>
 <template>
-  <div class="admin-sidebar-content">
+  <div class="admin-sidebar-content" :class="{ 'is-compact': compact }">
     <RouterLink
+      v-if="!compact"
       to="/admin"
       class="brand"
       :aria-label="t('ui.projectBriefOpenTheProject')"
@@ -48,40 +50,45 @@ async function select(event) {
     >
       <AppIcon name="plus" :size="17" />{{ t('nav.newProject') }}
     </RouterLink>
-    <nav
-      class="sidebar-projects"
-      :aria-label="t('nav.projects')"
-      :aria-busy="nav.loading || nav.refreshing"
-    >
-      <h2>{{ t('nav.projects') }}</h2>
-      <div
-        v-if="nav.loading && !nav.projects.length"
-        class="sidebar-skeleton"
-        role="status"
-        :aria-label="t('nav.loading')"
+    <component :is="compact ? 'details' : 'div'" class="sidebar-project-group">
+      <summary v-if="compact">
+        {{ t('nav.projects') }} <span class="count-pill">{{ nav.projects.length }}</span>
+      </summary>
+      <nav
+        class="sidebar-projects"
+        :aria-label="t('nav.projects')"
+        :aria-busy="nav.loading || nav.refreshing"
       >
-        <span v-for="n in 4" :key="n" />
-      </div>
-      <p v-else-if="!nav.projects.length" class="small muted">{{ t('nav.noProjects') }}</p>
-      <RouterLink
-        v-for="project in nav.projects"
-        :key="project.id"
-        :to="`/admin/projects/${project.id}/brief`"
-        class="sidebar-project"
-        :class="{ active: activeProject === project.id }"
-        :aria-current="activeProject === project.id ? 'page' : undefined"
-        @click="emit('navigate')"
-      >
-        <span class="sidebar-project-name">{{ project.name }}</span
-        ><UnreadBadge :count="project.unreadCount || 0" />
-      </RouterLink>
-      <div v-if="nav.listError" class="sidebar-error" role="alert">
-        <p>{{ formatApiError(nav.listError) }}</p>
-        <button type="button" class="text-button" @click="nav.refreshProjects()">
-          {{ t('ui.tryAgain') }}
-        </button>
-      </div>
-    </nav>
+        <h2>{{ t('nav.projects') }}</h2>
+        <div
+          v-if="nav.loading && !nav.projects.length"
+          class="sidebar-skeleton"
+          role="status"
+          :aria-label="t('nav.loading')"
+        >
+          <span v-for="n in 4" :key="n" />
+        </div>
+        <p v-else-if="!nav.projects.length" class="small muted">{{ t('nav.noProjects') }}</p>
+        <RouterLink
+          v-for="project in nav.projects"
+          :key="project.id"
+          :to="`/admin/projects/${project.id}/brief`"
+          class="sidebar-project"
+          :class="{ active: activeProject === project.id }"
+          :aria-current="activeProject === project.id ? 'page' : undefined"
+          @click="emit('navigate')"
+        >
+          <span class="sidebar-project-name">{{ project.name }}</span
+          ><UnreadBadge :count="project.unreadCount || 0" />
+        </RouterLink>
+        <div v-if="nav.listError" class="sidebar-error" role="alert">
+          <p>{{ formatApiError(nav.listError) }}</p>
+          <button type="button" class="text-button" @click="nav.refreshProjects()">
+            {{ t('ui.tryAgain') }}
+          </button>
+        </div>
+      </nav>
+    </component>
     <nav class="sidebar-general" :aria-label="t('nav.general')">
       <RouterLink
         to="/admin"

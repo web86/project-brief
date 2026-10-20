@@ -1,4 +1,12 @@
 export default {
+  taskWorkspace: {
+    tasks: 'Project tasks',
+    hideTasks: 'Hide project tasks',
+    openTasks: 'Open project tasks',
+    closeTasks: 'Close project tasks',
+    manageProject: 'Project management',
+    workArea: 'Workspace',
+  },
   discussions: {
     title: 'Discussions',
     general: 'Project comments',

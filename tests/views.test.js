@@ -150,7 +150,7 @@ test('developer editor renders localized dirty state and explicit save for all p
       language,
     )
     assert.equal(clean.includes(dirty), false)
-    assert.ok(clean.includes(save))
+    assert.equal(clean.includes(save), false)
   }
 })
 

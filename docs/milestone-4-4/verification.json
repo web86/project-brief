@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-20",
+  "branch": "codex/milestone-4-4-task-workspace",
+  "baseCommit": "7b70754",
+  "frontend": {
+    "passed": 160,
+    "failed": 0
+  },
+  "backend": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 482,
+    "passed": 482,
+    "assertions": 4856,
+    "duration_ms": 19619
+  },
+  "build": "passed",
+  "prettier": "passed",
+  "gitDiffCheck": "passed",
+  "browser": {
+    "newConfigurations": 8,
+    "appearanceGroups": 11,
+    "milestone43Configurations": 4,
+    "clientPrivacy": "passed",
+    "engine": "Chromium",
+    "api": "mocked",
+    "viewports": [1440, 1024, 390, 320],
+    "locales": ["ru", "en"],
+    "themes": ["light", "dark", "system"],
+    "responsiveResize": "passed",
+    "normalAndReducedMotion": "passed",
+    "fullWidthMobileClientColumns": "passed",
+    "nativePanelTransitionBlocking": "passed"
+  },
+  "screenshots": 25,
+  "backendChanged": false,
+  "databaseChanged": false,
+  "newDependencies": false,
+  "push": "not performed",
+  "deployment": "not performed",
+  "releasePublication": "not performed"
+}

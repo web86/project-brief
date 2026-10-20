@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectStore } from '../stores/project.js'
@@ -8,6 +8,9 @@ import { toast } from '../services/toast.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t, formatApiError } from '../i18n/index.js'
+import TaskHeaderNavigation from '../components/TaskHeaderNavigation.vue'
+import ProjectNavigation from '../components/ProjectNavigation.vue'
+import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
 import AdminSidebar from '../components/AdminSidebar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import ResponsivePushControls from '../components/ResponsivePushControls.vue'
@@ -18,7 +21,8 @@ import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 const route = useRoute(),
   router = useRouter(),
   nav = useAdminNavigationStore(),
-  store = useProjectStore()
+  store = useProjectStore(),
+  workspace = useTaskWorkspaceStore()
 const menu = ref(null),
   dialog = ref(null),
   loggingOut = ref(false)
@@ -26,7 +30,7 @@ const drawer = createAdminDrawer({ dialog: () => dialog.value, trigger: () => me
 const drawerOpen = drawer.open
 let breakpoint
 function resize() {
-  if (breakpoint?.matches && drawerOpen.value) drawer.close(false)
+  if (!route.meta.taskDetail && breakpoint?.matches && drawerOpen.value) drawer.close(false)
 }
 onMounted(() => {
   breakpoint = window.matchMedia?.('(min-width: 961px)')
@@ -38,7 +42,39 @@ onUnmounted(() => {
 })
 watch(
   () => route.fullPath,
-  () => drawer.close(false),
+  () => {
+    workspace.closePanel()
+    drawer.close(false)
+  },
+)
+function showMenu() {
+  if (route.meta.taskDetail) workspace.openAdmin()
+  else drawer.show()
+}
+function closeMenu(restore = true) {
+  workspace.closePanel()
+  drawer.close(restore)
+}
+function drawerKeydown(event) {
+  if (route.meta.taskDetail && event.key === 'Escape') {
+    event.preventDefault()
+    closeMenu()
+  } else drawer.keydown(event)
+}
+function drawerBackdrop(event) {
+  if (event.target === dialog.value) closeMenu()
+}
+watch(
+  () => workspace.panel,
+  async (panel) => {
+    if (!route.meta.taskDetail) return
+    if (panel !== 'admin') {
+      drawer.close(false)
+      return
+    }
+    await nextTick()
+    if (workspace.panel === 'admin' && route.meta.taskDetail) drawer.show()
+  },
 )
 async function retry() {
   try {
@@ -65,8 +101,8 @@ async function logout() {
 }
 </script>
 <template>
-  <div class="admin-shell">
-    <aside class="admin-sidebar">
+  <div class="admin-shell" :class="{ 'is-task-workspace': route.meta.taskDetail }">
+    <aside v-if="!route.meta.taskDetail" class="admin-sidebar">
       <AdminSidebar>
         <template #logout
           ><button class="text-button" :disabled="loggingOut" @click="logout">
@@ -76,25 +112,30 @@ async function logout() {
       </AdminSidebar>
     </aside>
     <div class="admin-content">
-      <header class="admin-toolbar">
+      <header class="admin-toolbar" :class="{ 'task-topbar': route.meta.taskDetail }">
+        <TaskHeaderNavigation v-if="route.meta.taskDetail" />
         <button
+          v-if="!route.meta.taskDetail"
           ref="menu"
           class="icon-button admin-menu-trigger"
           :aria-label="t('nav.openMenu')"
           :aria-expanded="drawerOpen"
           aria-controls="admin-drawer"
-          @click="drawer.show"
+          @click="showMenu"
         >
           <AppIcon name="menu" />
         </button>
         <RouterLink
+          v-if="!route.meta.taskDetail"
           to="/admin"
           class="brand mobile-toolbar-brand"
           :aria-label="t('ui.projectBriefOpenTheProject')"
         >
           <span class="brand-mark">p<span class="brand-dot">.</span></span>
         </RouterLink>
-        <span class="admin-toolbar-workspace">{{ nav.workspace?.name }}</span>
+        <span v-if="!route.meta.taskDetail" class="admin-toolbar-workspace">{{
+          nav.workspace?.name
+        }}</span>
         <div class="admin-toolbar-controls">
           <ResponsivePushControls
             v-if="store.admin"
@@ -103,11 +144,23 @@ async function logout() {
             footer="#admin-push-footer"
           />
           <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
+          <button
+            v-if="route.meta.taskDetail"
+            ref="menu"
+            class="icon-button task-admin-trigger"
+            :aria-label="t('taskWorkspace.manageProject')"
+            :aria-expanded="drawerOpen"
+            aria-controls="admin-drawer"
+            @click="showMenu"
+          >
+            <AppIcon name="menu" />
+          </button>
         </div>
       </header>
       <main
         id="main-content"
         class="admin-main"
+        :class="{ 'task-admin-main': route.meta.taskDetail }"
         tabindex="-1"
         :aria-busy="nav.switching || nav.loading"
       >
@@ -127,25 +180,39 @@ async function logout() {
       id="admin-drawer"
       ref="dialog"
       class="admin-drawer"
-      :aria-label="t('nav.menu')"
-      @cancel.prevent="drawer.close()"
-      @keydown="drawer.keydown"
-      @click="drawer.backdrop"
+      :class="{ 'task-management-drawer': route.meta.taskDetail }"
+      :aria-label="t(route.meta.taskDetail ? 'taskWorkspace.manageProject' : 'nav.menu')"
+      @cancel.prevent="closeMenu()"
+      @keydown="drawerKeydown"
+      @click="drawerBackdrop"
     >
       <button
         class="icon-button drawer-close"
         :aria-label="t('nav.closeMenu')"
-        @click="drawer.close()"
+        @click="closeMenu()"
       >
         <AppIcon name="close" />
       </button>
-      <AdminSidebar @navigate="drawer.close(false)">
-        <template #logout
-          ><button class="text-button" :disabled="loggingOut" @click="logout">
-            {{ t('ui.signOut') }}
-          </button></template
-        >
-      </AdminSidebar>
+      <div
+        class="admin-drawer-content"
+        :class="{ 'task-management-content': route.meta.taskDetail }"
+      >
+        <section v-if="route.meta.taskDetail" class="task-project-management">
+          <h2>{{ t('taskWorkspace.manageProject') }}</h2>
+          <p class="small muted">{{ store.project.name }}</p>
+          <ProjectNavigation vertical />
+        </section>
+        <div :class="{ 'task-global-management': route.meta.taskDetail }">
+          <h3 v-if="route.meta.taskDetail">{{ t('taskWorkspace.workArea') }}</h3>
+          <AdminSidebar :compact="!!route.meta.taskDetail" @navigate="closeMenu(false)">
+            <template #logout
+              ><button class="text-button" :disabled="loggingOut" @click="logout">
+                {{ t('ui.signOut') }}
+              </button></template
+            >
+          </AdminSidebar>
+        </div>
+      </div>
     </dialog>
   </div>
 </template>

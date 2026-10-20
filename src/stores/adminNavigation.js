@@ -1,3 +1,4 @@
+import { useTaskWorkspaceStore } from './taskWorkspace.js'
 import { useDiscussionsStore } from './discussions.js'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -27,6 +28,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     useProjectStore().clearApiState()
     useProjectManagementStore().clear()
     useDiscussionsStore().clear()
+    useTaskWorkspaceStore().clear()
     projects.value = []
     listRevision++
   }

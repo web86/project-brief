@@ -1,4 +1,5 @@
 <script setup>
+import TaskHeaderNavigation from './components/TaskHeaderNavigation.vue'
 import ResponsivePushControls from './components/ResponsivePushControls.vue'
 import MobilePushFooter from './components/MobilePushFooter.vue'
 import ToastViewport from './components/ToastViewport.vue'
@@ -75,10 +76,12 @@ watch(
   <div :inert="navigationPending || undefined" :aria-busy="navigationPending">
     <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
     <RouterView v-if="route.meta.adminShell" />
-    <div v-else class="app-shell">
-      <header class="app-topbar">
+    <div v-else class="app-shell" :class="{ 'task-workspace-shell': route.meta.taskDetail }">
+      <header class="app-topbar" :class="{ 'task-topbar': route.meta.taskDetail }">
         <div class="topbar-inner">
+          <TaskHeaderNavigation v-if="route.meta.taskDetail" />
           <RouterLink
+            v-else
             :to="
               store.apiMode
                 ? store.admin
@@ -95,9 +98,11 @@ watch(
               >project<span class="brand-light">brief</span></span
             ></RouterLink
           ><ModeSwitcher v-if="!store.apiMode" />
-          <span v-else-if="store.currentClient" class="current-client-name">{{
-            store.currentClient.name
-          }}</span>
+          <span
+            v-else-if="store.currentClient && !route.meta.taskDetail"
+            class="current-client-name"
+            >{{ store.currentClient.name }}</span
+          >
           <ResponsivePushControls
             v-if="store.apiMode && (store.admin || store.currentClient)"
             :key="store.admin ? 'admin:' + store.admin.email : 'client:' + store.currentClient.id"

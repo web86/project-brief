@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useDiscussionsStore } from '../stores/discussions.js'
+import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
 import { toast } from '../services/toast.js'
 import { formatApiError } from '../i18n/index.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
@@ -115,6 +116,7 @@ export function createProjectRouter({
                   apiProject: true,
                   admin: true,
                   editTask,
+                  taskDetail: path.endsWith(':id'),
                   get title() {
                     return t('nav.brief')
                   },
@@ -172,6 +174,7 @@ export function createProjectRouter({
           path: `${path}/task/:id`,
           component: () => import('../views/TaskView.vue'),
           meta: {
+            taskDetail: true,
             apiProject: true,
             admin: path.startsWith('/admin'),
             get title() {
@@ -215,6 +218,7 @@ export function createProjectRouter({
         name: 'task',
         component: () => import('../views/TaskView.vue'),
         meta: {
+          taskDetail: true,
           get title() {
             return t('ui.ideaDetails')
           },
@@ -242,12 +246,26 @@ export function createProjectRouter({
   let revision = 0
   const attempts = new WeakMap(),
     commits = new WeakMap()
+  const reusedProject = new WeakSet()
+  function canReuseProject(to, from, store) {
+    return (
+      to.meta.taskDetail &&
+      from.meta.apiProject &&
+      to.params.uuid === from.params.uuid &&
+      !!to.meta.admin === !!from.meta.admin &&
+      store.project.id === to.params.uuid &&
+      !store.sessionLost &&
+      (to.meta.admin ? !!store.admin : !!store.currentClient) &&
+      !!store.findTask(to.params.id)
+    )
+  }
   router.beforeEach(async (to, from) => {
     const current = ++revision
     attempts.set(to, current)
     navigationPending.value = true
     const draftStore = useProjectStore()
     if (to.path !== from.path && !confirmDeveloperLeave(draftStore)) return false
+    useTaskWorkspaceStore().closePanel()
 
     if (to.path === '/app') {
       const store = useProjectStore()
@@ -308,6 +326,11 @@ export function createProjectRouter({
         nav.pageLoading = true
         try {
           if (to.meta.apiProject) {
+            if (canReuseProject(to, from, store)) {
+              reusedProject.add(to)
+              management.adopt(store.project)
+              return true
+            }
             const loaded = await store.loadApiProject(to.params.uuid, true, {
               skipAdmin: true,
               defer: true,
@@ -353,6 +376,10 @@ export function createProjectRouter({
     }
     if (!to.meta.apiProject) return true
     const store = useProjectStore()
+    if (canReuseProject(to, from, store)) {
+      reusedProject.add(to)
+      return true
+    }
     try {
       const loaded = await store.loadApiProject(to.params.uuid, to.meta.admin, { defer: true })
       if (current !== revision || loaded === false) return false
@@ -390,7 +417,7 @@ export function createProjectRouter({
       return
     }
     if (attempts.get(to) === revision) navigationPending.value = false
-    if (!failure && to.meta.apiProject && to.meta.admin)
+    if (!failure && to.meta.apiProject && to.meta.admin && !reusedProject.has(to))
       void useAdminNavigationStore().markRead(to.params.uuid, request)
     if (!failure && to.path !== from.path) useProjectStore().discardDeveloperChanges()
   })

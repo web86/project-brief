@@ -10,7 +10,10 @@ const server = await createServer({
   server: { host: '127.0.0.1', port: 5186, strictPort: true },
   logLevel: 'error',
 })
-const output = new URL('../docs/milestone-4-3-implementation/', import.meta.url)
+const output = new URL(
+  process.env.MILESTONE43_OUTPUT_DIR || '../docs/milestone-4-3-implementation/',
+  import.meta.url,
+)
 await mkdir(output, { recursive: true })
 let browser
 const results = []
@@ -187,10 +190,13 @@ async function fixture({ width, locale, theme, colorScheme, client = false }) {
   const screenshot = (name) =>
     page.screenshot({ path: new URL(name + '.png', output).pathname, fullPage: true })
   const navigate = async (section, { wait = true } = {}) => {
-    if (width < 900) {
-      await page.locator('.project-subnav').evaluate((element) => (element.scrollLeft = 0))
+    const inTask = await page.locator('.task-admin-trigger').count()
+    if (inTask) {
+      await page.locator('.task-admin-trigger').click()
+      await page.locator('#admin-drawer[open]').waitFor()
     }
-    await page.locator(`.project-subnav a[href="${base}/${section}"]`).click()
+    const navigation = page.locator(inTask ? '.project-panel-nav' : '.project-subnav')
+    await navigation.locator(`a[href="${base}/${section}"]`).click()
     if (wait) {
       try {
         await page.waitForURL(`**/${section}`)

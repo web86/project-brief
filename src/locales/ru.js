@@ -1,4 +1,12 @@
 export default {
+  taskWorkspace: {
+    tasks: 'Задачи проекта',
+    hideTasks: 'Скрыть задачи проекта',
+    openTasks: 'Открыть задачи проекта',
+    closeTasks: 'Закрыть задачи проекта',
+    manageProject: 'Управление проектом',
+    workArea: 'Рабочая область',
+  },
   discussions: {
     title: 'Обсуждения',
     general: 'Общие комментарии проекта',

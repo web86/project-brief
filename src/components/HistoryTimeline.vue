@@ -6,7 +6,13 @@ import { computed } from 'vue'
 import { formatDate } from '../constants/project'
 const props = defineProps({ history: Array, developer: Boolean })
 const visible = computed(() =>
-  [...props.history].filter((event) => props.developer || event.type !== 'developer').reverse(),
+  [...props.history]
+    .filter(
+      (event) =>
+        props.developer ||
+        !['developer', 'estimate', 'price', 'developer_notes'].includes(event.type),
+    )
+    .reverse(),
 )
 </script>
 <template>
