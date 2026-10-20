@@ -449,7 +449,7 @@ try {
       await checkContrast(page)
       await screenshot(page, `export-${size}-${mode}`)
       await open(page, `${adminPath}/notifications`)
-      await page.locator('.notification-settings summary').click()
+      await page.locator('.notification-settings h2').waitFor()
       await page.locator('.notification-checkbox').first().waitFor()
       await checkContrast(page)
       await screenshot(page, `notifications-${size}-${mode}`)

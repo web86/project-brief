@@ -114,6 +114,10 @@ class WorkspaceMigrationTest extends TestCase
                         $this->assertNull($data['preferred_locale']);
                         unset($data['preferred_locale']);
                     }
+                    if ($table === 'project_clients') {
+                        $this->assertNull($data['notification_preferences']);
+                        unset($data['notification_preferences']);
+                    }
                     if ($table === 'comments') {
                         $this->assertNull($data['project_id']);
                         unset($data['project_id']);

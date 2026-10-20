@@ -1,12 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { t, formatDate, formatApiError } from '../i18n/index.js'
-import { useDiscussionsStore } from '../stores/discussions.js'
+import { useDiscussionsStore, useClientDiscussionsStore } from '../stores/discussions.js'
 import { toast } from '../services/toast.js'
 import LoadingButton from '../components/LoadingButton.vue'
-const route = useRoute(),
-  discussions = useDiscussionsStore()
+const route = useRoute()
+const client = route.meta.clientSection === 'discussions'
+const discussions = client ? useClientDiscussionsStore() : useDiscussionsStore()
 const pending = ref(false)
 const text = computed({
   get: () => discussions.drafts[route.params.uuid] || '',
@@ -14,6 +15,14 @@ const text = computed({
     discussions.drafts[route.params.uuid] = value
   },
 })
+async function reveal() {
+  if (!route.hash.startsWith('#comment-')) return
+  await nextTick()
+  const element = document.getElementById(route.hash.slice(1))
+  element?.scrollIntoView({ block: 'center' })
+}
+onMounted(reveal)
+watch(() => route.hash, reveal)
 async function run(action) {
   if (pending.value) return
   pending.value = true
@@ -62,6 +71,7 @@ async function send() {
         <article
           v-for="comment in discussions[kind]"
           :key="comment.id"
+          :id="`comment-${comment.id}`"
           class="discussion-item"
           :class="{ 'is-unread': comment.unread }"
         >
@@ -85,7 +95,11 @@ async function send() {
           <div class="discussion-actions">
             <RouterLink
               v-if="comment.task"
-              :to="`/admin/projects/${route.params.uuid}/brief/task/${comment.task.id}#comment-${comment.id}`"
+              :to="
+                client
+                  ? `/project/${route.params.uuid}/task/${comment.task.id}#comment-${comment.id}`
+                  : `/admin/projects/${route.params.uuid}/brief/task/${comment.task.id}#comment-${comment.id}`
+              "
               class="text-button"
               >{{ t('discussions.openTask') }}</RouterLink
             >

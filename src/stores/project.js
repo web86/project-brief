@@ -1,3 +1,4 @@
+import { useClientDiscussionsStore } from './discussions.js'
 import { toast } from '../services/toast.js'
 import {
   t,
@@ -244,6 +245,7 @@ export const useProjectStore = defineStore('project', () => {
         nextAdmin = null
         nextClient = await api.request('/api/client/me')
         if (current !== apiRevision) return false
+        useClientDiscussionsStore().setIdentity(nextClient.id)
       }
       const [details, list] = await Promise.all([
         api.request(asAdmin ? `/api/admin/projects/${id}` : `/api/client/project/${id}`),

@@ -1,5 +1,5 @@
 <script setup>
-import { useDiscussionsStore } from '../stores/discussions.js'
+import { useDiscussionsStore, useClientDiscussionsStore } from '../stores/discussions.js'
 import { toast } from '../services/toast.js'
 import { t, formatApiError } from '../i18n/index.js'
 
@@ -26,7 +26,7 @@ const store = useProjectStore()
 const seen = new Set()
 let readTimer
 function seenComment(id) {
-  if (!store.apiMode || !store.isDeveloper || storeRouter.navigationPending?.value) return
+  if (!store.apiMode || storeRouter.navigationPending?.value) return
   seen.add(id)
   clearTimeout(readTimer)
   const projectId = route.params.uuid
@@ -38,7 +38,10 @@ function seenComment(id) {
     const ids = [...seen]
     seen.clear()
     try {
-      await useDiscussionsStore().mark(projectId, ids)
+      await (store.isDeveloper ? useDiscussionsStore() : useClientDiscussionsStore()).mark(
+        projectId,
+        ids,
+      )
     } catch (error) {
       toast.error(() => formatApiError(error))
     }

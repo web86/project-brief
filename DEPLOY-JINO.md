@@ -343,3 +343,49 @@ privileged код поверх новой tenant schema. Для rollback тре�
 учётом последующих записей. Полные детали, ограничения recovery и результаты тестов:
 `docs/milestone-2.md` в исходном репозитории (verification report не входит в upload package).
 Ничего не было развёрнуто в production этим изменением.
+
+## Client Workspace и Telegram (Milestone 4.5)
+
+После замены файлов выполните обычный шаг обновления `php artisan migrate --force`
+до `optimize` / `up`. Новая миграция добавляет персональные предпочтения, клиентские
+маркеры прочтения и Telegram-привязки. Старые настройки Email/Push сохраняются;
+Telegram выключен по умолчанию для всех событий. Сохраните прежний `APP_KEY`:
+им шифруются chat ID и существующие сессии.
+
+Клиент получает правое меню с обсуждениями, личными уведомлениями и экспортом.
+Клиентский экспорт исключает часы, стоимость и технические заметки на сервере.
+
+Telegram настраивается только в приватной `.env`:
+
+```dotenv
+TELEGRAM_TRANSPORT=direct
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_BOT_USERNAME=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_BRIDGE_URL=
+TELEGRAM_BRIDGE_SECRET=
+```
+
+Для direct заполните токен бота, username без `@` и отдельный случайный webhook
+secret (минимум 32 символа, латинские буквы/цифры/`_`/`-`). После `config:clear`
+проверьте `php artisan telegram:check`, затем вручную один
+`php artisan telegram:check --live` с Jino. Последняя команда вызывает `getMe`,
+без отправки сообщения и без вывода токена; это ещё не проверка доставки.
+
+Webhook регистрируется в Telegram на HTTPS URL
+`https://brief.web86.site/api/telegram/webhook` с `secret_token`, совпадающим с
+`TELEGRAM_WEBHOOK_SECRET`, и `allowed_updates: ["message"]`.
+Подключение выполняется кнопкой в личном интерфейсе, одноразовая ссылка действует
+10 минут. Клиент не вводит chat ID. После ответа бота обновите статус, отправьте
+личный тест и включите нужные Telegram-события в административной матрице.
+
+Если direct недоступен, необязательный Deno transport использует отдельные
+`TELEGRAM_BRIDGE_URL=https://<service>.deno.dev/telegram/send` и
+`TELEGRAM_BRIDGE_SECRET` (минимум 32 символа). На Deno хранятся token бота и этот
+же отдельный secret; на Laravel token при `deno` не требуется. Webhook продолжает
+принимать Laravel. AI/Groq конфигурация и secrets не используются.
+`telegram-bridge.mjs` и подробная `TELEGRAM.md` приложены к GitHub Release отдельно;
+Deno-сервис не является частью PHP web root и не развёртывается автоматически.
+
+Реальную E2E доставку direct с Jino и через Deno проверяйте после предоставления
+тестовых credentials. В релизных проверках Telegram использует mocks.

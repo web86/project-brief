@@ -2431,17 +2431,6 @@ button.attachment-item:hover {
 .task-card-shell .task-card {
   height: 100%;
 }
-.card-order-actions {
-  position: absolute;
-  z-index: 3;
-  right: 12px;
-  top: 12px;
-  display: flex;
-  gap: 4px;
-}
-.has-card-controls .card-top {
-  padding-right: 104px;
-}
 .order-icon {
   display: inline-grid;
   place-content: center;
@@ -3915,5 +3904,122 @@ button.attachment-item:hover {
   .breadcrumbs a,
   .breadcrumbs [aria-current] {
     max-width: 18ch;
+  }
+}
+
+/* Client controls stay together on the right at every project route. */
+.client-header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+  gap: 12px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.client-header-controls .current-client-name {
+  max-width: clamp(80px, 14vw, 240px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.client-menu-trigger {
+  flex-shrink: 0;
+}
+.client-drawer-content {
+  min-height: 100dvh;
+}
+.client-drawer-content > p {
+  overflow-wrap: anywhere;
+}
+.client-drawer-content .project-panel-nav {
+  margin: 24px 0;
+}
+.client-drawer-content .sidebar-account {
+  margin-top: auto;
+}
+.client-drawer-content .project-panel-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.client-drawer-content .project-panel-nav a span:first-of-type {
+  flex: 1;
+}
+.notification-settings > h2 {
+  padding: 24px 24px 0;
+  font-size: 20px;
+}
+.notification-channel {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--divider);
+}
+.notification-channel h3,
+.notification-channel h2 {
+  margin: 0 0 12px;
+}
+.notification-columns {
+  grid-template-columns: minmax(0, 1fr) repeat(3, 68px);
+}
+.personal-channel-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}
+.personal-channel-option input[type='checkbox'] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--action);
+}
+.telegram-link {
+  margin-top: 18px;
+}
+.discussion-item:target {
+  outline: 2px solid var(--action);
+  outline-offset: 4px;
+}
+@media (max-width: 768px) {
+  .client-header-controls .current-client-name {
+    display: none;
+  }
+  .client-header-controls {
+    gap: 4px;
+  }
+  .client-header-controls .appearance-controls {
+    flex-wrap: nowrap;
+  }
+  .notification-columns {
+    grid-template-columns: minmax(0, 1fr) repeat(3, 58px);
+    gap: 2px;
+  }
+  .notification-columns > span:first-child {
+    overflow-wrap: anywhere;
+  }
+}
+@media (max-width: 640px) {
+  .notification-settings > h2 {
+    padding: 18px 16px 0;
+  }
+}
+
+.client-notifications {
+  padding: 24px 28px;
+}
+.client-notifications > h1 {
+  font-size: 26px;
+  margin: 0 0 12px;
+}
+.client-notifications > p {
+  line-height: 1.5;
+}
+@media (max-width: 640px) {
+  .client-notifications {
+    padding: 20px 16px;
   }
 }

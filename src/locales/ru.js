@@ -1,4 +1,37 @@
 export default {
+  clientWorkspace: {
+    ideas: 'Идеи',
+    menu: 'Меню проекта',
+    role: 'Клиент проекта',
+    personalPreferences: 'Мои каналы уведомлений',
+    notificationHint:
+      'Вы можете получать комментарии разработчика, запросы уточнений и изменения готовности задач. События выбирает администратор проекта; здесь вы управляете только своими каналами.',
+  },
+  telegram: {
+    connected: 'Telegram подключён',
+    disconnected: 'Telegram не подключён',
+    unavailable: 'Telegram пока не настроен на сервере.',
+    personalHint:
+      'Личная привязка. Уведомления отправляются только в подключённый вами личный чат.',
+    connect: 'Подключить Telegram',
+    reconnect: 'Переподключить',
+    disconnect: 'Отключить',
+    test: 'Проверить Telegram',
+    refresh: 'Обновить статус',
+    openBot: 'Открыть бота',
+    linkHint:
+      'Откройте бота и нажмите Start. Ссылка одноразовая и действует 10 минут. Затем обновите статус.',
+    sent: 'Telegram принял тестовое сообщение.',
+    loadError: 'Не удалось загрузить статус Telegram.',
+    deliveryError: 'Не удалось отправить сообщение. Проверьте подключение и попробуйте позже.',
+    telegram_rate_limited: 'Telegram ограничил частоту запросов. Повторите позже.',
+    telegram_blocked: 'Бот заблокирован. Разблокируйте бота и подключитесь заново.',
+    telegram_not_connected: 'Сначала подключите Telegram.',
+    telegram_unconfigured: 'Telegram не настроен на сервере.',
+    telegram_unauthorized:
+      'Серверная авторизация Telegram недоступна. Обратитесь к администратору.',
+    telegram_chat_unavailable: 'Чат недоступен. Подключите Telegram заново.',
+  },
   taskWorkspace: {
     tasks: 'Задачи проекта',
     hideTasks: 'Скрыть задачи проекта',
@@ -142,7 +175,7 @@ export default {
       'Это устройство связано с другим аккаунтом. Нажмите «Включить» в настройках Push, чтобы явно переключить его.',
   },
   notifications: {
-    title: 'Уведомления',
+    title: 'Уведомления проекта',
     push: 'Push-уведомления',
     configure: 'Настроить',
     enable: 'Включить push-уведомления',
@@ -182,11 +215,13 @@ export default {
     events: {
       client: {
         task_created: 'Новая идея',
+        project_comment_created: 'Комментарий в общем обсуждении',
         comment_created: 'Комментарий клиента',
         task_approved: 'Клиент согласовал',
       },
       admin: {
         clarification_requested: 'Нужно уточнить',
+        project_comment_created: 'Комментарий в общем обсуждении',
         comment_created: 'Комментарий разработчика',
         task_review: 'На проверке',
         task_done: 'Готово',

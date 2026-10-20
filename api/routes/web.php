@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AiTaskAssistantController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ClientLocaleController;
+use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProjectActivityController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
+use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
@@ -74,6 +76,12 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::post('/project/{project}/ai/task-assistant', AiTaskAssistantController::class);
+    Route::get('/notifications', [ClientNotificationController::class, 'show']);
+    Route::patch('/notifications', [ClientNotificationController::class, 'update']);
+    Route::post('/project/{project}/export', ProjectExportController::class);
+    Route::get('/project/{project}/discussions', [ProjectDiscussionController::class, 'index']);
+    Route::post('/project/{project}/discussions', [ProjectDiscussionController::class, 'store'])->middleware('throttle:comments');
+    Route::post('/project/{project}/discussions/read', [ProjectDiscussionController::class, 'read']);
     Route::get('/me', fn (Request $r) => response()->json(['id' => $r->attributes->get('project_client')->uuid, 'name' => $r->attributes->get('project_client')->name, 'email' => $r->attributes->get('project_client')->email, 'preferredLocale' => $r->attributes->get('project_client')->preferred_locale, 'project' => new ProjectResource($r->attributes->get('client_project'))]));
     Route::patch('/me/locale', [ClientLocaleController::class, 'update']);
     Route::get('/project', fn (Request $r) => new ProjectResource($r->attributes->get('client_project')));
@@ -121,5 +129,17 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}/notifications'
     Route::patch('/', [NotificationSettingsController::class, 'update']);
     Route::post('/test', [NotificationSettingsController::class, 'test'])->middleware('throttle:5,1');
 });
+
+foreach (['admin', 'client'] as $actor) {
+    Route::middleware($actor)->prefix('/api/'.$actor.'/telegram')->group(function (): void {
+        Route::get('/', [TelegramController::class, 'show']);
+        Route::post('/connect', [TelegramController::class, 'connect'])->middleware('throttle:telegram-connect');
+        Route::delete('/', [TelegramController::class, 'disconnect']);
+        Route::post('/test', [TelegramController::class, 'test'])->middleware('throttle:telegram-test');
+    });
+}
+Route::post('/api/telegram/webhook', [TelegramController::class, 'webhook'])
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])
+    ->middleware('throttle:telegram-webhook');
 
 Route::any('/{fallbackPlaceholder}', SpaController::class)->where('fallbackPlaceholder', '.*')->fallback();

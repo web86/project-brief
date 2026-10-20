@@ -405,7 +405,7 @@ test('client and login pages remain outside authenticated shell', async () => {
   }
 })
 
-test('authenticated shells render one Push control and its mobile footer outlet', async () => {
+test('admin shell retains Push controls while client uses its own project menu', async () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'document')
   globalThis.document = { title: '', documentElement: {}, getElementById: () => null }
   try {
@@ -427,9 +427,9 @@ test('authenticated shells render one Push control and its mobile footer outlet'
     assert.equal(guest.includes('id="client-push-footer"'), false)
     store.currentClient = { id: 'client', name: 'Client' }
     const client = await renderToString(createSSRApp(App).use(nav._p).use(router).use(i18n))
-    assert.equal((client.match(/class="text-button push-trigger"/g) || []).length, 1)
-    assert.match(client, /id="client-push-footer"/)
-    assert.ok(client.indexOf('id="client-push-footer"') > client.indexOf('</main>'))
+    assert.equal(client.includes('push-trigger'), false)
+    assert.equal(client.includes('id="client-push-footer"'), false)
+    assert.ok(client.includes('client-menu-trigger'))
   } finally {
     if (previous) Object.defineProperty(globalThis, 'document', previous)
     else delete globalThis.document

@@ -7,6 +7,8 @@ use Illuminate\Validation\ValidationException;
 
 class ProjectExportData
 {
+    public const CLIENT_FIELDS = ['description', 'expectedResult', 'priority', 'status', 'attachments', 'approvalDate'];
+
     public const DEFAULT_FIELDS = [
         'description' => true, 'expectedResult' => true, 'priority' => true,
         'status' => true, 'estimateHours' => false, 'price' => false,
@@ -18,9 +20,12 @@ class ProjectExportData
      *
      * @return array{title: string, project: array{name: string, website: ?string}, generated: array{date: string, isoDate: string, locale: string}, labels: array<string, string>, sections: array, totals: array, summary: array, presentation: array{pageBreakBySection: bool}}
      */
-    public function build(Project $project, string $scope, string $locale, array $fields = [], array $options = []): array
+    public function build(Project $project, string $scope, string $locale, array $fields = [], array $options = [], bool $client = false): array
     {
         $fields = array_replace(self::DEFAULT_FIELDS, $fields);
+        if ($client) {
+            $fields = array_intersect_key($fields, array_flip(self::CLIENT_FIELDS)) + array_fill_keys(array_keys(self::DEFAULT_FIELDS), false);
+        }
         $labels = trans('exports', [], $locale);
         $generatedAt = now()->locale($locale);
         $title = preg_replace('/^\s+|\s+$/u', '', $options['documentTitle'] ?? '');

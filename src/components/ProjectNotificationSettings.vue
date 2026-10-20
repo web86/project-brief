@@ -4,13 +4,19 @@ import { t } from '../i18n/index.js'
 import { api } from '../api/client.js'
 import { createNotificationSettings, notificationEvents } from '../services/notificationSettings.js'
 import { toast } from '../services/toast.js'
+import TelegramSettings from './TelegramSettings.vue'
+import PushControls from './PushControls.vue'
 import LoadingButton from './LoadingButton.vue'
 import LoadingOverlay from './LoadingOverlay.vue'
+function normalize(value) {
+  const result = JSON.parse(JSON.stringify(value))
+  for (const event of notificationEvents)
+    result.events[event] = { email: true, push: true, telegram: false, ...result.events[event] }
+  return result
+}
 const props = defineProps({ projectId: { type: String, required: true }, initialSettings: Object })
 const client = createNotificationSettings(api.request, props.projectId)
-const settings = ref(
-  props.initialSettings ? JSON.parse(JSON.stringify(props.initialSettings)) : null,
-)
+const settings = ref(props.initialSettings ? normalize(props.initialSettings) : null)
 const loading = ref(!props.initialSettings)
 const saving = ref(false)
 const testing = ref(null)
@@ -24,7 +30,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    settings.value = await client.load()
+    settings.value = normalize(await client.load())
   } catch {
     error.value = 'notifications.loadError'
   } finally {
@@ -37,7 +43,7 @@ async function save() {
   validation.value = {}
   error.value = ''
   try {
-    settings.value = await client.save(settings.value)
+    settings.value = normalize(await client.save(settings.value))
     validation.value = {}
     if (active) toast.success(() => t('notifications.saved'))
   } catch (cause) {
@@ -84,8 +90,8 @@ onMounted(() => {
 })
 </script>
 <template>
-  <details class="surface notification-settings">
-    <summary>{{ t('notifications.title') }}</summary>
+  <section class="surface notification-settings">
+    <h2>{{ t('notifications.title') }}</h2>
     <div class="notification-settings-body">
       <LoadingOverlay :active="loading" block />
       <p v-if="error" class="field-error" role="alert">{{ t(error) }}</p>
@@ -93,6 +99,7 @@ onMounted(() => {
         {{ t('notifications.retry') }}
       </button>
       <form v-if="settings" @submit.prevent="save">
+        <h3>Email</h3>
         <div class="field">
           <label for="notification-email">{{ t('notifications.adminEmail') }}</label>
           <input
@@ -124,7 +131,7 @@ onMounted(() => {
             }}
           </legend>
           <div class="notification-columns" aria-hidden="true">
-            <span></span><span>Email</span><span>Push</span>
+            <span></span><span>Email</span><span>Push</span><span>Telegram</span>
           </div>
           <div
             v-for="event in notificationEvents.filter((event) => event.startsWith(group + '.'))"
@@ -133,14 +140,14 @@ onMounted(() => {
           >
             <span :id="`event-${event}`">{{ t(`notifications.events.${event}`) }}</span>
             <label
-              v-for="channel in ['email', 'push']"
+              v-for="channel in ['email', 'push', 'telegram']"
               :key="channel"
               class="notification-checkbox"
             >
               <input
                 type="checkbox"
                 v-model="settings.events[event][channel]"
-                :aria-label="`${t(`notifications.events.${event}`)} — ${channel === 'email' ? 'Email' : 'Push'}`"
+                :aria-label="`${t(`notifications.events.${event}`)} — ${{ email: 'Email', push: 'Push', telegram: 'Telegram' }[channel]}`"
               />
               <span
                 v-if="validation[`events.${event}.${channel}`]"
@@ -171,6 +178,11 @@ onMounted(() => {
           >{{ t('notifications.testPush') }}</LoadingButton
         >
       </div>
+      <section class="notification-channel">
+        <h3>Push</h3>
+        <PushControls persona="admin" inline />
+      </section>
+      <TelegramSettings persona="admin" />
     </div>
-  </details>
+  </section>
 </template>

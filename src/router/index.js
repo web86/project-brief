@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { useDiscussionsStore } from '../stores/discussions.js'
+import { useDiscussionsStore, useClientDiscussionsStore } from '../stores/discussions.js'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
 import { toast } from '../services/toast.js'
 import { formatApiError } from '../i18n/index.js'
@@ -135,6 +135,21 @@ export function createProjectRouter({
           },
         },
       },
+      ...['discussions', 'notifications', 'export'].map((section) => ({
+        path: `/project/:uuid/${section}`,
+        component: {
+          discussions: () => import('../views/AdminProjectDiscussionsView.vue'),
+          notifications: () => import('../views/ClientNotificationsView.vue'),
+          export: () => import('../views/AdminProjectExportView.vue'),
+        }[section],
+        meta: {
+          apiProject: true,
+          clientSection: section,
+          get title() {
+            return t('nav.' + section)
+          },
+        },
+      })),
       ...['/project/:uuid'].flatMap((path) => [
         {
           path,
@@ -383,7 +398,15 @@ export function createProjectRouter({
     try {
       const loaded = await store.loadApiProject(to.params.uuid, to.meta.admin, { defer: true })
       if (current !== revision || loaded === false) return false
-      commits.set(to, loaded)
+      let discussionCommit
+      if (to.meta.clientSection === 'discussions') {
+        discussionCommit = await useClientDiscussionsStore().load(to.params.uuid, { defer: true })
+        if (current !== revision || discussionCommit === false) return false
+      }
+      commits.set(to, () => {
+        if (loaded() === false) return false
+        return discussionCommit?.()
+      })
       return true
     } catch (error) {
       if (current !== revision) return false

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Comment;
 use App\Models\Project;
+use App\Models\ProjectClient;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -17,24 +18,31 @@ class ProjectDiscussions
             ->orWhere(fn (Builder $general) => $general->whereNull('task_id')->where('project_id', $project->id)));
     }
 
-    public function unread(Builder $query, User $user): Builder
+    public function unread(Builder $query, User|ProjectClient $user): Builder
     {
-        return $query->where(fn (Builder $author) => $author->where('author_type', '!=', 'admin')
-            ->orWhereNull('author_user_id')->orWhere('author_user_id', '!=', $user->id))
-            ->whereNotExists(fn ($reads) => $reads->selectRaw('1')->from('comment_reads')
-                ->whereColumn('comment_reads.comment_id', 'comments.id')->where('comment_reads.user_id', $user->id));
+        $client = $user instanceof ProjectClient;
+        $table = $client ? 'client_comment_reads' : 'comment_reads';
+        $key = $client ? 'project_client_id' : 'user_id';
+        $authorKey = $client ? 'project_client_id' : 'author_user_id';
+
+        return $query->where(fn (Builder $author) => $author->where('author_type', '!=', $client ? 'client' : 'admin')
+            ->orWhereNull($authorKey)->orWhere($authorKey, '!=', $user->id))
+            ->whereNotExists(fn ($reads) => $reads->selectRaw('1')->from($table)
+                ->whereColumn($table.'.comment_id', 'comments.id')->where($table.'.'.$key, $user->id));
     }
 
-    public function count(Project $project, User $user): int
+    public function count(Project $project, User|ProjectClient $user): int
     {
         return $this->unread($this->query($project), $user)->count();
     }
 
-    public function mark(Builder $query, User $user): void
+    public function mark(Builder $query, User|ProjectClient $user): void
     {
         // One INSERT SELECT snapshots the selected comments; concurrent newer comments remain unread.
-        DB::table('comment_reads')->insertOrIgnoreUsing(['user_id', 'comment_id'],
-            $this->unread($query, $user)->selectRaw('? as user_id, comments.id', [$user->id])->toBase());
+        $client = $user instanceof ProjectClient;
+        $key = $client ? 'project_client_id' : 'user_id';
+        DB::table($client ? 'client_comment_reads' : 'comment_reads')->insertOrIgnoreUsing([$key, 'comment_id'],
+            $this->unread($query, $user)->selectRaw('? as '.$key.', comments.id', [$user->id])->toBase());
     }
 
     public function data(Comment $comment, bool $unread = false): array

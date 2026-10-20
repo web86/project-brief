@@ -123,6 +123,14 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/app/Http/Requests/AiTaskAssistantRequest.php',
     'private/project-brief-app/app/Console/Commands/CheckAiBridge.php',
     'private/project-brief-app/app/Console/Commands/BenchmarkAi.php',
+    'private/project-brief-app/app/Services/TelegramTransport.php',
+    'private/project-brief-app/app/Services/TelegramLinking.php',
+    'private/project-brief-app/app/Http/Controllers/TelegramController.php',
+    'private/project-brief-app/app/Http/Controllers/ClientNotificationController.php',
+    'private/project-brief-app/app/Services/ProjectDiscussions.php',
+    'private/project-brief-app/app/Console/Commands/CheckTelegram.php',
+    'private/project-brief-app/config/telegram.php',
+    'private/project-brief-app/database/migrations/2026_10_20_161516_add_client_communications.php',
     'private/project-brief-app/config/ai.php',
     'private/project-brief-app/.env.production.example',
     'private/project-brief-app/bin/check-server',
@@ -169,6 +177,9 @@ export async function validateRelease(root, localSecrets = []) {
     'GROQ_API_KEY',
     'ZVENO_API_KEY',
     'AI_BRIDGE_SECRET',
+    'TELEGRAM_BOT_TOKEN',
+    'TELEGRAM_WEBHOOK_SECRET',
+    'TELEGRAM_BRIDGE_SECRET',
   ]) {
     if (!new RegExp(`^${key}=$`, 'm').test(env)) throw new Error(`Example must leave ${key} empty`)
   }

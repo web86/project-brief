@@ -1,0 +1,390 @@
+{
+  "api": "mocked",
+  "scenarios": 48,
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "clientId": "anna",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "clientId": "john",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "clientId": "john",
+      "passed": true
+    }
+  ]
+}

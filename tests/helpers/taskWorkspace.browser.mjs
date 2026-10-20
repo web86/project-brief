@@ -2,7 +2,7 @@ import { createDemoData } from '../../src/data/demo.js'
 import { notificationEvents } from '../../src/services/notificationSettings.js'
 export const uuid = '11111111-1111-4111-8111-111111111111'
 export const adminRoot = `/admin/projects/${uuid}`
-export async function taskWorkspaceFixture(browser, config, { output, port = 5187 }) {
+export async function taskWorkspaceFixture(browser, config, { output, port = 5187, setup }) {
   const context = await browser.newContext({
     viewport: { width: config.width, height: config.width > 960 ? 1050 : 844 },
     locale: config.language === 'ru' ? 'ru-RU' : 'en-GB',
@@ -119,13 +119,14 @@ export async function taskWorkspaceFixture(browser, config, { output, port = 518
         }
       else if (pathname === '/api/client/me')
         result = {
-          id: 'anna',
+          id: config.clientId || 'anna',
           name: accountName,
           preferredLocale: config.language,
         }
       else if (pathname.endsWith('/me/locale')) result = { preferredLocale: body.locale }
       else if (pathname.endsWith('/activity/read')) result = { unreadCount: 0 }
       else if (pathname.endsWith('/discussions/read')) result = { unreadCount: 3 }
+      else if (pathname.endsWith('/telegram')) result = { available: false, connected: false }
       else if (pathname.endsWith('/push/status')) result = { available: false }
       else if (pathname === '/api/admin/logout') result = { message: 'Logged out' }
       else if (pathname.endsWith('/notifications')) {
@@ -173,6 +174,7 @@ export async function taskWorkspaceFixture(browser, config, { output, port = 518
       await route.fulfill({ json: result })
     },
   )
+  await setup?.({ context, data, project, config })
   const page = await context.newPage()
   page.setDefaultTimeout(10000)
   page.on('pageerror', (error) => errors.push(error.stack))

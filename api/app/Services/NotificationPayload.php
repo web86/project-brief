@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Comment;
+use App\Models\Project;
 use App\Models\Task;
 
 class NotificationPayload
@@ -57,6 +59,22 @@ class NotificationPayload
             'message' => $message, 'message_label' => trans($event === 'client.task_created' ? 'notifications.description' : 'notifications.comment', [], $locale),
             'project_label' => trans('notifications.project', [], $locale), 'task_label' => trans('notifications.task', [], $locale),
             'open' => trans('notifications.open', [], $locale), 'access' => trans('notifications.access', [], $locale)];
+    }
+
+    public static function discussion(string $event, Comment $comment, string $actor, string $locale, bool $admin): array
+    {
+        $project = $comment->project_id ? Project::findOrFail($comment->project_id) : null;
+        $url = rtrim(config('app.url'), '/').($admin ? '/admin/projects/' : '/project/').$project->uuid.'/discussions#comment-'.$comment->uuid;
+        $payload = self::test($locale, $url);
+        $heading = $locale === 'ru' ? 'Комментарий в обсуждении проекта' : 'New project discussion comment';
+
+        return array_replace($payload, ['title' => self::excerpt($heading.' · '.$project->title, 120), 'heading' => $heading,
+            'subject' => '[ProjectBrief] '.$heading.' — '.self::excerpt($project->title, 80), 'project' => $project->title,
+            'actor' => $actor, 'event' => $event, 'tag' => 'projectbrief-comment-'.$comment->id,
+            'project_uuid' => $project->uuid, 'body' => self::excerpt($actor.': '.$comment->text, self::PUSH_LIMIT),
+            'message' => self::excerpt($comment->text, self::COMMENT_LIMIT), 'message_label' => trans('notifications.comment', [], $locale),
+            'explanation' => $locale === 'ru' ? $actor.' оставил(а) комментарий к проекту.' : $actor.' commented on the project.',
+            'open' => $locale === 'ru' ? 'Открыть обсуждение' : 'Open discussion']);
     }
 
     public static function push(array $payload): array

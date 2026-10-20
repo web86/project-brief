@@ -1,7 +1,6 @@
 <script setup>
 import { t, formatCurrency, intlLocale } from '../i18n/index.js'
 
-import { computed } from 'vue'
 import { useProjectStore } from '../stores/project'
 const store = useProjectStore()
 import AppIcon from './AppIcon.vue'
@@ -10,12 +9,9 @@ import TaskPriority from './TaskPriority.vue'
 import { getTaskLocation } from '../constants/project'
 const props = defineProps({ task: { type: Object, required: true } })
 const filled = (value) => value !== null && value !== undefined && value !== ''
-const canonicalIndex = computed(() =>
-  store.sectionTasks(props.task.sectionId).findIndex((task) => task.id === props.task.id),
-)
 </script>
 <template>
-  <article class="task-card-shell" :class="{ 'has-card-controls': store.isDeveloper }">
+  <article class="task-card-shell">
     <RouterLink
       :to="store.taskPath(task.id)"
       class="task-card"
@@ -65,27 +61,5 @@ const canonicalIndex = computed(() =>
         <span>{{ t('ui.open2') }}</span>
       </div>
     </RouterLink>
-    <div v-if="store.isDeveloper" class="card-order-actions">
-      <button
-        v-if="canonicalIndex > 0"
-        class="order-icon"
-        type="button"
-        :aria-label="t('ui.moveIdeaUp') + ': ' + task.title"
-        :disabled="store.orderPending || store.storageBlocked"
-        @click="store.reorderTask(task.id, 'up')"
-      >
-        ↑
-      </button>
-      <button
-        v-if="canonicalIndex < store.sectionTasks(task.sectionId).length - 1"
-        class="order-icon"
-        type="button"
-        :aria-label="t('ui.moveIdeaDown') + ': ' + task.title"
-        :disabled="store.orderPending || store.storageBlocked"
-        @click="store.reorderTask(task.id, 'down')"
-      >
-        ↓
-      </button>
-    </div>
   </article>
 </template>

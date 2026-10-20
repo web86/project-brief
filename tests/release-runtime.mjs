@@ -17,7 +17,7 @@ let server
 const env = Object.fromEntries(
   Object.entries(process.env).filter(
     ([key]) =>
-      !/^(APP_|DB_|DATABASE_|SESSION_|CACHE_|FRONTEND_|DEMO_|LOG_|QUEUE_|MAIL_|AI_|GROQ_|ZVENO_)/.test(
+      !/^(APP_|DB_|DATABASE_|SESSION_|CACHE_|FRONTEND_|DEMO_|LOG_|QUEUE_|MAIL_|AI_|GROQ_|ZVENO_|TELEGRAM_)/.test(
         key,
       ),
   ),
@@ -380,6 +380,56 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     ).status,
     401,
   )
+  for (const endpoint of [
+    '/api/client/project/' + fixture.project + '/discussions',
+    '/api/client/notifications',
+    '/api/client/telegram',
+  ])
+    assert.equal((await request(endpoint)).status, 200)
+  for (const format of ['pdf', 'docx']) {
+    const exported = await request('/api/client/project/' + fixture.project + '/export', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': clientCsrf.token,
+      },
+      body: JSON.stringify({
+        format,
+        scope: 'all',
+        locale: 'en',
+        fields: { price: true, estimateHours: true, developerNotes: true, description: true },
+      }),
+    })
+    assert.equal(exported.status, 200)
+    const bytes = Buffer.from(await exported.arrayBuffer())
+    if (format === 'pdf') assert.equal(bytes.subarray(0, 5).toString(), '%PDF-')
+    else {
+      const file = path.join(fixtureRoot, 'runtime-client-export.docx')
+      await writeFile(file, bytes)
+      const xml = command([
+        '-r',
+        '$zip = new ZipArchive; $zip->open($argv[1]); echo $zip->getFromName("word/document.xml");',
+        file,
+      ])
+      assert.match(xml, /Кириллица: задача/)
+      assert.doesNotMatch(xml, /PRIVATE_RELEASE_NOTE|18.000|Total price|Total estimate/)
+    }
+    assert.equal(
+      (
+        await request('/api/client/project/' + fixture.foreignProject + '/export', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': clientCsrf.token,
+          },
+          body: JSON.stringify({ format, scope: 'all', locale: 'en' }),
+        })
+      ).status,
+      404,
+    )
+  }
   const failedLink = await request(`/access/${'b'.repeat(64)}`)
   assert.equal(failedLink.status, 302)
   assert.match(failedLink.headers.get('location'), /access-error/)

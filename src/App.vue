@@ -2,8 +2,8 @@
 import TaskHeaderNavigation from './components/TaskHeaderNavigation.vue'
 import TaskNavigator from './components/TaskNavigator.vue'
 import { useTaskWorkspaceStore } from './stores/taskWorkspace.js'
-import ResponsivePushControls from './components/ResponsivePushControls.vue'
-import MobilePushFooter from './components/MobilePushFooter.vue'
+import { useClientDiscussionsStore } from './stores/discussions.js'
+import ClientDrawer from './components/ClientDrawer.vue'
 import ToastViewport from './components/ToastViewport.vue'
 import { toast } from './services/toast.js'
 import { confirmDeveloperLeave } from './utils/developerEditor.js'
@@ -49,6 +49,7 @@ watch(
       store.admin = null
       store.tasks = []
       store.currentClient = null
+      useClientDiscussionsStore().clear()
       router.replace(destination)
     }
   },
@@ -110,18 +111,16 @@ watch(
               >project<span class="brand-light">brief</span></span
             ></RouterLink
           ><ModeSwitcher v-if="!store.apiMode" />
-          <span
-            v-else-if="store.currentClient && !route.meta.taskDetail"
-            class="current-client-name"
-            >{{ store.currentClient.name }}</span
-          >
-          <ResponsivePushControls
-            v-if="store.apiMode && (store.admin || store.currentClient)"
-            :key="store.admin ? 'admin:' + store.admin.email : 'client:' + store.currentClient.id"
-            :persona="store.admin ? 'admin' : 'client'"
-            footer="#client-push-footer"
-          />
-          <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
+          <div class="client-header-controls">
+            <span v-if="store.currentClient" class="current-client-name">{{
+              store.currentClient.name
+            }}</span>
+            <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
+            <ClientDrawer
+              v-if="store.apiMode && store.currentClient"
+              :key="store.currentClient.id"
+            />
+          </div>
         </div>
       </header>
       <div class="workspace">
@@ -144,10 +143,6 @@ watch(
           </button>
         </div>
         <main id="main-content" tabindex="-1"><RouterView /></main>
-        <MobilePushFooter
-          v-if="store.apiMode && (store.admin || store.currentClient)"
-          id="client-push-footer"
-        />
       </div>
     </div>
   </div>

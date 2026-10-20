@@ -12,11 +12,16 @@ class ProjectClient extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['project_id', 'name', 'email', 'active', 'preferred_locale'];
+    protected $fillable = ['project_id', 'name', 'email', 'active', 'preferred_locale', 'notification_preferences'];
 
     protected function casts(): array
     {
-        return ['active' => 'boolean'];
+        return ['active' => 'boolean', 'notification_preferences' => 'array'];
+    }
+
+    public function notificationPreferences(): array
+    {
+        return array_replace(['email' => true, 'push' => true, 'telegram' => true], $this->notification_preferences ?? []);
     }
 
     public function uniqueIds(): array

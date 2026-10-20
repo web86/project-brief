@@ -27,6 +27,9 @@ export const useTaskWorkspaceStore = defineStore('taskWorkspace', () => {
   function openAdmin() {
     panel.value = 'admin'
   }
+  function openClient() {
+    panel.value = 'client'
+  }
   function closePanel() {
     panel.value = null
   }
@@ -52,6 +55,7 @@ export const useTaskWorkspaceStore = defineStore('taskWorkspace', () => {
     openTasks,
     hideTasks,
     openAdmin,
+    openClient,
     closePanel,
     revealSection,
     toggleSection,

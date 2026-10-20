@@ -1,5 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { useProjectStore } from '../stores/project.js'
 import { api } from '../api/client.js'
 import { locale, t, formatApiError } from '../i18n/index.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
@@ -7,7 +9,8 @@ import { saveProjectExport } from '../utils/projectExport.js'
 import { toast } from '../services/toast.js'
 import LoadingButton from '../components/LoadingButton.vue'
 
-const store = useProjectManagementStore()
+const client = useRoute().meta.clientSection === 'export'
+const store = client ? useProjectStore() : useProjectManagementStore()
 const format = ref('pdf'),
   scope = ref('all'),
   language = ref(locale.value)
@@ -18,7 +21,7 @@ watch(language, (value, previous) => {
   if (!documentTitle.value.trim() || documentTitle.value === defaultTitle(previous))
     documentTitle.value = defaultTitle(value)
 })
-const fields = ref({
+const fieldDefaults = {
   description: true,
   expectedResult: true,
   priority: true,
@@ -28,7 +31,20 @@ const fields = ref({
   attachments: false,
   approvalDate: false,
   developerNotes: false,
-})
+}
+const clientFields = [
+  'description',
+  'expectedResult',
+  'priority',
+  'status',
+  'attachments',
+  'approvalDate',
+]
+const fields = ref(
+  Object.fromEntries(
+    Object.entries(fieldDefaults).filter(([field]) => !client || clientFields.includes(field)),
+  ),
+)
 const pending = ref(false),
   error = ref('')
 async function download() {
@@ -37,18 +53,23 @@ async function download() {
   pending.value = true
   error.value = ''
   try {
-    const result = await api.request(`/api/admin/projects/${projectId}/export`, {
-      method: 'POST',
-      responseType: 'blob',
-      body: {
-        format: format.value,
-        scope: scope.value,
-        locale: language.value,
-        documentTitle: documentTitle.value.trim(),
-        pageBreakBySection: pageBreakBySection.value,
-        fields: { ...fields.value },
+    const result = await api.request(
+      client
+        ? `/api/client/project/${projectId}/export`
+        : `/api/admin/projects/${projectId}/export`,
+      {
+        method: 'POST',
+        responseType: 'blob',
+        body: {
+          format: format.value,
+          scope: scope.value,
+          locale: language.value,
+          documentTitle: documentTitle.value.trim(),
+          pageBreakBySection: pageBreakBySection.value,
+          fields: { ...fields.value },
+        },
       },
-    })
+    )
     if (store.project?.id === projectId) saveProjectExport(result)
   } catch (cause) {
     if (store.project?.id !== projectId) return

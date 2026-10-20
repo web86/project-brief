@@ -3,12 +3,19 @@
 namespace App\Services;
 
 use App\Models\Project;
+use App\Models\ProjectClient;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class TaskAccess
 {
+    public static function recipient(Request $request): User|ProjectClient
+    {
+        return $request->attributes->get('project_client') ?? $request->user();
+    }
+
     public static function isAdmin(Request $request): bool
     {
         return $request->is('api/admin/*');

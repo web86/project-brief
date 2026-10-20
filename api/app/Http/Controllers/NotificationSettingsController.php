@@ -24,15 +24,16 @@ class NotificationSettingsController extends Controller
         // Literal dots in event codes must be escaped for Laravel's validation paths.
         foreach (NotificationEvents::CODES as $event) {
             $path = 'events.'.str_replace('.', '\\.', $event);
-            $rules[$path] = ['required', 'array:email,push'];
-            $rules[$path.'.email'] = ['required', 'boolean'];
-            $rules[$path.'.push'] = ['required', 'boolean'];
+            $rules[$path] = [in_array($event, NotificationEvents::TASK_CODES, true) ? 'required' : 'sometimes', 'array:email,push,telegram'];
+            $rules[$path.'.email'] = ['required_with:'.$path, 'boolean'];
+            $rules[$path.'.push'] = ['required_with:'.$path, 'boolean'];
+            $rules[$path.'.telegram'] = ['sometimes', 'boolean'];
         }
         $data = $request->validate($rules);
         if (array_diff(array_keys($request->input('events')), NotificationEvents::CODES)) {
             throw ValidationException::withMessages(['events' => 'Unknown notification event.']);
         }
-        $service->settings($project)->update(['notification_email' => $data['notificationEmail'] ?? null, 'events' => $data['events']]);
+        $service->settings($project)->update(['notification_email' => $data['notificationEmail'] ?? null, 'events' => array_replace_recursive($service->settings($project)->preferences(), $data['events'])]);
 
         return $this->show($project, $service);
     }

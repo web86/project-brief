@@ -1,4 +1,36 @@
 export default {
+  clientWorkspace: {
+    ideas: 'Ideas',
+    menu: 'Project menu',
+    role: 'Project client',
+    personalPreferences: 'My notification channels',
+    notificationHint:
+      'Receive developer comments, clarification requests and task progress updates. The project administrator selects events; you control your own channels here.',
+  },
+  telegram: {
+    connected: 'Telegram connected',
+    disconnected: 'Telegram disconnected',
+    unavailable: 'Telegram has not been configured on the server yet.',
+    personalHint: 'Personal connection. Notifications go only to the private chat you connect.',
+    connect: 'Connect Telegram',
+    reconnect: 'Reconnect',
+    disconnect: 'Disconnect',
+    test: 'Test Telegram',
+    refresh: 'Refresh status',
+    openBot: 'Open bot',
+    linkHint:
+      'Open the bot and press Start. This single-use link expires in 10 minutes. Then refresh the status.',
+    sent: 'Telegram accepted the test message.',
+    loadError: 'Could not load Telegram status.',
+    deliveryError: 'Could not send the message. Check your connection and try later.',
+    telegram_rate_limited: 'Telegram rate limit reached. Try later.',
+    telegram_blocked: 'Bot blocked. Unblock the bot and reconnect.',
+    telegram_not_connected: 'Connect Telegram first.',
+    telegram_unconfigured: 'Telegram is not configured on the server.',
+    telegram_unauthorized:
+      'Telegram server authorization is unavailable. Contact the administrator.',
+    telegram_chat_unavailable: 'Chat unavailable. Reconnect Telegram.',
+  },
   taskWorkspace: {
     tasks: 'Project tasks',
     hideTasks: 'Hide project tasks',
@@ -142,7 +174,7 @@ export default {
       'This device is linked to another account. Use Enable in Push settings to switch it explicitly.',
   },
   notifications: {
-    title: 'Notifications',
+    title: 'Project notifications',
     push: 'Push notifications',
     configure: 'Configure',
     enable: 'Enable push notifications',
@@ -182,11 +214,13 @@ export default {
     events: {
       client: {
         task_created: 'New idea',
+        project_comment_created: 'General discussion comment',
         comment_created: 'Client comment',
         task_approved: 'Client approved',
       },
       admin: {
         clarification_requested: 'Clarification needed',
+        project_comment_created: 'General discussion comment',
         comment_created: 'Developer comment',
         task_review: 'Ready for review',
         task_done: 'Done',

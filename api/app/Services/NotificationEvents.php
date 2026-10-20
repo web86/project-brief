@@ -4,11 +4,13 @@ namespace App\Services;
 
 class NotificationEvents
 {
-    public const CODES = ['client.task_created', 'client.comment_created', 'client.task_approved', 'admin.clarification_requested', 'admin.comment_created', 'admin.task_review', 'admin.task_done'];
+    public const TASK_CODES = ['client.task_created', 'client.comment_created', 'client.task_approved', 'admin.clarification_requested', 'admin.comment_created', 'admin.task_review', 'admin.task_done'];
+
+    public const CODES = [...self::TASK_CODES, 'client.project_comment_created', 'admin.project_comment_created'];
 
     public static function defaults(): array
     {
-        return array_fill_keys(self::CODES, ['email' => true, 'push' => true]);
+        return array_fill_keys(self::CODES, ['email' => true, 'push' => true, 'telegram' => false]);
     }
 
     public static function fromHistory(string $actor, string $type, ?string $old, ?string $new): ?string

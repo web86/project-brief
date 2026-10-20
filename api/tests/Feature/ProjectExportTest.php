@@ -83,7 +83,7 @@ class ProjectExportTest extends TestCase
         foreach (['pdf', 'docx'] as $format) {
             $this->postJson('/api/admin/projects/'.$project->uuid.'/export', $this->payload($format))->assertUnauthorized();
         }
-        $this->postJson('/api/client/project/'.$project->uuid.'/export', $this->payload())->assertNotFound();
+        $this->postJson('/api/client/project/'.$project->uuid.'/export', $this->payload())->assertOk();
     }
 
     public function test_shared_allowlist_preserves_order_numbers_scope_and_selected_fields_without_private_data(): void

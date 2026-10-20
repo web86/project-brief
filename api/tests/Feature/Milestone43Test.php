@@ -134,7 +134,7 @@ class Milestone43Test extends TestCase
             $client = ProjectClient::factory()->for($project)->create(['preferred_locale' => $locale]);
             $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', $locale)]);
         }
-        foreach (NotificationEvents::CODES as $index => $code) {
+        foreach (NotificationEvents::TASK_CODES as $index => $code) {
             Mail::fake();
             $actor = str_starts_with($code, 'client.') ? 'client' : 'admin';
             $type = match ($code) {

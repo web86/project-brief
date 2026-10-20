@@ -18,7 +18,7 @@ class ProjectExportController extends Controller
         $document = $builder->build($project, $options['scope'], $options['locale'], $options['fields'] ?? [], [
             'documentTitle' => $options['documentTitle'] ?? null,
             'pageBreakBySection' => $options['pageBreakBySection'] ?? false,
-        ]);
+        ], $request->attributes->has('project_client'));
         $format = $options['format'];
         $bytes = $format === 'pdf' ? app(PdfProjectExporter::class)->render($document) : app(DocxProjectExporter::class)->render($document);
         $slug = substr(Str::slug($project->title), 0, 100) ?: 'project';

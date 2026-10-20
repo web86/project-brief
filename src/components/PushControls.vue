@@ -8,7 +8,7 @@ import { toast } from '../services/toast.js'
 import BaseDialog from './BaseDialog.vue'
 import PushDevicePanel from './PushDevicePanel.vue'
 import AppIcon from './AppIcon.vue'
-const props = defineProps({ persona: { type: String, required: true } })
+const props = defineProps({ persona: { type: String, required: true }, inline: Boolean })
 const open = ref(false)
 const state = ref('loading')
 const busy = ref(false)
@@ -27,12 +27,21 @@ onMounted(enrollment.start)
 onUnmounted(enrollment.dispose)
 </script>
 <template>
-  <button type="button" class="text-button push-trigger" @click="open = true">
+  <PushDevicePanel
+    v-if="inline"
+    :state="state"
+    :busy="busy"
+    :error="error"
+    @enable="enrollment.enable"
+    @disable="enrollment.disable"
+    @retry="enrollment.retry"
+  />
+  <button v-else type="button" class="text-button push-trigger" @click="open = true">
     <AppIcon name="bell" :size="18" class="push-mobile-icon" />
     <span>{{ t('notifications.push') }}</span>
     <span class="push-mobile-action">{{ t('notifications.configure') }}</span>
   </button>
-  <Teleport to="body" defer>
+  <Teleport v-if="!inline" to="body" defer>
     <BaseDialog
       :open="open"
       :title="t('notifications.push')"

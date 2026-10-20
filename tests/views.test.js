@@ -85,7 +85,7 @@ test('project renders empty canonical sections and developer controls outside li
   const developer = await render(ProjectView, '/', (store) => {
     store.currentMode = 'developer'
   })
-  assert.ok(developer.includes('class="card-order-actions"'))
+  assert.equal(developer.includes('class="card-order-actions"'), false)
   assert.ok(developer.includes('class="section-order-actions"'))
   for (const anchor of developer.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/g))
     assert.equal(

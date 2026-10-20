@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-20",
+  "timezone": "Europe/Istanbul",
+  "branch": "codex/milestone-4-5-client-communications",
+  "laravel": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 498,
+    "passed": 498,
+    "assertions": 5054,
+    "duration_ms": 17112
+  },
+  "frontend": {
+    "command": "npm test",
+    "tests": 172,
+    "passed": 172,
+    "failed": 0
+  },
+  "build": {
+    "command": "npm run build",
+    "passed": true
+  },
+  "pint": {
+    "tool": "pint",
+    "result": "passed"
+  },
+  "prettier": {
+    "command": "npm run format:check",
+    "passed": true
+  },
+  "browser": {
+    "command": "node tests/milestone45.browser.mjs",
+    "api": "mocked",
+    "resultsFile": "browser-results.json",
+    "widths": [1440, 1280, 768, 390],
+    "themes": ["light", "dark", "system"],
+    "languages": ["ru", "en"],
+    "personas": ["admin", "client"],
+    "systemChanges": "light → dark",
+    "scenarios": 48,
+    "passed": true
+  },
+  "navigationRegression": {
+    "command": "node tests/navigation-polish.browser.mjs",
+    "scenarios": 10,
+    "passed": true,
+    "api": "mocked"
+  },
+  "screenshots": 28,
+  "database": "Migrations exercised on isolated fresh and legacy test databases; application/production database not migrated.",
+  "telegramLive": {
+    "performed": false,
+    "reason": "Test credentials not supplied. Mock tests do not prove real delivery or Jino network availability."
+  },
+  "remoteMutations": {
+    "push": false,
+    "deployment": false,
+    "release": false,
+    "telegramWebhookRegistration": false
+  }
+}

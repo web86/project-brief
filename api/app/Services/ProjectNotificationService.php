@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\ProjectNotificationRequested;
 use App\Mail\ProjectActivityMail;
+use App\Models\Comment;
 use App\Models\NotificationDelivery;
 use App\Models\Project;
 use App\Models\ProjectClient;
@@ -18,7 +19,7 @@ use Throwable;
 
 class ProjectNotificationService
 {
-    public function __construct(private WebPushTransport $push) {}
+    public function __construct(private WebPushTransport $push, private TelegramTransport $telegram) {}
 
     public function settings(Project $project): ProjectNotificationSetting
     {
@@ -70,14 +71,20 @@ class ProjectNotificationService
         if (! in_array($event->event, NotificationEvents::CODES, true)) {
             return;
         }
-        $task = Task::with(['project', 'projectSection'])->find($event->taskId);
-        if (! $task || $task->project->status !== 'active') {
+        $comment = $event->projectCommentId ? Comment::find($event->projectCommentId) : null;
+        $task = $event->taskId ? Task::with(['project', 'projectSection'])->find($event->taskId) : null;
+        if ($event->projectCommentId && (! $comment || $comment->task_id !== null || $comment->author_type !== $event->actorType || $event->event !== $event->actorType.'.project_comment_created')) {
             return;
         }
-        $settings = $this->settings($task->project);
+        $project = $task?->project ?? ($comment ? Project::find($comment->project_id) : null);
+        if (! $project || $project->status !== 'active') {
+            return;
+        }
+        $settings = $this->settings($project);
         $preferences = $settings->preferences()[$event->event];
         $toAdmin = str_starts_with($event->event, 'client.');
-        $recipients = $toAdmin ? ProjectAccess::recipients($task->project)->get() : $task->project->clients()->where('active', true)->whereHas('accessTokens', fn ($q) => $q->where('project_id', $task->project_id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())))->get();
+        $recipients = $toAdmin ? ProjectAccess::recipients($project)->get() : $project->clients()->where('active', true)->whereHas('accessTokens', fn ($q) => $q->where('project_id', $project->id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())))->get();
+        $dedup = $comment ? 'comment:'.$comment->id : (string) $event->historyId;
         $actorEmail = $event->actorType === 'admin' ? User::find($event->actorId)?->email : ProjectClient::find($event->actorId)?->email;
         foreach ($recipients as $recipient) {
             $type = $toAdmin ? 'admin' : 'client';
@@ -86,16 +93,24 @@ class ProjectNotificationService
             }
             $locale = $recipient->preferred_locale ?? ($toAdmin ? config('project_notifications.admin_locale') : 'en');
             $locale = in_array($locale, ['ru', 'en'], true) ? $locale : ($toAdmin ? 'ru' : 'en');
-            $payload = NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
-            $email = $toAdmin ? $this->emailFor($task->project, $recipient) : $recipient->email;
+            $payload = $comment ? NotificationPayload::discussion($event->event, $comment, $event->actorName, $locale, $toAdmin) : NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
+            $personal = $recipient instanceof ProjectClient ? $recipient->notificationPreferences() : ['email' => true, 'push' => true, 'telegram' => true];
+            $email = $toAdmin ? $this->emailFor($project, $recipient) : $recipient->email;
             // Avoid mail self-notification even if two personas share the same address.
-            if ($preferences['email'] && filter_var($email, FILTER_VALIDATE_EMAIL) && (! $actorEmail || strcasecmp($actorEmail, $email) !== 0)) {
-                $this->attempt($task->project, $event->event, 'email', $type, $recipient->id, $event->historyId.':email:'.$type.':'.$recipient->id,
+            if ($preferences['email'] && $personal['email'] && filter_var($email, FILTER_VALIDATE_EMAIL) && (! $actorEmail || strcasecmp($actorEmail, $email) !== 0)) {
+                $this->attempt($project, $event->event, 'email', $type, $recipient->id, $dedup.':email:'.$type.':'.$recipient->id,
                     fn () => $this->sendMail($email, $payload));
             }
-            if ($preferences['push']) {
+            if ($preferences['telegram'] && $personal['telegram']) {
+                $connection = TelegramLinking::query($recipient)->whereNotNull('chat_id')->first();
+                if ($connection) {
+                    $this->attempt($project, $event->event, 'telegram', $type, $recipient->id, $dedup.':telegram:'.$type.':'.$recipient->id,
+                        fn () => $this->telegram->send($connection, TelegramTransport::message($payload)));
+                }
+            }
+            if ($preferences['push'] && $personal['push']) {
                 foreach (PushSubscription::where($toAdmin ? 'user_id' : 'project_client_id', $recipient->id)->get() as $subscription) {
-                    $this->attempt($task->project, $event->event, 'push', $type, $recipient->id, $event->historyId.':push:'.$subscription->uuid,
+                    $this->attempt($project, $event->event, 'push', $type, $recipient->id, $dedup.':push:'.$subscription->uuid,
                         fn () => $this->push->available() ? $this->push->send($subscription, NotificationPayload::push($payload)) : ['status' => 'skipped', 'error_code' => 'push_unconfigured']);
                 }
             }
