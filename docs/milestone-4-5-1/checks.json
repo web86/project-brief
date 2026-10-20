@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-20",
+  "stage": "temporary-diagnostics-only",
+  "branch": "codex/milestone-4-5-1-bidirectional-telegram-bridge",
+  "baseCommit": "cc5cd445c27759b5aa060fd83ba79dccfcef0b9a",
+  "targeted": {
+    "command": "node --test tests/telegram-diagnostics.test.js tests/milestone45.test.js",
+    "passed": 15,
+    "failed": 0
+  },
+  "frontend": {
+    "command": "npm test",
+    "passed": 180,
+    "failed": 0
+  },
+  "backend": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 498,
+    "passed": 498,
+    "assertions": 5054,
+    "duration_ms": 17367
+  },
+  "build": "passed",
+  "prettier": "passed",
+  "phpChanges": false,
+  "outgoingImplementation": "byte-for-byte unchanged from base",
+  "localMacProbes": [
+    {
+      "probe": "laravel_health",
+      "origin": "local Mac (not Deno)",
+      "method": "GET",
+      "url": "https://brief.web86.site/api/health",
+      "metrics": "200 0.949694 0.223783 0.949497",
+      "exitCode": 0,
+      "error": ""
+    },
+    {
+      "probe": "laravel_webhook_unauthenticated",
+      "origin": "local Mac (not Deno)",
+      "method": "POST",
+      "url": "https://brief.web86.site/api/telegram/webhook",
+      "metrics": "403 1.148183 0.214959 1.147664",
+      "exitCode": 0,
+      "error": ""
+    },
+    {
+      "probe": "deno_webhook_unauthenticated",
+      "origin": "local Mac (not Deno)",
+      "method": "POST",
+      "url": "https://projectbrief-telegram-bridge.web86.deno.net/telegram/webhook",
+      "metrics": "404 0.645500 0.161391 0.645143",
+      "exitCode": 0,
+      "error": ""
+    },
+    {
+      "probe": "deno_send_unauthenticated",
+      "origin": "local Mac (not Deno)",
+      "method": "POST",
+      "url": "https://projectbrief-telegram-bridge.web86.deno.net/telegram/send",
+      "metrics": "401 0.791811 0.163975 0.791506",
+      "exitCode": 0,
+      "error": ""
+    }
+  ],
+  "denoToLaravelProbe": {
+    "executed": false,
+    "reason": "User will manually deploy the temporary endpoint and provide results before bidirectional implementation."
+  },
+  "push": false,
+  "deployment": false,
+  "telegramWebhookChanged": false,
+  "secretsChanged": false,
+  "pendingUpdatesDiscarded": false
+}
