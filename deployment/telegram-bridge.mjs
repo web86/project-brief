@@ -1,10 +1,10 @@
 // Independent Telegram service. No AI configuration, routes or credentials are read.
-export function createTelegramHandler({ env, fetch: request = fetch }) {
+export function createTelegramHandler({ env, fetch: request = fetch, log = console.info }) {
   const json = (body, status = 200) =>
     Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
   return async (req) => {
-    if (new URL(req.url).pathname === '/telegram/diagnostics')
-      return telegramDiagnostics(req, env, request, json)
+    if (new URL(req.url).pathname === '/telegram/webhook')
+      return telegramWebhook(req, env, request, json, log)
     const secret = env('TELEGRAM_BRIDGE_SECRET') || ''
     if (new URL(req.url).pathname !== '/telegram/send' || req.method !== 'POST')
       return json({ ok: false }, 404)
@@ -75,77 +75,107 @@ export function createTelegramHandler({ env, fetch: request = fetch }) {
 if (import.meta.main && globalThis.Deno)
   Deno.serve(createTelegramHandler({ env: (name) => Deno.env.get(name) }))
 
-// Temporary opt-in probe. Targets, methods and payloads are never supplied by callers.
-async function telegramDiagnostics(req, env, request, json) {
-  if (env('TELEGRAM_DIAGNOSTICS') !== '1' || req.method !== 'POST') return json({ ok: false }, 404)
-  const secret = env('TELEGRAM_BRIDGE_SECRET') || ''
-  if (secret.length < 32 || req.headers.get('Authorization') !== `Bearer ${secret}`)
-    return json({ ok: false }, 401)
+// The callback is server configuration, pinned to this application's public HTTPS endpoint.
+async function telegramWebhook(req, env, request, json, log) {
+  if (req.method !== 'POST') return json({ ok: false }, 404)
+  const secret = env('TELEGRAM_WEBHOOK_SECRET') || ''
+  if (!/^[A-Za-z0-9_-]{32,256}$/.test(secret)) return json({ ok: false }, 503)
+  if (req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== secret) return json({ ok: false }, 401)
+  const forwardSecret = env('TELEGRAM_FORWARD_SECRET') || ''
+  const callback = env('TELEGRAM_LARAVEL_WEBHOOK_URL') || ''
+  if (
+    !/^[A-Za-z0-9_-]{32,256}$/.test(forwardSecret) ||
+    forwardSecret === secret ||
+    forwardSecret === env('TELEGRAM_BRIDGE_SECRET') ||
+    callback !== 'https://brief.web86.site/api/telegram/webhook'
+  )
+    return json({ ok: false }, 503)
   if (new URL(req.url).search) return json({ ok: false }, 400)
+
+  let body
   try {
-    const reader = req.body?.getReader()
-    const decoder = new TextDecoder('utf-8', { fatal: true })
-    let bytes = 0,
-      body = ''
-    if (reader) {
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        bytes += value.byteLength
-        if (bytes > 1024) {
-          await reader.cancel()
-          return json({ ok: false }, 413)
-        }
-        body += decoder.decode(value, { stream: true })
-      }
-      body += decoder.decode()
-    }
-    const input = body.trim() ? JSON.parse(body) : {}
-    if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).length)
+    body = await boundedText(req.body, 16384)
+    const update = JSON.parse(body)
+    if (
+      !update ||
+      Array.isArray(update) ||
+      !Number.isSafeInteger(update.update_id) ||
+      update.update_id < 0
+    )
       return json({ ok: false }, 400)
-  } catch {
-    return json({ ok: false }, 400)
+  } catch (error) {
+    return json({ ok: false }, error instanceof RangeError ? 413 : 400)
   }
 
-  const checks = await Promise.all(
-    [
-      ['health', 'GET', 'https://brief.web86.site/api/health'],
-      ['webhook', 'POST', 'https://brief.web86.site/api/telegram/webhook'],
-    ].map(async ([name, method, url]) => {
-      const started = performance.now()
-      try {
-        const response = await request(url, {
-          method,
-          redirect: 'manual',
-          signal: AbortSignal.timeout(8000),
-          ...(method === 'POST'
-            ? { headers: { 'Content-Type': 'application/json' }, body: '{}' }
-            : {}),
-        })
-        const durationMs = Math.round(performance.now() - started)
-        // Cancel the stream without reading the response body or returning headers.
-        void response.body?.cancel().catch(() => {})
-        return { name, status: response.status, durationMs, errorCode: null }
-      } catch (error) {
-        return {
-          name,
-          status: null,
-          durationMs: Math.round(performance.now() - started),
-          errorCode: diagnosticError(error),
-        }
-      }
-    }),
-  )
-  return json({ ok: checks[0].status === 200 && checks[1].status === 403, checks })
+  const started = performance.now()
+  const record = (status, errorCode = null) =>
+    log({
+      event: 'telegram_forward',
+      status,
+      durationMs: Math.round(performance.now() - started),
+      errorCode,
+    })
+  try {
+    const signal = AbortSignal.timeout(8000)
+    const response = await request(callback, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Telegram-Forward-Secret': forwardSecret,
+      },
+      body,
+      redirect: 'manual',
+      signal,
+    })
+    if (!response.ok) {
+      void response.body?.cancel().catch(() => {})
+      record(response.status, 'laravel_http_error')
+      return json({ ok: false }, response.status === 429 || response.status === 503 ? 503 : 502)
+    }
+    const data = JSON.parse(await boundedText(response.body, 1024, signal))
+    if (data?.ok !== true) {
+      record(response.status, 'laravel_invalid_ack')
+      return json({ ok: false }, 502)
+    }
+    record(response.status)
+    return json({ ok: true })
+  } catch (error) {
+    const timeout = ['TimeoutError', 'AbortError'].includes(error?.name)
+    record(null, timeout ? 'timeout' : 'laravel_unavailable')
+    return json({ ok: false }, timeout ? 504 : 502)
+  }
 }
 
-function diagnosticError(error) {
-  if (['TimeoutError', 'AbortError'].includes(error?.name)) return 'timeout'
-  const code = String(error?.cause?.code || error?.code || '')
-  const detail = String(error?.message || '')
-  if (/ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT/.test(code)) return 'timeout'
-  if (/CERT|TLS|SSL/i.test(code) || /certificate|tls handshake/i.test(detail)) return 'tls_error'
-  if (/ENOTFOUND|EAI_AGAIN/.test(code) || /dns|name resolution/i.test(detail)) return 'dns_error'
-  if (/ECONN|ENETUNREACH|EHOSTUNREACH/.test(code)) return 'connection_error'
-  return 'network_error'
+async function boundedText(stream, limit, signal) {
+  const reader = stream?.getReader()
+  if (!reader) throw new SyntaxError()
+  const cancel = () => {
+    void reader.cancel().catch(() => {})
+  }
+  const decoder = new TextDecoder('utf-8', { fatal: true })
+  let bytes = 0,
+    text = ''
+  try {
+    signal?.throwIfAborted()
+    signal?.addEventListener('abort', cancel, { once: true })
+    while (true) {
+      const { value, done } = await reader.read()
+      signal?.throwIfAborted()
+      if (done) break
+      bytes += value.byteLength
+      if (bytes > limit) {
+        void reader.cancel().catch(() => {})
+        throw new RangeError()
+      }
+      text += decoder.decode(value, { stream: true })
+    }
+    return text + decoder.decode()
+  } catch (error) {
+    cancel()
+    throw error
+  } finally {
+    signal?.removeEventListener('abort', cancel)
+    reader.releaseLock()
+  }
 }
