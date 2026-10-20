@@ -2,8 +2,7 @@
 import assert from 'node:assert/strict'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { createServer } from 'vite'
-import { createDemoData } from '../src/data/demo.js'
-import { notificationEvents } from '../src/services/notificationSettings.js'
+import { taskWorkspaceFixture, uuid, adminRoot } from './helpers/taskWorkspace.browser.mjs'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const server = await createServer({
   mode: 'test',
@@ -11,10 +10,10 @@ const server = await createServer({
   server: { host: '127.0.0.1', port: 5187, strictPort: true },
   logLevel: 'error',
 })
-const output = new URL('../docs/milestone-4-4/', import.meta.url)
+const output = process.env.TASK_WORKSPACE_OUTPUT_DIR
+  ? new URL('file://' + process.env.TASK_WORKSPACE_OUTPUT_DIR.replace(/\/$/, '') + '/')
+  : new URL('../docs/milestone-4-4/', import.meta.url)
 await mkdir(output, { recursive: true })
-const uuid = '11111111-1111-4111-8111-111111111111',
-  adminRoot = `/admin/projects/${uuid}`
 const configurations = [
   { admin: true, width: 1440, language: 'ru', mode: 'light' },
   { admin: true, width: 1440, language: 'en', mode: 'dark' },
@@ -27,213 +26,12 @@ const configurations = [
 ]
 let browser
 const results = []
-async function fixture(config) {
-  const context = await browser.newContext({
-    viewport: { width: config.width, height: config.width > 960 ? 1050 : 844 },
-    locale: config.language === 'ru' ? 'ru-RU' : 'en-GB',
-    colorScheme: config.mode === 'light' ? 'light' : 'dark',
-    hasTouch: config.width < 960,
-    reducedMotion: 'reduce',
-  })
-  await context.addInitScript(({ language, mode }) => {
-    localStorage.setItem('projectbrief.locale', language)
-    localStorage.setItem('projectbrief.theme', mode)
-  }, config)
-  const accountName =
-    config.language === 'ru'
-      ? config.admin
-        ? 'Алексей Морозов'
-        : 'Анна Смирнова'
-      : config.admin
-        ? 'Alex Morgan'
-        : 'Anna Smith'
-  const data = createDemoData()
-  const first = data.tasks[0],
-    second = data.tasks.find((task) => task.sectionId !== first.sectionId)
-  first.title = 'Добавить личный кабинет с историей заказов и сохранёнными адресами доставки'
-  first.developerNotes = 'PRIVATE_TECHNICAL_NOTES'
-  first.estimateHours = 5
-  first.price = 12000
-  first.comments = [
-    {
-      id: '22222222-2222-4222-8222-222222222222',
-      author: 'client',
-      authorName: 'Анна',
-      authorId: 'anna',
-      text: 'Пожалуйста, сохраните выбранные фильтры после возврата к каталогу.',
-      createdAt: '2026-10-20T08:00:00Z',
-    },
-  ]
-  const project = {
-    ...data.project,
-    id: uuid,
-    sections: data.sections,
-    status: 'active',
-    unreadCommentCount: 3,
-    unreadCount: 2,
-  }
-  const workspace = { id: 'studio', name: 'Design Studio' }
-  const calls = [],
-    errors = []
-  let failSave = false,
-    notificationGate = null,
-    releaseNotifications
-  const safe = (task) =>
-    config.admin
-      ? task
-      : Object.fromEntries(
-          Object.entries(task).filter(
-            ([key]) => !['developerNotes', 'estimateHours', 'price'].includes(key),
-          ),
-        )
-  const path = (id) =>
-    config.admin ? `${adminRoot}/brief/task/${id}` : `/project/${uuid}/task/${id}`
-  await context.route(
-    (url) => url.pathname.startsWith('/api/'),
-    async (route) => {
-      const request = route.request(),
-        url = new URL(request.url()),
-        pathname = url.pathname,
-        body = request.postDataJSON()
-      calls.push({ path: pathname, method: request.method(), body })
-      let result
-      if (pathname === '/api/csrf') result = { token: 'test-csrf' }
-      else if (pathname === '/api/admin/me')
-        result = {
-          user: {
-            name: accountName,
-            email: 'admin@example.test',
-            preferredLocale: config.language,
-            membershipRole: 'owner',
-          },
-          workspace,
-        }
-      else if (pathname === '/api/admin/workspaces')
-        result = { data: [workspace, { id: 'other-workspace', name: 'Other workspace' }] }
-      else if (pathname === '/api/admin/projects')
-        result = {
-          data: [
-            project,
-            ...Array.from({ length: 24 }, (_, i) => ({
-              id: 'project-' + i,
-              name: 'Дополнительный проект с длинным названием ' + (i + 1),
-              unreadCount: i % 3,
-            })),
-          ],
-        }
-      else if (pathname === '/api/client/me')
-        result = {
-          id: 'anna',
-          name: accountName,
-          preferredLocale: config.language,
-        }
-      else if (pathname.endsWith('/me/locale')) result = { preferredLocale: body.locale }
-      else if (pathname.endsWith('/activity/read')) result = { unreadCount: 0 }
-      else if (pathname.endsWith('/discussions/read')) result = { unreadCount: 3 }
-      else if (pathname.endsWith('/push/status')) result = { available: false }
-      else if (pathname === '/api/admin/logout') result = { message: 'Logged out' }
-      else if (pathname.endsWith('/notifications')) {
-        if (notificationGate) await notificationGate
-        result = {
-          events: Object.fromEntries(
-            notificationEvents.map((event) => [event, { email: true, push: true }]),
-          ),
-          notificationEmail: null,
-        }
-      } else if (pathname.endsWith('/clients')) result = { data: [] }
-      else if (pathname.endsWith('/sections')) result = { data: data.sections }
-      else if (pathname.endsWith('/comments')) {
-        const task = data.tasks.find((task) => pathname.includes(task.id))
-        task.comments.push({
-          id: '33333333-3333-4333-8333-333333333333',
-          author: config.admin ? 'developer' : 'client',
-          text: body.text,
-          createdAt: new Date().toISOString(),
-        })
-        result = { data: safe(task) }
-      } else if (pathname.endsWith('/approve')) {
-        const task = data.tasks.find((task) => pathname.includes(task.id))
-        task.clientApproved = true
-        result = { data: safe(task) }
-      } else if (request.method() === 'PATCH' && pathname.includes('/tasks/')) {
-        if (failSave) return route.fulfill({ status: 503, json: { message: 'Try again' } })
-        const task = data.tasks.find((task) => pathname.endsWith(task.id))
-        Object.assign(task, body)
-        result = { data: safe(task) }
-      } else if (pathname.endsWith('/tasks')) result = { data: data.tasks.map(safe) }
-      else if (
-        pathname === `/api/admin/projects/${uuid}` ||
-        pathname === `/api/client/project/${uuid}`
-      )
-        result = { data: project }
-      else throw new Error('Unexpected fixture request: ' + pathname)
-      await route.fulfill({ json: result })
-    },
-  )
-  const page = await context.newPage()
-  page.setDefaultTimeout(10000)
-  page.on('pageerror', (error) => errors.push(error.stack))
-  await page.goto(`http://127.0.0.1:5187${path(first.id)}`)
-  await page.locator('.task-page h1').waitFor()
-  const screenshot = async (name) => {
-    await page.evaluate(async () => {
-      const { toast } = await import('/src/services/toast.js')
-      toast.clear()
-      scrollTo(0, 0)
-    })
-    await page
-      .locator('dialog[open]')
-      .evaluateAll((dialogs) =>
-        Promise.all(
-          dialogs.flatMap((dialog) =>
-            dialog.getAnimations().map((animation) => animation.finished),
-          ),
-        ),
-      )
-    return page.screenshot({
-      path: new URL(name + '.png', output).pathname,
-      fullPage: !name.startsWith('management-') && !name.startsWith('task-navigation-'),
-    })
-  }
-  const waitRoute = async (destination) => {
-    await page.waitForURL('**' + destination)
-    await page.locator('.loading-overlay').waitFor({ state: 'detached' })
-  }
-  const openTasks = async () => {
-    if (config.width <= 960) {
-      await page.locator('#task-navigation-trigger').click()
-      await page.locator('#task-navigation-drawer[open]').waitFor()
-    }
-  }
-  return {
-    context,
-    accountName,
-    page,
-    calls,
-    errors,
-    first,
-    second,
-    data,
-    path,
-    screenshot,
-    waitRoute,
-    openTasks,
-    holdNotifications: () => {
-      notificationGate = new Promise((resolve) => {
-        releaseNotifications = resolve
-      })
-      return () => releaseNotifications()
-    },
-    setSaveError: (value) => {
-      failSave = value
-    },
-  }
-}
+
 try {
   await server.listen()
   browser = await chromium.launch({ headless: true })
   for (const config of configurations) {
-    const f = await fixture(config),
+    const f = await taskWorkspaceFixture(browser, config, { output }),
       { page } = f
     const label = `${config.admin ? 'admin' : 'client'}-${config.width}-${config.language}-${config.mode}`
     const nav = page.locator('#project-task-navigation'),
@@ -422,14 +220,9 @@ try {
       assert.ok((await panel.boundingBox()).x > 0, 'Management drawer is on the right')
       assert.equal(await panel.locator('.project-panel-nav a').count(), 7)
       assert.equal(await panel.locator('.discussion-badge').innerText(), '3')
-      assert.equal(await panel.locator('.sidebar-workspace select option').count(), 2)
-      assert.equal(
-        await panel.locator('.sidebar-project-group').evaluate((node) => node.open),
-        false,
-      )
-      await panel.locator('.sidebar-project-group summary').click()
-      assert.equal(await panel.locator('.sidebar-project').count(), 25)
-      await panel.locator('.sidebar-project-group summary').click()
+      assert.equal(await panel.locator('.sidebar-workspace, .sidebar-project-group').count(), 0)
+      assert.equal(await panel.locator('.task-all-projects').count(), 1)
+      assert.equal(await panel.locator('.task-account strong').innerText(), f.accountName)
       for (let i = 0; i < 12; i++) {
         await page.keyboard.press(i % 2 ? 'Tab' : 'Shift+Tab')
         assert.ok(await panel.evaluate((node) => node.contains(document.activeElement)))

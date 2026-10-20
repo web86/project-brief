@@ -3238,8 +3238,31 @@ button.attachment-item:hover {
 :root {
   --task-toolbar-height: calc(64px + env(safe-area-inset-top));
 }
-.admin-shell.is-task-workspace {
-  display: block;
+.task-workspace-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  align-items: start;
+  min-height: 100dvh;
+}
+.task-workspace-shell.task-navigation-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+.task-workspace-shell > .admin-content,
+.task-workspace-shell > .task-topbar,
+.task-workspace-shell > .workspace {
+  grid-column: -2 / -1;
+  min-width: 0;
+}
+.app-shell.task-workspace-shell {
+  grid-template-rows: auto 1fr;
+}
+.app-shell.task-workspace-shell > .task-navigation {
+  grid-row: 1 / 3;
+}
+.task-topbar.admin-toolbar,
+.task-topbar .topbar-inner {
+  padding-left: 30px;
+  padding-right: 30px;
 }
 .task-admin-main {
   max-width: 1660px;
@@ -3292,18 +3315,12 @@ button.attachment-item:hover {
   flex-shrink: 0;
 }
 .task-workspace {
-  display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
-  align-items: start;
   min-width: 0;
-}
-.task-workspace.navigation-hidden {
-  grid-template-columns: minmax(0, 1fr);
 }
 .task-navigation {
   position: sticky;
-  top: var(--task-toolbar-height);
-  height: calc(100dvh - var(--task-toolbar-height));
+  top: 0;
+  height: 100dvh;
   min-width: 0;
   border-right: 1px solid var(--divider);
   background: var(--nav-bg);
@@ -3315,7 +3332,11 @@ button.attachment-item:hover {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 22px 14px;
+  padding: max(24px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom));
+}
+.task-navigation-brand {
+  margin: 0 8px 20px;
+  flex-shrink: 0;
 }
 .task-navigation-heading {
   display: flex;
@@ -3559,17 +3580,20 @@ button.attachment-item:hover {
 .task-management-drawer .drawer-close {
   z-index: 2;
 }
+.task-management-drawer {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .task-management-content {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  padding-top: max(64px, env(safe-area-inset-top));
+  height: auto;
+  min-height: 100%;
+  padding: max(64px, calc(env(safe-area-inset-top) + 60px)) 24px
+    max(20px, env(safe-area-inset-bottom));
 }
 .task-project-management {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 24px 22px;
+  padding-bottom: 22px;
 }
 .task-project-management h2 {
   font-size: 18px;
@@ -3603,58 +3627,76 @@ button.attachment-item:hover {
   font-weight: 600;
 }
 .task-global-management {
-  flex-shrink: 0;
-  max-height: 52dvh;
-  overflow-y: auto;
   border-top: 1px solid var(--divider);
-  padding: 20px 24px max(20px, env(safe-area-inset-bottom));
+  padding: 20px 0;
 }
-.task-global-management h3 {
-  font-size: 12px;
-  font-weight: 650;
-  color: var(--muted);
-  margin: 0 0 14px;
+.task-all-projects {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
 }
-.admin-sidebar-content.is-compact {
-  height: auto;
-  padding: 0;
-  gap: 14px;
+.task-all-projects span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.is-compact .sidebar-general {
-  order: -1;
-  border: 0;
-  padding: 0;
+.task-all-projects svg {
+  flex-shrink: 0;
 }
-.is-compact .sidebar-general a {
-  padding: 0;
+.task-all-projects:hover {
+  background: var(--control-hover);
+  border-color: var(--action);
 }
-.is-compact .sidebar-create {
-  min-height: 36px;
+.task-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  border-top: 1px solid var(--divider);
+  padding-top: 20px;
+  flex-shrink: 0;
 }
-.is-compact .sidebar-project-group {
-  display: block;
-  flex: none;
-}
-.is-compact .sidebar-project-group summary {
-  cursor: pointer;
+.task-account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--nav-selected-bg);
+  color: var(--nav-selected-text);
   font-size: 13px;
-  min-height: 32px;
+  font-weight: 650;
+  flex-shrink: 0;
 }
-.is-compact .sidebar-projects {
-  max-height: 180px;
-  margin-top: 10px;
+.task-account-details {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
-.is-compact .sidebar-projects > h2 {
-  display: none;
+.task-account-details > span {
+  color: var(--muted);
+  font-size: 12px;
 }
-.is-compact .sidebar-account {
-  padding: 12px 0 0;
-}
-.is-compact .sidebar-account button {
-  margin-top: 4px;
+.task-account button {
+  flex-shrink: 0;
 }
 .task-navigation-drawer {
   width: min(320px, 92vw);
+}
+.task-navigation-drawer .task-navigation-brand {
+  display: none;
 }
 #task-navigation-drawer-body {
   height: 100%;
@@ -3706,7 +3748,7 @@ button.attachment-item:hover {
   }
 }
 @media (max-width: 960px) {
-  .task-workspace {
+  .task-workspace-shell {
     display: block;
   }
   .task-navigation {
@@ -3788,5 +3830,98 @@ button.attachment-item:hover {
 @media (max-width: 640px) {
   .task-workspace-shell .mobile-push-footer {
     margin: 0 max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+  }
+}
+
+/* Compact route hierarchy and the workspace explanation share both shell themes. */
+.breadcrumbs {
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.breadcrumbs li svg {
+  flex-shrink: 0;
+}
+.breadcrumbs a,
+.breadcrumbs [aria-current] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40ch;
+}
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+.breadcrumbs [aria-current] {
+  color: var(--text-subtle);
+}
+.task-admin-main > .breadcrumbs {
+  padding: 22px 30px 0;
+  margin: 0;
+}
+.sidebar-workspace-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.workspace-help {
+  position: relative;
+  display: inline-flex;
+  cursor: help;
+  flex-shrink: 0;
+}
+.workspace-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -8px;
+  z-index: 40;
+  width: 210px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 4px 14px var(--popover-shadow);
+  visibility: hidden;
+  pointer-events: none;
+}
+.workspace-help:hover .workspace-tooltip,
+.workspace-help:focus .workspace-tooltip {
+  visibility: visible;
+}
+@media (max-width: 640px) {
+  .breadcrumbs {
+    margin-bottom: 16px;
+    font-size: 11px;
+  }
+  .breadcrumbs ol,
+  .breadcrumbs li {
+    gap: 4px;
+  }
+  .breadcrumbs a,
+  .breadcrumbs [aria-current] {
+    max-width: 18ch;
+  }
+  .task-admin-main > .breadcrumbs {
+    padding: 16px 16px 0;
+    margin: 0;
   }
 }

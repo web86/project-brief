@@ -19,13 +19,10 @@ import DeveloperTaskPanel from '../components/DeveloperTaskPanel.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 import { canEditClientTask, useDraftDeletion } from '../utils/clientDraft.js'
-import TaskNavigator from '../components/TaskNavigator.vue'
-import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
 import DeveloperNotes from '../components/DeveloperNotes.vue'
 const route = useRoute()
 const storeRouter = useRouter()
 const store = useProjectStore()
-const workspace = useTaskWorkspaceStore()
 const seen = new Set()
 let readTimer
 function seenComment(id) {
@@ -86,8 +83,7 @@ function focusClarification() {
 }
 </script>
 <template>
-  <div v-if="task" class="task-workspace" :class="{ 'navigation-hidden': workspace.hidden }">
-    <TaskNavigator :task="task" />
+  <div v-if="task" class="task-workspace">
     <div class="task-page" :key="task.id">
       <div class="task-context-row">
         <div class="task-context-left">

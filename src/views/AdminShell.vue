@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectStore } from '../stores/project.js'
@@ -9,6 +9,9 @@ import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t, formatApiError } from '../i18n/index.js'
 import TaskHeaderNavigation from '../components/TaskHeaderNavigation.vue'
+import TaskNavigator from '../components/TaskNavigator.vue'
+import Breadcrumbs from '../components/Breadcrumbs.vue'
+import AdminAccount from '../components/AdminAccount.vue'
 import ProjectNavigation from '../components/ProjectNavigation.vue'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
 import AdminSidebar from '../components/AdminSidebar.vue'
@@ -28,6 +31,7 @@ const menu = ref(null),
   loggingOut = ref(false)
 const drawer = createAdminDrawer({ dialog: () => dialog.value, trigger: () => menu.value })
 const drawerOpen = drawer.open
+const task = computed(() => route.meta.taskDetail && store.findTask(route.params.id))
 let breakpoint
 function resize() {
   if (!route.meta.taskDetail && breakpoint?.matches && drawerOpen.value) drawer.close(false)
@@ -101,7 +105,15 @@ async function logout() {
 }
 </script>
 <template>
-  <div class="admin-shell" :class="{ 'is-task-workspace': route.meta.taskDetail }">
+  <div
+    class="admin-shell"
+    :class="{
+      'is-task-workspace': route.meta.taskDetail,
+      'task-workspace-shell': route.meta.taskDetail,
+      'task-navigation-hidden': route.meta.taskDetail && workspace.hidden,
+    }"
+  >
+    <TaskNavigator v-if="task" :task="task" />
     <aside v-if="!route.meta.taskDetail" class="admin-sidebar">
       <AdminSidebar>
         <template #logout
@@ -171,7 +183,10 @@ async function logout() {
           <p>{{ formatApiError(nav.error) }}</p>
           <button class="button secondary" @click="retry">{{ t('ui.tryAgain') }}</button>
         </div>
-        <RouterView v-else-if="nav.ready" />
+        <template v-else-if="nav.ready">
+          <Breadcrumbs />
+          <RouterView />
+        </template>
         <LoadingOverlay v-else active />
       </main>
       <MobilePushFooter v-if="store.admin" id="admin-push-footer" />
@@ -202,9 +217,18 @@ async function logout() {
           <p class="small muted">{{ store.project.name }}</p>
           <ProjectNavigation vertical />
         </section>
-        <div :class="{ 'task-global-management': route.meta.taskDetail }">
-          <h3 v-if="route.meta.taskDetail">{{ t('taskWorkspace.workArea') }}</h3>
-          <AdminSidebar :compact="!!route.meta.taskDetail" @navigate="closeMenu(false)">
+        <template v-if="route.meta.taskDetail">
+          <div class="task-global-management">
+            <RouterLink to="/admin" class="task-all-projects">
+              <AppIcon name="grid" :size="20" />
+              <span>{{ t('nav.allProjects') }}</span>
+              <AppIcon name="chevron" :size="18" />
+            </RouterLink>
+          </div>
+          <AdminAccount v-if="nav.user" :user="nav.user" :busy="loggingOut" @logout="logout" />
+        </template>
+        <div v-else>
+          <AdminSidebar @navigate="closeMenu(false)">
             <template #logout
               ><button class="text-button" :disabled="loggingOut" @click="logout">
                 {{ t('ui.signOut') }}

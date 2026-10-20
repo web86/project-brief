@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-20",
+  "branch": "codex/milestone-4-4-1-navigation-polish",
+  "baseCommit": "d276e9c",
+  "frontend": {
+    "passed": 165,
+    "failed": 0
+  },
+  "backend": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 482,
+    "passed": 482,
+    "assertions": 4856,
+    "duration_ms": 16249
+  },
+  "build": "passed",
+  "prettier": "passed",
+  "pint": "passed; no PHP modifications",
+  "gitDiffCheck": "passed",
+  "browser": {
+    "newConfigurations": 10,
+    "baselineConfigurations": 7,
+    "workspaceRegressionConfigurations": 8,
+    "appearanceGroups": 11,
+    "engine": "Chromium",
+    "api": "mocked",
+    "viewports": [1440, 1280, 1024, 390],
+    "regressionViewports": [320, 360],
+    "shortWindowHeights": [600, 650],
+    "locales": ["ru", "en"],
+    "themes": ["light", "dark", "system"],
+    "singleManagementScroll": "passed",
+    "workspaceSwitch": "passed",
+    "projectAndTaskNavigation": "passed",
+    "draftAndLogoutGuards": "passed",
+    "keyboardFocus": "passed"
+  },
+  "screenshots": 44,
+  "backendChanged": false,
+  "databaseChanged": false,
+  "newDependencies": false,
+  "push": "not performed",
+  "deployment": "not performed",
+  "releasePublication": "not performed"
+}

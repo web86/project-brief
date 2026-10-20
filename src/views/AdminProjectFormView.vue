@@ -33,7 +33,6 @@ async function create() {
 </script>
 <template>
   <div class="form-page">
-    <RouterLink to="/admin" class="back-link">{{ t('ui.allProjects') }}</RouterLink>
     <div class="page-heading">
       <h1>{{ t('ui.newProject2') }}</h1>
       <p>{{ t('ui.giveTheProjectANameSoYourClient') }}</p>

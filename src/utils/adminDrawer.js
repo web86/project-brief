@@ -13,6 +13,21 @@ export function createAdminDrawer({ dialog, trigger }) {
     if (restore) trigger()?.focus()
   }
   function keydown(event) {
+    if (event.key === 'Tab' && open.value) {
+      const element = dialog()
+      const controls = Array.from(
+        element.querySelectorAll(
+          'a[href], button:not([disabled]), select:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((control) => control.getClientRects().length)
+      const first = controls[0],
+        last = controls.at(-1)
+      const active = element.ownerDocument.activeElement
+      if (first && ((event.shiftKey && active === first) || (!event.shiftKey && active === last))) {
+        event.preventDefault()
+        ;(event.shiftKey ? last : first).focus()
+      }
+    }
     if (event.key === 'Escape' && open.value) {
       event.preventDefault()
       close()

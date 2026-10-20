@@ -1,5 +1,7 @@
 <script setup>
 import TaskHeaderNavigation from './components/TaskHeaderNavigation.vue'
+import TaskNavigator from './components/TaskNavigator.vue'
+import { useTaskWorkspaceStore } from './stores/taskWorkspace.js'
 import ResponsivePushControls from './components/ResponsivePushControls.vue'
 import MobilePushFooter from './components/MobilePushFooter.vue'
 import ToastViewport from './components/ToastViewport.vue'
@@ -7,7 +9,7 @@ import { toast } from './services/toast.js'
 import { confirmDeveloperLeave } from './utils/developerEditor.js'
 import { t, locale, formatApiError } from './i18n/index.js'
 
-import { nextTick, watch } from 'vue'
+import { computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from './stores/adminNavigation.js'
 import { useProjectStore } from './stores/project'
@@ -20,6 +22,8 @@ import AppIcon from './components/AppIcon.vue'
 const store = useProjectStore()
 const route = useRoute()
 const router = useRouter()
+const workspace = useTaskWorkspaceStore()
+const task = computed(() => route.meta.taskDetail && store.findTask(route.params.id))
 const navigationPending = router.navigationPending
 async function logout() {
   if (!confirmDeveloperLeave(store)) return
@@ -76,7 +80,15 @@ watch(
   <div :inert="navigationPending || undefined" :aria-busy="navigationPending">
     <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
     <RouterView v-if="route.meta.adminShell" />
-    <div v-else class="app-shell" :class="{ 'task-workspace-shell': route.meta.taskDetail }">
+    <div
+      v-else
+      class="app-shell"
+      :class="{
+        'task-workspace-shell': route.meta.taskDetail,
+        'task-navigation-hidden': route.meta.taskDetail && workspace.hidden,
+      }"
+    >
+      <TaskNavigator v-if="task" :task="task" />
       <header class="app-topbar" :class="{ 'task-topbar': route.meta.taskDetail }">
         <div class="topbar-inner">
           <TaskHeaderNavigation v-if="route.meta.taskDetail" />

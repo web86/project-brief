@@ -5,7 +5,6 @@ export default {
     openTasks: 'Open project tasks',
     closeTasks: 'Close project tasks',
     manageProject: 'Project management',
-    workArea: 'Workspace',
   },
   discussions: {
     title: 'Discussions',
@@ -97,6 +96,9 @@ export default {
     unavailableTitle: 'Project unavailable',
     unavailableBody: 'This project is not available in the selected workspace.',
     workspace: 'Workspace',
+    workspaceHint:
+      'A workspace brings projects and members together. You can switch between available workspaces.',
+    breadcrumbs: 'Breadcrumbs',
     newProject: 'New project',
     projects: 'Projects',
     allProjects: 'All projects',

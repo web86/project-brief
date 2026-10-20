@@ -14,6 +14,9 @@ let server,
   i18n,
   App,
   TaskView,
+  Breadcrumbs,
+  Account,
+  drawerFactory,
   History,
   demo
 before(async () => {
@@ -36,6 +39,9 @@ before(async () => {
   App = (await load('App.vue')).default
   TaskView = (await load('views/TaskView.vue')).default
   History = (await load('components/HistoryTimeline.vue')).default
+  Breadcrumbs = (await load('components/Breadcrumbs.vue')).default
+  Account = (await load('components/AdminAccount.vue')).default
+  drawerFactory = (await load('utils/adminDrawer.js')).createAdminDrawer
   demo = (await load('data/demo.js')).createDemoData
 })
 after(async () => server.close())
@@ -59,6 +65,10 @@ async function fixture(admin = true) {
     if (path === '/api/admin/projects') return { data: [project] }
     if (path === '/api/client/me')
       return { id: 'client', name: 'PRIVATE_CLIENT_HEADER_NAME', preferredLocale: 'en' }
+    if (path.includes('/discussions?')) return { data: [], nextCursor: null, unreadCount: 3 }
+    if (path.endsWith('/clients')) return { data: [] }
+    if (path.endsWith('/sections')) return { data: data.sections }
+    if (path.endsWith('/notifications')) return { events: {}, notificationEmail: null }
     if (path.endsWith('/activity/read')) return { unreadCount: 0 }
     if (path.endsWith('/tasks'))
       return {
@@ -99,7 +109,9 @@ test('admin detail replaces global sidebar and project header with the sticky ba
     assert.ok(output.includes('task-header-back'))
     assert.ok(output.includes('task-management-drawer'))
     assert.ok(output.includes(lang === 'ru' ? 'Управление проектом' : 'Project management'))
-    assert.ok(output.includes(lang === 'ru' ? 'Рабочая область' : 'Workspace'))
+    assert.equal(output.includes('sidebar-workspace'), false)
+    assert.ok(output.includes('task-all-projects'))
+    assert.ok(output.includes('task-account'))
     assert.ok(output.includes('discussion-badge'))
     for (const section of [
       'brief',
@@ -148,7 +160,7 @@ test('client detail has project-scoped navigation, comments and back control wit
 })
 test('current section opens on navigation; other manual accordion states survive and task changes issue no duplicate fetches', async () => {
   const { router, data, calls, path } = await fixture()
-  await html(TaskView, router)
+  await html(App, router)
   const workspace = workspaceStore()
   assert.equal(workspace.expanded[uuid][data.tasks[0].sectionId], true)
   const other = data.tasks.find((task) => task.sectionId !== data.tasks[0].sectionId)
@@ -156,7 +168,7 @@ test('current section opens on navigation; other manual accordion states survive
   workspace.toggleSection(uuid, other.sectionId)
   const count = calls.length
   await router.push(path(other.id))
-  const output = await html(TaskView, router)
+  const output = await html(App, router)
   assert.equal(calls.length, count)
   assert.equal(workspace.expanded[uuid][other.sectionId], true)
   assert.equal(workspace.expanded[uuid][data.tasks[0].sectionId], true)
@@ -251,4 +263,108 @@ test('client history omits every private audit event while preserving the order 
   assert.equal(output.includes('PRIVATE_'), false)
   // Same newest-first order as the pre-existing HistoryTimeline.
   assert.ok(output.indexOf('PUBLIC_LAST') < output.indexOf('PUBLIC_FIRST'))
+})
+
+test('administrative breadcrumbs use existing project routes, localized names and a non-link current page', async () => {
+  const { router, data, path } = await fixture()
+  for (const lang of ['en', 'ru']) {
+    i18n.global.locale.value = lang
+    for (const section of [
+      'brief',
+      'clients',
+      'discussions',
+      'structure',
+      'notifications',
+      'settings',
+      'export',
+    ]) {
+      await router.push(`/admin/projects/${uuid}/${section}`)
+      const output = await html(Breadcrumbs, router)
+      assert.ok(output.includes('href="/admin"'))
+      assert.ok(output.includes(`aria-label="${i18n.global.t('nav.breadcrumbs')}"`))
+      assert.ok(output.includes('aria-current="page"'))
+      assert.equal(output.replace(/<[^>]*>/g, '').includes(uuid), false)
+      assert.equal((output.match(/aria-current="page"/g) || []).length, 1)
+      if (section === 'brief') assert.ok(output.includes('>' + data.project.name + '</span>'))
+      else {
+        assert.ok(output.includes(`href="/admin/projects/${uuid}/brief"`))
+        assert.ok(output.includes('>' + i18n.global.t('nav.' + section) + '</span>'))
+      }
+    }
+    for (const [destination, current, links] of [
+      [path(data.tasks[0].id), '#1.1', 3],
+      [path(data.tasks[0].id) + '/edit', i18n.global.t('flow.editTitle'), 4],
+      [`/admin/projects/${uuid}/brief/task/new`, i18n.global.t('ui.newIdea'), 3],
+      ['/admin/projects/new', i18n.global.t('nav.newProject'), 1],
+    ]) {
+      await router.push(destination)
+      const output = await html(Breadcrumbs, router)
+      assert.equal((output.match(/<a /g) || []).length, links)
+      assert.ok(output.includes('>' + current + '</span>'))
+      assert.equal(output.replace(/<[^>]*>/g, '').includes(uuid), false)
+    }
+  }
+})
+test('breadcrumbs stay absent on the project list, login and all client pages', async () => {
+  const { router } = await fixture()
+  for (const destination of ['/admin', '/admin/login', `/project/${uuid}`]) {
+    await router.push(destination)
+    assert.equal((await html(Breadcrumbs, router)).includes('<nav'), false)
+  }
+})
+test('the task logo targets the admin project list or the current client project and precedes the toolbar', async () => {
+  for (const admin of [true, false]) {
+    const { router } = await fixture(admin)
+    const output = await html(App, router)
+    const destination = admin ? '/admin' : `/project/${uuid}`
+    assert.match(
+      output,
+      new RegExp(`<a(?=[^>]*href="${destination}")(?=[^>]*task-navigation-brand)[^>]*>`),
+    )
+    assert.equal((output.match(/id="project-task-navigation"/g) || []).length, 1)
+    assert.ok(output.indexOf('task-navigation-brand') < output.indexOf('task-topbar'))
+  }
+})
+test('compact account always uses the signed-in user and actual membership role, without profile links', async () => {
+  const { router } = await fixture()
+  for (const lang of ['en', 'ru']) {
+    i18n.global.locale.value = lang
+    for (const role of ['owner', 'admin']) {
+      const output = await html(Account, router, {
+        user: { name: 'Анна Смирнова', membershipRole: role },
+      })
+      assert.ok(output.includes('Анна Смирнова'))
+      assert.ok(output.includes('АС'))
+      assert.ok(output.includes(i18n.global.t('nav.' + role)))
+      assert.ok(output.includes('aria-label="' + i18n.global.t('ui.signOut') + '"'))
+      assert.equal(output.includes('<a '), false)
+    }
+  }
+})
+test('native drawers retain keyboard focus at either end of their compact controls', () => {
+  const focused = [],
+    doc = {}
+  const controls = ['first', 'last'].map((name) => ({
+    getClientRects: () => [{}],
+    focus: () => focused.push(name),
+  }))
+  const element = { showModal() {}, ownerDocument: doc, querySelectorAll: () => controls }
+  const drawer = drawerFactory({ dialog: () => element, trigger: () => null })
+  drawer.show()
+  for (const [index, shiftKey, expected] of [
+    [0, true, 'last'],
+    [1, false, 'first'],
+  ]) {
+    doc.activeElement = controls[index]
+    let prevented = false
+    drawer.keydown({
+      key: 'Tab',
+      shiftKey,
+      preventDefault: () => {
+        prevented = true
+      },
+    })
+    assert.equal(prevented, true)
+    assert.equal(focused.at(-1), expected)
+  }
 })

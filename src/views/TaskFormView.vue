@@ -12,7 +12,7 @@ import AppIcon from '../components/AppIcon.vue'
 </script>
 <template>
   <div class="form-page">
-    <RouterLink :to="store.projectPath" class="back-link"
+    <RouterLink v-if="!route.meta.adminShell" :to="store.projectPath" class="back-link"
       ><AppIcon name="arrow" :size="17" />{{ t('ui.backToTheProject2') }}</RouterLink
     >
     <div class="page-heading">

@@ -5,7 +5,6 @@ import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t, formatApiError } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
 import UnreadBadge from './UnreadBadge.vue'
-defineProps({ compact: Boolean })
 const emit = defineEmits(['navigate'])
 const nav = useAdminNavigationStore(),
   router = useRouter(),
@@ -19,9 +18,8 @@ async function select(event) {
 }
 </script>
 <template>
-  <div class="admin-sidebar-content" :class="{ 'is-compact': compact }">
+  <div class="admin-sidebar-content">
     <RouterLink
-      v-if="!compact"
       to="/admin"
       class="brand"
       :aria-label="t('ui.projectBriefOpenTheProject')"
@@ -31,7 +29,13 @@ async function select(event) {
       <span>project<span class="brand-light">brief</span></span>
     </RouterLink>
     <label class="sidebar-workspace">
-      <span>{{ t('nav.workspace') }}</span>
+      <span class="sidebar-workspace-label">
+        {{ t('nav.workspace') }}
+        <span class="workspace-help" tabindex="0" role="img" :aria-label="t('nav.workspaceHint')">
+          <AppIcon name="info" :size="14" />
+          <span class="workspace-tooltip" aria-hidden="true">{{ t('nav.workspaceHint') }}</span>
+        </span>
+      </span>
       <select
         :value="nav.workspace?.id || ''"
         :disabled="nav.loading || nav.switching || !nav.ready"
@@ -50,10 +54,7 @@ async function select(event) {
     >
       <AppIcon name="plus" :size="17" />{{ t('nav.newProject') }}
     </RouterLink>
-    <component :is="compact ? 'details' : 'div'" class="sidebar-project-group">
-      <summary v-if="compact">
-        {{ t('nav.projects') }} <span class="count-pill">{{ nav.projects.length }}</span>
-      </summary>
+    <div class="sidebar-project-group">
       <nav
         class="sidebar-projects"
         :aria-label="t('nav.projects')"
@@ -88,7 +89,7 @@ async function select(event) {
           </button>
         </div>
       </nav>
-    </component>
+    </div>
     <nav class="sidebar-general" :aria-label="t('nav.general')">
       <RouterLink
         to="/admin"

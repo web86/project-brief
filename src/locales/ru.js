@@ -5,7 +5,6 @@ export default {
     openTasks: 'Открыть задачи проекта',
     closeTasks: 'Закрыть задачи проекта',
     manageProject: 'Управление проектом',
-    workArea: 'Рабочая область',
   },
   discussions: {
     title: 'Обсуждения',
@@ -97,6 +96,9 @@ export default {
     unavailableTitle: 'Проект недоступен',
     unavailableBody: 'Этот проект недоступен в выбранном рабочем пространстве.',
     workspace: 'Рабочее пространство',
+    workspaceHint:
+      'Рабочее пространство объединяет проекты и участников. Вы можете переключаться между доступными пространствами',
+    breadcrumbs: 'Хлебные крошки',
     newProject: 'Новый проект',
     projects: 'Проекты',
     allProjects: 'Все проекты',

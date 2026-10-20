@@ -41,7 +41,7 @@ function keydown(event) {
   if (event.key === 'Escape') {
     event.preventDefault()
     close()
-  }
+  } else drawer.keydown(event)
 }
 function backdrop(event) {
   if (event.target === dialog.value) close()
@@ -88,6 +88,14 @@ onUnmounted(() => {
         class="task-navigation-content"
         :aria-label="t('taskWorkspace.tasks')"
       >
+        <RouterLink
+          :to="store.isDeveloper ? '/admin' : store.projectPath"
+          class="brand task-navigation-brand"
+          :aria-label="t('ui.projectBriefOpenTheProject')"
+        >
+          <span class="brand-mark">p<span class="brand-dot">.</span></span>
+          <span>project<span class="brand-light">brief</span></span>
+        </RouterLink>
         <div class="task-navigation-heading">
           <h2>{{ t('taskWorkspace.tasks') }}</h2>
           <button
