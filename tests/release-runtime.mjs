@@ -69,6 +69,8 @@ $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
 $owner->forceFill(['pending_notification_email'=>'verified-release@example.test', 'notification_email_token_hash'=>hash('sha256', str_repeat('a', 64)), 'notification_email_expires_at'=>now()->addMinutes(30)])->save();
+// Render templates with an in-memory transport; the isolated package has no SMTP credentials.
+config(['mail.default'=>'array']);
 foreach (['ru', 'en'] as $language) {
     $verification = new \\App\\Mail\\VerifyNotificationEmail('https://brief.example.test/admin/settings/notifications#verify='.str_repeat('a', 64), $language);
     if (!str_contains($verification->render(), '#verify=') || !str_contains(view('mail.verify-notification-email-text', ['verificationUrl'=>$verification->verificationUrl, 'language'=>$language])->render(), '#verify=')) {
