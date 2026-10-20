@@ -138,6 +138,9 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/bin/check-server',
     'private/project-brief-app/bin/first-install',
     'DEPLOY-JINO.md',
+    'deployment/telegram-bridge.mjs',
+    'PRODUCTION.md',
+    'RELEASE-NOTES.md',
     'release.json',
   ]
   for (const file of required) {

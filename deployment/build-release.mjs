@@ -136,6 +136,18 @@ try {
     recursive: true,
   })
   await copyRelease(path.join(root, 'DEPLOY-JINO.md'), path.join(staging, 'DEPLOY-JINO.md'))
+  await copyRelease(
+    path.join(root, 'deployment/telegram-bridge.mjs'),
+    path.join(staging, 'deployment/telegram-bridge.mjs'),
+  )
+  await copyRelease(
+    path.join(root, 'docs/milestone-4-5-1/PRODUCTION.md'),
+    path.join(staging, 'PRODUCTION.md'),
+  )
+  await copyRelease(
+    path.join(root, 'docs/milestone-4-5-1/RELEASE.md'),
+    path.join(staging, 'RELEASE-NOTES.md'),
+  )
   await writeFile(
     path.join(staging, 'release.json'),
     `${JSON.stringify({ commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
