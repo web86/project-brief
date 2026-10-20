@@ -293,10 +293,13 @@ class ProjectNotificationTest extends TestCase
         $this->assertTrue($response->json()['events']['client.task_created']['email']);
         $events = NotificationEvents::defaults();
         $events['admin.task_done']['email'] = false;
+        ProjectNotificationSetting::where('project_id', $project->id)->update(['notification_email' => 'owner@example.test']);
         $this->patchJson($path, ['notificationEmail' => 'owner@example.test', 'events' => $events])->assertOk();
         $settings = ProjectNotificationSetting::where('project_id', $project->id)->first();
         $this->assertSame(false, $settings->preferences()['admin.task_done']['email']);
         $this->assertSame('owner@example.test', $settings->notification_email);
+        $this->patchJson($path, ['notificationEmail' => 'unverified@example.test', 'events' => $events])->assertUnprocessable();
+        $this->assertSame('owner@example.test', $settings->fresh()->notification_email);
         $events['bogus'] = ['email' => true, 'push' => true];
         $this->patchJson($path, ['events' => $events])->assertUnprocessable();
         $this->patchJson($path, ['notificationEmail' => 'not-mail', 'events' => NotificationEvents::defaults()])->assertUnprocessable();

@@ -68,6 +68,14 @@ require $argv[1].'/vendor/autoload.php';
 $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
+$owner->forceFill(['pending_notification_email'=>'verified-release@example.test', 'notification_email_token_hash'=>hash('sha256', str_repeat('a', 64)), 'notification_email_expires_at'=>now()->addMinutes(30)])->save();
+foreach (['ru', 'en'] as $language) {
+    $verification = new \\App\\Mail\\VerifyNotificationEmail('https://brief.example.test/admin/settings/notifications#verify='.str_repeat('a', 64), $language);
+    if (!str_contains($verification->render(), '#verify=') || !str_contains(view('mail.verify-notification-email-text', ['verificationUrl'=>$verification->verificationUrl, 'language'=>$language])->render(), '#verify=')) {
+        throw new \\RuntimeException('Packaged verification email template is missing its link.');
+    }
+}
+
 $workspace = $owner->workspaceMembers()->active()->firstOrFail()->workspace;
 $project = $workspace->projects()->create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
 $section = $project->briefSections()->create(['name'=>'Главная', 'position'=>1]);
@@ -197,6 +205,43 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(ownerState.user.membershipRole, 'owner')
   assert.equal(ownerState.workspace.id, fixture.workspace)
   const workspaceCsrf = await (await request('/api/csrf')).json()
+  const personal = await (await request('/api/admin/notifications')).json()
+  assert.equal(personal.email, 'release@example.test')
+  assert.equal(personal.pendingEmail, 'verified-release@example.test')
+  assert.equal(personal.preferences.telegram, true)
+  assert.equal(personal.notification_email_token_hash, undefined)
+  const personalHeaders = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': workspaceCsrf.token,
+  }
+  const pauseChannel = await request('/api/admin/notifications', {
+    method: 'PATCH',
+    headers: personalHeaders,
+    body: JSON.stringify({ preferences: { email: true, push: true, telegram: false } }),
+  })
+  assert.equal(pauseChannel.status, 200)
+  assert.equal((await pauseChannel.json()).preferences.telegram, false)
+  const verifyEmail = await request('/api/admin/notifications/email/verify', {
+    method: 'POST',
+    headers: personalHeaders,
+    body: JSON.stringify({ token: 'a'.repeat(64) }),
+  })
+  assert.equal(verifyEmail.status, 200)
+  assert.equal((await verifyEmail.json()).email, 'verified-release@example.test')
+  assert.equal(
+    (
+      await request('/api/admin/notifications/email/verify', {
+        method: 'POST',
+        headers: personalHeaders,
+        body: JSON.stringify({ token: 'a'.repeat(64) }),
+      })
+    ).status,
+    422,
+  )
+  const personalPage = await request('/admin/settings/notifications')
+  assert.equal(personalPage.status, 200)
+  assert.match(await personalPage.text(), /id="app"/)
   const workspaces = await (await request('/api/admin/workspaces')).json()
   assert.deepEqual(workspaces.data, [{ id: fixture.workspace, name: 'Release QA' }])
   const projects = await (await request('/api/admin/projects')).json()
@@ -439,7 +484,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal((await request('/admin/login')).status, 200)
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
-    'PASS: Packaged runtime, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
+    'PASS: Packaged runtime, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
   )
 } finally {
   if (server && server.exitCode === null) {

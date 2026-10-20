@@ -3,11 +3,12 @@ import LoadingButton from '../components/LoadingButton.vue'
 import { t, formatApiError } from '../i18n/index.js'
 
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { api } from '../api/client'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectStore } from '../stores/project'
-const router = useRouter()
+const router = useRouter(),
+  route = useRoute()
 const store = useProjectStore()
 const email = ref('')
 const password = ref('')
@@ -28,7 +29,11 @@ async function login() {
     store.apiError = ''
     store.sessionLost = false
     password.value = ''
-    await router.push('/admin')
+    await router.replace(
+      /^#verify=[a-f0-9]{64}$/.test(route.hash)
+        ? '/admin/settings/notifications' + route.hash
+        : '/admin',
+    )
   } catch (cause) {
     error.value = cause
   } finally {

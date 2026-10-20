@@ -1,4 +1,70 @@
 export default {
+  centralNotifications: {
+    unavailableRecipients:
+      'Some previously selected participants no longer have access. They will not be notified; save the current recipient list.',
+    noWorkspace: 'Not selected',
+    chooseWorkspace: 'Select a workspace to see its projects.',
+    mySettings: 'My settings',
+    myNotifications: 'My notifications',
+    personalHint:
+      'Your channels apply to every project and workspace you can access. Other participants keep their own preferences.',
+    projectHint: 'Choose events and recipients here. Configure your channels in',
+    clientActions: 'Client actions',
+    teamActions: 'Team actions',
+    recipients: 'Who to notify',
+    allRecipients: 'All eligible participants',
+    selectedRecipients: 'Choose specific participants',
+    noRecipients: 'No participants with current access.',
+    noneSelected: 'Nobody selected — this event will send no notifications.',
+    none: 'Disabled',
+    legacyTitle: 'Previous delivery rules are still active',
+    legacyExplanation:
+      'Until you confirm, each event keeps its previous Email/Push/Telegram settings. After switching, enabled events use each recipient’s personal channels and email. Previous addresses stay saved in My settings. A channel previously disabled for this project may become active if the recipient allows it.',
+    confirmMigration:
+      'I confirm switching to the selected events, recipients and their personal channels.',
+    confirmAndSave: 'Confirm switch and save',
+    currentChannels: 'Currently',
+    recipientError:
+      'Check events and recipients. Project access may have changed; reload this page.',
+    allowEmail: 'Receive Email',
+    allowPush: 'Allow Push on my devices',
+    allowTelegram: 'Receive Telegram',
+    channelOff: 'This channel is disabled in your preferences.',
+    emailReady: 'Email available',
+    emailUnavailable: 'SMTP has not been configured on the server.',
+    currentEmail: 'Current primary address',
+    receiveEmail: 'Notification email address',
+    emailVerificationHint:
+      'Your account email is available immediately. Another address applies to all projects after email verification. Your previous address stays active until then.',
+    unifyAccount: 'Use account email across all projects',
+    verifyEmail: 'Send address verification',
+    verificationSent: 'A verification email was sent to the new address.',
+    emailVerified: 'Address verified and applied across all projects.',
+    emailSent: 'Test email sent to your primary address.',
+    pendingEmail: 'Awaiting verification: {email}',
+    expiresHint: 'The link expires in 30 minutes. Send a new verification if it expires.',
+    cancelChange: 'Cancel address change',
+    savedAddresses: 'Saved project addresses',
+    addressConflict:
+      'Previous project addresses are preserved and may still be in use by their projects. Choose and verify a single address, or use your account email.',
+    addressesArchived:
+      'Previous values are preserved for reference. Your personal email is now used.',
+    chooseAddress: 'Choose address',
+    legacyActive: 'Used by previous rules',
+    legacyArchived: 'Saved for reference',
+    pushPaused:
+      'Push is paused across your devices. Subscriptions are preserved; disabling one device does not affect others.',
+    telegramPaused: 'This channel is off. Your bot connection is preserved.',
+    backToIdeas: 'Back to ideas',
+    errors: {
+      smtp_unconfigured: 'SMTP is not configured. Your address has not changed.',
+      email_delivery_failed: 'Could not send email. Your previous address stays active.',
+      email_rate_limited: 'Too many verification emails. Try again in a minute.',
+      email_verification_invalid:
+        'This link expired, was already used or belongs to another account. Request a new verification.',
+      channel_disabled: 'Enable this channel in your personal preferences first.',
+    },
+  },
   clientWorkspace: {
     ideas: 'Ideas',
     menu: 'Project menu',

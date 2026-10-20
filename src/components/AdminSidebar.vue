@@ -41,7 +41,9 @@ async function select(event) {
         :disabled="nav.loading || nav.switching || !nav.ready"
         @change="select"
       >
-        <option v-if="!nav.workspace" value="">{{ t('nav.loading') }}</option>
+        <option v-if="!nav.workspace" value="">
+          {{ t(nav.loading ? 'nav.loading' : 'centralNotifications.noWorkspace') }}
+        </option>
         <option v-for="workspace in nav.workspaces" :key="workspace.id" :value="workspace.id">
           {{ workspace.name }}
         </option>
@@ -49,12 +51,16 @@ async function select(event) {
     </label>
     <RouterLink
       to="/admin/projects/new"
+      v-if="nav.workspace"
       class="button primary sidebar-create"
       @click="emit('navigate')"
     >
       <AppIcon name="plus" :size="17" />{{ t('nav.newProject') }}
     </RouterLink>
-    <div class="sidebar-project-group">
+    <p v-if="!nav.workspace && nav.ready" class="small muted">
+      {{ t('centralNotifications.chooseWorkspace') }}
+    </p>
+    <div v-else class="sidebar-project-group">
       <nav
         class="sidebar-projects"
         :aria-label="t('nav.projects')"
@@ -96,6 +102,18 @@ async function select(event) {
         :aria-current="route.path === '/admin' ? 'page' : undefined"
         @click="emit('navigate')"
         >{{ t('nav.allProjects') }}</RouterLink
+      >
+    </nav>
+    <nav
+      class="sidebar-general personal-settings-nav"
+      :aria-label="t('centralNotifications.mySettings')"
+    >
+      <h2>{{ t('centralNotifications.mySettings') }}</h2>
+      <RouterLink
+        to="/admin/settings/notifications"
+        :aria-current="route.meta.personalSettings ? 'page' : undefined"
+        @click="emit('navigate')"
+        >{{ t('nav.notifications') }}</RouterLink
       >
     </nav>
     <footer class="sidebar-account" v-if="nav.user">

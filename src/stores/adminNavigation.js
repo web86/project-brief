@@ -46,7 +46,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     listError.value = null
   }
   async function bootstrap(request = api.request, force = false) {
-    if (ready.value && !force) return true
+    if (ready.value && workspace.value && !force) return true
     if (pending && !force) return pending
     const current = ++revision
     loading.value = true
@@ -78,6 +78,35 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
       }
     })()
     return pending
+  }
+  async function bootstrapPersonal(request = api.request) {
+    const current = ++revision
+    pending = null
+    loading.value = true
+    error.value = null
+    try {
+      const state = await request('/api/admin/notifications')
+      if (current !== revision) return false
+      if (user.value && user.value.email !== state.user.email) {
+        clearProjectState()
+        workspace.value = null
+      }
+      user.value = state.user
+      workspaces.value = state.workspaces || []
+      if (!workspaces.value.some((item) => item.id === workspace.value?.id)) {
+        clearProjectState()
+        workspace.value = null
+      }
+      useProjectStore().admin = state.user
+      applyClientLocale(state.user.preferredLocale)
+      ready.value = true
+      return true
+    } catch (cause) {
+      if (current === revision) error.value = cause
+      throw cause
+    } finally {
+      if (current === revision) loading.value = false
+    }
   }
   async function refreshProjects(request = api.request) {
     const current = revision,
@@ -161,6 +190,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     ready,
     clear,
     bootstrap,
+    bootstrapPersonal,
     refreshProjects,
     switchWorkspace,
     markRead,

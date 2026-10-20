@@ -16,8 +16,6 @@ import ProjectNavigation from '../components/ProjectNavigation.vue'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
 import AdminSidebar from '../components/AdminSidebar.vue'
 import AppIcon from '../components/AppIcon.vue'
-import ResponsivePushControls from '../components/ResponsivePushControls.vue'
-import MobilePushFooter from '../components/MobilePushFooter.vue'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import LoadingOverlay from '../components/LoadingOverlay.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
@@ -149,12 +147,6 @@ async function logout() {
           nav.workspace?.name
         }}</span>
         <div class="admin-toolbar-controls">
-          <ResponsivePushControls
-            v-if="store.admin"
-            :key="store.admin.email"
-            persona="admin"
-            footer="#admin-push-footer"
-          />
           <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
           <button
             v-if="route.meta.taskDetail"
@@ -189,7 +181,6 @@ async function logout() {
         </template>
         <LoadingOverlay v-else active />
       </main>
-      <MobilePushFooter v-if="store.admin" id="admin-push-footer" />
     </div>
     <dialog
       id="admin-drawer"
@@ -225,6 +216,11 @@ async function logout() {
               <AppIcon name="chevron" :size="18" />
             </RouterLink>
           </div>
+          <RouterLink to="/admin/settings/notifications" class="task-personal-settings"
+            ><AppIcon name="bell" :size="20" />{{
+              t('centralNotifications.myNotifications')
+            }}</RouterLink
+          >
           <AdminAccount v-if="nav.user" :user="nav.user" :busy="loggingOut" @logout="logout" />
         </template>
         <div v-else>

@@ -16,7 +16,7 @@ export const STATUSES = {
     get label() {
       return t('ui.approved')
     },
-    tone: 'violet',
+    tone: 'approved',
   },
   in_progress: {
     get label() {

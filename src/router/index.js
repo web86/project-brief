@@ -65,6 +65,16 @@ export function createProjectRouter({
             },
           },
           {
+            path: 'settings/notifications',
+            component: () => import('../views/AdminNotificationsView.vue'),
+            meta: {
+              personalSettings: true,
+              get title() {
+                return t('centralNotifications.myNotifications')
+              },
+            },
+          },
+          {
             path: 'projects/new',
             component: () => import('../views/AdminProjectFormView.vue'),
             meta: {
@@ -322,13 +332,20 @@ export function createProjectRouter({
         nav = useAdminNavigationStore(),
         management = useProjectManagementStore()
       try {
-        if (!(await nav.bootstrap(request))) return false
+        if (
+          !(await (to.meta.personalSettings
+            ? nav.bootstrapPersonal(request)
+            : nav.bootstrap(request)))
+        )
+          return false
         store.sessionLost = false
       } catch (error) {
         if ([401, 403].includes(error.status)) {
           nav.clear()
           store.admin = null
-          return '/admin/login'
+          return to.meta.personalSettings
+            ? { path: '/admin/login', hash: /^#verify=[a-f0-9]{64}$/.test(to.hash) ? to.hash : '' }
+            : '/admin/login'
         }
         if (from.matched.length) {
           toast.error(() => formatApiError(error))

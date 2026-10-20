@@ -10,6 +10,11 @@ const route = useRoute(),
   store = useProjectStore()
 const items = computed(() => {
   if (!route.meta.adminShell || route.meta.taskDetail) return []
+  if (route.meta.personalSettings)
+    return [
+      { label: t('centralNotifications.mySettings'), to: '/admin/settings/notifications' },
+      { label: t('nav.notifications') },
+    ]
   const projects = { label: t('nav.projects'), to: '/admin' }
   if (route.path === '/admin/projects/new') return [projects, { label: t('nav.newProject') }]
   const project = management.project

@@ -5,7 +5,9 @@ import { createServer } from 'vite'
 import { taskWorkspaceFixture, uuid, adminRoot } from './helpers/taskWorkspace.browser.mjs'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const before = process.env.NAVIGATION_POLISH_BEFORE === '1'
-const output = new URL('../docs/milestone-4-4-1/', import.meta.url)
+const output = process.env.NAVIGATION_POLISH_OUTPUT_DIR
+  ? new URL('file://' + process.env.NAVIGATION_POLISH_OUTPUT_DIR.replace(/\/$/, '') + '/')
+  : new URL('../docs/milestone-4-4-1/', import.meta.url)
 await mkdir(output, { recursive: true })
 const server = await createServer({
   mode: 'test',

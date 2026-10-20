@@ -40,6 +40,9 @@ class ProjectNotificationService
 
     private function emailFor(Project $project, User $recipient): ?string
     {
+        if ($this->settings($project)->delivery_mode === 'personal' || $recipient->notification_email_resolved_at !== null) {
+            return $recipient->notificationEmail();
+        }
         $override = $this->settings($project)->notification_email;
         if ($override && $this->primaryOwner($project)?->id === $recipient->id) {
             $emailQuery = fn ($query) => $query->whereRaw('LOWER(email) = ?', [mb_strtolower($override)]);
@@ -81,12 +84,20 @@ class ProjectNotificationService
             return;
         }
         $settings = $this->settings($project);
-        $preferences = $settings->preferences()[$event->event];
+        $rule = $settings->rules()[$event->event];
+        if ($settings->delivery_mode === 'personal' && ! $rule['enabled']) {
+            return;
+        }
+        $preferences = $settings->delivery_mode === 'personal' ? ['email' => true, 'push' => true, 'telegram' => true] : $settings->preferences()[$event->event];
         $toAdmin = str_starts_with($event->event, 'client.');
         $recipients = $toAdmin ? ProjectAccess::recipients($project)->get() : $project->clients()->where('active', true)->whereHas('accessTokens', fn ($q) => $q->where('project_id', $project->id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())))->get();
         $dedup = $comment ? 'comment:'.$comment->id : (string) $event->historyId;
         $actorEmail = $event->actorType === 'admin' ? User::find($event->actorId)?->email : ProjectClient::find($event->actorId)?->email;
         foreach ($recipients as $recipient) {
+            $recipientKey = $recipient instanceof ProjectClient ? $recipient->uuid : $recipient->id;
+            if ($settings->delivery_mode === 'personal' && $rule['recipients']['mode'] === 'selected' && ! in_array($recipientKey, $rule['recipients']['ids'], true)) {
+                continue;
+            }
             $type = $toAdmin ? 'admin' : 'client';
             if (($event->actorType === $type && $event->actorId === $recipient->id) || ($actorEmail && $recipient->email && strcasecmp($actorEmail, $recipient->email) === 0)) {
                 continue;
@@ -94,7 +105,7 @@ class ProjectNotificationService
             $locale = $recipient->preferred_locale ?? ($toAdmin ? config('project_notifications.admin_locale') : 'en');
             $locale = in_array($locale, ['ru', 'en'], true) ? $locale : ($toAdmin ? 'ru' : 'en');
             $payload = $comment ? NotificationPayload::discussion($event->event, $comment, $event->actorName, $locale, $toAdmin) : NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
-            $personal = $recipient instanceof ProjectClient ? $recipient->notificationPreferences() : ['email' => true, 'push' => true, 'telegram' => true];
+            $personal = $recipient->notificationPreferences();
             $email = $toAdmin ? $this->emailFor($project, $recipient) : $recipient->email;
             // Avoid mail self-notification even if two personas share the same address.
             if ($preferences['email'] && $personal['email'] && filter_var($email, FILTER_VALIDATE_EMAIL) && (! $actorEmail || strcasecmp($actorEmail, $email) !== 0)) {
@@ -143,8 +154,34 @@ class ProjectNotificationService
         return ['status' => 'sent', 'error_code' => null];
     }
 
+    public function personalTest(User $user, string $channel, ?string $endpoint): array
+    {
+        if (! ($user->notificationPreferences()[$channel] ?? false)) {
+            return ['status' => 'skipped', 'error_code' => 'channel_disabled'];
+        }
+        $payload = NotificationPayload::test($user->preferred_locale === 'en' ? 'en' : 'ru', rtrim(config('app.url'), '/').'/admin/settings/notifications');
+        try {
+            if ($channel === 'email') {
+                return $this->sendMail($user->notificationEmail(), $payload);
+            }
+            $subscription = $endpoint ? PushSubscription::where('user_id', $user->id)->where('endpoint_hash', hash('sha256', $endpoint))->first() : null;
+            if (! $subscription) {
+                return ['status' => 'skipped', 'error_code' => 'device_not_subscribed'];
+            }
+
+            return $this->push->available() ? $this->push->send($subscription, NotificationPayload::push($payload)) : ['status' => 'skipped', 'error_code' => 'push_unconfigured'];
+        } catch (Throwable) {
+            Log::warning('Personal notification test failed', ['error_code' => $channel.'_delivery_failed']);
+
+            return ['status' => 'failed', 'error_code' => $channel.'_delivery_failed'];
+        }
+    }
+
     public function testDelivery(Project $project, User $admin, string $channel, ?string $endpoint): array
     {
+        if (! ($admin->notificationPreferences()[$channel] ?? false)) {
+            return ['status' => 'skipped', 'error_code' => 'channel_disabled'];
+        }
         $payload = NotificationPayload::test(($admin->preferred_locale ?? config('project_notifications.admin_locale')) === 'en' ? 'en' : 'ru', rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid);
         try {
             if ($channel === 'email') {

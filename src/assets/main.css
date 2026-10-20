@@ -4023,3 +4023,309 @@ button.attachment-item:hover {
     padding: 20px 16px;
   }
 }
+
+/* Milestone 4.6: compact section headings and stable status chips. */
+.section-heading h2 {
+  white-space: normal;
+  overflow: visible;
+}
+.section-toggle {
+  width: auto;
+  max-width: 100%;
+  align-items: baseline;
+  gap: 10px;
+}
+.section-title-group {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.section-title {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.section-toggle .section-count {
+  display: inline-block;
+  margin-left: 10px;
+}
+.section-toggle .section-chevron {
+  align-self: flex-start;
+}
+.admin-project-header h1 {
+  margin-top: 0;
+}
+.tone-approved {
+  --tone: var(--tone-green);
+  background: color-mix(in srgb, var(--tone-green) 9%, var(--surface));
+  outline: 1px solid color-mix(in srgb, var(--tone-green) 40%, transparent);
+  outline-offset: -1px;
+}
+.status-progress-dots {
+  display: inline-flex;
+  width: 1em;
+  margin-left: 1px;
+  letter-spacing: 0;
+}
+.status-progress-dots > span:nth-child(2) {
+  animation: status-progress-second 1.8s steps(1, end) infinite;
+}
+.status-progress-dots > span:nth-child(3) {
+  animation: status-progress-third 1.8s steps(1, end) infinite;
+}
+@keyframes status-progress-second {
+  0%,
+  32% {
+    opacity: 0;
+  }
+  33%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes status-progress-third {
+  0%,
+  65% {
+    opacity: 0;
+  }
+  66%,
+  100% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-progress-dots > span:nth-child(n) {
+    animation: none;
+    opacity: 1;
+  }
+}
+.client-page-navigation {
+  min-width: 0;
+  margin-bottom: 24px;
+}
+.client-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.client-horizontal-nav {
+  display: flex;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  padding: 4px 0 8px;
+  scrollbar-width: thin;
+}
+.client-horizontal-nav a {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+}
+.client-horizontal-nav a.active {
+  color: var(--action);
+  background: var(--surface-hover);
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .client-horizontal-nav a {
+    padding: 7px 9px;
+    font-size: 13px;
+  }
+  .client-page-navigation {
+    margin-bottom: 16px;
+  }
+}
+
+/* Personal channels and project event rules share existing surface/form styles. */
+.personal-notifications {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.personal-notifications .notification-channel {
+  margin-bottom: 20px;
+  padding: 24px;
+}
+.personal-notifications .notification-channel h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+.personal-notifications .personal-telegram {
+  padding: 0;
+}
+.personal-notifications .personal-telegram .notification-channel {
+  margin-bottom: 0;
+}
+.personal-channel-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+.personal-notifications .field input {
+  max-width: 100%;
+}
+.notification-pending-email,
+.notification-legacy-emails,
+.notification-migration-note {
+  padding: 16px;
+  margin: 16px 0;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.notification-legacy-emails ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.notification-legacy-emails li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.notification-legacy-emails li:last-child {
+  border-bottom: 0;
+}
+.notification-migration-note label,
+.notification-event-label label,
+.notification-recipient-list label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  overflow-wrap: anywhere;
+}
+.notification-migration-note input,
+.notification-event-row input[type='checkbox'] {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.project-event-settings > h2 {
+  margin-top: 0;
+}
+.notification-event-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.85fr);
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+.notification-event-label label {
+  font-weight: 500;
+}
+.notification-event-label p {
+  margin: 6px 0 0 25px;
+}
+.notification-event-recipients {
+  min-width: 0;
+}
+.notification-event-recipients > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.notification-event-recipients select {
+  width: 100%;
+  min-width: 0;
+}
+.notification-recipient-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.personal-settings-nav h2 {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+@media (max-width: 600px) {
+  .notification-event-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .personal-notifications .notification-channel {
+    padding: 18px;
+  }
+  .notification-legacy-emails li {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+.project-event-settings {
+  padding: 24px;
+}
+.project-event-settings > h2 {
+  padding: 0;
+  margin: 0 0 12px;
+}
+.notification-migration-note input[type='checkbox'],
+.notification-event-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  flex: 0 0 18px;
+  accent-color: var(--action);
+}
+.personal-telegram .notification-channel {
+  margin-top: 0;
+  border-top: 0;
+}
+.task-personal-settings {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+@media (max-width: 600px) {
+  .project-event-settings {
+    padding: 18px;
+  }
+}
+.notification-event-recipients select {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface);
+  font: inherit;
+}
+.notification-event-recipients select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.notification-migration-note p {
+  margin: 8px 0 12px;
+  line-height: 1.55;
+}
+.notification-migration-note label {
+  line-height: 1.5;
+}
+.project-event-settings > p a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.personal-push > .button {
+  margin-top: 10px;
+}

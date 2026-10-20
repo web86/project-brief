@@ -40,8 +40,10 @@ function toggle() {
           @click="toggle"
         >
           <span class="section-chevron" aria-hidden="true">{{ collapsed ? '▸' : '▾' }}</span>
-          <span class="section-title">{{ position }}. {{ name }}</span>
-          <span class="section-count">{{ count }} {{ pluralize(count) }}</span>
+          <span class="section-title-group"
+            ><span class="section-title">{{ position }}. {{ name }}</span
+            ><span class="section-count">{{ count }} {{ pluralize(count) }}</span></span
+          >
         </button>
       </h2>
       <div v-if="store.isDeveloper" class="section-order-actions">

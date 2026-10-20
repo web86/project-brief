@@ -13,10 +13,16 @@ export function createNotificationSettings(request, projectId) {
   const path = `/api/admin/projects/${projectId}/notifications`
   return {
     load: () => request(path),
-    save: ({ events, notificationEmail }) =>
+    save: (value) =>
       request(path, {
         method: 'PATCH',
-        body: { events, notificationEmail: notificationEmail || null },
+        body: value.eventRules
+          ? {
+              deliveryMode: 'personal',
+              eventRules: value.eventRules,
+              confirmMigration: !!value.confirmMigration,
+            }
+          : { events: value.events, notificationEmail: value.notificationEmail || null },
       }),
     test: (channel, endpoint = null) =>
       request(path + '/test', {

@@ -111,12 +111,19 @@ class WorkspaceMigrationTest extends TestCase
                 $after = DB::table($table)->orderBy('id')->get()->map(function ($row) use ($table) {
                     $data = (array) $row;
                     if ($table === 'users') {
-                        $this->assertNull($data['preferred_locale']);
-                        unset($data['preferred_locale']);
+                        foreach (['preferred_locale', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at'] as $added) {
+                            $this->assertNull($data[$added]);
+                            unset($data[$added]);
+                        }
                     }
                     if ($table === 'project_clients') {
                         $this->assertNull($data['notification_preferences']);
                         unset($data['notification_preferences']);
+                    }
+                    if ($table === 'project_notification_settings') {
+                        $this->assertSame('legacy', $data['delivery_mode']);
+                        $this->assertNull($data['event_rules']);
+                        unset($data['delivery_mode'], $data['event_rules']);
                     }
                     if ($table === 'comments') {
                         $this->assertNull($data['project_id']);

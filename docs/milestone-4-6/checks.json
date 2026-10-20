@@ -1,0 +1,30 @@
+{
+  "milestone": "4.6",
+  "base": "2fca739b10078fd4afafdc6ca96473c7f9ce2035",
+  "branch": "codex/milestone-4-6-centralized-notifications",
+  "laravel": {
+    "tests": 525,
+    "passed": 525,
+    "assertions": 5401
+  },
+  "frontend": {
+    "tests": 192,
+    "passed": 192
+  },
+  "browser": {
+    "matrix": 60,
+    "scenarios": 5,
+    "taskWorkspace": 8,
+    "navigationPolish": 10
+  },
+  "build": "passed",
+  "pint": "passed",
+  "prettier": "passed",
+  "realProviders": false,
+  "manualProviderAcceptanceAgreed": true,
+  "denoChanged": false,
+  "push": false,
+  "deployment": false,
+  "webhookChanged": false,
+  "githubRelease": false
+}

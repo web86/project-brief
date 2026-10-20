@@ -4,7 +4,11 @@ import { api } from '../api/client.js'
 import { t } from '../i18n/index.js'
 import { toast } from '../services/toast.js'
 import LoadingButton from './LoadingButton.vue'
-const props = defineProps({ persona: { type: String, required: true } })
+const props = defineProps({
+  persona: { type: String, required: true },
+  testDisabled: Boolean,
+  headingLevel: { type: Number, default: 3 },
+})
 const status = ref(null),
   busy = ref(false),
   link = ref(null),
@@ -71,17 +75,20 @@ onUnmounted(() => {
 </script>
 <template>
   <section class="notification-channel telegram-settings" :aria-busy="busy">
-    <h3>Telegram</h3>
+    <component :is="headingLevel === 2 ? 'h2' : 'h3'">Telegram</component>
+    <slot name="channel-toggle" />
     <p role="status">
       {{
         t(
-          status?.connected
-            ? 'telegram.connected'
-            : status?.available
-              ? 'telegram.disconnected'
-              : status
-                ? 'telegram.unavailable'
-                : 'nav.loading',
+          status?.available === false
+            ? 'telegram.unavailable'
+            : status?.connected
+              ? 'telegram.connected'
+              : status?.available
+                ? 'telegram.disconnected'
+                : status
+                  ? 'telegram.unavailable'
+                  : 'nav.loading',
         )
       }}
     </p>
@@ -107,7 +114,7 @@ onUnmounted(() => {
       <LoadingButton
         v-if="status?.connected"
         :busy="busy"
-        :disabled="busy"
+        :disabled="busy || testDisabled || !status?.available"
         class="button secondary"
         @click="test"
         >{{ t('telegram.test') }}</LoadingButton

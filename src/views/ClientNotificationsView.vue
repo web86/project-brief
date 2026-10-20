@@ -76,6 +76,9 @@ onMounted(load)
       <h2>Push</h2>
       <PushControls persona="client" inline />
     </section>
-    <TelegramSettings persona="client" />
+    <TelegramSettings
+      persona="client"
+      :test-disabled="pending || !settings?.preferences.telegram"
+    />
   </div>
 </template>

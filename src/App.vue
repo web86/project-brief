@@ -4,6 +4,7 @@ import TaskNavigator from './components/TaskNavigator.vue'
 import { useTaskWorkspaceStore } from './stores/taskWorkspace.js'
 import { useClientDiscussionsStore } from './stores/discussions.js'
 import ClientDrawer from './components/ClientDrawer.vue'
+import ClientPageNavigation from './components/ClientPageNavigation.vue'
 import ToastViewport from './components/ToastViewport.vue'
 import { toast } from './services/toast.js'
 import { confirmDeveloperLeave } from './utils/developerEditor.js'
@@ -142,7 +143,11 @@ watch(
             {{ t('ui.trySavingAgain') }}
           </button>
         </div>
-        <main id="main-content" tabindex="-1"><RouterView /></main>
+        <main id="main-content" tabindex="-1">
+          <ClientPageNavigation
+            v-if="route.meta.clientSection && store.currentClient"
+          /><RouterView />
+        </main>
       </div>
     </div>
   </div>

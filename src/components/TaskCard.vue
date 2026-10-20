@@ -18,7 +18,12 @@ const filled = (value) => value !== null && value !== undefined && value !== ''
       :class="{ 'is-done': task.status === 'done' }"
     >
       <div class="card-top">
-        <TaskStatus :status="task.status" /><AppIcon class="card-arrow" name="chevron" :size="16" />
+        <TaskStatus :status="task.status" /><AppIcon
+          v-if="!store.isDeveloper"
+          class="card-arrow"
+          name="chevron"
+          :size="16"
+        />
       </div>
       <span class="brief-number">{{ store.numberForTask(task) }}</span>
       <h3>{{ task.title }}</h3>

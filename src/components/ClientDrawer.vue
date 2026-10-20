@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, onUnmounted, computed } from 'vue'
+import { ref, watch, nextTick, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
@@ -7,6 +7,7 @@ import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
 import UnreadBadge from './UnreadBadge.vue'
+import { useClientNavigation } from '../services/clientNavigation.js'
 const route = useRoute(),
   store = useProjectStore(),
   workspace = useTaskWorkspaceStore()
@@ -14,16 +15,7 @@ const trigger = ref(null),
   dialog = ref(null)
 const drawer = createAdminDrawer({ dialog: () => dialog.value, trigger: () => trigger.value })
 const open = drawer.open
-const unread = computed(() => store.project.unreadCommentCount || 0)
-const links = computed(() => [
-  { path: store.projectPath, label: t('clientWorkspace.ideas'), icon: 'grid' },
-  ...['discussions', 'notifications', 'export'].map((section) => ({
-    path: `${store.projectPath}/${section}`,
-    label: t('nav.' + section),
-    icon: { discussions: 'comment', notifications: 'bell', export: 'file' }[section],
-    unread: section === 'discussions' ? unread.value : 0,
-  })),
-])
+const links = useClientNavigation()
 function close(restore = true) {
   workspace.closePanel()
   drawer.close(restore)

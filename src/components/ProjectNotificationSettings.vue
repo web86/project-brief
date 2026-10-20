@@ -1,188 +1,205 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
-import { t } from '../i18n/index.js'
+import { t, formatApiError } from '../i18n/index.js'
 import { api } from '../api/client.js'
 import { createNotificationSettings, notificationEvents } from '../services/notificationSettings.js'
 import { toast } from '../services/toast.js'
-import TelegramSettings from './TelegramSettings.vue'
-import PushControls from './PushControls.vue'
 import LoadingButton from './LoadingButton.vue'
 import LoadingOverlay from './LoadingOverlay.vue'
-function normalize(value) {
-  const result = JSON.parse(JSON.stringify(value))
-  for (const event of notificationEvents)
-    result.events[event] = { email: true, push: true, telegram: false, ...result.events[event] }
-  return result
-}
 const props = defineProps({ projectId: { type: String, required: true }, initialSettings: Object })
 const client = createNotificationSettings(api.request, props.projectId)
-const settings = ref(props.initialSettings ? normalize(props.initialSettings) : null)
-const loading = ref(!props.initialSettings)
-const saving = ref(false)
-const testing = ref(null)
-const validation = ref({})
+function normalize(value) {
+  const result = JSON.parse(JSON.stringify(value))
+  result.deliveryMode ||= 'legacy'
+  result.recipientOptions ||= { team: [], clients: [] }
+  result.eventRules ||= Object.fromEntries(
+    notificationEvents.map((event) => [
+      event,
+      {
+        enabled: Object.values(result.events?.[event] || { email: true, push: true }).some(Boolean),
+        recipients: { mode: 'all', ids: [] },
+      },
+    ]),
+  )
+  result.unavailableRecipients = {}
+  for (const event of notificationEvents) {
+    const recipients = result.eventRules[event].recipients
+    const allowed = new Set(
+      result.recipientOptions[event.startsWith('client.') ? 'team' : 'clients'].map(
+        (person) => person.id,
+      ),
+    )
+    const previous = recipients.ids.length
+    recipients.ids = recipients.ids.filter((id) => allowed.has(id))
+    result.unavailableRecipients[event] = previous - recipients.ids.length
+  }
+  return result
+}
+const settings = ref(props.initialSettings ? normalize(props.initialSettings) : null),
+  loading = ref(!props.initialSettings),
+  saving = ref(false),
+  error = ref(''),
+  confirmed = ref(false)
 let active = true
 onUnmounted(() => {
   active = false
 })
-const error = ref('')
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    settings.value = normalize(await client.load())
-  } catch {
-    error.value = 'notifications.loadError'
+    const result = await client.load()
+    if (active) settings.value = normalize(result)
+  } catch (cause) {
+    if (active) error.value = formatApiError(cause)
   } finally {
-    loading.value = false
+    if (active) loading.value = false
   }
 }
 async function save() {
-  if (saving.value) return
+  if (saving.value || (settings.value.deliveryMode === 'legacy' && !confirmed.value)) return
   saving.value = true
-  validation.value = {}
   error.value = ''
   try {
-    settings.value = normalize(await client.save(settings.value))
-    validation.value = {}
-    if (active) toast.success(() => t('notifications.saved'))
+    const result = await client.save({
+      eventRules: settings.value.eventRules,
+      confirmMigration: confirmed.value,
+    })
+    if (active) {
+      settings.value = normalize(result)
+      toast.success(() => t('notifications.saved'))
+    }
   } catch (cause) {
-    if (cause.status === 422 && Object.keys(cause.errors || {}).length)
-      validation.value = cause.errors
-    else if (active) toast.error(() => t('notifications.saveError'))
+    if (active)
+      error.value =
+        cause.status === 422 ? t('centralNotifications.recipientError') : formatApiError(cause)
   } finally {
-    saving.value = false
+    if (active) saving.value = false
   }
 }
-async function test(channel) {
-  if (testing.value) return
-  testing.value = channel
-  error.value = ''
-  try {
-    let endpoint = null
-    if (channel === 'push') {
-      const registration = await globalThis.navigator?.serviceWorker?.getRegistration('/')
-      endpoint = (await registration?.pushManager.getSubscription())?.endpoint || null
-      if (!endpoint) {
-        if (active) toast.info(() => t('notifications.subscribeFirst'))
-        return
-      }
-    }
-    await client.test(channel, endpoint)
-    if (active)
-      toast.success(() =>
-        t(channel === 'email' ? 'notifications.emailSent' : 'notifications.pushSent'),
-      )
-  } catch (cause) {
-    const key =
-      cause.code === 'device_not_subscribed'
-        ? 'notifications.subscribeFirst'
-        : channel === 'email'
-          ? 'notifications.emailError'
-          : 'notifications.pushError'
-    if (active) toast.error(() => t(key))
-  } finally {
-    testing.value = null
-  }
+function candidates(event) {
+  return settings.value.recipientOptions[event.startsWith('client.') ? 'team' : 'clients']
+}
+function legacyChannels(event) {
+  return (
+    ['email', 'push', 'telegram']
+      .filter((channel) => settings.value.events?.[event]?.[channel])
+      .map((channel) => ({ email: 'Email', push: 'Push', telegram: 'Telegram' })[channel])
+      .join(' · ') || t('centralNotifications.none')
+  )
 }
 onMounted(() => {
   if (!props.initialSettings) load()
 })
 </script>
 <template>
-  <section class="surface notification-settings">
+  <section class="surface notification-settings project-event-settings">
     <h2>{{ t('notifications.title') }}</h2>
-    <div class="notification-settings-body">
-      <LoadingOverlay :active="loading" block />
-      <p v-if="error" class="field-error" role="alert">{{ t(error) }}</p>
-      <button v-if="!settings && !loading" type="button" class="button secondary" @click="load">
-        {{ t('notifications.retry') }}
-      </button>
-      <form v-if="settings" @submit.prevent="save">
-        <h3>Email</h3>
-        <div class="field">
-          <label for="notification-email">{{ t('notifications.adminEmail') }}</label>
-          <input
-            id="notification-email"
-            type="email"
-            v-model="settings.notificationEmail"
-            :placeholder="settings.fallbackEmail || ''"
-            maxlength="255"
-            :aria-invalid="!!validation.notificationEmail"
-            :aria-describedby="
-              validation.notificationEmail ? 'notification-email-error' : undefined
-            "
-          />
-          <p
-            v-if="validation.notificationEmail"
-            id="notification-email-error"
-            class="field-error"
-            role="alert"
-          >
-            {{ t('flow.fieldError') }}
-          </p>
-          <p class="muted field-hint">{{ t('notifications.emailFallback') }}</p>
-        </div>
-        <p v-if="validation.events" class="field-error" role="alert">{{ t('flow.fieldError') }}</p>
-        <fieldset v-for="group in ['client', 'admin']" :key="group" class="notification-group">
-          <legend>
-            {{
-              t(group === 'client' ? 'notifications.notifyAdmin' : 'notifications.notifyClients')
-            }}
-          </legend>
-          <div class="notification-columns" aria-hidden="true">
-            <span></span><span>Email</span><span>Push</span><span>Telegram</span>
-          </div>
-          <div
-            v-for="event in notificationEvents.filter((event) => event.startsWith(group + '.'))"
-            :key="event"
-            class="notification-columns"
-          >
-            <span :id="`event-${event}`">{{ t(`notifications.events.${event}`) }}</span>
-            <label
-              v-for="channel in ['email', 'push', 'telegram']"
-              :key="channel"
-              class="notification-checkbox"
-            >
-              <input
-                type="checkbox"
-                v-model="settings.events[event][channel]"
-                :aria-label="`${t(`notifications.events.${event}`)} — ${{ email: 'Email', push: 'Push', telegram: 'Telegram' }[channel]}`"
-              />
-              <span
-                v-if="validation[`events.${event}.${channel}`]"
-                class="field-error"
-                role="alert"
-                >{{ t('flow.fieldError') }}</span
-              >
-            </label>
-          </div>
-        </fieldset>
-        <LoadingButton type="submit" :busy="saving" :disabled="saving" class="button primary">{{
-          t('notifications.save')
-        }}</LoadingButton>
-      </form>
-      <div v-if="settings" class="notification-test-actions">
-        <LoadingButton
-          :busy="testing === 'email'"
-          :disabled="!!testing"
-          class="button secondary"
-          @click="test('email')"
-          >{{ t('notifications.testEmail') }}</LoadingButton
-        >
-        <LoadingButton
-          :busy="testing === 'push'"
-          :disabled="!!testing"
-          class="button secondary"
-          @click="test('push')"
-          >{{ t('notifications.testPush') }}</LoadingButton
+    <p class="muted">
+      {{ t('centralNotifications.projectHint') }}
+      <RouterLink to="/admin/settings/notifications">{{
+        t('centralNotifications.myNotifications')
+      }}</RouterLink>
+    </p>
+    <LoadingOverlay :active="loading" block />
+    <p v-if="error" class="field-error" role="alert">{{ error }}</p>
+    <button v-if="!settings && !loading" class="button secondary" @click="load">
+      {{ t('notifications.retry') }}
+    </button>
+    <form v-if="settings" @submit.prevent="save">
+      <div
+        v-if="settings.deliveryMode === 'legacy'"
+        class="notification-migration-note"
+        role="note"
+      >
+        <strong>{{ t('centralNotifications.legacyTitle') }}</strong>
+        <p>{{ t('centralNotifications.legacyExplanation') }}</p>
+        <label
+          ><input v-model="confirmed" type="checkbox" :disabled="saving" />{{
+            t('centralNotifications.confirmMigration')
+          }}</label
         >
       </div>
-      <section class="notification-channel">
-        <h3>Push</h3>
-        <PushControls persona="admin" inline />
-      </section>
-      <TelegramSettings persona="admin" />
-    </div>
+      <fieldset
+        v-for="group in ['client', 'admin']"
+        :key="group"
+        class="notification-group"
+        :disabled="saving"
+      >
+        <legend>
+          {{
+            t(
+              group === 'client'
+                ? 'centralNotifications.clientActions'
+                : 'centralNotifications.teamActions',
+            )
+          }}
+        </legend>
+        <article
+          v-for="event in notificationEvents.filter((event) => event.startsWith(group + '.'))"
+          :key="event"
+          class="notification-event-row"
+        >
+          <div class="notification-event-label">
+            <label :for="`active-${event}`"
+              ><input
+                :id="`active-${event}`"
+                type="checkbox"
+                v-model="settings.eventRules[event].enabled"
+              />{{ t(`notifications.events.${event}`) }}</label
+            >
+            <p v-if="settings.deliveryMode === 'legacy'" class="small muted">
+              {{ t('centralNotifications.currentChannels') }}: {{ legacyChannels(event) }}
+            </p>
+          </div>
+          <div class="notification-event-recipients">
+            <label :for="`recipients-${event}`">{{ t('centralNotifications.recipients') }}</label>
+            <select
+              :id="`recipients-${event}`"
+              v-model="settings.eventRules[event].recipients.mode"
+              :disabled="!settings.eventRules[event].enabled"
+            >
+              <option value="all">{{ t('centralNotifications.allRecipients') }}</option>
+              <option value="selected">{{ t('centralNotifications.selectedRecipients') }}</option>
+            </select>
+            <p v-if="settings.unavailableRecipients[event]" class="small muted">
+              {{ t('centralNotifications.unavailableRecipients') }}
+            </p>
+            <div
+              v-if="settings.eventRules[event].recipients.mode === 'selected'"
+              class="notification-recipient-list"
+            >
+              <label v-for="person in candidates(event)" :key="person.id"
+                ><input
+                  v-model="settings.eventRules[event].recipients.ids"
+                  type="checkbox"
+                  :value="person.id"
+                  :disabled="!settings.eventRules[event].enabled"
+                />{{ person.name }}</label
+              >
+              <p v-if="!candidates(event).length" class="small muted">
+                {{ t('centralNotifications.noRecipients') }}
+              </p>
+              <p v-else-if="!settings.eventRules[event].recipients.ids.length" class="small muted">
+                {{ t('centralNotifications.noneSelected') }}
+              </p>
+            </div>
+          </div>
+        </article>
+      </fieldset>
+      <LoadingButton
+        type="submit"
+        class="button primary"
+        :busy="saving"
+        :disabled="saving || (settings.deliveryMode === 'legacy' && !confirmed)"
+        >{{
+          t(
+            settings.deliveryMode === 'legacy'
+              ? 'centralNotifications.confirmAndSave'
+              : 'notifications.save',
+          )
+        }}</LoadingButton
+      >
+    </form>
   </section>
 </template>

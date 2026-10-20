@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { t } from '../i18n/index.js'
 import { api } from '../api/client.js'
 import { createPushDevice } from '../services/push.js'
@@ -8,9 +8,15 @@ import { toast } from '../services/toast.js'
 import BaseDialog from './BaseDialog.vue'
 import PushDevicePanel from './PushDevicePanel.vue'
 import AppIcon from './AppIcon.vue'
-const props = defineProps({ persona: { type: String, required: true }, inline: Boolean })
+const props = defineProps({
+  persona: { type: String, required: true },
+  inline: Boolean,
+  autoEnroll: { type: Boolean, default: true },
+})
+const emit = defineEmits(['state'])
 const open = ref(false)
 const state = ref('loading')
+watch(state, (value) => emit('state', value), { immediate: true })
 const busy = ref(false)
 const error = ref(false)
 const device = createPushDevice({ request: api.request, prefix: `/api/${props.persona}/push` })
@@ -23,8 +29,24 @@ const enrollment = createPushEnrollment({
     if ('error' in result) error.value = result.error
   },
 })
-onMounted(enrollment.start)
-onUnmounted(enrollment.dispose)
+let active = true
+async function start() {
+  if (props.autoEnroll) return enrollment.start()
+  try {
+    const result = await device.load()
+    if (active && result) {
+      state.value = result.state
+      error.value = false
+    }
+  } catch {
+    if (active) error.value = true
+  }
+}
+onMounted(start)
+onUnmounted(() => {
+  active = false
+  enrollment.dispose()
+})
 </script>
 <template>
   <PushDevicePanel
@@ -34,7 +56,7 @@ onUnmounted(enrollment.dispose)
     :error="error"
     @enable="enrollment.enable"
     @disable="enrollment.disable"
-    @retry="enrollment.retry"
+    @retry="start"
   />
   <button v-else type="button" class="text-button push-trigger" @click="open = true">
     <AppIcon name="bell" :size="18" class="push-mobile-icon" />
@@ -54,7 +76,7 @@ onUnmounted(enrollment.dispose)
         :error="error"
         @enable="enrollment.enable"
         @disable="enrollment.disable"
-        @retry="enrollment.retry"
+        @retry="start"
       />
     </BaseDialog>
   </Teleport>

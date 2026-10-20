@@ -47,6 +47,9 @@ class TelegramController extends Controller
     {
         abort_if($request->all(), 422);
         $recipient = TaskAccess::recipient($request);
+        if (! $recipient->notificationPreferences()['telegram']) {
+            return response()->json(['status' => 'skipped', 'code' => 'channel_disabled'], 422);
+        }
         $connection = TelegramLinking::query($recipient)->first();
         $locale = $recipient->preferred_locale === 'ru' ? 'ru' : 'en';
         $path = $recipient instanceof ProjectClient ? '/project/'.$recipient->project->uuid.'/notifications' : '/admin';

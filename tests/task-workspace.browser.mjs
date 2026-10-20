@@ -42,7 +42,10 @@ try {
         label + ': no horizontal overflow',
       )
     assert.equal(await page.locator('.task-topbar .task-header-back').count(), 1)
-    assert.equal((await page.locator('.task-topbar').innerText()).includes(f.accountName), false)
+    assert.equal(
+      (await page.locator('.task-topbar').innerText()).includes(f.accountName),
+      !config.admin && config.width > 768,
+    )
     assert.equal(
       await page.locator('.admin-sidebar, .admin-project-header, .project-subnav').count(),
       0,
@@ -73,10 +76,10 @@ try {
         commentsBox.y >= detailsBox.y + detailsBox.height,
         'Mobile comments are below details',
       )
-      const footerBox = await page.locator('.mobile-push-footer').boundingBox()
-      assert.ok(
-        footerBox.x >= 12 && footerBox.x + footerBox.width <= config.width - 12,
-        'Mobile footer preserves side padding',
+      assert.equal(
+        await page.locator('.mobile-push-footer').count(),
+        0,
+        'Device settings live in the personal notification page, outside task details',
       )
     }
     await f.screenshot(`task-${label}`)

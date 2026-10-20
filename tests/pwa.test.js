@@ -293,9 +293,8 @@ const renderer = createRenderer({
   nextSibling: () => null,
   patchProp() {},
 })
-test('notification settings save and test Push/email feedback use global toasts; validation stays inline', async () => {
-  const original = api.request,
-    oldNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+test('project notification saves require migration consent and keep validation inline', async () => {
+  const original = api.request
   const events = Object.fromEntries(
     [
       'client.task_created',
@@ -305,27 +304,19 @@ test('notification settings save and test Push/email feedback use global toasts;
       'admin.comment_created',
       'admin.task_review',
       'admin.task_done',
-    ].map((event) => [event, { email: true, push: true }]),
+    ].map((event) => [event, { email: true, push: false }]),
   )
   const calls = []
   let failure = null
   api.request = async (path, options) => {
     calls.push({ path, ...options })
     if (failure) throw failure
-    return { notificationEmail: '', events }
+    return {
+      events,
+      deliveryMode: options?.method === 'PATCH' ? 'personal' : 'legacy',
+      eventRules: options?.body.eventRules,
+    }
   }
-  Object.defineProperty(globalThis, 'navigator', {
-    configurable: true,
-    value: {
-      serviceWorker: {
-        getRegistration: async () => ({
-          pushManager: {
-            getSubscription: async () => ({ endpoint: 'https://fcm.googleapis.com/send/device' }),
-          },
-        }),
-      },
-    },
-  })
   const app = renderer
     .createApp({ ...notificationSettings, render: () => null }, { projectId: 'project-uuid' })
     .use(i18n)
@@ -337,30 +328,23 @@ test('notification settings save and test Push/email feedback use global toasts;
     await new Promise((resolve) => setImmediate(resolve))
     const setup = instance.$.setupState
     await setup.save()
+    assert.equal(calls.filter((call) => call.method === 'PATCH').length, 0)
+    setup.confirmed = true
+    await setup.save()
     assert.equal(toast.items.value[0].message(), 'Notification settings saved.')
+    assert.equal(calls.at(-1).body.deliveryMode, 'personal')
+    assert.equal(calls.at(-1).body.confirmMigration, true)
+    assert.equal(calls.at(-1).body.notificationEmail, undefined)
+    assert.equal(typeof setup.test, 'undefined')
     toast.clear()
-    await setup.test('push')
-    assert.equal(toast.items.value[0].message(), 'Test notification sent to this device.')
-    assert.equal(calls.at(-1).body.endpoint, 'https://fcm.googleapis.com/send/device')
-    toast.clear()
-    await setup.test('email')
-    assert.equal(toast.items.value[0].message(), 'Test email sent to the developer.')
-    toast.clear()
-    failure = { status: 422, errors: { notificationEmail: ['Invalid email'] } }
+    failure = { status: 422, errors: { eventRules: ['Invalid recipient'] } }
     await setup.save()
     assert.equal(toast.items.value.length, 0)
-    assert.deepEqual(setup.validation.notificationEmail, ['Invalid email'])
-    failure = new Error('offline')
-    await setup.test('push')
-    assert.equal(toast.items.value[0].type, 'error')
-    assert.equal(setup.testing, null)
-    await nextTick()
+    assert.match(setup.error, /recipients/)
   } finally {
     app.unmount()
     toast.clear()
     api.request = original
-    if (oldNavigator) Object.defineProperty(globalThis, 'navigator', oldNavigator)
-    else delete globalThis.navigator
   }
 })
 

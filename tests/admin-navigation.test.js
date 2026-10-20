@@ -405,7 +405,7 @@ test('client and login pages remain outside authenticated shell', async () => {
   }
 })
 
-test('admin shell retains Push controls while client uses its own project menu', async () => {
+test('admin shell links to personal notification settings while client uses its own project menu', async () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'document')
   globalThis.document = { title: '', documentElement: {}, getElementById: () => null }
   try {
@@ -414,9 +414,9 @@ test('admin shell retains Push controls while client uses its own project menu',
     await router.push('/admin')
     const nav = navStore()
     const admin = await renderToString(createSSRApp(App).use(nav._p).use(router).use(i18n))
-    assert.equal((admin.match(/class="text-button push-trigger"/g) || []).length, 1)
-    assert.match(admin, /id="admin-push-footer"/)
-    assert.ok(admin.indexOf('id="admin-push-footer"') > admin.indexOf('</main>'))
+    assert.equal((admin.match(/class="text-button push-trigger"/g) || []).length, 0)
+    assert.doesNotMatch(admin, /id="admin-push-footer"/)
+    assert.match(admin, /href="\/admin\/settings\/notifications"/)
 
     await router.push('/admin/login')
     const store = projectStore()

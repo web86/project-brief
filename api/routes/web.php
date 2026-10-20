@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AiTaskAssistantController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ClientLocaleController;
@@ -41,6 +42,11 @@ Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->he
 Route::get('/api/session', SessionController::class);
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
+    Route::get('/notifications', [AdminNotificationController::class, 'show']);
+    Route::patch('/notifications', [AdminNotificationController::class, 'update'])->middleware('throttle:30,1');
+    Route::post('/notifications/email/verify', [AdminNotificationController::class, 'verify'])->middleware('throttle:10,1');
+    Route::delete('/notifications/email/pending', [AdminNotificationController::class, 'cancel']);
+    Route::post('/notifications/test', [AdminNotificationController::class, 'test'])->middleware('throttle:5,1');
     Route::get('/workspaces', [WorkspaceController::class, 'index']);
     Route::post('/workspaces/{workspace}/select', [WorkspaceController::class, 'select']);
     Route::get('/me', [AdminAuthController::class, 'me']);
