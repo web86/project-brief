@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile, access } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -89,7 +90,9 @@ try {
     [...composerPrefix, 'install', '--prefer-dist', '--no-interaction'],
     path.join(root, 'api'),
   )
-  run(php, ['artisan', 'test'], path.join(root, 'api'))
+  run(php, ['artisan', 'test'], path.join(root, 'api'), {
+    APP_KEY: `base64:${randomBytes(32).toString('base64')}`,
+  })
   await mkdir(releaseRoot, { recursive: true })
   staging = await mkdtemp(path.join(releaseRoot, '.building-'))
   const application = path.join(staging, 'private/project-brief-app')
