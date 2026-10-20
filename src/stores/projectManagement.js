@@ -6,6 +6,7 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
   const project = ref(null),
     sections = ref([]),
     clients = ref([]),
+    notifications = ref(null),
     loading = ref(false)
   let revision = 0
   const root = () => `/api/admin/projects/${project.value.id}`
@@ -14,32 +15,38 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
     project.value = null
     sections.value = []
     clients.value = []
+    notifications.value = null
     loading.value = false
   }
   function adopt(data) {
     project.value = data
   }
-  async function load(id, section = 'settings') {
+  async function load(id, section = 'settings', { defer = false } = {}) {
     const previous = project.value?.id === id ? project.value : null
     const current = ++revision
-    if (!previous) clearData()
     loading.value = true
     try {
       const [details, resource] = await Promise.all([
         previous
           ? Promise.resolve({ data: previous })
           : api.request(`/api/admin/projects/${id}?summary=1`),
-        section === 'clients' || section === 'structure'
+        ['clients', 'structure', 'notifications'].includes(section)
           ? api.request(
-              `/api/admin/projects/${id}/${section === 'clients' ? 'clients' : 'sections'}`,
+              `/api/admin/projects/${id}/${section === 'structure' ? 'sections' : section}`,
             )
           : Promise.resolve(null),
       ])
       if (current !== revision) return false
-      project.value = details.data
-      if (section === 'clients') clients.value = resource.data
-      if (section === 'structure') sections.value = resource.data
-      return true
+      const commit = () => {
+        if (current !== revision) return false
+        if (!previous) clearData()
+        project.value = details.data
+        if (section === 'clients') clients.value = resource.data
+        if (section === 'structure') sections.value = resource.data
+        if (section === 'notifications') notifications.value = resource
+        return true
+      }
+      return defer ? commit : commit()
     } finally {
       if (current === revision) loading.value = false
     }
@@ -48,6 +55,7 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
     project.value = null
     sections.value = []
     clients.value = []
+    notifications.value = null
   }
   async function saveProject(body) {
     const current = revision
@@ -89,6 +97,7 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
     project,
     sections,
     clients,
+    notifications,
     loading,
     load,
     clear,

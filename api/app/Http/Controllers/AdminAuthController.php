@@ -27,7 +27,7 @@ class AdminAuthController extends Controller
         $context = app(CurrentWorkspace::class);
         $member = $context->resolve($request);
 
-        return response()->json(['user' => ['name' => $request->user()->name, 'email' => $request->user()->email, 'role' => 'admin', 'membershipRole' => $member->role], 'workspace' => $context->state($member)])->header('Cache-Control', 'no-store');
+        return response()->json(['user' => ['name' => $request->user()->name, 'email' => $request->user()->email, 'role' => 'admin', 'preferredLocale' => $request->user()->preferred_locale, 'membershipRole' => $member->role], 'workspace' => $context->state($member)])->header('Cache-Control', 'no-store');
     }
 
     public function logout(Request $request): JsonResponse

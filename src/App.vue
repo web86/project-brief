@@ -19,6 +19,7 @@ import AppIcon from './components/AppIcon.vue'
 const store = useProjectStore()
 const route = useRoute()
 const router = useRouter()
+const navigationPending = router.navigationPending
 async function logout() {
   if (!confirmDeveloperLeave(store)) return
   try {
@@ -71,66 +72,68 @@ watch(
 )
 </script>
 <template>
-  <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
-  <RouterView v-if="route.meta.adminShell" />
-  <div v-else class="app-shell">
-    <header class="app-topbar">
-      <div class="topbar-inner">
-        <RouterLink
-          :to="
-            store.apiMode
-              ? store.admin
-                ? '/admin'
-                : store.currentClient && store.project.id
-                  ? store.projectPath
-                  : '/app'
-              : '/'
-          "
-          class="brand"
-          :aria-label="t('ui.projectBriefOpenTheProject')"
-          ><span class="brand-mark">p<span class="brand-dot">.</span></span
-          ><span class="brand-wordmark"
-            >project<span class="brand-light">brief</span></span
-          ></RouterLink
-        ><ModeSwitcher v-if="!store.apiMode" />
-        <span v-else-if="store.currentClient" class="current-client-name">{{
-          store.currentClient.name
-        }}</span>
-        <ResponsivePushControls
-          v-if="store.apiMode && (store.admin || store.currentClient)"
-          :key="store.admin ? 'admin:' + store.admin.email : 'client:' + store.currentClient.id"
-          :persona="store.admin ? 'admin' : 'client'"
-          footer="#client-push-footer"
-        />
-        <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
-      </div>
-    </header>
-    <LoadingOverlay :active="store.apiLoading" />
-    <div class="workspace">
-      <div v-if="store.storageError" class="storage-warning" role="alert">
-        <AppIcon name="info" :size="22" />
-        <div>
-          <strong>{{
-            store.storageBlocked
-              ? t('ui.weCouldNotOpenTheSavedProject')
-              : t('ui.weCouldNotSaveTheProject')
-          }}</strong>
-          <p>{{ formatApiError(store.storageError) }}</p>
+  <div :inert="navigationPending || undefined" :aria-busy="navigationPending">
+    <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
+    <RouterView v-if="route.meta.adminShell" />
+    <div v-else class="app-shell">
+      <header class="app-topbar">
+        <div class="topbar-inner">
+          <RouterLink
+            :to="
+              store.apiMode
+                ? store.admin
+                  ? '/admin'
+                  : store.currentClient && store.project.id
+                    ? store.projectPath
+                    : '/app'
+                : '/'
+            "
+            class="brand"
+            :aria-label="t('ui.projectBriefOpenTheProject')"
+            ><span class="brand-mark">p<span class="brand-dot">.</span></span
+            ><span class="brand-wordmark"
+              >project<span class="brand-light">brief</span></span
+            ></RouterLink
+          ><ModeSwitcher v-if="!store.apiMode" />
+          <span v-else-if="store.currentClient" class="current-client-name">{{
+            store.currentClient.name
+          }}</span>
+          <ResponsivePushControls
+            v-if="store.apiMode && (store.admin || store.currentClient)"
+            :key="store.admin ? 'admin:' + store.admin.email : 'client:' + store.currentClient.id"
+            :persona="store.admin ? 'admin' : 'client'"
+            footer="#client-push-footer"
+          />
+          <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>
         </div>
-        <button
-          v-if="!store.storageBlocked"
-          class="button secondary"
-          @click="store.saveToStorage()"
-        >
-          {{ t('ui.trySavingAgain') }}
-        </button>
+      </header>
+      <div class="workspace">
+        <div v-if="store.storageError" class="storage-warning" role="alert">
+          <AppIcon name="info" :size="22" />
+          <div>
+            <strong>{{
+              store.storageBlocked
+                ? t('ui.weCouldNotOpenTheSavedProject')
+                : t('ui.weCouldNotSaveTheProject')
+            }}</strong>
+            <p>{{ formatApiError(store.storageError) }}</p>
+          </div>
+          <button
+            v-if="!store.storageBlocked"
+            class="button secondary"
+            @click="store.saveToStorage()"
+          >
+            {{ t('ui.trySavingAgain') }}
+          </button>
+        </div>
+        <main id="main-content" tabindex="-1"><RouterView /></main>
+        <MobilePushFooter
+          v-if="store.apiMode && (store.admin || store.currentClient)"
+          id="client-push-footer"
+        />
       </div>
-      <main id="main-content" tabindex="-1"><RouterView /></main>
-      <MobilePushFooter
-        v-if="store.apiMode && (store.admin || store.currentClient)"
-        id="client-push-footer"
-      />
     </div>
   </div>
+  <LoadingOverlay :active="navigationPending" class="navigation-loading" />
   <ToastViewport />
 </template>

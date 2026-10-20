@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Comment;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,7 +26,10 @@ class ProjectUnread
             $projects->select('projects.*');
         }
 
-        return $projects->addSelect(['unread_count' => $this->relevant()->selectRaw('COUNT(*)')
+        return $projects->addSelect(['unread_comment_count' => app(ProjectDiscussions::class)->unread(Comment::query(), $user)
+            ->where(fn (Builder $comments) => $comments->whereHas('task', fn (Builder $tasks) => $tasks->whereColumn('tasks.project_id', 'projects.id'))
+                ->orWhere(fn (Builder $general) => $general->whereNull('task_id')->whereColumn('comments.project_id', 'projects.id')))
+            ->selectRaw('COUNT(*)'), 'unread_count' => $this->relevant()->selectRaw('COUNT(*)')
             ->whereColumn('tasks.project_id', 'projects.id')
             ->whereRaw('task_history.id > COALESCE((SELECT last_seen_history_id FROM project_reads WHERE project_reads.project_id = projects.id AND project_reads.user_id = ?), 0)', [$user->id])]);
     }

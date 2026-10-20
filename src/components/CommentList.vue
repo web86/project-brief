@@ -1,13 +1,66 @@
 <script setup>
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { t } from '../i18n/index.js'
 
 import { formatDate } from '../constants/project'
 import AppIcon from './AppIcon.vue'
-defineProps({ comments: Array })
+const props = defineProps({ comments: Array, target: String })
+const emit = defineEmits(['seen'])
+const container = ref(null),
+  highlighted = ref('')
+let observer,
+  timer,
+  lastTarget = ''
+async function sync() {
+  await nextTick()
+  observer?.disconnect()
+  if (typeof IntersectionObserver !== 'undefined') {
+    observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries)
+          if (entry.isIntersecting) {
+            emit('seen', entry.target.dataset.commentId)
+            observer.unobserve(entry.target)
+          }
+      },
+      { threshold: 0.5 },
+    )
+    container.value
+      ?.querySelectorAll('[data-comment-id]')
+      .forEach((element) => observer.observe(element))
+  }
+  if (props.target && props.target !== lastTarget) {
+    const element = [...(container.value?.querySelectorAll('[data-comment-id]') || [])].find(
+      (element) => 'comment-' + element.dataset.commentId === props.target,
+    )
+    if (element) {
+      lastTarget = props.target
+      element.scrollIntoView({ block: 'center', behavior: 'instant' })
+      highlighted.value = element.dataset.commentId
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        highlighted.value = ''
+      }, 2500)
+    }
+  }
+}
+onMounted(sync)
+watch(() => [props.comments, props.target], sync)
+onUnmounted(() => {
+  observer?.disconnect()
+  clearTimeout(timer)
+})
 </script>
 <template>
-  <div v-if="comments.length" class="comment-list" :aria-label="t('ui.comments2')">
-    <article v-for="comment in comments" :key="comment.id" class="comment" :class="comment.author">
+  <div v-if="comments.length" ref="container" class="comment-list" :aria-label="t('ui.comments2')">
+    <article
+      v-for="comment in comments"
+      :key="comment.id"
+      :id="'comment-' + comment.id"
+      :data-comment-id="comment.id"
+      class="comment"
+      :class="[comment.author, { 'is-target': highlighted === comment.id }]"
+    >
       <span class="comment-avatar"
         ><AppIcon :name="comment.author === 'developer' ? 'code' : 'user'" :size="17"
       /></span>

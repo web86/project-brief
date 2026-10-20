@@ -110,6 +110,14 @@ class WorkspaceMigrationTest extends TestCase
             foreach ($before as $table => $rows) {
                 $after = DB::table($table)->orderBy('id')->get()->map(function ($row) use ($table) {
                     $data = (array) $row;
+                    if ($table === 'users') {
+                        $this->assertNull($data['preferred_locale']);
+                        unset($data['preferred_locale']);
+                    }
+                    if ($table === 'comments') {
+                        $this->assertNull($data['project_id']);
+                        unset($data['project_id']);
+                    }
                     if ($table === 'projects') {
                         unset($data['workspace_id']);
                     }

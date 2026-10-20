@@ -6,10 +6,12 @@ import { createNotificationSettings, notificationEvents } from '../services/noti
 import { toast } from '../services/toast.js'
 import LoadingButton from './LoadingButton.vue'
 import LoadingOverlay from './LoadingOverlay.vue'
-const props = defineProps({ projectId: { type: String, required: true } })
+const props = defineProps({ projectId: { type: String, required: true }, initialSettings: Object })
 const client = createNotificationSettings(api.request, props.projectId)
-const settings = ref(null)
-const loading = ref(true)
+const settings = ref(
+  props.initialSettings ? JSON.parse(JSON.stringify(props.initialSettings)) : null,
+)
+const loading = ref(!props.initialSettings)
 const saving = ref(false)
 const testing = ref(null)
 const validation = ref({})
@@ -77,7 +79,9 @@ async function test(channel) {
     testing.value = null
   }
 }
-onMounted(load)
+onMounted(() => {
+  if (!props.initialSettings) load()
+})
 </script>
 <template>
   <details class="surface notification-settings">

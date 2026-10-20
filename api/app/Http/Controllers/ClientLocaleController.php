@@ -9,6 +9,15 @@ use Illuminate\Validation\ValidationException;
 
 class ClientLocaleController extends Controller
 {
+    public function updateAdmin(Request $request): JsonResponse
+    {
+        abort_if(array_diff(array_keys($request->all()), ['locale']), 422);
+        $data = $request->validate(['locale' => ['required', 'string', Rule::in(['ru', 'en'])]]);
+        $request->user()->update(['preferred_locale' => $data['locale']]);
+
+        return response()->json(['preferredLocale' => $request->user()->preferred_locale]);
+    }
+
     public function update(Request $request): JsonResponse
     {
         if (array_diff(array_keys($request->all()), ['locale'])) {

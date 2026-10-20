@@ -1,3 +1,4 @@
+import { useDiscussionsStore } from './discussions.js'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '../api/client.js'
@@ -5,7 +6,7 @@ import { useProjectStore } from './project.js'
 import { useProjectManagementStore } from './projectManagement.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { toast } from '../services/toast.js'
-import { t, formatApiError } from '../i18n/index.js'
+import { t, formatApiError, applyClientLocale } from '../i18n/index.js'
 
 export const useAdminNavigationStore = defineStore('adminNavigation', () => {
   const user = ref(null),
@@ -25,6 +26,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
   function clearProjectState() {
     useProjectStore().clearApiState()
     useProjectManagementStore().clear()
+    useDiscussionsStore().clear()
     projects.value = []
     listRevision++
   }
@@ -59,6 +61,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
         workspaces.value = choices.data
         projects.value = list.data
         useProjectStore().admin = me.user
+        applyClientLocale(me.user.preferredLocale)
         ready.value = true
         return true
       } catch (cause) {
@@ -130,6 +133,12 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
       if (current === revision) toast.error(() => formatApiError(cause))
     }
   }
+  function updateCommentCount(id, count) {
+    listRevision++
+    refreshing.value = false
+    const project = projects.value.find((item) => item.id === id)
+    if (project) project.unreadCommentCount = count
+  }
   function updateProject(project) {
     const index = projects.value.findIndex((item) => item.id === project.id)
     if (index < 0) projects.value.unshift({ unreadCount: 0, ...project })
@@ -153,5 +162,6 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     switchWorkspace,
     markRead,
     updateProject,
+    updateCommentCount,
   }
 })

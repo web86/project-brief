@@ -183,7 +183,7 @@ class ProjectExportTest extends TestCase
     {
         $project = $this->project();
         $url = '/api/admin/projects/'.$project->uuid.'/export';
-        foreach ([['format' => 'doc'], ['scope' => 'selected'], ['locale' => 'fr'], ['fields' => ['developerNotes' => true]], ['fields' => ['price' => 'true']], ['fields' => null], ['fields' => ['status' => null]], ['options' => 'secret'], ['project_id' => $project->id]] as $invalid) {
+        foreach ([['format' => 'doc'], ['scope' => 'selected'], ['locale' => 'fr'], ['fields' => ['privateUnknownField' => true]], ['fields' => ['price' => 'true']], ['fields' => null], ['fields' => ['status' => null]], ['options' => 'secret'], ['project_id' => $project->id]] as $invalid) {
             $this->postJson($url, [...$this->payload(), ...$invalid])->assertUnprocessable();
         }
         $project->tasks()->update(['client_approved' => false]);

@@ -59,7 +59,10 @@ for (const [persona, destination] of [
     store.currentClient = { name: 'stale local client' }
     const loads = [],
       requests = []
-    store.loadApiProject = async (...args) => loads.push(args)
+    store.loadApiProject = async (...args) => {
+      loads.push(args)
+      return () => true
+    }
     const router = routerFactory({
       history: createMemoryHistory(),
       apiMode: true,
@@ -81,7 +84,7 @@ for (const [persona, destination] of [
     assert.equal(requests.filter((path) => path === '/api/session').length, 1)
     assert.equal(requests.includes('/api/client/me'), false)
     if (persona === 'client')
-      assert.deepEqual(loads, [['11111111-1111-4111-8111-111111111111', false]])
+      assert.deepEqual(loads, [['11111111-1111-4111-8111-111111111111', false, { defer: true }]])
     if (persona === 'guest') {
       assert.equal(store.admin, null)
       assert.equal(store.currentClient, null)

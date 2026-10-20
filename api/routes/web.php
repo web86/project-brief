@@ -10,6 +10,7 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectDiscussionController;
 use App\Http\Controllers\ProjectExportController;
 use App\Http\Controllers\ProjectSectionController;
 use App\Http\Controllers\PushSubscriptionController;
@@ -41,6 +42,7 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/workspaces', [WorkspaceController::class, 'index']);
     Route::post('/workspaces/{workspace}/select', [WorkspaceController::class, 'select']);
     Route::get('/me', [AdminAuthController::class, 'me']);
+    Route::patch('/me/locale', [ClientLocaleController::class, 'updateAdmin']);
     Route::post('/logout', [AdminAuthController::class, 'logout']);
 });
 
@@ -54,6 +56,9 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
     Route::post('/ai/task-assistant', AiTaskAssistantController::class);
     Route::post('/export', ProjectExportController::class);
+    Route::get('/discussions', [ProjectDiscussionController::class, 'index']);
+    Route::post('/discussions', [ProjectDiscussionController::class, 'store'])->middleware('throttle:comments');
+    Route::post('/discussions/read', [ProjectDiscussionController::class, 'read']);
     Route::get('/activity', [ProjectActivityController::class, 'show']);
     Route::post('/activity/read', [ProjectActivityController::class, 'read']);
     Route::get('/clients', [ProjectClientController::class, 'index']);

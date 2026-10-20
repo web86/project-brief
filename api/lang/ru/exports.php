@@ -11,6 +11,7 @@ return [
     'priority' => 'Приоритет',
     'status' => 'Статус',
     'estimateHours' => 'Оценка',
+    'developerNotes' => 'Технические заметки',
     'price' => 'Стоимость',
     'hours' => 'ч',
     'unknown' => 'Не указан',

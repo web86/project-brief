@@ -1,6 +1,16 @@
+import { ref } from 'vue'
+import { useDiscussionsStore } from '../stores/discussions.js'
+import { toast } from '../services/toast.js'
+import { formatApiError } from '../i18n/index.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { t } from '../i18n/index.js'
-import { createRouter, createWebHistory, createMemoryHistory } from 'vue-router'
+import {
+  createRouter,
+  createWebHistory,
+  createMemoryHistory,
+  isNavigationFailure,
+  NavigationFailureType,
+} from 'vue-router'
 import { appDestination } from '../services/session.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
@@ -73,22 +83,25 @@ export function createProjectRouter({
                   hash: '',
                 }),
               },
-              ...['clients', 'structure', 'notifications', 'settings', 'export'].map((section) => ({
-                path: section,
-                component: {
-                  clients: () => import('../views/AdminProjectClientsView.vue'),
-                  structure: () => import('../views/AdminProjectStructureView.vue'),
-                  notifications: () => import('../views/AdminProjectNotificationsView.vue'),
-                  settings: () => import('../views/AdminProjectSettingsView.vue'),
-                  export: () => import('../views/AdminProjectExportView.vue'),
-                }[section],
-                meta: {
-                  projectSection: section,
-                  get title() {
-                    return t('nav.' + section)
+              ...['discussions', 'clients', 'structure', 'notifications', 'settings', 'export'].map(
+                (section) => ({
+                  path: section,
+                  component: {
+                    discussions: () => import('../views/AdminProjectDiscussionsView.vue'),
+                    clients: () => import('../views/AdminProjectClientsView.vue'),
+                    structure: () => import('../views/AdminProjectStructureView.vue'),
+                    notifications: () => import('../views/AdminProjectNotificationsView.vue'),
+                    settings: () => import('../views/AdminProjectSettingsView.vue'),
+                    export: () => import('../views/AdminProjectExportView.vue'),
+                  }[section],
+                  meta: {
+                    projectSection: section,
+                    get title() {
+                      return t('nav.' + section)
+                    },
                   },
-                },
-              })),
+                }),
+              ),
               ...[
                 ['brief', ProjectView, false],
                 ['brief/task/new', () => import('../views/TaskFormView.vue'), false],
@@ -219,25 +232,44 @@ export function createProjectRouter({
       },
     ],
     scrollBehavior(to, from, savedPosition) {
+      if (to.hash.startsWith('#comment-')) return false
       return savedPosition || { top: 0 }
     },
   })
 
+  const navigationPending = ref(false)
+  router.navigationPending = navigationPending
+  let revision = 0
+  const attempts = new WeakMap(),
+    commits = new WeakMap()
   router.beforeEach(async (to, from) => {
+    const current = ++revision
+    attempts.set(to, current)
+    navigationPending.value = true
     const draftStore = useProjectStore()
     if (to.path !== from.path && !confirmDeveloperLeave(draftStore)) return false
 
     if (to.path === '/app') {
       const store = useProjectStore()
-      store.apiError = ''
-      store.sessionLost = false
-      store.admin = null
-      store.currentClient = null
-      store.tasks = []
-      useAdminNavigationStore().clear()
       try {
-        return (await appDestination(request)) || true
+        const destination = await appDestination(request)
+        if (current !== revision) return false
+        if (destination) return destination
+        commits.set(to, () => {
+          store.apiError = ''
+          store.sessionLost = false
+          store.admin = null
+          store.currentClient = null
+          store.tasks = []
+          useAdminNavigationStore().clear()
+        })
+        return true
       } catch (error) {
+        if (current !== revision) return false
+        if (from.matched.length) {
+          toast.error(() => formatApiError(error))
+          return false
+        }
         store.apiError = error
         return true
       }
@@ -265,21 +297,51 @@ export function createProjectRouter({
           store.admin = null
           return '/admin/login'
         }
+        if (from.matched.length) {
+          toast.error(() => formatApiError(error))
+          return false
+        }
         return true
       }
+      if (current !== revision) return false
       if (to.params.uuid) {
         nav.pageLoading = true
         try {
           if (to.meta.apiProject) {
-            const loaded = await store.loadApiProject(to.params.uuid, true, { skipAdmin: true })
+            const loaded = await store.loadApiProject(to.params.uuid, true, {
+              skipAdmin: true,
+              defer: true,
+            })
+            if (current !== revision) return false
             if (loaded === false) return false
-            management.adopt(store.project)
-            if (to.params.id && !store.findTask(to.params.id)) return '/admin/unavailable'
-            await nav.markRead(to.params.uuid, request)
+            commits.set(to, () => {
+              if (loaded() === false) return false
+              management.adopt(store.project)
+              nav.updateProject(store.project)
+            })
           } else {
-            await management.load(to.params.uuid, to.meta.projectSection)
+            const loaded = await management.load(to.params.uuid, to.meta.projectSection, {
+              defer: true,
+            })
+            if (current !== revision || loaded === false) return false
+            let discussionCommit
+            if (to.meta.projectSection === 'discussions') {
+              discussionCommit = await useDiscussionsStore().load(to.params.uuid, { defer: true })
+              if (current !== revision || discussionCommit === false) return false
+            }
+            commits.set(to, () => {
+              if (loaded() === false) return false
+              const { unreadCount, unreadCommentCount, ...details } = management.project
+              nav.updateProject(details)
+              return discussionCommit?.()
+            })
           }
         } catch (error) {
+          if (current !== revision) return false
+          if (from.matched.length && ![401, 403, 404].includes(error.status)) {
+            toast.error(() => formatApiError(error))
+            return false
+          }
           return error.status === 401 ? '/admin/login' : '/admin/unavailable'
         } finally {
           nav.pageLoading = false
@@ -292,17 +354,44 @@ export function createProjectRouter({
     if (!to.meta.apiProject) return true
     const store = useProjectStore()
     try {
-      await store.loadApiProject(to.params.uuid, to.meta.admin)
-      if (to.meta.editTask && !to.meta.admin && !canEditClientTask(store.findTask(to.params.id)))
-        return store.taskPath(to.params.id)
+      const loaded = await store.loadApiProject(to.params.uuid, to.meta.admin, { defer: true })
+      if (current !== revision || loaded === false) return false
+      commits.set(to, loaded)
       return true
     } catch (error) {
+      if (current !== revision) return false
+      if (from.matched.length && ![401, 403, 404].includes(error.status)) {
+        toast.error(() => formatApiError(error))
+        return false
+      }
       return to.meta.admin && error.status === 401
         ? '/admin/login'
         : `/access-error?reason=${error.status === 401 ? 'session' : 'unavailable'}`
     }
   })
+  router.beforeResolve((to) => {
+    if (attempts.get(to) !== revision) return false
+    const commit = commits.get(to)
+    if (commit && commit() === false) return false
+    const store = useProjectStore()
+    if (to.params.id && to.meta.apiProject && !store.findTask(to.params.id))
+      return to.meta.admin ? '/admin/unavailable' : '/access-error?reason=unavailable'
+    if (to.meta.editTask && !to.meta.admin && !canEditClientTask(store.findTask(to.params.id)))
+      return store.taskPath(to.params.id)
+  })
+  router.onError((error, to) => {
+    if (attempts.get(to) === revision) navigationPending.value = false
+    toast.error(() => formatApiError(error))
+  })
   router.afterEach((to, from, failure) => {
+    if (isNavigationFailure(failure, NavigationFailureType.duplicated)) {
+      revision++
+      navigationPending.value = false
+      return
+    }
+    if (attempts.get(to) === revision) navigationPending.value = false
+    if (!failure && to.meta.apiProject && to.meta.admin)
+      void useAdminNavigationStore().markRead(to.params.uuid, request)
     if (!failure && to.path !== from.path) useProjectStore().discardDeveloperChanges()
   })
   return router

@@ -84,7 +84,7 @@ class ProjectNotificationService
             if (($event->actorType === $type && $event->actorId === $recipient->id) || ($actorEmail && $recipient->email && strcasecmp($actorEmail, $recipient->email) === 0)) {
                 continue;
             }
-            $locale = $toAdmin ? config('project_notifications.admin_locale') : ($recipient->preferred_locale ?? 'en');
+            $locale = $recipient->preferred_locale ?? ($toAdmin ? config('project_notifications.admin_locale') : 'en');
             $locale = in_array($locale, ['ru', 'en'], true) ? $locale : ($toAdmin ? 'ru' : 'en');
             $payload = NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
             $email = $toAdmin ? $this->emailFor($task->project, $recipient) : $recipient->email;
@@ -130,7 +130,7 @@ class ProjectNotificationService
 
     public function testDelivery(Project $project, User $admin, string $channel, ?string $endpoint): array
     {
-        $payload = NotificationPayload::test(config('project_notifications.admin_locale') === 'en' ? 'en' : 'ru', rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid);
+        $payload = NotificationPayload::test(($admin->preferred_locale ?? config('project_notifications.admin_locale')) === 'en' ? 'en' : 'ru', rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid);
         try {
             if ($channel === 'email') {
                 $email = $this->emailFor($project, $admin);

@@ -226,41 +226,52 @@ export const useProjectStore = defineStore('project', () => {
     currentClient.value = null
     apiLoading.value = false
   }
-  async function loadApiProject(id, asAdmin, { skipAdmin = false } = {}) {
+  async function loadApiProject(id, asAdmin, { skipAdmin = false, defer = false } = {}) {
     const current = ++apiRevision
     apiLoading.value = true
     apiError.value = ''
     sessionLost.value = false
     try {
+      let nextAdmin = admin.value,
+        nextClient = null
       if (asAdmin) {
-        currentClient.value = null
         if (!skipAdmin) {
           const result = await api.request('/api/admin/me')
           if (current !== apiRevision) return false
-          admin.value = result.user
+          nextAdmin = result.user
         }
       } else {
-        admin.value = null
-        currentClient.value = await api.request('/api/client/me')
-        applyClientLocale(currentClient.value.preferredLocale)
-        developerDrafts.value = {}
+        nextAdmin = null
+        nextClient = await api.request('/api/client/me')
+        if (current !== apiRevision) return false
       }
       const [details, list] = await Promise.all([
         api.request(asAdmin ? `/api/admin/projects/${id}` : `/api/client/project/${id}`),
         api.request(asAdmin ? `/api/admin/projects/${id}/tasks` : '/api/client/tasks'),
       ])
       if (current !== apiRevision) return false
-      project.value = details.data
-      sections.value = details.data.sections
-      tasks.value = list.data
-      tasks.value.forEach(reconcileDeveloperDraft)
-      currentMode.value = asAdmin ? 'developer' : 'client'
-      initialized.value = true
-      return true
+      if (!Array.isArray(list.data)) throw new Error('Invalid task response')
+      const commit = () => {
+        if (current !== apiRevision) return false
+        admin.value = nextAdmin
+        currentClient.value = nextClient
+        if (nextClient) {
+          applyClientLocale(nextClient.preferredLocale)
+          developerDrafts.value = {}
+        }
+        project.value = details.data
+        sections.value = details.data.sections
+        tasks.value = list.data
+        tasks.value.forEach(reconcileDeveloperDraft)
+        currentMode.value = asAdmin ? 'developer' : 'client'
+        initialized.value = true
+        return true
+      }
+      return defer ? commit : commit()
     } catch (error) {
       if (current !== apiRevision) return false
-      if (!Object.keys(developerDrafts.value).length) tasks.value = []
-      reportError(error)
+      if (!defer && !Object.keys(developerDrafts.value).length) tasks.value = []
+      if (!defer) reportError(error)
       throw error
     } finally {
       if (current === apiRevision) apiLoading.value = false
@@ -603,16 +614,18 @@ export const useProjectStore = defineStore('project', () => {
   async function selectLocale(value) {
     if (!SUPPORTED_LOCALES.includes(value)) return false
     setManualLocale(value)
-    if (API_MODE && currentClient.value && !admin.value) {
+    if (API_MODE && (admin.value || currentClient.value)) {
       try {
-        const id = currentClient.value.id
+        const person = admin.value || currentClient.value
+        const id = person.email || person.id
+        const endpoint = admin.value ? '/api/admin/me/locale' : '/api/client/me/locale'
         await serialize(`locale:${id}`, async () => {
-          const result = await api.request('/api/client/me/locale', {
+          const result = await api.request(endpoint, {
             method: 'PATCH',
             body: { locale: value },
           })
-          if (currentClient.value?.id === id)
-            currentClient.value.preferredLocale = result.preferredLocale
+          if ((admin.value || currentClient.value) === person)
+            person.preferredLocale = result.preferredLocale
         })
       } catch (error) {
         reportError(error)

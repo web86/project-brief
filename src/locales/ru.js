@@ -1,4 +1,18 @@
 export default {
+  discussions: {
+    title: 'Обсуждения',
+    general: 'Общие комментарии проекта',
+    tasks: 'Последние комментарии к задачам',
+    all: 'Все',
+    unread: 'Непрочитанные',
+    markAll: 'Отметить всё прочитанным',
+    markRead: 'Отметить прочитанным',
+    openTask: 'Открыть задачу',
+    more: 'Загрузить ещё',
+    empty: 'Комментариев пока нет',
+    unreadLabel: 'Непрочитанных комментариев: {count}',
+    message: 'Комментарий к проекту',
+  },
   appearance: { theme: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', system: 'Системная' },
   ai: {
     improve: 'Улучшить с AI',
@@ -46,6 +60,7 @@ export default {
     },
   },
   export: {
+    developerNotes: 'Показать технические заметки',
     done: 'Только готовые',
     documentTitle: 'Заголовок документа',
     defaultDocumentTitle: 'Техническое задание',
@@ -70,6 +85,7 @@ export default {
     download: 'Скачать техническое задание',
   },
   nav: {
+    discussions: 'Обсуждения',
     unavailableTitle: 'Проект недоступен',
     unavailableBody: 'Этот проект недоступен в выбранном рабочем пространстве.',
     workspace: 'Рабочее пространство',

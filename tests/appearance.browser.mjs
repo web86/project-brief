@@ -63,12 +63,13 @@ async function fixture(options = {}) {
       calls.push({ path, method: request.method(), body })
       let payload
       if (path === '/api/csrf') payload = { token: 'test-csrf' }
-      else if (path === '/api/client/me/locale') payload = { preferredLocale: body.locale }
+      else if (path.endsWith('/me/locale')) payload = { preferredLocale: body.locale }
       else if (path === '/api/client/me') payload = client
       else if (path === '/api/admin/me') payload = { user, workspace }
       else if (path === '/api/admin/workspaces') payload = { data: [workspace] }
       else if (path === '/api/admin/projects') payload = { data: [project] }
-      else if (path.endsWith('/activity/read')) payload = { unreadCount: 0 }
+      else if (path.endsWith('/activity/read') || path.endsWith('/discussions/read'))
+        payload = { unreadCount: 0 }
       else if (path.endsWith('/push/status')) payload = { available: false }
       else if (path.endsWith('/notifications'))
         payload = {
@@ -335,6 +336,9 @@ try {
   })
   await page.route(aiUrl, async (route) => {
     received++
+    await page.evaluate(() => {
+      window.__aiRequestReceived = true
+    })
     await held
     await route.fulfill({
       json: {
@@ -352,6 +356,7 @@ try {
   assert.equal(await page.locator('.ai-button').isDisabled(), true)
   assert.equal(await page.locator('dialog[open] .modal-footer .primary').isDisabled(), true)
   await page.locator('dialog[open] .modal-footer .primary').click({ force: true })
+  await page.waitForFunction(() => window.__aiRequestReceived === true)
   assert.equal(received, 1)
   await page.locator('dialog[open] .modal-header button').click()
   await page.locator('#idea-description').fill('Draft edited while AI finishes')
@@ -522,7 +527,7 @@ try {
 
   root = 'http://127.0.0.1:5182'
   const { context: splashContext, page: splash } = await fixture({ colorScheme: 'dark' })
-  await splash.route('**/src/main.js', (route) => route.abort())
+  await splash.route('**/src/main.js*', (route) => route.abort())
   await splash.goto(root + '/admin/login')
   assert.equal(await splash.locator('html').getAttribute('data-theme'), 'dark')
   assert.equal(

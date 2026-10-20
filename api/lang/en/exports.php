@@ -11,6 +11,7 @@ return [
     'priority' => 'Priority',
     'status' => 'Status',
     'estimateHours' => 'Estimate',
+    'developerNotes' => 'Technical notes',
     'price' => 'Price',
     'hours' => 'h',
     'unknown' => 'Unspecified',

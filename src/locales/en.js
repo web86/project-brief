@@ -1,4 +1,18 @@
 export default {
+  discussions: {
+    title: 'Discussions',
+    general: 'Project comments',
+    tasks: 'Latest task comments',
+    all: 'All',
+    unread: 'Unread',
+    markAll: 'Mark all as read',
+    markRead: 'Mark as read',
+    openTask: 'Open task',
+    more: 'Load more',
+    empty: 'No comments yet',
+    unreadLabel: 'Unread comments: {count}',
+    message: 'Project comment',
+  },
   appearance: { theme: 'Color theme', light: 'Light', dark: 'Dark', system: 'System' },
   ai: {
     improve: 'Improve with AI',
@@ -46,6 +60,7 @@ export default {
     },
   },
   export: {
+    developerNotes: 'Show technical notes',
     done: 'Completed tasks only',
     documentTitle: 'Document title',
     defaultDocumentTitle: 'Technical specification',
@@ -70,6 +85,7 @@ export default {
     download: 'Download specification',
   },
   nav: {
+    discussions: 'Discussions',
     unavailableTitle: 'Project unavailable',
     unavailableBody: 'This project is not available in the selected workspace.',
     workspace: 'Workspace',

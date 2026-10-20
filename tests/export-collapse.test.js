@@ -92,6 +92,7 @@ test('export route uses summary only, normal project shell and accessible Export
     if (path === '/api/admin/me') return { user: { name: 'Owner' }, workspace: { id: 'workspace' } }
     if (path === '/api/admin/workspaces') return { data: [] }
     if (path === '/api/admin/projects') return { data: [] }
+    if (path.endsWith('/tasks')) return { data: [] }
     return { data: { id: 'project', name: 'Project', sections: [] } }
   }
   api.request = request
@@ -136,7 +137,7 @@ test('actual RU/EN export form defaults, every format/scope/language and optiona
       (output.match(/<input(?=[^>]*checked)(?=[^>]*type="checkbox")[^>]*>/g) || []).length,
       4,
     )
-    assert.equal((output.match(/type="checkbox"/g) || []).length, 9)
+    assert.equal((output.match(/type="checkbox"/g) || []).length, 10)
   }
 })
 
@@ -193,6 +194,7 @@ test('download submits current controls with loading guard, saves binary and pre
           price: true,
           attachments: false,
           approvalDate: false,
+          developerNotes: false,
         },
       },
     })

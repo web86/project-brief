@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-20",
+  "branch": "codex/milestone-4-3-ux-communications",
+  "frontend": {
+    "passed": 152,
+    "failed": 0,
+    "command": "npm test"
+  },
+  "backend": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 482,
+    "passed": 482,
+    "assertions": 4856,
+    "duration_ms": 15755
+  },
+  "build": "passed",
+  "prettier": "passed",
+  "pint": "passed",
+  "gitDiffCheck": "passed",
+  "browser": {
+    "newConfigurations": 4,
+    "clientPrivacy": "passed",
+    "appearanceGroups": 11,
+    "screenshots": 25,
+    "engine": "Chromium",
+    "api": "mocked; backend verified separately using PHPUnit/SQLite"
+  },
+  "externalDelivery": "Mail::fake; no SMTP/push delivery",
+  "deployment": "not performed",
+  "push": "not performed",
+  "githubRelease": "not created"
+}

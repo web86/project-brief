@@ -42,6 +42,7 @@ class ProjectController extends Controller
 
     public function show(Request $request, Project $project): ProjectResource
     {
+        $project = app(ProjectUnread::class)->withCounts(ProjectAccess::query($request)->whereKey($project->id), $request->user())->firstOrFail();
         if (! $request->boolean('summary')) {
             $project->load('briefSections');
         }

@@ -13,6 +13,7 @@ import AppIcon from '../components/AppIcon.vue'
 import ResponsivePushControls from '../components/ResponsivePushControls.vue'
 import MobilePushFooter from '../components/MobilePushFooter.vue'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import LoadingOverlay from '../components/LoadingOverlay.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 const route = useRoute(),
   router = useRouter(),
@@ -117,9 +118,8 @@ async function logout() {
           <p>{{ formatApiError(nav.error) }}</p>
           <button class="button secondary" @click="retry">{{ t('ui.tryAgain') }}</button>
         </div>
-        <p v-else-if="nav.pageLoading" role="status">{{ t('nav.loading') }}</p>
         <RouterView v-else-if="nav.ready" />
-        <p v-else role="status">{{ t('nav.loading') }}</p>
+        <LoadingOverlay v-else active />
       </main>
       <MobilePushFooter v-if="store.admin" id="admin-push-footer" />
     </div>

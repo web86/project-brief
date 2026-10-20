@@ -1,5 +1,5 @@
 <script setup>
-import { t } from '../i18n/index.js'
+import { t, formatCurrency, intlLocale } from '../i18n/index.js'
 
 import { computed } from 'vue'
 import { useProjectStore } from '../stores/project'
@@ -9,6 +9,7 @@ import TaskStatus from './TaskStatus.vue'
 import TaskPriority from './TaskPriority.vue'
 import { getTaskLocation } from '../constants/project'
 const props = defineProps({ task: { type: Object, required: true } })
+const filled = (value) => value !== null && value !== undefined && value !== ''
 const canonicalIndex = computed(() =>
   store.sectionTasks(props.task.sectionId).findIndex((task) => task.id === props.task.id),
 )
@@ -28,7 +29,26 @@ const canonicalIndex = computed(() =>
       <p class="card-description">{{ task.description }}</p>
       <div class="card-section" :title="getTaskLocation(task)">{{ getTaskLocation(task) }}</div>
       <div class="card-footer">
-        <TaskPriority :priority="task.priority" />
+        <div class="card-priority-details">
+          <TaskPriority :priority="task.priority" />
+          <span v-if="store.isDeveloper && filled(task.estimateHours)" class="card-estimate"
+            ><AppIcon name="clock" :size="14" />{{
+              Number(task.estimateHours).toLocaleString(intlLocale())
+            }}
+            {{ t('ui.h') }}</span
+          >
+          <span
+            v-if="store.isDeveloper && filled(task.price)"
+            class="card-price"
+            tabindex="0"
+            :aria-label="formatCurrency(task.price, store.project)"
+          >
+            <AppIcon name="money" :size="15" />
+            <span class="card-price-tooltip" role="tooltip">{{
+              formatCurrency(task.price, store.project)
+            }}</span>
+          </span>
+        </div>
         <div class="card-meta">
           <span
             v-if="task.attachments.length"

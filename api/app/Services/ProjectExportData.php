@@ -10,7 +10,7 @@ class ProjectExportData
     public const DEFAULT_FIELDS = [
         'description' => true, 'expectedResult' => true, 'priority' => true,
         'status' => true, 'estimateHours' => false, 'price' => false,
-        'attachments' => false, 'approvalDate' => false,
+        'attachments' => false, 'approvalDate' => false, 'developerNotes' => false,
     ];
 
     /**
@@ -26,7 +26,7 @@ class ProjectExportData
         $title = preg_replace('/^\s+|\s+$/u', '', $options['documentTitle'] ?? '');
         $title = $title !== '' ? $title : $labels['title'];
         $columns = ['id', 'project_id', 'project_section_id', 'position', 'title', 'client_approved'];
-        $source = ['description' => 'description', 'expectedResult' => 'expected_result', 'priority' => 'priority', 'status' => 'status', 'estimateHours' => 'estimate_hours', 'price' => 'price'];
+        $source = ['description' => 'description', 'expectedResult' => 'expected_result', 'priority' => 'priority', 'status' => 'status', 'estimateHours' => 'estimate_hours', 'price' => 'price', 'developerNotes' => 'developer_notes'];
         foreach ($source as $key => $column) {
             if ($fields[$key]) {
                 $columns[] = $column;
@@ -55,7 +55,7 @@ class ProjectExportData
                 $totals['approvedCount'] += (int) $task->client_approved;
                 $content = [];
                 foreach ($source as $key => $column) {
-                    if (! $fields[$key] || $task->$column === null || $task->$column === '') {
+                    if (! $fields[$key] || $task->$column === null || trim((string) $task->$column) === '') {
                         continue;
                     }
                     $value = match ($key) {
@@ -69,7 +69,7 @@ class ProjectExportData
                         $totals[$key]['minorUnits'] = $this->addMinorUnits($totals[$key]['minorUnits'], $this->minorUnits($task->getRawOriginal($column)));
                         $totals[$key]['providedTaskCount']++;
                     }
-                    $content[] = ['label' => $labels[$key], 'value' => $value, 'block' => in_array($key, ['description', 'expectedResult'], true)];
+                    $content[] = ['label' => $labels[$key], 'value' => $value, 'block' => in_array($key, ['description', 'expectedResult', 'developerNotes'], true)];
                 }
                 if ($fields['approvalDate'] && $task->client_approved && $task->client_approved_at) {
                     $content[] = ['label' => $labels['approvedOn'], 'value' => $task->client_approved_at->locale($locale)->isoFormat($locale === 'ru' ? 'DD.MM.YYYY' : 'D MMM YYYY'), 'block' => false];

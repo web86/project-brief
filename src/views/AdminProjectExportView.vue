@@ -27,6 +27,7 @@ const fields = ref({
   price: false,
   attachments: false,
   approvalDate: false,
+  developerNotes: false,
 })
 const pending = ref(false),
   error = ref('')

@@ -1,10 +1,25 @@
 <script setup>
+import { computed } from 'vue'
+import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useRoute } from 'vue-router'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { t } from '../i18n/index.js'
 const route = useRoute(),
   store = useProjectManagementStore()
-const sections = ['brief', 'clients', 'structure', 'notifications', 'settings', 'export']
+const unreadComments = computed(
+  () =>
+    useAdminNavigationStore().projects.find((project) => project.id === route.params.uuid)
+      ?.unreadCommentCount || 0,
+)
+const sections = [
+  'brief',
+  'discussions',
+  'clients',
+  'structure',
+  'notifications',
+  'settings',
+  'export',
+]
 </script>
 <template>
   <div v-if="store.project" class="admin-project-shell" :key="route.params.uuid">
@@ -22,6 +37,12 @@ const sections = ['brief', 'clients', 'structure', 'notifications', 'settings', 
           :class="{ active: route.meta.projectSection === section }"
         >
           {{ t('nav.' + section) }}
+          <span
+            v-if="section === 'discussions' && unreadComments"
+            class="discussion-badge"
+            :aria-label="t('discussions.unreadLabel', { count: unreadComments })"
+            >{{ unreadComments }}</span
+          >
         </RouterLink>
       </nav>
     </header>

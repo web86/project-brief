@@ -95,7 +95,9 @@ test('native language select uses the shared native-name catalog and persists on
     assert.equal(calls.length, 2)
     store.admin = { name: 'Admin' }
     await store.selectLocale('en')
-    assert.equal(calls.length, 2, 'admin selection must not update a client')
+    assert.equal(calls.length, 3)
+    assert.equal(calls[2].path, '/api/admin/me/locale')
+    assert.equal(store.currentClient.preferredLocale, 'ru')
     assert.equal(values.get('projectbrief.locale'), 'en')
   } finally {
     api.request = previousRequest

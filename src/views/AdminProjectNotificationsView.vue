@@ -4,5 +4,9 @@ import { useProjectManagementStore } from '../stores/projectManagement.js'
 const store = useProjectManagementStore()
 </script>
 <template>
-  <ProjectNotificationSettings v-if="store.project" :project-id="store.project.id" />
+  <ProjectNotificationSettings
+    v-if="store.project"
+    :project-id="store.project.id"
+    :initial-settings="store.notifications"
+  />
 </template>

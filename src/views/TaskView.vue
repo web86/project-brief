@@ -1,4 +1,6 @@
 <script setup>
+import { useDiscussionsStore } from '../stores/discussions.js'
+import { toast } from '../services/toast.js'
 import { t, formatApiError } from '../i18n/index.js'
 
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
@@ -21,6 +23,35 @@ import DeveloperNotes from '../components/DeveloperNotes.vue'
 const route = useRoute()
 const storeRouter = useRouter()
 const store = useProjectStore()
+const seen = new Set()
+let readTimer
+function seenComment(id) {
+  if (!store.apiMode || !store.isDeveloper || storeRouter.navigationPending?.value) return
+  seen.add(id)
+  clearTimeout(readTimer)
+  const projectId = route.params.uuid
+  readTimer = setTimeout(async () => {
+    if (storeRouter.navigationPending?.value) {
+      seen.clear()
+      return
+    }
+    const ids = [...seen]
+    seen.clear()
+    try {
+      await useDiscussionsStore().mark(projectId, ids)
+    } catch (error) {
+      toast.error(() => formatApiError(error))
+    }
+  }, 150)
+}
+watch(
+  () => route.params.id,
+  () => {
+    clearTimeout(readTimer)
+    seen.clear()
+  },
+)
+onUnmounted(() => clearTimeout(readTimer))
 const task = computed(() => store.findTask(route.params.id))
 const editorTask = computed(() => store.developerTask(route.params.id))
 const dirty = computed(() => store.isDeveloper && store.hasDeveloperChanges(route.params.id))
@@ -137,10 +168,11 @@ function focusClarification() {
           <h2>
             {{ t('ui.comments2') }} <span class="count-pill">{{ task.comments.length }}</span>
           </h2>
-          <CommentList :comments="task.comments" /><CommentForm
-            ref="commentForm"
-            :task-id="task.id"
-          />
+          <CommentList
+            :comments="task.comments"
+            :target="route.hash.slice(1)"
+            @seen="seenComment"
+          /><CommentForm ref="commentForm" :task-id="task.id" />
         </section>
       </div>
       <DeveloperNotes v-if="store.isDeveloper" :task="editorTask" />
