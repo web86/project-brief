@@ -153,20 +153,14 @@ class TenantIsolationTest extends TestCase
         $this->assertSame(1, $task->history()->where('event_type', 'developer_notes')->count());
     }
 
-    public function test_admin_creating_project_gets_assignment_and_cannot_supply_another_tenant(): void
+    public function test_invited_admin_cannot_create_projects_even_when_supplying_a_workspace_or_permissions(): void
     {
         $data = $this->tenants();
         $this->actingAs($data['adminA']);
-        $this->postJson('/api/admin/projects', ['title' => 'Forged', 'workspace_id' => $data['workspaceB']->id])->assertUnprocessable();
-        $uuid = $this->postJson('/api/admin/projects', ['title' => 'Created by admin'])->assertCreated()->json('data.id');
-        $project = Project::where('uuid', $uuid)->firstOrFail();
-        $this->assertSame($data['workspaceA']->id, $project->workspace_id);
-        $this->assertDatabaseHas('project_members', ['project_id' => $project->id, 'workspace_member_id' => $data['adminA']->workspaceMembers()->first()->id]);
-        $this->getJson('/api/admin/projects/'.$uuid)->assertOk()->assertJsonMissingPath('data.workspace_id');
-        $this->postJson('/api/admin/projects/'.$uuid.'/tasks', ['title' => 'Task', 'location' => 'Main', 'description' => 'Description', 'priority' => 'normal'])->assertCreated();
-        $this->actingAs($data['ownerA'])->getJson('/api/admin/projects/'.$uuid)->assertOk();
-        $this->actingAs($data['ownerB'])->postJson('/api/admin/workspaces/'.$data['workspaceB']->uuid.'/select')->assertOk();
-        $this->getJson('/api/admin/projects/'.$uuid)->assertNotFound();
+        $this->postJson('/api/admin/projects', ['title' => 'Forged', 'workspace_id' => $data['workspaceB']->id])->assertForbidden();
+        $this->postJson('/api/admin/projects', ['title' => 'Created by admin', 'permissions' => ['manage_project_settings' => true]])->assertForbidden();
+        $this->assertDatabaseCount('projects', 3);
+        $this->assertDatabaseCount('project_members', 2);
     }
 
     public function test_switching_workspace_changes_project_task_and_attachment_scope_even_for_a_multi_workspace_user(): void
@@ -236,6 +230,7 @@ class TenantIsolationTest extends TestCase
         config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'brief@example.test']);
         app(ProjectNotificationService::class)->settings($data['projectA'])->update(['notification_email' => 'legacy-mailbox@example.test']);
         $this->actingAs($data['ownerA'])->postJson('/api/admin/projects/'.$data['projectA']->uuid.'/notifications/test', ['channel' => 'email'])->assertOk();
+        $data['projectA']->members()->first()->update(['permissions' => ['manage_project_notifications' => true]]);
         $this->actingAs($data['adminA'])->postJson('/api/admin/projects/'.$data['projectA']->uuid.'/notifications/test', ['channel' => 'email'])->assertOk();
         Mail::assertSentCount(2);
         Mail::assertSent(ProjectActivityMail::class, fn ($mail) => $mail->hasTo('legacy-mailbox@example.test'));

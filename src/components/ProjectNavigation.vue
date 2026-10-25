@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
+import { canOpenProjectSection, hasProjectPermission } from '../services/projectPermissions.js'
 import { projectMenu } from '../services/adminMenu.js'
 defineProps({ vertical: Boolean, trashBusy: Boolean, trashOpen: Boolean })
 const emit = defineEmits(['navigate', 'trash'])
@@ -13,7 +14,13 @@ const unreadComments = computed(
   () => nav.projects.find((project) => project.id === route.params.uuid)?.unreadCommentCount || 0,
 )
 const sections = computed(() =>
-  projectMenu.filter((item) => !item.owner || nav.user?.membershipRole === 'owner'),
+  projectMenu.filter((item) =>
+    canOpenProjectSection(
+      nav.projectForRoute(route.params.uuid),
+      item.section,
+      nav.user?.membershipRole === 'owner',
+    ),
+  ),
 )
 </script>
 <template>
@@ -41,6 +48,7 @@ const sections = computed(() =>
     </RouterLink>
     <button
       type="button"
+      v-if="hasProjectPermission(nav.projectForRoute(route.params.uuid), 'manage_trash')"
       class="project-trash-link"
       :disabled="trashBusy"
       :aria-expanded="trashOpen"

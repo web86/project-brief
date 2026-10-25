@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { canOpenProjectSection } from '../services/projectPermissions.js'
 import { api } from '../api/client.js'
 
 export const useProjectManagementStore = defineStore('projectManagement', () => {
@@ -21,21 +22,24 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
   function adopt(data) {
     project.value = data
   }
-  async function load(id, section = 'settings', { defer = false } = {}) {
+  async function load(id, section = 'settings', { defer = false, isOwner = false } = {}) {
     const previous = project.value?.id === id ? project.value : null
     const current = ++revision
     loading.value = true
     try {
-      const [details, resource] = await Promise.all([
-        previous
-          ? Promise.resolve({ data: previous })
-          : api.request(`/api/admin/projects/${id}?summary=1`),
-        ['clients', 'structure', 'notifications'].includes(section)
-          ? api.request(
-              `/api/admin/projects/${id}/${section === 'structure' ? 'sections' : section}`,
-            )
-          : Promise.resolve(null),
-      ])
+      const details = await api.request(`/api/admin/projects/${id}?summary=1`)
+      if (current !== revision) return false
+      if (!canOpenProjectSection(details.data, section, isOwner)) {
+        const error = new Error('Project permission required')
+        error.status = 403
+        error.code = 'project_permission_denied'
+        throw error
+      }
+      const resource = ['clients', 'structure', 'notifications'].includes(section)
+        ? await api.request(
+            `/api/admin/projects/${id}/${section === 'structure' ? 'sections' : section}`,
+          )
+        : null
       if (current !== revision) return false
       const commit = () => {
         if (current !== revision) return false

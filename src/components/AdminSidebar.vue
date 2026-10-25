@@ -1,4 +1,5 @@
 <script setup>
+import { canCreateProjects } from '../services/projectPermissions.js'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
@@ -65,7 +66,7 @@ async function select(event) {
     </label>
     <RouterLink
       to="/admin/projects/new"
-      v-if="nav.workspace"
+      v-if="nav.workspace && canCreateProjects(nav.user)"
       class="button primary sidebar-create"
       @click="emit('navigate')"
     >

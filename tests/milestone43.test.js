@@ -1,3 +1,4 @@
+import { allProjectPermissions } from './helpers/projectPermissions.js'
 import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
@@ -71,7 +72,12 @@ async function fixture() {
     if (path.endsWith('/activity/read')) return { unreadCount: 0 }
     if (path.endsWith('/clients') || path.endsWith('/sections')) return { data: [] }
     return {
-      data: { id: path.includes('second') ? 'second' : 'first', name: 'Project', sections: [] },
+      data: {
+        id: path.includes('second') ? 'second' : 'first',
+        name: 'Project',
+        sections: [],
+        permissions: { ...allProjectPermissions },
+      },
     }
   }
   api.request = request

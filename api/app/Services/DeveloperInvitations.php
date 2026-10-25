@@ -84,6 +84,9 @@ class DeveloperInvitations
             // The emailed single-use token proves the mailbox, while existing accounts also require authentication.
             $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
             $member = WorkspaceMember::firstOrCreate(['workspace_id' => $invitation->workspace_id, 'user_id' => $user->id], ['role' => 'admin', 'status' => 'active', 'joined_at' => now()]);
+            if ($member->status !== 'active') {
+                $member->can_create_projects = false;
+            }
             $member->forceFill(['status' => 'active', 'joined_at' => $member->joined_at ?? now()])->save();
             foreach ($invitation->workspace->projects()->whereIn('id', $invitation->project_ids)->pluck('id') as $projectId) {
                 ProjectMember::firstOrCreate(['project_id' => $projectId, 'workspace_member_id' => $member->id], ['workspace_id' => $member->workspace_id]);

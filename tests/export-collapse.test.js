@@ -1,3 +1,4 @@
+import { allProjectPermissions } from './helpers/projectPermissions.js'
 import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
@@ -93,7 +94,14 @@ test('export route uses summary only, normal project shell and accessible Export
     if (path === '/api/admin/workspaces') return { data: [] }
     if (path === '/api/admin/projects') return { data: [] }
     if (path.endsWith('/tasks')) return { data: [] }
-    return { data: { id: 'project', name: 'Project', sections: [] } }
+    return {
+      data: {
+        id: 'project',
+        name: 'Project',
+        sections: [],
+        permissions: { ...allProjectPermissions },
+      },
+    }
   }
   api.request = request
   const router = routerFactory({ apiMode: true, history: createMemoryHistory(), request })

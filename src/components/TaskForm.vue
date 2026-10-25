@@ -1,4 +1,5 @@
 <script setup>
+import { hasProjectPermission } from '../services/projectPermissions.js'
 import { t, formatApiError } from '../i18n/index.js'
 
 import { computed, ref } from 'vue'
@@ -128,7 +129,24 @@ async function submit() {
     <div class="field">
       <label for="idea-location"
         >{{ t('ui.whereIsIt') }} <span class="required-dot" aria-hidden="true">*</span></label
+      ><select
+        v-if="
+          store.apiMode &&
+          store.isDeveloper &&
+          !hasProjectPermission(store.project, 'manage_structure')
+        "
+        id="idea-location"
+        v-model="location"
+        required
+        :aria-invalid="submitted && errors.location"
+      >
+        <option disabled value="">{{ t('permissions.chooseSection') }}</option>
+        <option v-if="!store.sections.length" value="Общее">{{ t('ui.general') }}</option>
+        <option v-for="section in store.sections" :key="section.id" :value="section.name">
+          {{ section.name }}
+        </option></select
       ><LocationInput
+        v-else
         id="idea-location"
         v-model="location"
         :suggestions="store.locationOptions"

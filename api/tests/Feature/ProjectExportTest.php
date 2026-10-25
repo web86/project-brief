@@ -64,7 +64,7 @@ class ProjectExportTest extends TestCase
         $project = $this->project();
         $owner = auth()->user();
         $admin = User::factory()->memberOf($project->workspace)->create();
-        $project->members()->create(['workspace_id' => $project->workspace_id, 'workspace_member_id' => $admin->workspaceMembers()->first()->id]);
+        $project->members()->create(['workspace_id' => $project->workspace_id, 'workspace_member_id' => $admin->workspaceMembers()->first()->id, 'permissions' => ['export_project' => true]]);
         foreach (['pdf', 'docx'] as $format) {
             $url = '/api/admin/projects/'.$project->uuid.'/export';
             $this->actingAs($owner)->postJson($url, $this->payload($format))->assertOk();

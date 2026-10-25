@@ -7,6 +7,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Services\AttachmentStorage;
 use App\Services\ClientTaskDeletion;
+use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
 use App\Services\TaskAudit;
@@ -27,6 +28,8 @@ class TaskController extends Controller
         $task = AttachmentStorage::atomic(function (array &$paths) use ($request, $project) {
             $owner = TaskAccess::project($request, $project);
             ProjectStructure::lock($owner);
+            $sectionName = $request->validated('section') ?? $request->validated('location');
+            $this->authorizeSectionCreation($request, $owner, $sectionName);
             $task = $owner->tasks()->create($request->taskData());
             ProjectStructure::assignNewTask($owner, $task, $request->validated('section') ?? $task->location);
             TaskAudit::record($request, $task, 'created', (TaskAccess::isAdmin($request) ? 'Разработчик' : 'Клиент').' добавил новую идею');
@@ -54,6 +57,7 @@ class TaskController extends Controller
             $name = $request->validated('section') ?? (! TaskAccess::isAdmin($request) ? $request->validated('location') : null);
             $sectionChanged = false;
             if ($name !== null) {
+                $this->authorizeSectionCreation($request, $owner, $name);
                 $section = ProjectStructure::namedSection($owner, $name);
                 if ($section->id !== $model->project_section_id) {
                     $model->forceFill(['project_section_id' => $section->id, 'position' => ($section->tasks()->max('position') ?? 0) + 1]);
@@ -100,6 +104,21 @@ class TaskController extends Controller
         ClientTaskDeletion::delete($request, $task);
 
         return response()->json(['deleted' => true]);
+    }
+
+    private function authorizeSectionCreation(Request $request, Project $project, string $name): void
+    {
+        if (! TaskAccess::isAdmin($request)) {
+            return;
+        }
+        $name = trim($name);
+        $existing = $project->briefSections()->where('name', $name)->get()->contains(fn ($section) => trim($section->name) === $name);
+        if (! $existing) {
+            if (trim($name) === 'Общее' && ! $project->briefSections()->exists()) {
+                return;
+            }
+            ProjectPermissions::authorize($request, $project, 'manage_structure');
+        }
     }
 
     public function approve(Request $request, string $task): TaskResource

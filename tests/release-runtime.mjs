@@ -210,6 +210,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const ownerState = await login.json()
   assert.equal(ownerState.user.role, 'admin')
   assert.equal(ownerState.user.membershipRole, 'owner')
+  assert.equal(ownerState.user.canCreateProjects, true)
   assert.equal(ownerState.workspace.id, fixture.workspace)
   const workspaceCsrf = await (await request('/api/csrf')).json()
   const personal = await (await request('/api/admin/notifications')).json()

@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted } from 'vue'
+import { canCreateProjects, hasProjectPermission } from '../services/projectPermissions.js'
 import UnreadBadge from '../components/UnreadBadge.vue'
 import { t, formatApiError } from '../i18n/index.js'
 
@@ -14,9 +15,12 @@ onMounted(() => nav.refreshProjects())
         <h1>{{ t('ui.projects') }}</h1>
         <p class="muted">{{ t('ui.ideasThatBecomeFinishedWebsites') }}</p>
       </div>
-      <RouterLink to="/admin/projects/new" class="button primary">{{
-        t('ui.newProject')
-      }}</RouterLink>
+      <RouterLink
+        v-if="canCreateProjects(nav.user)"
+        to="/admin/projects/new"
+        class="button primary"
+        >{{ t('ui.newProject') }}</RouterLink
+      >
     </div>
     <p v-if="nav.refreshing" role="status" class="small muted">{{ t('nav.loading') }}</p>
     <div v-if="nav.listError" role="alert">
@@ -59,12 +63,17 @@ onMounted(() => nav.refreshProjects())
           <RouterLink :to="`/admin/projects/${project.id}/brief`" class="button primary">{{
             t('ui.open')
           }}</RouterLink
-          ><RouterLink :to="`/admin/projects/${project.id}/clients`" class="button secondary">{{
-            t('ui.clients')
-          }}</RouterLink
-          ><RouterLink :to="`/admin/projects/${project.id}/settings`" class="text-button">{{
-            t('ui.settings')
-          }}</RouterLink>
+          ><RouterLink
+            v-if="hasProjectPermission(project, 'manage_clients')"
+            :to="`/admin/projects/${project.id}/clients`"
+            class="button secondary"
+            >{{ t('ui.clients') }}</RouterLink
+          ><RouterLink
+            v-if="hasProjectPermission(project, 'manage_project_settings')"
+            :to="`/admin/projects/${project.id}/settings`"
+            class="text-button"
+            >{{ t('ui.settings') }}</RouterLink
+          >
         </div>
       </article>
     </div>

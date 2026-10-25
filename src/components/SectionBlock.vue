@@ -1,5 +1,6 @@
 <script setup>
 import { computed, inject, ref, watch } from 'vue'
+import { hasProjectPermission } from '../services/projectPermissions.js'
 import { taskDragKey } from '../utils/taskDrag.js'
 const drag = inject(taskDragKey, null)
 import { readSectionCollapsed, writeSectionCollapsed } from '../utils/sectionCollapse.js'
@@ -59,7 +60,13 @@ function toggle() {
           >
         </button>
       </h2>
-      <div v-if="store.isDeveloper" class="section-order-actions">
+      <div
+        v-if="
+          store.isDeveloper &&
+          (!store.apiMode || hasProjectPermission(store.project, 'manage_structure'))
+        "
+        class="section-order-actions"
+      >
         <button
           v-if="position > 1"
           type="button"

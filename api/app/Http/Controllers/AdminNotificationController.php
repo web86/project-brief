@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AccountProfile;
 use App\Services\PersonalNotifications;
 use App\Services\ProjectNotificationService;
+use App\Services\ProjectPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,9 +14,10 @@ class AdminNotificationController extends Controller
     public function show(Request $request, PersonalNotifications $personal, ProjectNotificationService $delivery): JsonResponse
     {
         $user = $request->user()->fresh();
+        $member = $user->workspaceMembers()->active()->orderByRaw('CASE WHEN workspace_id = ? THEN 0 ELSE 1 END', [$request->session()->get('workspace_id', 0)])->first();
 
         return response()->json([
-            'user' => [...app(AccountProfile::class)->state($user), 'membershipRole' => $user->workspaceMembers()->active()->orderByRaw('CASE WHEN workspace_id = ? THEN 0 ELSE 1 END', [$request->session()->get('workspace_id', 0)])->first()?->role],
+            'user' => [...app(AccountProfile::class)->state($user), 'membershipRole' => $member?->role, 'canCreateProjects' => $member ? ProjectPermissions::canCreateProjects($member) : false],
             'workspaces' => $user->workspaceMembers()->active()->with('workspace')->get()->map(fn ($member) => ['id' => $member->workspace->uuid, 'name' => $member->workspace->name])->values(),
             'preferences' => $user->notificationPreferences(), 'email' => $user->notificationEmail(), 'accountEmail' => $user->email,
             'emailUnified' => $user->notification_email_resolved_at !== null, 'pendingEmail' => $user->pending_notification_email,

@@ -1,0 +1,73 @@
+{
+  "milestone": "4.8.2 Project Member Permissions",
+  "branch": "codex/milestone-4-8-2-project-member-permissions",
+  "baseCommit": "0ac5cd39e65faa5f46c9a398bdabdf5c3475f5e7",
+  "checks": {
+    "laravel_sqlite": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 587,
+      "passed": 587,
+      "assertions": 5939,
+      "duration_ms": 22082
+    },
+    "laravel_mariadb": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 587,
+      "passed": 587,
+      "assertions": 5944,
+      "duration_ms": 76199
+    },
+    "frontend": {
+      "passed": true,
+      "tests": 221,
+      "command": "npm test"
+    },
+    "browser_navigation": {
+      "passed": true,
+      "scenarios": 10
+    },
+    "browser_notifications": {
+      "passed": true,
+      "scenarios": 35
+    },
+    "browser_tasks": {
+      "passed": true,
+      "scenarios": 20
+    },
+    "browser_permissions": {
+      "passed": true,
+      "scenarios": 16,
+      "realLaravelApi": true,
+      "databaseSessions": true,
+      "smtp": "local disposable sink; 6 messages",
+      "command": "M482_PERMISSIONS=1 M48_OUTPUT_DIR=../docs/milestone-4-8-2-permissions/ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/milestone48.browser.mjs",
+      "screenshots": 8
+    },
+    "browser_m46": {
+      "passed": true,
+      "configurations": 2,
+      "functionalScenarios": 5,
+      "command": "M46_QUICK=1 M46_OUTPUT_DIR=/tmp/m482-qa/m46 PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/milestone46.browser.mjs"
+    },
+    "build": {
+      "passed": true,
+      "command": "npm run build"
+    },
+    "prettier": {
+      "passed": true,
+      "command": "npm run format:check"
+    },
+    "pint": {
+      "passed": true,
+      "command": "cd api && vendor/bin/pint --dirty --format agent"
+    },
+    "diff": {
+      "passed": true,
+      "command": "git diff --check"
+    }
+  },
+  "releaseValidation": "Performed separately by ./bin/build-release against its clean source commit; release.json and the external ZIP checksum identify the packaged result.",
+  "manualAcceptance": "Chromium desktop/touch emulation; screenshots inspected. Physical devices, Safari and live Jino SMTP are not part of this run."
+}

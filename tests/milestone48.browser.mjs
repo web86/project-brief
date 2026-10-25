@@ -9,6 +9,7 @@ import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
 const output = new URL(process.env.M48_OUTPUT_DIR || '../docs/milestone-4-8/', import.meta.url)
+const permissionsMode = process.env.M482_PERMISSIONS === '1'
 const invitationUx = process.env.M481_INVITATION_UX === '1'
 const expiredToken = randomBytes(32).toString('hex')
 await mkdir(output, { recursive: true })
@@ -218,6 +219,19 @@ try {
   results.push(
     'Real SMTP sink → invitation-only registration → assigned-project list; token removed and single-use; developer cannot manage team',
   )
+  if (permissionsMode) {
+    const { exercisePermissions } = await import('./project-permissions.browser.mjs')
+    await exercisePermissions({
+      owner,
+      dev,
+      firstAssigned,
+      secondAssigned,
+      teamRoot,
+      go,
+      call,
+      results,
+    })
+  }
   if (invitationUx) {
     // Existing mixed-case User has no memberships; the page offers login without an existence API.
     assert.equal(
@@ -485,6 +499,24 @@ try {
           label = `${width}-${lang}-${mode}`
         await login(f.page)
         await go(f.page, teamPage)
+        if (permissionsMode) {
+          const { permissionVisual } = await import('./project-permissions.browser.mjs')
+          await permissionVisual({
+            page: f.page,
+            fixture,
+            teamPage,
+            teamRoot,
+            call,
+            go,
+            fits,
+            shot,
+            label,
+            results,
+            lang,
+          })
+          await f.context.close()
+          continue
+        }
         await f.page.locator('.team-member').first().waitFor()
         await fits(f.page)
         await shot(f.page, 'team-' + label)

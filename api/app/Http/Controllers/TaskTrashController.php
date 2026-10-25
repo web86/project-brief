@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
+use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
 use App\Services\TaskAudit;
@@ -23,6 +24,7 @@ class TaskTrashController extends Controller
     public function restore(Request $request, string $task): TaskResource
     {
         $project = TaskAccess::query($request)->withTrashed()->where('uuid', $task)->firstOrFail()->project;
+        ProjectPermissions::authorize($request, $project, 'manage_trash');
         $model = DB::transaction(function () use ($request, $task, $project) {
             ProjectStructure::lock($project);
             $model = TaskAccess::query($request)->withTrashed()->where('uuid', $task)->lockForUpdate()->firstOrFail();

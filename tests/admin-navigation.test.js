@@ -1,3 +1,4 @@
+import { allProjectPermissions } from './helpers/projectPermissions.js'
 import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
@@ -147,7 +148,13 @@ function backend() {
     if (path === '/api/admin/projects')
       return {
         data: [
-          { id: uuid, name: selected + ' project', unreadCount: 3, status: 'active' },
+          {
+            id: uuid,
+            name: selected + ' project',
+            permissions: { ...allProjectPermissions },
+            unreadCount: 3,
+            status: 'active',
+          },
           { id: 'clean', name: 'Clean project', unreadCount: 0 },
         ],
       }
@@ -161,6 +168,7 @@ function backend() {
         name: selected + ' project',
         website: '',
         currency: 'RUB',
+        permissions: { ...allProjectPermissions },
         sections: [],
         status: 'active',
       },
@@ -234,7 +242,7 @@ test('project subnavigation has dedicated routes and legacy URL redirects withou
   const { request } = backend()
   const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
   await router.push(`/admin/projects/${uuid}`)
-  assert.equal(router.currentRoute.value.path, `/admin/projects/${uuid}/settings`)
+  assert.equal(router.currentRoute.value.path, `/admin/projects/${uuid}/brief`)
   await router.push(`/admin/projects/${uuid}#client-access`)
   assert.equal(router.currentRoute.value.path, `/admin/projects/${uuid}/clients`)
   assert.equal(router.currentRoute.value.hash, '')
@@ -516,14 +524,14 @@ test('server selection that succeeded but lost its response is recovered from au
   assert.equal(toast.items.value[0].type, 'error')
 })
 
-test('settings saves request summary only; common header cache is reused between sibling routes', async () => {
+test('settings saves request summary only; sibling routes refresh effective permissions', async () => {
   const { request, calls } = backend()
   const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
   await router.push(`/admin/projects/${uuid}/settings`)
   await managementStore().saveProject({ title: 'Renamed' })
   await router.push(`/admin/projects/${uuid}/clients`)
   await router.push(`/admin/projects/${uuid}/structure`)
-  assert.equal(calls.filter(({ path, method }) => path.endsWith('?summary=1') && !method).length, 1)
+  assert.equal(calls.filter(({ path, method }) => path.endsWith('?summary=1') && !method).length, 3)
   assert.ok(calls.some(({ path, method }) => path.endsWith('?summary=1') && method === 'PATCH'))
   assert.equal(
     calls.some(({ path }) => path.endsWith('/activity/read')),
@@ -626,4 +634,83 @@ test('discarding a revoked project invalidates an older pending sidebar refresh'
     nav.projects.some((project) => project.id === uuid),
     false,
   )
+})
+
+test('direct protected routes explain denial, keep project context and recheck revoked capabilities', async () => {
+  const { request } = backend()
+  const permissions = { ...allProjectPermissions }
+  const calls = []
+  const scoped = async (path, options) => {
+    calls.push(path)
+    const result = await request(path, options)
+    if (path.includes('?summary=1')) result.data.permissions = { ...permissions }
+    return result
+  }
+  api.request = scoped
+  const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request: scoped })
+  await router.push(`/admin/projects/${uuid}/settings`)
+  permissions.manage_clients = false
+  await router.push(`/admin/projects/${uuid}/clients`)
+  assert.equal(router.currentRoute.value.path, `/admin/projects/${uuid}/forbidden`)
+  assert.equal(calls.filter((path) => path.endsWith('/clients')).length, 0)
+  assert.equal(navStore().projectForRoute(uuid).permissions.manage_clients, false)
+  const { default: Denied } = await server.ssrLoadModule(
+    '/src/views/ProjectPermissionDeniedView.vue',
+  )
+  for (const language of ['ru', 'en']) {
+    i18n.global.locale.value = language
+    const output = await renderToString(
+      createSSRApp(Denied).use(navStore()._p).use(router).use(i18n),
+    )
+    assert.ok(output.includes(i18n.global.t('permissions.deniedBody')))
+    assert.ok(output.includes(`/admin/projects/${uuid}/brief`))
+  }
+  permissions.manage_project_settings = false
+  await router.push(`/admin/projects/${uuid}/settings`)
+  assert.equal(router.currentRoute.value.path, `/admin/projects/${uuid}/forbidden`)
+  await router.push(`/admin/projects/${uuid}`)
+  assert.equal(router.currentRoute.value.path, `/admin/projects/${uuid}/brief`)
+})
+
+test('a developer cannot open global project creation but retains personal settings', async () => {
+  const { request } = backend()
+  const scoped = async (path, options) => {
+    if (path === '/api/admin/notifications')
+      return {
+        user: { email: 'ko@example.test', notificationPreferenceId: 'ko' },
+        events: {},
+        projects: [],
+      }
+    const result = await request(path, options)
+    if (path === '/api/admin/me') result.user.membershipRole = 'admin'
+    return result
+  }
+  api.request = scoped
+  const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request: scoped })
+  await router.push('/admin/projects/new')
+  assert.equal(router.currentRoute.value.fullPath, '/admin/unavailable?reason=permission')
+  await router.push('/admin/account')
+  assert.equal(router.currentRoute.value.path, '/admin/account')
+})
+
+test('project creation can be delegated explicitly and revocation is checked despite cached navigation', async () => {
+  const { request } = backend()
+  let allowed = false
+  const scoped = async (path, options) => {
+    const result = await request(path, options)
+    if (path === '/api/admin/me')
+      Object.assign(result.user, { membershipRole: 'admin', canCreateProjects: allowed })
+    return result
+  }
+  api.request = scoped
+  const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request: scoped })
+  await router.push('/admin/projects/new')
+  assert.equal(router.currentRoute.value.fullPath, '/admin/unavailable?reason=permission')
+  allowed = true
+  await router.push('/admin/projects/new')
+  assert.equal(router.currentRoute.value.path, '/admin/projects/new')
+  await router.push('/admin')
+  allowed = false
+  await router.push('/admin/projects/new')
+  assert.equal(router.currentRoute.value.fullPath, '/admin/unavailable?reason=permission')
 })

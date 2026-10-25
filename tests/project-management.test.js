@@ -1,3 +1,4 @@
+import { allProjectPermissions } from './helpers/projectPermissions.js'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
@@ -24,7 +25,7 @@ test('management API scopes links by client and never retains plaintext in the s
             ? { data: people }
             : url.endsWith('/sections')
               ? { data: [{ id: 'main', name: 'Главная', position: 1 }] }
-              : { data: { id: 'project' } }
+              : { data: { id: 'project', permissions: { ...allProjectPermissions } } }
     return new Response(JSON.stringify(payload), {
       headers: { 'Content-Type': 'application/json' },
     })

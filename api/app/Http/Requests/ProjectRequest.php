@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Services\CurrentWorkspace;
+use App\Services\ProjectPermissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,7 @@ class ProjectRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() && (bool) app(CurrentWorkspace::class)->resolve($this);
+        return $this->user() && (! $this->isMethod('POST') || ProjectPermissions::canCreateProjects(app(CurrentWorkspace::class)->resolve($this)));
     }
 
     public function rules(): array

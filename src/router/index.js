@@ -1,3 +1,4 @@
+import { canCreateProjects } from '../services/projectPermissions.js'
 import { ref } from 'vue'
 import { useDiscussionsStore, useClientDiscussionsStore } from '../stores/discussions.js'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
@@ -105,11 +106,12 @@ export function createProjectRouter({
               {
                 path: '',
                 redirect: (to) => ({
-                  path: to.path + (to.hash === '#client-access' ? '/clients' : '/settings'),
+                  path: to.path + (to.hash === '#client-access' ? '/clients' : '/brief'),
                   hash: '',
                 }),
               },
               ...[
+                'forbidden',
                 'discussions',
                 'clients',
                 'team',
@@ -120,6 +122,7 @@ export function createProjectRouter({
               ].map((section) => ({
                 path: section,
                 component: {
+                  forbidden: () => import('../views/ProjectPermissionDeniedView.vue'),
                   discussions: () => import('../views/AdminProjectDiscussionsView.vue'),
                   clients: () => import('../views/AdminProjectClientsView.vue'),
                   team: () => import('../views/AdminProjectTeamView.vue'),
@@ -131,7 +134,13 @@ export function createProjectRouter({
                 meta: {
                   projectSection: section,
                   get title() {
-                    return t(section === 'team' ? 'team.title' : 'nav.' + section)
+                    return t(
+                      section === 'forbidden'
+                        ? 'permissions.deniedTitle'
+                        : section === 'team'
+                          ? 'team.title'
+                          : 'nav.' + section,
+                    )
                   },
                 },
               })),
@@ -381,6 +390,22 @@ export function createProjectRouter({
         return true
       }
       if (current !== revision) return false
+      if (to.path === '/admin/projects/new') {
+        try {
+          const me = await request('/api/admin/me')
+          if (current !== revision) return false
+          nav.user = me.user
+          if (!canCreateProjects(me.user)) return '/admin/unavailable?reason=permission'
+        } catch (error) {
+          if (current !== revision) return false
+          if ([401, 403].includes(error.status)) {
+            nav.clear()
+            return '/admin/login'
+          }
+          toast.error(() => formatApiError(error))
+          return false
+        }
+      }
       if (to.params.uuid) {
         nav.pageLoading = true
         try {
@@ -404,6 +429,7 @@ export function createProjectRouter({
           } else {
             const loaded = await management.load(to.params.uuid, to.meta.projectSection, {
               defer: true,
+              isOwner: nav.user?.membershipRole === 'owner',
             })
             if (current !== revision || loaded === false) return false
             let discussionCommit
@@ -420,6 +446,8 @@ export function createProjectRouter({
           }
         } catch (error) {
           if (current !== revision) return false
+          if (error.code === 'project_permission_denied')
+            return `/admin/projects/${to.params.uuid}/forbidden`
           if (from.matched.length && ![401, 403, 404].includes(error.status)) {
             toast.error(() => formatApiError(error))
             return false

@@ -1,0 +1,23 @@
+{
+  "realLaravelApi": true,
+  "realSmtp": "local disposable sink; Jino deferred to user",
+  "results": [
+    "Real SMTP sink → invitation-only registration → assigned-project list; token removed and single-use; developer cannot manage team",
+    "Workspace creation capability: off by default; owner can grant; developer creates an assigned project with safe defaults; no team management; revocation blocks an already-open form",
+    "Project permissions: safe invitation defaults; every ability independent; direct URL/API denial; revoked settings rejected on already-open page; different rights in two projects; membership revocation; ordinary ideas and personal account retained",
+    "Existing account accepts a second project; owner revokes one assignment during an active session; API and refreshed list exclude it",
+    "Global profile name saved; uploaded avatar served privately as normalized WebP; Gravatar explicitly enabled; reset to initials",
+    "Email confirmation via SMTP message keeps old login until proof, preserves memberships and rejects replay",
+    "Password change keeps current session and rejects another authenticated database session",
+    "Laravel Password Broker reset from SMTP message revokes previous session and allows login with the new password",
+    "Permissions visual 1440-ru-light: per-project selector, six accessible switches, independent save/reset, no overflow",
+    "Permissions visual 1440-ru-dark: per-project selector, six accessible switches, independent save/reset, no overflow",
+    "Permissions visual 1440-en-light: per-project selector, six accessible switches, independent save/reset, no overflow",
+    "Permissions visual 1440-en-dark: per-project selector, six accessible switches, independent save/reset, no overflow",
+    "Permissions visual 390-ru-light: per-project selector, six accessible switches, independent save/reset, no overflow",
+    "Permissions visual 390-ru-dark: per-project selector, six accessible switches, independent save/reset, no overflow",
+    "Permissions visual 390-en-light: per-project selector, six accessible switches, independent save/reset, no overflow",
+    "Permissions visual 390-en-dark: per-project selector, six accessible switches, independent save/reset, no overflow"
+  ],
+  "errors": []
+}

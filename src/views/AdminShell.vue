@@ -98,7 +98,9 @@ async function openTrash() {
     await trash.value?.show()
   } catch (cause) {
     toast.error(() => formatApiError(cause))
-    if ([401, 403, 404].includes(cause.status)) {
+    if (cause.code === 'project_permission_denied') {
+      await router.replace(`/admin/projects/${id}/forbidden`)
+    } else if ([401, 403, 404].includes(cause.status)) {
       nav.removeProject(id)
       useProjectManagementStore().clear()
       store.clearApiState()

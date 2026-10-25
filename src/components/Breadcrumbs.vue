@@ -29,7 +29,11 @@ const items = computed(() => {
   if (route.meta.projectSection !== 'brief') {
     path.push({
       label: t(
-        route.meta.projectSection === 'team' ? 'team.title' : 'nav.' + route.meta.projectSection,
+        route.meta.projectSection === 'forbidden'
+          ? 'permissions.deniedTitle'
+          : route.meta.projectSection === 'team'
+            ? 'team.title'
+            : 'nav.' + route.meta.projectSection,
       ),
     })
   } else if (route.meta.editTask || route.path.endsWith('/task/new')) {

@@ -1,3 +1,4 @@
+import { allProjectPermissions } from './projectPermissions.js'
 import { createDemoData } from '../../src/data/demo.js'
 import { notificationEvents } from '../../src/services/notificationSettings.js'
 export const uuid = '11111111-1111-4111-8111-111111111111'
@@ -41,6 +42,7 @@ export async function taskWorkspaceFixture(browser, config, { output, port = 518
   ]
   const project = {
     ...data.project,
+    permissions: config.permissions || { ...allProjectPermissions },
     id: uuid,
     sections: data.sections,
     status: 'active',

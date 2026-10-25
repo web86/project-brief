@@ -1,3 +1,4 @@
+import { allProjectPermissions } from './helpers/projectPermissions.js'
 import { before, after, beforeEach, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -27,6 +28,13 @@ before(async () => {
 after(async () => server.close())
 beforeEach(() => setActivePinia(createPinia()))
 async function render(Component, path, props = {}) {
+  navStore().ready = true
+  const management = (
+    await server.ssrLoadModule('/src/stores/projectManagement.js')
+  ).useProjectManagementStore()
+  management.adopt(
+    navStore().projects.find((project) => path.includes('/' + project.id + '/')) || null,
+  )
   const router = routerFactory({ history: createMemoryHistory(), apiMode: false })
   await router.push(path)
   const app = createSSRApp(Component, props)
@@ -47,7 +55,9 @@ test('owner team navigation has decorative aligned icons, active state, right-ha
   for (const lang of ['ru', 'en']) {
     i18n.global.locale.value = lang
     navStore().user = { membershipRole: 'owner' }
-    navStore().projects = [{ id: 'test', unreadCommentCount: 3 }]
+    navStore().projects = [
+      { id: 'test', unreadCommentCount: 3, permissions: { ...allProjectPermissions } },
+    ]
     const html = await render(Navigation, '/admin/projects/test/team', { vertical: true })
     assert.ok(html.includes(i18n.global.t('team.title')))
     assert.match(html, /aria-current="page"[^>]*href="\/admin\/projects\/test\/team"/)
@@ -59,6 +69,7 @@ test('owner team navigation has decorative aligned icons, active state, right-ha
 })
 test('developer menu omits owner-only team management and retains existing tools', async () => {
   navStore().user = { membershipRole: 'admin' }
+  navStore().projects = [{ id: 'test', permissions: { ...allProjectPermissions } }]
   const html = await render(Navigation, '/admin/projects/test/brief', { vertical: true })
   assert.ok(!html.includes('/test/team'))
   assert.ok(html.includes('/test/clients'))
@@ -73,4 +84,31 @@ test('global account tabs use the same icons and exact active page in both langu
     assert.ok(html.includes('/admin/settings/notifications'))
     assert.equal((html.match(/aria-hidden="true"/g) || []).length, 3)
   }
+})
+
+test('project menu fails closed and reflects every independent API capability in both languages and layouts', async () => {
+  const { defaultProjectPermissions } = await import('../src/services/projectPermissions.js')
+  navStore().user = { membershipRole: 'admin' }
+  for (const lang of ['ru', 'en']) {
+    i18n.global.locale.value = lang
+    for (const vertical of [false, true]) {
+      for (const enabled of [null, ...Object.keys(defaultProjectPermissions)]) {
+        const permissions = Object.fromEntries(
+          Object.keys(defaultProjectPermissions).map((key) => [key, key === enabled]),
+        )
+        navStore().projects = [{ id: 'test', permissions }]
+        const html = await render(Navigation, '/admin/projects/test/brief', { vertical })
+        for (const item of projectMenu)
+          assert.equal(
+            html.includes('/test/' + item.section),
+            !item.owner && (!item.permission || item.permission === enabled),
+          )
+        assert.equal(html.includes('project-trash-link'), enabled === 'manage_trash')
+      }
+    }
+  }
+  navStore().projects = [{ id: 'test' }]
+  const html = await render(Navigation, '/admin/projects/test/brief')
+  assert.ok(!html.includes('/test/settings'))
+  assert.ok(html.includes('/test/discussions'))
 })

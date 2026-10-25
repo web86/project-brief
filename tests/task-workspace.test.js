@@ -1,3 +1,4 @@
+import { allProjectPermissions } from './helpers/projectPermissions.js'
 import { test, before, beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
@@ -53,12 +54,18 @@ const uuid = '11111111-1111-4111-8111-111111111111'
 async function fixture(admin = true) {
   const data = demo(),
     calls = []
-  const project = { ...data.project, id: uuid, sections: data.sections, unreadCommentCount: 3 }
+  const project = {
+    ...data.project,
+    permissions: { ...allProjectPermissions },
+    id: uuid,
+    sections: data.sections,
+    unreadCommentCount: 3,
+  }
   const request = async (path, options) => {
     calls.push({ path, ...options })
     if (path === '/api/admin/me')
       return {
-        user: { name: 'Administrator', email: 'admin@example.test' },
+        user: { name: 'Administrator', email: 'admin@example.test', membershipRole: 'owner' },
         workspace: { id: 'workspace', name: 'Workspace' },
       }
     if (path === '/api/admin/workspaces') return { data: [{ id: 'workspace', name: 'Workspace' }] }

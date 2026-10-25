@@ -24,7 +24,7 @@ class ProjectController extends Controller
         $project = DB::transaction(function () use ($request): Project {
             $member = app(CurrentWorkspace::class)->resolve($request);
             $project = $member->workspace->projects()->create($request->projectData());
-            if ($member->role === 'admin') {
+            if ($member->role !== 'owner') {
                 $project->members()->create(['workspace_id' => $member->workspace_id, 'workspace_member_id' => $member->id]);
             }
             foreach ($request->validated('sections') ?? ['Главная', 'Каталог', 'Карточка товара', 'Контакты', 'Общее'] as $index => $name) {

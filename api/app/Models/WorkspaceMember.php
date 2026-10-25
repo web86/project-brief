@@ -12,11 +12,11 @@ class WorkspaceMember extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at'];
+    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'can_create_projects'];
 
     protected function casts(): array
     {
-        return ['workspace_id' => 'integer', 'user_id' => 'integer', 'joined_at' => 'datetime'];
+        return ['workspace_id' => 'integer', 'user_id' => 'integer', 'joined_at' => 'datetime', 'can_create_projects' => 'boolean'];
     }
 
     public function scopeActive(Builder $query): Builder

@@ -254,10 +254,17 @@ try {
         await global.locator('.workspace-help').focus()
         assert.equal(await global.locator('.workspace-tooltip').isVisible(), true)
         await f.screenshot(`management-global-${label}`)
-        await global.locator('.sidebar-create').click()
-        await f.waitRoute('/admin/projects/new')
-        assert.equal(await crumbs.locator('li').count(), 2)
-        await crumbs.locator('a').click()
+        if (config.role === 'admin') {
+          assert.equal(await global.locator('.sidebar-create').count(), 0)
+          await page.goto(`http://127.0.0.1:5188/admin/projects/new`)
+          await f.waitRoute('/admin/unavailable?reason=permission')
+          await page.locator('.page-empty a[href="/admin"]').click()
+        } else {
+          await global.locator('.sidebar-create').click()
+          await f.waitRoute('/admin/projects/new')
+          assert.equal(await crumbs.locator('li').count(), 2)
+          await crumbs.locator('a').click()
+        }
         await f.waitRoute('/admin')
         global = await openGlobal()
         await global.locator('.sidebar-workspace select').selectOption('other-workspace')

@@ -1,4 +1,30 @@
 export default {
+  permissions: {
+    createProjects: 'Allow project creation',
+    createProjectsHint:
+      'Applies to this workspace. New projects are assigned to the developer with default permissions. Team management stays with the owner.',
+    title: 'Project permissions',
+    project: 'Permissions for project',
+    hint: 'These settings apply only to the selected project. Ideas, comments and attachments remain available. Team management stays with the workspace owner.',
+    reset: 'Reset this project to defaults',
+    deniedTitle: 'Access requires permission',
+    deniedBody:
+      'Ask the workspace owner to enable access to this section. You can continue working with ideas.',
+    createOwnerOnly: 'Ask the workspace owner to allow you to create projects.',
+    chooseSection: 'Choose an existing section',
+    manage_structure: 'Manage structure',
+    manage_structureHint: 'Create, rename, reorder and remove sections.',
+    manage_clients: 'Manage clients',
+    manage_clientsHint: 'View client details and manage their access links.',
+    manage_project_settings: 'Manage project settings',
+    manage_project_settingsHint: 'Change project name, website, currency and status.',
+    manage_project_notifications: 'Manage project notifications',
+    manage_project_notificationsHint: 'View delivery rules and select project recipients.',
+    export_project: 'Export project',
+    export_projectHint: 'Generate PDF and DOCX documents, including internal developer fields.',
+    manage_trash: 'Manage trash',
+    manage_trashHint: 'View and restore deleted ideas.',
+  },
   notificationUi: {
     promptTitle: 'Never miss an important update!',
     promptDescription:
@@ -101,7 +127,7 @@ export default {
     resend: 'Resend invitation',
     revoke: 'Revoke invitation',
     remove: 'Remove from workspace',
-    edit: 'Edit projects',
+    edit: 'Projects and permissions',
     sent: 'Invitation sent',
     saved: 'Access updated',
     empty: 'No pending invitations',

@@ -4,7 +4,9 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { createServer } from 'vite'
 import { taskWorkspaceFixture, uuid } from './helpers/taskWorkspace.browser.mjs'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
-const output = new URL('../docs/milestone-4-8-2/', import.meta.url)
+const output = process.env.NOTIFICATIONS_UI_OUTPUT_DIR
+  ? new URL('file://' + process.env.NOTIFICATIONS_UI_OUTPUT_DIR.replace(/\/$/, '') + '/')
+  : new URL('../docs/milestone-4-8-2/', import.meta.url)
 await mkdir(output, { recursive: true })
 const server = await createServer({
   envFile: false,

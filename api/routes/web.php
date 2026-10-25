@@ -76,7 +76,7 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
     Route::get('/', [ProjectController::class, 'index']);
     Route::post('/', [ProjectController::class, 'store']);
     Route::get('/{project}', [ProjectController::class, 'show']);
-    Route::patch('/{project}', [ProjectController::class, 'update']);
+    Route::patch('/{project}', [ProjectController::class, 'update'])->middleware('project.permission:manage_project_settings');
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
@@ -87,21 +87,21 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
     Route::patch('/team/members/{member}', [ProjectTeamController::class, 'update']);
     Route::delete('/team/members/{member}', [ProjectTeamController::class, 'destroy']);
     Route::post('/ai/task-assistant', AiTaskAssistantController::class);
-    Route::post('/export', ProjectExportController::class);
+    Route::post('/export', ProjectExportController::class)->middleware('project.permission:export_project');
     Route::get('/discussions', [ProjectDiscussionController::class, 'index']);
     Route::post('/discussions', [ProjectDiscussionController::class, 'store'])->middleware('throttle:comments');
     Route::post('/discussions/read', [ProjectDiscussionController::class, 'read']);
     Route::get('/activity', [ProjectActivityController::class, 'show']);
     Route::post('/activity/read', [ProjectActivityController::class, 'read']);
-    Route::get('/clients', [ProjectClientController::class, 'index']);
-    Route::post('/clients', [ProjectClientController::class, 'store']);
-    Route::patch('/clients/{client}', [ProjectClientController::class, 'update']);
-    Route::post('/clients/{client}/access-links', [AccessLinkController::class, 'store']);
-    Route::delete('/clients/{client}/access-links/{token}', [AccessLinkController::class, 'destroy']);
+    Route::get('/clients', [ProjectClientController::class, 'index'])->middleware('project.permission:manage_clients');
+    Route::post('/clients', [ProjectClientController::class, 'store'])->middleware('project.permission:manage_clients');
+    Route::patch('/clients/{client}', [ProjectClientController::class, 'update'])->middleware('project.permission:manage_clients');
+    Route::post('/clients/{client}/access-links', [AccessLinkController::class, 'store'])->middleware('project.permission:manage_clients');
+    Route::delete('/clients/{client}/access-links/{token}', [AccessLinkController::class, 'destroy'])->middleware('project.permission:manage_clients');
     Route::get('/sections', [ProjectSectionController::class, 'index']);
-    Route::post('/sections', [ProjectSectionController::class, 'store']);
-    Route::patch('/sections/{section}', [ProjectSectionController::class, 'update']);
-    Route::delete('/sections/{section}', [ProjectSectionController::class, 'destroy']);
+    Route::post('/sections', [ProjectSectionController::class, 'store'])->middleware('project.permission:manage_structure');
+    Route::patch('/sections/{section}', [ProjectSectionController::class, 'update'])->middleware('project.permission:manage_structure');
+    Route::delete('/sections/{section}', [ProjectSectionController::class, 'destroy'])->middleware('project.permission:manage_structure');
 });
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
@@ -133,7 +133,7 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::post('/account/avatar', [AccountController::class, 'avatar'])->middleware('throttle:uploads');
     Route::get('/avatars/{key}', [AccountController::class, 'image']);
 
-    Route::get('/projects/{project}/trash', [TaskTrashController::class, 'index']);
+    Route::get('/projects/{project}/trash', [TaskTrashController::class, 'index'])->middleware('project.permission:manage_trash');
     Route::post('/tasks/{task}/restore', [TaskTrashController::class, 'restore']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
     Route::post('/tasks/{task}/place', [TaskOrderController::class, 'place']);
@@ -171,7 +171,7 @@ foreach (['admin', 'client'] as $actor) {
         Route::delete('/subscriptions', [PushSubscriptionController::class, 'destroy']);
     });
 }
-Route::middleware('admin')->prefix('/api/admin/projects/{project}/notifications')->group(function () {
+Route::middleware(['admin', 'project.permission:manage_project_notifications'])->prefix('/api/admin/projects/{project}/notifications')->group(function () {
     Route::get('/', [NotificationSettingsController::class, 'show']);
     Route::patch('/', [NotificationSettingsController::class, 'update']);
     Route::post('/test', [NotificationSettingsController::class, 'test'])->middleware('throttle:5,1');

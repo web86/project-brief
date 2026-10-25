@@ -5258,3 +5258,28 @@ button.attachment-item:hover {
     gap: 4px;
   }
 }
+
+.member-permissions {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 0;
+}
+.member-permissions legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+.member-permission {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.member-permission p {
+  margin: 6px 0 0;
+}
+.member-permissions > button {
+  margin-top: 16px;
+}
+.member-permissions select {
+  width: 100%;
+}

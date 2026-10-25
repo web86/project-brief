@@ -115,6 +115,7 @@ export function formatApiError(error) {
   if (typeof error === 'string') return error
   if (Object.hasOwn(i18n.global.messages.value.en.ai.errors, error.code))
     return t(`ai.errors.${error.code}`)
+  if (error.code === 'project_permission_denied') return t('permissions.deniedBody')
   if (error.code === 'timeout') return t('flow.requestTimeout')
   if (error.code === 'invalid_credentials') return t('flow.invalidCredentials')
   if (error.messageKey) return t(error.messageKey, error.params || {})

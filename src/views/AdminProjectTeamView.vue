@@ -1,8 +1,10 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
+import { defaultProjectPermissions } from '../services/projectPermissions.js'
+import NotificationToggle from '../components/NotificationToggle.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 const route = useRoute(),
@@ -16,6 +18,31 @@ const email = ref(''),
   busy = ref(false),
   error = ref(''),
   success = ref('')
+const createProjects = ref(false)
+const permissionProject = ref(''),
+  permissionValues = ref({})
+const permissionKeys = Object.keys(defaultProjectPermissions)
+const assignedProjects = computed(
+  () => state.value?.projects.filter((project) => selected.value.includes(project.id)) || [],
+)
+watch(
+  selected,
+  (ids) => {
+    for (const id of ids) permissionValues.value[id] ||= { ...defaultProjectPermissions }
+    if (!ids.includes(permissionProject.value)) permissionProject.value = ids[0] || ''
+  },
+  { deep: true },
+)
+function saveMember(member) {
+  const projectPermissions = Object.fromEntries(
+    selected.value.map((id) => [id, permissionValues.value[id]]),
+  )
+  return action('/members/' + member.id, 'PATCH', {
+    projects: selected.value,
+    projectPermissions,
+    canCreateProjects: createProjects.value,
+  })
+}
 const root = `/api/admin/projects/${route.params.uuid}/team`
 async function load() {
   state.value = await api.request(root)
@@ -61,7 +88,17 @@ async function invite() {
 }
 function edit(member) {
   editing.value = member.id
+  createProjects.value = member.canCreateProjects === true
+  permissionValues.value = Object.fromEntries(
+    member.projects.map((id) => [
+      id,
+      { ...defaultProjectPermissions, ...member.projectPermissions?.[id] },
+    ]),
+  )
   selected.value = [...member.projects]
+  permissionProject.value = member.projects.includes(route.params.uuid)
+    ? route.params.uuid
+    : member.projects[0] || ''
 }
 function date(value) {
   return value
@@ -153,11 +190,7 @@ function remove(member) {
               {{ t('team.remove') }}
             </button>
           </div>
-          <form
-            v-if="editing === member.id"
-            class="team-edit"
-            @submit.prevent="action('/members/' + member.id, 'PATCH', { projects: selected })"
-          >
+          <form v-if="editing === member.id" class="team-edit" @submit.prevent="saveMember(member)">
             <fieldset class="project-choices">
               <legend>{{ t('team.projects') }}</legend>
               <label v-for="project in state.projects" :key="project.id"
@@ -165,6 +198,48 @@ function remove(member) {
                   project.name
                 }}</label
               >
+            </fieldset>
+            <div class="member-creation-permission">
+              <NotificationToggle
+                :checked="createProjects"
+                :disabled="busy"
+                :label="t('permissions.createProjects')"
+                @change="createProjects = $event.target.checked"
+              />
+              <p class="small muted">{{ t('permissions.createProjectsHint') }}</p>
+            </div>
+            <fieldset v-if="assignedProjects.length" class="member-permissions">
+              <legend>{{ t('permissions.title') }}</legend>
+              <div class="field">
+                <label :for="'permission-project-' + member.id">{{
+                  t('permissions.project')
+                }}</label>
+                <select :id="'permission-project-' + member.id" v-model="permissionProject">
+                  <option v-for="project in assignedProjects" :key="project.id" :value="project.id">
+                    {{ project.name }}
+                  </option>
+                </select>
+              </div>
+              <p class="small muted">{{ t('permissions.hint') }}</p>
+              <template v-if="permissionValues[permissionProject]">
+                <div v-for="key in permissionKeys" :key="key" class="member-permission">
+                  <NotificationToggle
+                    :checked="permissionValues[permissionProject][key]"
+                    :disabled="busy"
+                    :label="t('permissions.' + key)"
+                    @change="permissionValues[permissionProject][key] = $event.target.checked"
+                  />
+                  <p class="small muted">{{ t('permissions.' + key + 'Hint') }}</p>
+                </div>
+              </template>
+              <button
+                type="button"
+                class="button secondary"
+                :disabled="busy"
+                @click="permissionValues[permissionProject] = { ...defaultProjectPermissions }"
+              >
+                {{ t('permissions.reset') }}
+              </button>
             </fieldset>
             <div class="team-actions">
               <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
