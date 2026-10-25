@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectStore } from '../stores/project.js'
+import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { api } from '../api/client.js'
 import { toast } from '../services/toast.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
@@ -11,8 +12,8 @@ import { t, formatApiError } from '../i18n/index.js'
 import TaskHeaderNavigation from '../components/TaskHeaderNavigation.vue'
 import TaskNavigator from '../components/TaskNavigator.vue'
 import Breadcrumbs from '../components/Breadcrumbs.vue'
-import AdminAccount from '../components/AdminAccount.vue'
-import ProjectNavigation from '../components/ProjectNavigation.vue'
+import ProjectSidebar from '../components/ProjectSidebar.vue'
+import ProjectTrash from '../components/ProjectTrash.vue'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
 import AdminSidebar from '../components/AdminSidebar.vue'
 import AppIcon from '../components/AppIcon.vue'
@@ -24,6 +25,10 @@ const route = useRoute(),
   nav = useAdminNavigationStore(),
   store = useProjectStore(),
   workspace = useTaskWorkspaceStore()
+const project = computed(() => nav.projectForRoute(route.params.uuid))
+const trash = ref(null)
+const trashOpening = ref(false)
+const trashOpen = computed(() => !!trash.value?.open)
 const menu = ref(null),
   dialog = ref(null),
   loggingOut = ref(false)
@@ -78,6 +83,30 @@ watch(
     if (workspace.panel === 'admin' && route.meta.taskDetail) drawer.show()
   },
 )
+async function openTrash() {
+  const id = project.value?.id
+  if (!id || trashOpening.value) return
+  trashOpening.value = true
+  closeMenu(false)
+  try {
+    if (store.project.id !== id) {
+      if (!(await store.loadApiProject(id, true, { skipAdmin: true }))) return
+    }
+    if (project.value?.id !== id) return
+    await nextTick()
+    await trash.value?.show()
+  } catch (cause) {
+    toast.error(() => formatApiError(cause))
+    if ([401, 403, 404].includes(cause.status)) {
+      nav.removeProject(id)
+      useProjectManagementStore().clear()
+      store.clearApiState()
+      await router.replace(cause.status === 401 ? '/admin/login' : '/admin/unavailable')
+    }
+  } finally {
+    trashOpening.value = false
+  }
+}
 async function retry() {
   try {
     await nav.bootstrap(api.request, true)
@@ -113,7 +142,13 @@ async function logout() {
   >
     <TaskNavigator v-if="task" :task="task" />
     <aside v-if="!route.meta.taskDetail" class="admin-sidebar">
-      <AdminSidebar>
+      <AdminSidebar
+        :busy="loggingOut"
+        :trash-busy="trashOpening"
+        :trash-open="trashOpen"
+        @trash="openTrash"
+        @logout="logout"
+      >
         <template #logout
           ><button class="text-button" :disabled="loggingOut" @click="logout">
             {{ t('ui.signOut') }}
@@ -203,28 +238,26 @@ async function logout() {
         class="admin-drawer-content"
         :class="{ 'task-management-content': route.meta.taskDetail }"
       >
-        <section v-if="route.meta.taskDetail" class="task-project-management">
-          <h2>{{ t('taskWorkspace.manageProject') }}</h2>
-          <p class="small muted">{{ store.project.name }}</p>
-          <ProjectNavigation vertical />
-        </section>
-        <template v-if="route.meta.taskDetail">
-          <div class="task-global-management">
-            <RouterLink to="/admin" class="task-all-projects">
-              <AppIcon name="grid" :size="20" />
-              <span>{{ t('nav.allProjects') }}</span>
-              <AppIcon name="chevron" :size="18" />
-            </RouterLink>
-          </div>
-          <RouterLink to="/admin/settings/notifications" class="task-personal-settings"
-            ><AppIcon name="bell" :size="20" />{{
-              t('centralNotifications.myNotifications')
-            }}</RouterLink
+        <ProjectSidebar
+          v-if="route.meta.taskDetail && project"
+          :project="project"
+          task
+          :busy="loggingOut"
+          :trash-busy="trashOpening"
+          :trash-open="trashOpen"
+          @navigate="closeMenu(false)"
+          @trash="openTrash"
+          @logout="logout"
+        />
+        <div v-else-if="!route.meta.taskDetail">
+          <AdminSidebar
+            :busy="loggingOut"
+            :trash-busy="trashOpening"
+            :trash-open="trashOpen"
+            @navigate="closeMenu(false)"
+            @trash="openTrash"
+            @logout="logout"
           >
-          <AdminAccount v-if="nav.user" :user="nav.user" :busy="loggingOut" @logout="logout" />
-        </template>
-        <div v-else>
-          <AdminSidebar @navigate="closeMenu(false)">
             <template #logout
               ><button class="text-button" :disabled="loggingOut" @click="logout">
                 {{ t('ui.signOut') }}
@@ -234,5 +267,6 @@ async function logout() {
         </div>
       </div>
     </dialog>
+    <ProjectTrash v-if="project" ref="trash" :trigger="false" />
   </div>
 </template>

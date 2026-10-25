@@ -3,7 +3,9 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t } from '../i18n/index.js'
-defineProps({ vertical: Boolean })
+import AppIcon from './AppIcon.vue'
+defineProps({ vertical: Boolean, trashBusy: Boolean, trashOpen: Boolean })
+const emit = defineEmits(['navigate', 'trash'])
 const route = useRoute(),
   nav = useAdminNavigationStore()
 const unreadComments = computed(
@@ -30,6 +32,7 @@ const sections = [
       :to="`/admin/projects/${route.params.uuid}/${section}`"
       :aria-current="route.meta.projectSection === section ? 'page' : undefined"
       :class="{ active: route.meta.projectSection === section }"
+      @click="emit('navigate')"
     >
       {{ t('nav.' + section) }}
       <span
@@ -39,5 +42,15 @@ const sections = [
         >{{ unreadComments }}</span
       >
     </RouterLink>
+    <button
+      type="button"
+      class="project-trash-link"
+      :disabled="trashBusy"
+      :aria-expanded="trashOpen"
+      aria-haspopup="dialog"
+      @click="emit('trash')"
+    >
+      <AppIcon name="trash" :size="17" /><span>{{ t('management.trash') }}</span>
+    </button>
   </nav>
 </template>

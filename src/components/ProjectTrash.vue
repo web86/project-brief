@@ -5,6 +5,7 @@ import { useProjectStore } from '../stores/project.js'
 import AppIcon from './AppIcon.vue'
 import BaseDialog from './BaseDialog.vue'
 import LoadingButton from './LoadingButton.vue'
+defineProps({ trigger: { type: Boolean, default: true } })
 const store = useProjectStore()
 const open = ref(false)
 const loading = ref(false)
@@ -17,9 +18,14 @@ async function show() {
     loading.value = false
   }
 }
+defineExpose({ show, open, loading })
 </script>
 <template>
-  <LoadingButton class="text-button project-trash-trigger" :busy="loading" @click="show"
+  <LoadingButton
+    v-if="trigger"
+    class="text-button project-trash-trigger"
+    :busy="loading"
+    @click="show"
     ><AppIcon name="trash" :size="17" />{{ t('management.trash') }}</LoadingButton
   >
   <BaseDialog

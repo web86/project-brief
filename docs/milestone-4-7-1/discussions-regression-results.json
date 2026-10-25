@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "locale": "ru",
+      "theme": "light",
+      "colorScheme": "light",
+      "passed": true,
+      "requests": 27
+    },
+    {
+      "width": 1440,
+      "locale": "en",
+      "theme": "dark",
+      "colorScheme": "dark",
+      "passed": true,
+      "requests": 27
+    },
+    {
+      "width": 390,
+      "locale": "ru",
+      "theme": "light",
+      "colorScheme": "light",
+      "passed": true,
+      "requests": 27
+    },
+    {
+      "width": 320,
+      "locale": "en",
+      "theme": "system",
+      "colorScheme": "dark",
+      "passed": true,
+      "requests": 27
+    }
+  ],
+  "clientPrivacy": true
+}

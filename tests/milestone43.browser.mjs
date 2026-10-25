@@ -195,7 +195,14 @@ async function fixture({ width, locale, theme, colorScheme, client = false }) {
       await page.locator('.task-admin-trigger').click()
       await page.locator('#admin-drawer[open]').waitFor()
     }
-    const navigation = page.locator(inTask ? '.project-panel-nav' : '.project-subnav')
+    const mobile = page.viewportSize().width <= 960
+    if (!inTask && mobile) {
+      await page.locator('.admin-menu-trigger').click()
+      await page.locator('#admin-drawer[open]').waitFor()
+    }
+    const navigation = page.locator(
+      inTask || mobile ? '#admin-drawer .project-panel-nav' : '.admin-sidebar .project-panel-nav',
+    )
     await navigation.locator(`a[href="${base}/${section}"]`).click()
     if (wait) {
       try {

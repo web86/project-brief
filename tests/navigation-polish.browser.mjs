@@ -206,13 +206,25 @@ try {
           'settings',
           'export',
         ]) {
-          await page.locator(`.project-subnav a[href$="/${section}"]`).click()
+          if (mobile) await page.locator('.admin-menu-trigger').click()
+          await page
+            .locator(
+              mobile ? '#admin-drawer .project-panel-nav' : '.admin-sidebar .project-panel-nav',
+            )
+            .locator(`a[href$="/${section}"]`)
+            .click()
           await f.waitRoute(`${adminRoot}/${section}`)
           assert.equal(await crumbs.locator('li').count(), 3)
           assert.equal(await crumbs.locator('li:last-child a').count(), 0)
         }
         await f.screenshot(`after-breadcrumbs-${label}`)
-        await page.locator('.project-subnav a[href$="/brief"]').click()
+        if (mobile) await page.locator('.admin-menu-trigger').click()
+        await page
+          .locator(
+            mobile ? '#admin-drawer .project-panel-nav' : '.admin-sidebar .project-panel-nav',
+          )
+          .locator('a[href$="/brief"]')
+          .click()
         await f.waitRoute(`${adminRoot}/brief`)
         await page.locator(`.task-card[href="${f.path(f.first.id)}"]`).click()
         await f.waitRoute(f.path(f.first.id))

@@ -9,10 +9,13 @@ const store = useProjectStore()
 const route = useRoute()
 </script>
 <template>
-  <header class="project-header">
-    <div v-if="!route.meta.adminShell" class="project-intro">
+  <header
+    class="project-header"
+    :class="{ 'admin-project-overview': route.meta.adminShell && route.meta.projectOverview }"
+  >
+    <div v-if="!route.meta.adminShell || route.meta.projectOverview" class="project-intro">
       <h1>{{ store.project.name }}</h1>
-      <span class="website-label"
+      <span v-if="!route.meta.adminShell" class="website-label"
         ><AppIcon name="globe" :size="15" />{{ store.project.website }}</span
       >
     </div>

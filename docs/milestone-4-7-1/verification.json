@@ -1,0 +1,62 @@
+{
+  "version": "0.4.7.1",
+  "base": "3023f57",
+  "branch": "codex/milestone-4-7-1-navigation-layout",
+  "initialRequestedPush": {
+    "repository": "web86/projects-manager",
+    "branch": "main",
+    "commit": "3023f573cdc86f50a9eb900e778c2811ea94b019",
+    "verifiedViaGitHub": true
+  },
+  "milestone471Pushed": false,
+  "deployed": false,
+  "githubRelease": false,
+  "frontend": {
+    "passed": true,
+    "tests": 200
+  },
+  "laravel": {
+    "passed": true,
+    "php": "8.5.10",
+    "tests": 550,
+    "assertions": 5508,
+    "backendSourcesChanged": false
+  },
+  "browser": {
+    "passed": true,
+    "mainConfigurations": 32,
+    "widths": [1440, 1280, 768, 390, 320],
+    "locales": ["ru", "en"],
+    "themes": ["light", "dark", "system"],
+    "roles": ["owner", "admin"],
+    "transport": "API fixtures; real Chromium inputs"
+  },
+  "browserRegressions": {
+    "taskWorkspace": 8,
+    "taskManagement": 20,
+    "navigationPolish": 10,
+    "discussionsAndClientPrivacy": 4,
+    "passed": true
+  },
+  "newMigrations": [],
+  "pint": {
+    "passed": true,
+    "phpFilesChanged": 0
+  },
+  "prettier": {
+    "passed": true,
+    "scope": ["src", "tests", "deployment", "docs/milestone-4-7-1"]
+  },
+  "productionBuild": {
+    "passed": true,
+    "mode": "api"
+  },
+  "telegramDenoChanged": false,
+  "notificationDeliveryChanged": false,
+  "unavailableExistingRoutes": ["project team", "personal profile", "personal security"],
+  "notes": [
+    "Only existing routes are linked. Trash remains a modal with existing API and restore logic.",
+    "No Milestone 4.7 branch was present; implementation starts at the completed 4.6.1 commit.",
+    "Real notification delivery and physical screen-reader devices were not tested."
+  ]
+}

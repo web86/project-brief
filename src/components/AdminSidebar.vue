@@ -5,11 +5,14 @@ import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t, formatApiError } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
 import UnreadBadge from './UnreadBadge.vue'
-const emit = defineEmits(['navigate'])
+import ProjectSidebar from './ProjectSidebar.vue'
+defineProps({ busy: Boolean, trashBusy: Boolean, trashOpen: Boolean })
+const emit = defineEmits(['navigate', 'logout', 'trash'])
 const nav = useAdminNavigationStore(),
   router = useRouter(),
   route = useRoute()
 const activeProject = computed(() => route.params.uuid)
+const project = computed(() => nav.projectForRoute(route.params.uuid))
 async function select(event) {
   const id = event.target.value
   await nav.switchWorkspace(id, router)
@@ -18,7 +21,17 @@ async function select(event) {
 }
 </script>
 <template>
-  <div class="admin-sidebar-content">
+  <ProjectSidebar
+    v-if="project"
+    :project="project"
+    :busy="busy"
+    :trash-busy="trashBusy"
+    :trash-open="trashOpen"
+    @navigate="emit('navigate')"
+    @logout="emit('logout')"
+    @trash="emit('trash')"
+  />
+  <div v-else-if="!route.params.uuid" class="admin-sidebar-content">
     <RouterLink
       to="/admin"
       class="brand"
@@ -122,4 +135,5 @@ async function select(event) {
       <slot name="logout" />
     </footer>
   </div>
+  <div v-else class="admin-sidebar-content" role="status">{{ t('nav.loading') }}</div>
 </template>

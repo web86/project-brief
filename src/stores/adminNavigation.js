@@ -171,6 +171,15 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     const project = projects.value.find((item) => item.id === id)
     if (project) project.unreadCommentCount = count
   }
+  function projectForRoute(id) {
+    const project = useProjectManagementStore().project
+    return ready.value && !switching.value && id && project?.id === id ? project : null
+  }
+  function removeProject(id) {
+    listRevision++
+    refreshing.value = false
+    projects.value = projects.value.filter((project) => project.id !== id)
+  }
   function updateProject(project) {
     const index = projects.value.findIndex((item) => item.id === project.id)
     if (index < 0) projects.value.unshift({ unreadCount: 0, ...project })
@@ -194,6 +203,8 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     refreshProjects,
     switchWorkspace,
     markRead,
+    projectForRoute,
+    removeProject,
     updateProject,
     updateCommentCount,
   }

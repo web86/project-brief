@@ -126,6 +126,7 @@ export function createProjectRouter({
                   apiProject: true,
                   admin: true,
                   editTask,
+                  projectOverview: path === 'brief',
                   taskDetail: path.endsWith(':id'),
                   get title() {
                     return t('nav.brief')
@@ -396,6 +397,12 @@ export function createProjectRouter({
           if (from.matched.length && ![401, 403, 404].includes(error.status)) {
             toast.error(() => formatApiError(error))
             return false
+          }
+          if ([401, 403, 404].includes(error.status)) {
+            management.clear()
+            store.clearApiState()
+            if (error.status === 401) nav.clear()
+            else nav.removeProject(to.params.uuid)
           }
           return error.status === 401 ? '/admin/login' : '/admin/unavailable'
         } finally {

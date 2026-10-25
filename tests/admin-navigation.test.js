@@ -212,17 +212,22 @@ test('workspace startup loads me/workspaces/projects once in parallel and render
   }
 })
 
-test('sidebar active project and unread badge use accessible labels; zero badges remain hidden', async () => {
+test('project sidebar shows active section and unread discussions without the global project list', async () => {
   const { request } = backend()
   const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
   await router.push(`/admin/projects/${uuid}/settings`)
   i18n.global.locale.value = 'en'
   const nav = navStore()
+  nav.updateCommentCount(uuid, 4)
   const html = await renderToString(createSSRApp(Sidebar).use(nav._p).use(router).use(i18n))
-  assert.ok(html.includes('class="sidebar-project active'))
+  assert.ok(html.includes('discussion-badge'))
+  assert.ok(html.includes('>4</span>'))
+  assert.ok(html.includes('project-sidebar-content'))
   assert.ok(html.includes('aria-current="page"'))
-  assert.equal((html.match(/class="unread-badge"/g) || []).length, 1)
-  assert.ok(html.includes('aria-label="3 new client activities"'))
+  assert.equal(html.includes('sidebar-project-group'), false)
+  assert.equal(html.includes('project-subnav'), false)
+  assert.ok(html.includes('project-trash-link'))
+  assert.ok(html.indexOf('/export') < html.indexOf('project-trash-link'))
 })
 
 test('project subnavigation has dedicated routes and legacy URL redirects without hash', async () => {
@@ -565,4 +570,60 @@ test('an older list response cannot resurrect the badge after marking a project 
   await refresh
   assert.equal(nav.projects[0].unreadCount, 0)
   assert.equal(nav.refreshing, false)
+})
+
+test('project context disappears on workspace clear and never accepts a different route project', async () => {
+  const { request } = backend()
+  const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
+  await router.push(`/admin/projects/${uuid}/settings`)
+  const nav = navStore()
+  assert.equal(nav.projectForRoute(uuid).id, uuid)
+  assert.equal(nav.projectForRoute('foreign'), null)
+  nav.switching = true
+  assert.equal(nav.projectForRoute(uuid), null)
+  nav.switching = false
+  nav.clear()
+  assert.equal(nav.projectForRoute(uuid), null)
+  assert.equal(managementStore().project, null)
+})
+
+test('a revoked project clears its sidebar context, task data and stale project-list entry', async () => {
+  const { request } = backend()
+  const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
+  await router.push(`/admin/projects/${uuid}/brief`)
+  assert.equal(navStore().projectForRoute(uuid).id, uuid)
+  const actual = api.request
+  api.request = async (path, options) => {
+    if (path.endsWith('/clients')) throw { status: 404 }
+    return actual(path, options)
+  }
+  await router.push(`/admin/projects/${uuid}/clients`)
+  assert.equal(router.currentRoute.value.path, '/admin/unavailable')
+  assert.equal(navStore().projectForRoute(uuid), null)
+  assert.equal(
+    navStore().projects.some((project) => project.id === uuid),
+    false,
+  )
+  assert.equal(projectStore().tasks.length, 0)
+  assert.equal(managementStore().project, null)
+})
+
+test('discarding a revoked project invalidates an older pending sidebar refresh', async () => {
+  const { request } = backend()
+  const nav = navStore()
+  await nav.bootstrap(request)
+  let release
+  const refreshing = nav.refreshProjects(
+    () =>
+      new Promise((resolve) => {
+        release = resolve
+      }),
+  )
+  nav.removeProject(uuid)
+  release({ data: [{ id: uuid, name: 'Stale revoked project' }] })
+  await refreshing
+  assert.equal(
+    nav.projects.some((project) => project.id === uuid),
+    false,
+  )
 })

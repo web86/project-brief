@@ -2879,9 +2879,35 @@ button.attachment-item:hover {
   }
 }
 
-.admin-project-shell .project-header {
-  justify-content: flex-end;
-  padding-bottom: 16px;
+/* Shared project overview: one title and equal desktop columns. */
+.admin-project-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 24px;
+}
+.admin-project-overview .project-intro h1 {
+  margin: 0;
+  font-size: 27px;
+  letter-spacing: -0.6px;
+  overflow-wrap: anywhere;
+}
+.admin-project-overview .project-overview {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.admin-project-overview .project-progress {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+.admin-project-overview .project-overview > .button {
+  flex-shrink: 0;
+  width: auto;
 }
 
 .section-heading h2 {
@@ -4510,5 +4536,130 @@ button.attachment-item:hover {
 @media (prefers-reduced-motion: reduce) {
   .task-order-move {
     transition: none;
+  }
+}
+
+/* The project sidebar and its drawer share ProjectNavigation and one trash dialog. */
+.project-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+.project-sidebar-content.admin-sidebar-content {
+  height: auto;
+  min-height: 100%;
+}
+.admin-sidebar:has(.project-sidebar-content) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.project-sidebar-content .task-project-management {
+  padding-bottom: 0;
+}
+.project-sidebar-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.project-sidebar-content .project-panel-nav {
+  margin-top: 16px;
+}
+.project-sidebar-content.admin-sidebar-content .project-panel-nav a {
+  font-size: 13px;
+}
+.project-sidebar-content .project-all-projects {
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.project-sidebar-content .project-all-projects:hover {
+  color: var(--text);
+}
+.project-sidebar-content .task-personal-settings {
+  margin-top: auto;
+}
+.project-sidebar-content .task-account {
+  margin-top: 0;
+}
+.project-panel-nav .project-trash-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 14px 12px 10px;
+  border: 0;
+  border-top: 1px solid var(--divider);
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.project-trash-link:hover:enabled {
+  color: var(--text);
+  background: var(--control-hover);
+}
+.project-trash-link:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.admin-drawer .project-sidebar-content.admin-sidebar-content {
+  padding-top: max(64px, calc(env(safe-area-inset-top) + 60px));
+}
+.mobile-status-filter {
+  display: none;
+}
+@media (max-width: 640px) {
+  .admin-project-overview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .admin-project-overview .project-intro h1 {
+    font-size: 25px;
+  }
+  .admin-project-overview .project-overview {
+    width: 100%;
+    gap: 12px;
+  }
+  .admin-ideas-dashboard .filter-bar {
+    display: block;
+  }
+  .admin-ideas-dashboard .filter-tabs,
+  .admin-ideas-dashboard .section-filter {
+    display: none;
+  }
+  .admin-ideas-dashboard .mobile-status-filter {
+    display: block;
+    width: 100%;
+  }
+  .mobile-status-filter select {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--control-border);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+  }
+}
+@media (max-width: 379px) {
+  .admin-project-overview .project-overview {
+    flex-wrap: wrap;
+  }
+  .admin-project-overview .project-progress,
+  .admin-project-overview .project-overview > .button {
+    flex-basis: 100%;
+    width: 100%;
   }
 }

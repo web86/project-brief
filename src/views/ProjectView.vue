@@ -1,7 +1,8 @@
 <script setup>
 import { t } from '../i18n/index.js'
 
-import { computed, provide, ref } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useTaskDrag, taskDragKey } from '../utils/taskDrag.js'
 import ProjectTrash from '../components/ProjectTrash.vue'
 import { useProjectStore } from '../stores/project'
@@ -14,6 +15,20 @@ import AppIcon from '../components/AppIcon.vue'
 const store = useProjectStore()
 const activeFilter = ref('all')
 const activeSection = ref('')
+const route = useRoute()
+const mobile = ref(false)
+const compactFilters = computed(() => route.meta.adminShell && mobile.value)
+let breakpoint
+function resizeFilters() {
+  mobile.value = !!breakpoint?.matches
+  if (compactFilters.value) activeSection.value = ''
+}
+onMounted(() => {
+  breakpoint = window.matchMedia?.('(max-width: 640px)')
+  resizeFilters()
+  breakpoint?.addEventListener('change', resizeFilters)
+})
+onUnmounted(() => breakpoint?.removeEventListener('change', resizeFilters))
 const dragEnabled = computed(
   () => store.isDeveloper && activeFilter.value === 'all' && !activeSection.value,
 )
@@ -33,13 +48,21 @@ const groups = computed(() =>
 )
 </script>
 <template>
-  <div class="dashboard">
+  <div class="dashboard" :class="{ 'admin-ideas-dashboard': route.meta.adminShell }">
     <ProjectHeader />
     <div class="ideas-heading">
       <h2>{{ t('ui.ideasAndChanges') }}</h2>
-      <ProjectTrash v-if="store.isDeveloper" />
+      <ProjectTrash v-if="store.isDeveloper && !route.meta.adminShell" />
     </div>
     <div class="filter-bar">
+      <label v-if="route.meta.adminShell" class="mobile-status-filter" for="idea-status-filter">
+        <span class="sr-only">{{ t('ui.filterByStatus') }}</span>
+        <select id="idea-status-filter" v-model="activeFilter">
+          <option v-for="filter in FILTERS" :key="filter.key" :value="filter.key">
+            {{ filter.label }} ({{ store.counts[filter.key] }})
+          </option>
+        </select>
+      </label>
       <div class="filter-tabs" role="group" :aria-label="t('ui.filterByStatus')">
         <button
           v-for="filter in FILTERS"
@@ -51,7 +74,7 @@ const groups = computed(() =>
           {{ filter.label }}<span>{{ store.counts[filter.key] }}</span>
         </button>
       </div>
-      <div class="section-filter">
+      <div v-if="!compactFilters" class="section-filter">
         <AppIcon name="grid" :size="16" /><label class="sr-only" for="section-filter">{{
           t('ui.websiteSection')
         }}</label

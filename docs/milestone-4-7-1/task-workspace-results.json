@@ -1,0 +1,70 @@
+{
+  "results": [
+    {
+      "admin": true,
+      "width": 1440,
+      "language": "ru",
+      "mode": "light",
+      "passed": true,
+      "projectTaskFetches": 2
+    },
+    {
+      "admin": true,
+      "width": 1440,
+      "language": "en",
+      "mode": "dark",
+      "passed": true,
+      "projectTaskFetches": 2
+    },
+    {
+      "admin": true,
+      "width": 390,
+      "language": "ru",
+      "mode": "light",
+      "passed": true,
+      "projectTaskFetches": 2
+    },
+    {
+      "admin": true,
+      "width": 320,
+      "language": "en",
+      "mode": "system",
+      "passed": true,
+      "projectTaskFetches": 2
+    },
+    {
+      "admin": false,
+      "width": 1440,
+      "language": "ru",
+      "mode": "light",
+      "passed": true,
+      "projectTaskFetches": 2
+    },
+    {
+      "admin": false,
+      "width": 1440,
+      "language": "en",
+      "mode": "dark",
+      "passed": true,
+      "projectTaskFetches": 2
+    },
+    {
+      "admin": false,
+      "width": 390,
+      "language": "ru",
+      "mode": "light",
+      "passed": true,
+      "projectTaskFetches": 2
+    },
+    {
+      "admin": false,
+      "width": 320,
+      "language": "en",
+      "mode": "system",
+      "passed": true,
+      "projectTaskFetches": 2
+    }
+  ],
+  "passed": 8,
+  "api": "mocked"
+}

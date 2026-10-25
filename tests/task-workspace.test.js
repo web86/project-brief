@@ -135,13 +135,17 @@ test('admin detail replaces global sidebar and project header with the sticky ba
     assert.ok(output.indexOf('comments-panel') < output.indexOf('history-panel'))
   }
 })
-test('project root retains the existing sidebar and horizontal project navigation', async () => {
+test('project root uses the contextual sidebar and a single shared overview heading', async () => {
   const { router } = await fixture()
   await router.push(`/admin/projects/${uuid}/brief`)
   const output = await html(App, router)
   assert.ok(output.includes('<aside class="admin-sidebar"'))
-  assert.ok(output.includes('class="admin-project-header"'))
-  assert.equal((output.match(/class="project-subnav"/g) || []).length, 1)
+  assert.equal(output.includes('class="admin-project-header"'), false)
+  assert.equal((output.match(/class="project-subnav"/g) || []).length, 0)
+  assert.ok(output.includes('admin-project-overview'))
+  assert.equal((output.match(/<h1\b/g) || []).length, 1)
+  assert.ok(output.includes('project-sidebar-content'))
+  assert.equal((output.match(/id="project-trash-title"/g) || []).length, 1)
   assert.equal(output.includes('task-admin-trigger'), false)
 })
 test('client detail has project-scoped navigation, comments and back control with personal menu and without admin chrome or private fields', async () => {

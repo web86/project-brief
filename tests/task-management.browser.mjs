@@ -3,7 +3,9 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { createServer } from 'vite'
 import { taskWorkspaceFixture, uuid, adminRoot } from './helpers/taskWorkspace.browser.mjs'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
-const output = new URL('../docs/milestone-4-6-1/', import.meta.url)
+const output = process.env.TASK_MANAGEMENT_OUTPUT_DIR
+  ? new URL('file://' + process.env.TASK_MANAGEMENT_OUTPUT_DIR.replace(/\/$/, '') + '/')
+  : new URL('../docs/milestone-4-6-1/', import.meta.url)
 await mkdir(output, { recursive: true })
 const port = 5193
 const server = await createServer({
@@ -209,12 +211,18 @@ try {
         await moveDialog.waitFor({ state: 'hidden' })
         assert.equal(data.tasks.find((task) => task.id === ids[2]).sectionId, empty)
         // Any narrowing filter disables all placement controls.
-        await page.locator('.filter-tabs button').nth(1).click()
-        assert.equal(await page.locator('.task-grip:enabled').count(), 0)
-        await page.locator('.filter-tabs button').first().click()
-        await page.selectOption('#section-filter', main)
-        assert.equal(await page.locator('.task-grip:enabled').count(), 0)
-        await page.selectOption('#section-filter', '')
+        if (width > 640) {
+          await page.locator('.filter-tabs button').nth(1).click()
+          assert.equal(await page.locator('.task-grip:enabled').count(), 0)
+          await page.locator('.filter-tabs button').first().click()
+          await page.selectOption('#section-filter', main)
+          assert.equal(await page.locator('.task-grip:enabled').count(), 0)
+          await page.selectOption('#section-filter', '')
+        } else {
+          await page.selectOption('#idea-status-filter', 'ideas')
+          assert.equal(await page.locator('.task-grip:enabled').count(), 0)
+          await page.selectOption('#idea-status-filter', 'all')
+        }
         // Delete sits after comments, cancel retains idea, failed API stays on page.
         await page.goto(`http://127.0.0.1:${port}${f.path(ids[0])}`)
         const deletion = page.locator('.task-trash-action .delete-idea-action')
@@ -253,7 +261,14 @@ try {
         await dialog.locator('.button.danger').click()
         await page.waitForURL(`**${adminRoot}/brief`)
         assert.equal(trash.length, 1)
-        await page.locator('.project-trash-trigger').click()
+        if (width <= 960) await page.locator('.admin-menu-trigger').click()
+        await page
+          .locator(
+            width > 960
+              ? '.admin-sidebar .project-trash-link'
+              : '#admin-drawer .project-trash-link',
+          )
+          .click()
         await page.locator('dialog[open] .trash-list .button').click()
         await page.locator('dialog[open] .trash-list').waitFor({ state: 'detached' })
         assert.equal(trash.length, 0)

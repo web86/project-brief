@@ -335,7 +335,8 @@ try {
     await f.waitRoute(config.admin ? `${adminRoot}/brief` : `/project/${uuid}`)
     await page.locator('.dashboard').waitFor()
     if (config.admin) {
-      assert.equal(await page.locator('.project-subnav').count(), 1)
+      assert.equal(await page.locator('.project-subnav').count(), 0)
+      assert.equal(await page.locator('.admin-sidebar .project-panel-nav').count(), 1)
       assert.equal(await page.locator('.task-admin-trigger').count(), 0)
       assert.equal(await page.locator('.admin-sidebar').isVisible(), !mobile)
     }
