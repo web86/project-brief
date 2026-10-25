@@ -1,3 +1,4 @@
+import { usePersonalNotificationsStore } from './personalNotifications.js'
 import { useTaskWorkspaceStore } from './taskWorkspace.js'
 import { useDiscussionsStore, useClientDiscussionsStore } from './discussions.js'
 import { defineStore } from 'pinia'
@@ -91,6 +92,9 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
         clearProjectState()
         workspace.value = null
       }
+      const personal = usePersonalNotificationsStore()
+      personal.setIdentity('admin', state.user.notificationPreferenceId)
+      personal.adoptSettings(state)
       user.value = state.user
       workspaces.value = state.workspaces || []
       if (!workspaces.value.some((item) => item.id === workspace.value?.id)) {

@@ -91,6 +91,7 @@ export async function taskWorkspaceFixture(browser, config, { output, port = 518
       else if (pathname === '/api/admin/me')
         result = {
           user: {
+            notificationPreferenceId: 'admin-fixture-id',
             name: accountName,
             email: 'admin@example.test',
             preferredLocale: config.language,
@@ -132,6 +133,12 @@ export async function taskWorkspaceFixture(browser, config, { output, port = 518
       else if (pathname.endsWith('/notifications')) {
         if (notificationGate) await notificationGate
         result = {
+          preferences: { email: true, push: true, telegram: true },
+          email: 'fixture@example.test',
+          accountEmail: 'fixture@example.test',
+          pendingEmail: null,
+          emailAvailable: true,
+          legacyEmails: [],
           events: Object.fromEntries(
             notificationEvents.map((event) => [event, { email: true, push: true }]),
           ),

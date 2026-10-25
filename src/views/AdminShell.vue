@@ -15,6 +15,7 @@ import Breadcrumbs from '../components/Breadcrumbs.vue'
 import ProjectSidebar from '../components/ProjectSidebar.vue'
 import ProjectTrash from '../components/ProjectTrash.vue'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
+import TelegramPrompt from '../components/TelegramPrompt.vue'
 import AdminSidebar from '../components/AdminSidebar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
@@ -211,6 +212,9 @@ async function logout() {
           <button class="button secondary" @click="retry">{{ t('ui.tryAgain') }}</button>
         </div>
         <template v-else-if="nav.ready">
+          <TelegramPrompt
+            v-if="!route.path.includes('/task/') && route.path !== '/admin/unavailable'"
+          />
           <Breadcrumbs />
           <RouterView />
         </template>

@@ -19,7 +19,7 @@ class AccountProfile
             $avatar = 'https://gravatar.com/avatar/'.hash('sha256', mb_strtolower(trim($user->email))).'?s=160&d=404';
         }
 
-        return ['name' => $user->name, 'email' => $user->email, 'role' => 'admin', 'preferredLocale' => $user->preferred_locale, 'avatarSource' => $user->avatar_source ?? 'initials', 'avatarUrl' => $avatar];
+        return ['notificationPreferenceId' => hash_hmac('sha256', 'notifications:'.$user->getKey(), (string) config('app.key')), 'name' => $user->name, 'email' => $user->email, 'role' => 'admin', 'preferredLocale' => $user->preferred_locale, 'avatarSource' => $user->avatar_source ?? 'initials', 'avatarUrl' => $avatar];
     }
 
     public function clearEmail(): array

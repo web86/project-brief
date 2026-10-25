@@ -1,4 +1,22 @@
 export default {
+  notificationUi: {
+    promptTitle: 'Never miss an important update!',
+    promptDescription:
+      'Connect Telegram to receive notifications about new comments, task changes and other project updates.',
+    configureTelegram: 'Set up Telegram',
+    dismissPrompt: 'Dismiss Telegram reminder',
+    telegramDescription: 'Project updates delivered straight to your Telegram.',
+    emailDescription: 'Receive project updates at your email address.',
+    pushDescription: 'Get notifications directly on this device.',
+    telegramSteps:
+      'Open the bot, tap Start, then return here and refresh the connection. Allow Telegram notifications separately using the switch above.',
+    noEmail: 'No address',
+    enabled: 'Enabled',
+    emailContact: 'Contact your project administrator to add an email address.',
+    unsaved: 'You have unsaved changes.',
+    clientSaveHint:
+      'Channel permissions apply after you save. Device and connection actions apply immediately.',
+  },
   invitation: {
     invitedEmail: 'Invited email:',
     currentEmail: 'Signed in as:',

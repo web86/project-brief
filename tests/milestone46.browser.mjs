@@ -30,6 +30,7 @@ const allRules = () =>
 async function fixture(config) {
   let personal = {
     user: {
+      notificationPreferenceId: 'admin-fixture-id',
       name: config.language === 'ru' ? 'Алексей Морозов' : 'Alex Morgan',
       email: 'alex@example.test',
       preferredLocale: config.language,
@@ -334,28 +335,21 @@ try {
             } else {
               for (const section of ['discussions', 'notifications', 'export']) {
                 await go(page, `/project/${uuid}/${section}`)
-                await page.locator('.client-horizontal-nav').waitFor()
+                const navigation = width > 960 ? '.client-sidebar nav' : '.client-horizontal-nav'
+                await page.locator(navigation).waitFor()
                 await fits(page, label + ' ' + section)
-                assert.equal(await page.locator('.client-horizontal-nav a').count(), 4)
+                assert.equal(await page.locator(navigation + ' a').count(), 4)
                 assert.equal(
-                  await page
-                    .locator('.client-horizontal-nav a[aria-current=page]')
-                    .getAttribute('href'),
+                  await page.locator(navigation + ' a[aria-current=page]').getAttribute('href'),
                   `/project/${uuid}/${section}`,
                 )
                 assert.equal(
                   await page.locator('.client-back-link').getAttribute('href'),
                   `/project/${uuid}`,
                 )
-                assert.equal(
-                  await page.locator('.client-horizontal-nav a[href*="/admin"]').count(),
-                  0,
-                )
+                assert.equal(await page.locator(navigation + ' a[href*="/admin"]').count(), 0)
                 assert.equal(await page.locator('.client-menu-trigger').count(), 1)
-                assert.equal(
-                  await page.locator('.client-horizontal-nav .unread-badge').innerText(),
-                  '3',
-                )
+                assert.equal(await page.locator(navigation + ' .unread-badge').innerText(), '3')
                 if (
                   width === 320 &&
                   mode === 'light' &&
@@ -400,9 +394,9 @@ try {
     scenarios.push('Explicit project migration and recipient selection')
     await routeTo(page, '/admin/settings/notifications')
     await page.locator('.personal-email form').waitFor()
-    await page.locator('.personal-telegram .personal-channel-option input').uncheck()
+    await page.locator('.personal-telegram .notification-toggle input').click()
     await page.waitForFunction(
-      () => !document.querySelector('.personal-telegram .personal-channel-option input').disabled,
+      () => !document.querySelector('.personal-telegram .notification-toggle input').disabled,
     )
     assert.equal(f.personal().preferences.telegram, false)
     assert.equal(
@@ -418,7 +412,7 @@ try {
     await routeTo(page, '/admin/settings/notifications')
     await page.locator('.personal-email form').waitFor()
     assert.equal(
-      await page.locator('.personal-telegram .personal-channel-option input').isChecked(),
+      await page.locator('.personal-telegram .notification-toggle input').isChecked(),
       false,
     )
     assert.equal(await page.evaluate(() => window.__pushSubscribeCount), before)
@@ -429,7 +423,7 @@ try {
     await routeTo(page, '/admin/settings/notifications')
     await page.locator('.personal-email form').waitFor()
     assert.equal(
-      await page.locator('.personal-telegram .personal-channel-option input').isChecked(),
+      await page.locator('.personal-telegram .notification-toggle input').isChecked(),
       false,
     )
     scenarios.push('Personal preferences survive workspace switch')

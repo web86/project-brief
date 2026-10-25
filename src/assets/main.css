@@ -4916,3 +4916,345 @@ button.attachment-item:hover {
     gap: 14px;
   }
 }
+
+/* Personal notifications and client navigation reuse the shell and theme tokens. */
+.client-sidebar {
+  display: none;
+}
+.telegram-prompt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 52px 22px 22px;
+  margin-bottom: 28px;
+  border: 1px solid var(--selected-border);
+  border-radius: 14px;
+  background: var(--selected-bg);
+}
+.telegram-prompt-copy {
+  flex: 1;
+  min-width: 0;
+}
+.telegram-prompt h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.telegram-prompt p {
+  margin: 0;
+  max-width: 680px;
+  color: var(--text-subtle);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.telegram-prompt .button {
+  flex-shrink: 0;
+}
+.telegram-prompt-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.channel-icon {
+  display: inline-flex;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--text-subtle);
+  background: var(--surface-muted);
+}
+.telegram-prompt > .channel-icon,
+.channel-featured .channel-icon {
+  color: var(--action);
+  background: var(--surface-hover);
+}
+.personal-notifications {
+  max-width: 800px;
+}
+.client-notifications {
+  padding: 0;
+}
+.personal-notifications .page-heading {
+  display: block;
+  margin-bottom: 26px;
+}
+.personal-notifications .page-heading h1 {
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+.personal-notifications .page-heading p {
+  margin: 0;
+  max-width: 640px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.personal-notifications .channel-card {
+  margin: 0 0 18px;
+  padding: 24px;
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.personal-notifications .channel-featured {
+  border-color: var(--selected-border);
+  box-shadow: inset 0 3px 0 var(--selected-border);
+}
+.channel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.channel-heading-copy {
+  flex: 1;
+  min-width: 0;
+}
+.personal-notifications .channel-heading h2 {
+  font-size: 18px;
+  margin: 0 0 5px;
+  line-height: 1.4;
+}
+.channel-heading p,
+.channel-help,
+.channel-address {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.channel-heading p {
+  margin: 0;
+}
+.channel-status {
+  padding: 5px 9px;
+  border: 1px solid var(--divider);
+  background: var(--surface-muted);
+  color: var(--text-subtle);
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 40%;
+}
+.channel-content {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--divider);
+}
+.channel-content > p {
+  margin: 12px 0;
+}
+.notification-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 44px;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.notification-toggle input {
+  position: absolute;
+  right: 0;
+  width: 42px;
+  height: 26px;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.notification-switch {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 26px;
+  border-radius: 20px;
+  border: 1px solid var(--control-border);
+  background: var(--surface-muted);
+  pointer-events: none;
+}
+.notification-switch::after {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 3px;
+  background: var(--muted);
+  border-radius: 50%;
+}
+.notification-toggle input:checked + .notification-switch {
+  background: var(--action);
+  border-color: var(--action);
+}
+.notification-toggle input:checked + .notification-switch::after {
+  background: var(--on-action);
+  transform: translateX(16px);
+}
+.notification-toggle input:focus-visible + .notification-switch {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.notification-toggle:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.personal-notifications .notification-test-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.personal-notifications .button {
+  min-height: 40px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.personal-notifications .telegram-link {
+  padding: 18px;
+  border: 1px solid var(--selected-border);
+  border-radius: 10px;
+  background: var(--selected-bg);
+}
+.notification-save-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 4px 0 12px;
+}
+.notification-save-bar p {
+  max-width: 480px;
+  line-height: 1.6;
+}
+@media (min-width: 961px) {
+  .app-shell.client-shell {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    min-height: 100dvh;
+  }
+  .client-sidebar {
+    display: flex;
+    flex-direction: column;
+    grid-column: 1;
+    grid-row: 1 / 3;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow-y: auto;
+    padding: 24px 18px 20px;
+    background: var(--nav-bg);
+    border-right: 1px solid var(--border);
+  }
+  .client-sidebar .brand {
+    margin-bottom: 30px;
+  }
+  .client-sidebar-project {
+    margin: 0 8px 16px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .client-sidebar .project-panel-nav a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    min-height: 44px;
+  }
+  .client-sidebar .project-panel-nav a > span:first-of-type {
+    flex: 1;
+    min-width: 0;
+  }
+  .client-sidebar .sidebar-account {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 20px;
+    overflow-wrap: anywhere;
+  }
+  .client-sidebar .sidebar-account > div {
+    min-width: 0;
+    display: grid;
+    gap: 5px;
+  }
+  .client-shell > .workspace,
+  .client-shell > .app-topbar {
+    grid-column: 2;
+    min-width: 0;
+  }
+  .client-shell .app-topbar .brand,
+  .client-shell .current-client-name,
+  .client-shell .client-menu-trigger,
+  .client-shell .client-page-navigation {
+    display: none;
+  }
+  .client-shell .topbar-inner {
+    justify-content: flex-end;
+    min-height: 62px;
+  }
+  .client-shell .task-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 961px) and (max-width: 1279px) {
+  .client-shell .workspace,
+  .client-shell .topbar-inner {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .client-shell .task-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .client-shell .project-header {
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+}
+@media (max-width: 768px) {
+  .telegram-prompt {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 42px 18px 18px;
+    margin-bottom: 22px;
+  }
+  .telegram-prompt-copy {
+    flex-basis: calc(100% - 60px);
+  }
+  .telegram-prompt > .button {
+    margin-left: 56px;
+    max-width: calc(100% - 56px);
+    white-space: normal;
+  }
+}
+@media (max-width: 600px) {
+  .personal-notifications .page-heading h1 {
+    font-size: 25px;
+  }
+  .personal-notifications .channel-card {
+    padding: 18px;
+  }
+  .channel-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .channel-heading-copy {
+    flex-basis: calc(100% - 56px);
+  }
+  .channel-status {
+    max-width: 100%;
+    margin-left: 56px;
+  }
+  .notification-save-bar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+  }
+}

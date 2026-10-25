@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, onUnmounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
@@ -41,7 +41,18 @@ watch(
   () => route.fullPath,
   () => close(false),
 )
-onUnmounted(() => close(false))
+let breakpoint
+function resize() {
+  if (breakpoint?.matches && !route.meta.taskDetail) close(false)
+}
+onMounted(() => {
+  breakpoint = window.matchMedia?.('(min-width: 961px)')
+  breakpoint?.addEventListener('change', resize)
+})
+onUnmounted(() => {
+  breakpoint?.removeEventListener('change', resize)
+  close(false)
+})
 </script>
 <template>
   <button

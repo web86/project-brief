@@ -1,5 +1,8 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { usePersonalNotificationsStore } from '../stores/personalNotifications.js'
+import NotificationChannel from '../components/NotificationChannel.vue'
+import NotificationToggle from '../components/NotificationToggle.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
@@ -10,8 +13,10 @@ import TelegramSettings from '../components/TelegramSettings.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 const route = useRoute(),
   router = useRouter()
-const settings = ref(null),
-  email = ref(''),
+const personal = usePersonalNotificationsStore()
+const settings = computed(() => personal.settings)
+const loading = ref(false)
+const email = ref(''),
   busy = ref(false),
   error = ref('')
 const pushState = ref('loading')
@@ -35,51 +40,51 @@ function message(cause) {
 }
 async function load() {
   error.value = ''
+  loading.value = true
+  const identity = personal.identity
   try {
-    const state = await api.request(root)
-    if (active) {
-      settings.value = state
+    const state = await personal.loadSettings()
+    if (active && identity === personal.identity && state) {
       email.value = state.pendingEmail || state.email
     }
   } catch (cause) {
-    if (active) error.value = message(cause)
+    if (active && identity === personal.identity) error.value = message(cause)
+  } finally {
+    if (active && identity === personal.identity) loading.value = false
   }
 }
 async function run(action, success) {
   if (busy.value) return
   busy.value = true
   error.value = ''
+  const identity = personal.identity,
+    key = identity?.key
+  const current = () => active && identity === personal.identity
   try {
-    await action()
-    if (active && success) toast.success(() => t(success))
+    await action(key, current)
+    if (current() && success) toast.success(() => t(success))
   } catch (cause) {
-    if (active) error.value = message(cause)
+    if (current()) error.value = message(cause)
   } finally {
-    if (active) busy.value = false
+    if (current()) busy.value = false
   }
 }
 function toggle(channel, event) {
-  const previous = settings.value.preferences[channel],
-    enabled = event.target.checked
-  return run(async () => {
-    settings.value.preferences[channel] = enabled
-    try {
-      const result = await api.request(root, {
-        method: 'PATCH',
-        body: { preferences: { ...settings.value.preferences } },
-      })
-      if (active) settings.value = result
-    } catch (cause) {
-      if (active) settings.value.preferences[channel] = previous
-      throw cause
-    }
+  const enabled = event.target.checked
+  event.target.checked = settings.value.preferences[channel]
+  return run(async (key, current) => {
+    const result = await api.request(root, {
+      method: 'PATCH',
+      body: { preferences: { ...settings.value.preferences, [channel]: enabled } },
+    })
+    if (current()) personal.adoptSettings(result, key)
   }, 'notifications.saved')
 }
 function saveEmail() {
-  return run(async () => {
+  return run(async (key, current) => {
     const result = await api.request(root, { method: 'PATCH', body: { email: email.value } })
-    if (active) {
-      settings.value = result
+    if (current()) {
+      personal.adoptSettings(result, key)
       email.value = result.pendingEmail || result.email
       toast.success(() =>
         t(result.pendingEmail ? 'centralNotifications.verificationSent' : 'notifications.saved'),
@@ -88,16 +93,16 @@ function saveEmail() {
   })
 }
 function cancelEmail() {
-  return run(async () => {
+  return run(async (key, current) => {
     const result = await api.request(root + '/email/pending', { method: 'DELETE', body: {} })
-    if (active) {
-      settings.value = result
+    if (current()) {
+      personal.adoptSettings(result, key)
       email.value = result.email
     }
   })
 }
 function test(channel) {
-  return run(async () => {
+  return run(async (key, current) => {
     let endpoint = null
     if (channel === 'push') {
       const registration = await globalThis.navigator?.serviceWorker?.getRegistration('/')
@@ -111,7 +116,7 @@ function test(channel) {
       method: 'POST',
       body: { channel, ...(endpoint ? { endpoint } : {}) },
     })
-    if (active)
+    if (current())
       toast.success(() =>
         t(channel === 'email' ? 'centralNotifications.emailSent' : 'notifications.pushSent'),
       )
@@ -127,13 +132,13 @@ async function verifyFragment() {
     if (!active) return
     if (!settings.value) await load()
     if (active && settings.value)
-      await run(async () => {
+      await run(async (key, current) => {
         const result = await api.request(root + '/email/verify', {
           method: 'POST',
           body: { token },
         })
-        if (active) {
-          settings.value = result
+        if (current()) {
+          personal.adoptSettings(result, key)
           email.value = result.email
         }
       }, 'centralNotifications.emailVerified')
@@ -144,6 +149,15 @@ async function verifyFragment() {
 watch([() => route.hash, busy], () => {
   if (!busy.value) void verifyFragment()
 })
+watch(
+  () => personal.identity?.key,
+  () => {
+    email.value = ''
+    busy.value = false
+    error.value = ''
+    void load()
+  },
+)
 onMounted(async () => {
   if (/^#verify=[a-f0-9]{64}$/.test(route.hash)) await verifyFragment()
   else await load()
@@ -157,31 +171,45 @@ onMounted(async () => {
       <p>{{ t('centralNotifications.personalHint') }}</p>
     </div>
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-    <button v-if="!settings" class="button secondary" :disabled="busy" @click="load">
+    <p v-if="loading" role="status">{{ t('nav.loading') }}</p>
+    <button v-else-if="!settings" class="button secondary" :disabled="busy" @click="load">
       {{ t('notifications.retry') }}
     </button>
     <template v-if="settings">
-      <section class="surface notification-channel personal-email">
-        <h2>Email</h2>
-        <label class="personal-channel-option"
-          ><input
-            type="checkbox"
-            :checked="settings.preferences.email"
-            :disabled="busy"
-            @change="toggle('email', $event)"
-          />{{ t('centralNotifications.allowEmail') }}</label
-        >
-        <p role="status">
-          {{
-            t(
-              settings.preferences.email
-                ? settings.emailAvailable
-                  ? 'centralNotifications.emailReady'
-                  : 'centralNotifications.emailUnavailable'
+      <TelegramSettings persona="admin" :test-disabled="busy || !settings.preferences.telegram"
+        ><template #channel-toggle="{ available }"
+          ><NotificationToggle
+            :checked="settings.preferences.telegram"
+            :disabled="busy || !available"
+            :label="t('centralNotifications.allowTelegram')"
+            @change="toggle('telegram', $event)"
+          />
+          <p v-if="!settings.preferences.telegram" class="small muted">
+            {{ t('centralNotifications.telegramPaused') }}
+          </p></template
+        ></TelegramSettings
+      >
+      <NotificationChannel
+        class="personal-email"
+        title="Email"
+        icon="mail"
+        :description="t('notificationUi.emailDescription')"
+        :status="
+          t(
+            !settings.emailAvailable
+              ? 'centralNotifications.emailUnavailable'
+              : settings.preferences.email
+                ? 'notificationUi.enabled'
                 : 'centralNotifications.channelOff',
-            )
-          }}
-        </p>
+          )
+        "
+      >
+        <NotificationToggle
+          :checked="settings.preferences.email"
+          :disabled="busy"
+          :label="t('centralNotifications.allowEmail')"
+          @change="toggle('email', $event)"
+        />
         <p class="muted">{{ t('centralNotifications.currentEmail') }}: {{ settings.email }}</p>
         <form @submit.prevent="saveEmail">
           <div class="field">
@@ -254,17 +282,26 @@ onMounted(async () => {
             </li>
           </ul>
         </div>
-      </section>
-      <section class="surface notification-channel personal-push">
-        <h2>Push</h2>
-        <label class="personal-channel-option"
-          ><input
-            type="checkbox"
-            :checked="settings.preferences.push"
-            :disabled="busy"
-            @change="toggle('push', $event)"
-          />{{ t('centralNotifications.allowPush') }}</label
-        >
+      </NotificationChannel>
+      <NotificationChannel
+        class="personal-push"
+        title="Push"
+        icon="bell"
+        :description="t('notificationUi.pushDescription')"
+        :status="
+          t(
+            settings.preferences.push
+              ? 'notificationUi.enabled'
+              : 'centralNotifications.channelOff',
+          )
+        "
+      >
+        <NotificationToggle
+          :checked="settings.preferences.push"
+          :disabled="busy"
+          :label="t('centralNotifications.allowPush')"
+          @change="toggle('push', $event)"
+        />
         <p v-if="!settings.preferences.push" class="muted">
           {{ t('centralNotifications.pushPaused') }}
         </p>
@@ -283,28 +320,7 @@ onMounted(async () => {
           @click="test('push')"
           >{{ t('notifications.testPush') }}</LoadingButton
         >
-      </section>
-      <div class="surface personal-telegram">
-        <TelegramSettings
-          persona="admin"
-          :heading-level="2"
-          :test-disabled="busy || !settings.preferences.telegram"
-          ><template #channel-toggle
-            ><p class="muted">@BriefWeb86Bot</p>
-            <label class="personal-channel-option"
-              ><input
-                type="checkbox"
-                :checked="settings.preferences.telegram"
-                :disabled="busy"
-                @change="toggle('telegram', $event)"
-              />{{ t('centralNotifications.allowTelegram') }}</label
-            >
-            <p v-if="!settings.preferences.telegram" class="muted">
-              {{ t('centralNotifications.telegramPaused') }}
-            </p></template
-          ></TelegramSettings
-        >
-      </div>
+      </NotificationChannel>
     </template>
   </div>
 </template>

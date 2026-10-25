@@ -284,6 +284,7 @@ export function createProjectRouter({
       },
     ],
     scrollBehavior(to, from, savedPosition) {
+      if (to.hash === '#telegram-settings') return { el: to.hash, top: 24 }
       if (to.hash.startsWith('#comment-')) return false
       return savedPosition || { top: 0 }
     },

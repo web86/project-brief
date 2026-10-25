@@ -1,4 +1,7 @@
 <script setup>
+import ClientSidebar from './components/ClientSidebar.vue'
+import TelegramPrompt from './components/TelegramPrompt.vue'
+import { usePersonalNotificationsStore } from './stores/personalNotifications.js'
 import TaskHeaderNavigation from './components/TaskHeaderNavigation.vue'
 import TaskNavigator from './components/TaskNavigator.vue'
 import { useTaskWorkspaceStore } from './stores/taskWorkspace.js'
@@ -26,6 +29,31 @@ const router = useRouter()
 const workspace = useTaskWorkspaceStore()
 const task = computed(() => route.meta.taskDetail && store.findTask(route.params.id))
 const navigationPending = router.navigationPending
+const personal = usePersonalNotificationsStore()
+const clientShell = computed(
+  () =>
+    store.apiMode &&
+    store.currentClient &&
+    route.meta.apiProject &&
+    !route.meta.admin &&
+    !route.path.includes('/task/'),
+)
+const promptVisible = computed(
+  () =>
+    store.apiMode &&
+    !route.path.includes('/task/') &&
+    (route.meta.adminShell ? route.path !== '/admin/unavailable' : clientShell.value),
+)
+watch(
+  () => {
+    if (!store.apiMode) return [null, null]
+    if (route.meta.adminShell) return ['admin', store.admin?.notificationPreferenceId]
+    if (route.meta.apiProject && !route.meta.admin) return ['client', store.currentClient?.id]
+    return [null, null]
+  },
+  ([persona, id]) => personal.setIdentity(persona, id),
+  { immediate: true, flush: 'sync' },
+)
 async function logout() {
   if (!confirmDeveloperLeave(store)) return
   try {
@@ -86,10 +114,12 @@ watch(
       v-else
       class="app-shell"
       :class="{
+        'client-shell': clientShell,
         'task-workspace-shell': route.meta.taskDetail,
         'task-navigation-hidden': route.meta.taskDetail && workspace.hidden,
       }"
     >
+      <ClientSidebar v-if="clientShell" />
       <TaskNavigator v-if="task" :task="task" />
       <header class="app-topbar" :class="{ 'task-topbar': route.meta.taskDetail }">
         <div class="topbar-inner">
@@ -144,6 +174,7 @@ watch(
           </button>
         </div>
         <main id="main-content" tabindex="-1">
+          <TelegramPrompt v-if="promptVisible" />
           <ClientPageNavigation
             v-if="route.meta.clientSection && store.currentClient"
           /><RouterView />

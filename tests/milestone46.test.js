@@ -12,6 +12,7 @@ let server,
   i18n,
   projectStore,
   navStore,
+  personalStore,
   createProjectRouter,
   ProjectSettings,
   PersonalSettings,
@@ -35,6 +36,7 @@ before(async () => {
   i18n = (await load('i18n/index.js')).i18n
   projectStore = (await load('stores/project.js')).useProjectStore
   navStore = (await load('stores/adminNavigation.js')).useAdminNavigationStore
+  personalStore = (await load('stores/personalNotifications.js')).usePersonalNotificationsStore
   createProjectRouter = (await load('router/index.js')).createProjectRouter
   ;[ProjectSettings, PersonalSettings, Status, Card, Panel, ClientNav] = await Promise.all(
     [
@@ -55,6 +57,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   i18n.global.locale.value = 'en'
   toast.clear()
+  personalStore().setIdentity('admin', 'test-user')
 })
 const events = [
   'client.task_created',
@@ -68,7 +71,12 @@ const events = [
   'admin.project_comment_created',
 ]
 const account = () => ({
-  user: { name: 'Alex', email: 'alex@example.test', preferredLocale: 'en' },
+  user: {
+    notificationPreferenceId: 'test-user',
+    name: 'Alex',
+    email: 'alex@example.test',
+    preferredLocale: 'en',
+  },
   workspaces: [{ id: 'one', name: 'One' }],
   preferences: { email: true, push: true, telegram: true },
   email: 'alex@example.test',

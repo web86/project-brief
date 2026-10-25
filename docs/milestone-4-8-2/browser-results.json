@@ -1,0 +1,14 @@
+[
+  {
+    "label": "client-stateful-regressions",
+    "passed": true
+  },
+  {
+    "label": "admin-stateful-regressions",
+    "passed": true
+  },
+  {
+    "label": "client-load-errors-unavailable-and-empty-email",
+    "passed": true
+  }
+]
