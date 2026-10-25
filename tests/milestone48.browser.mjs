@@ -8,7 +8,9 @@ import path from 'node:path'
 import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
-const output = new URL('../docs/milestone-4-8/', import.meta.url)
+const output = new URL(process.env.M48_OUTPUT_DIR || '../docs/milestone-4-8/', import.meta.url)
+const invitationUx = process.env.M481_INVITATION_UX === '1'
+const expiredToken = randomBytes(32).toString('hex')
 await mkdir(output, { recursive: true })
 const scratch = await mkdtemp(path.join(tmpdir(), 'milestone48-e2e-'))
 const database = path.join(scratch, 'test.sqlite'),
@@ -71,6 +73,7 @@ const env = {
   ARGON_MEMORY: '1024',
   ARGON_TIME: '1',
   M48_AVATAR_FILE: avatar,
+  M481_EXPIRED_TOKEN: invitationUx ? expiredToken : '',
   PHP_INI_SCAN_DIR: `:${root}/api/dev-php`,
 }
 function run(args) {
@@ -100,6 +103,7 @@ async function context(width = 1440, lang = 'ru', mode = 'light') {
     locale: lang === 'ru' ? 'ru-RU' : 'en-GB',
     colorScheme: mode,
     reducedMotion: 'reduce',
+    hasTouch: width < 961,
   })
   await context.addInitScript(
     ({ lang, mode }) => {
@@ -214,6 +218,146 @@ try {
   results.push(
     'Real SMTP sink → invitation-only registration → assigned-project list; token removed and single-use; developer cannot manage team',
   )
+  if (invitationUx) {
+    // Existing mixed-case User has no memberships; the page offers login without an existence API.
+    assert.equal(
+      (
+        await call(owner.page, teamRoot + '/invitations', {
+          email: 'legacy@example.test',
+          projects: [fixture.second],
+        })
+      ).status,
+      201,
+    )
+    const existingToken = await mailToken('token'),
+      existing = await context(390)
+    await go(existing.page, '/invitation#token=' + existingToken)
+    await existing.page.locator('#invited-name').waitFor()
+    await existing.page.getByRole('button', { name: 'Уже есть аккаунт — войти', exact: true }).tap()
+    await existing.page.locator('#invited-password').fill('Local-e2e-password!')
+    await existing.page.locator('form button[type=submit]').tap()
+    await existing.page.waitForURL(origin + '/admin')
+    assert.equal(
+      (await call(existing.page, '/api/admin/me')).json.user.email,
+      'Legacy@Example.test',
+    )
+    assert.deepEqual(
+      (await call(existing.page, '/api/admin/projects')).json.data.map((p) => p.id),
+      [fixture.second],
+    )
+    results.push(
+      'Mobile: mixed-case existing User with no membership signs in and accepts; selected workspace/project refresh correctly',
+    )
+    const other = await context(390)
+    await login(other.page)
+    assert.equal(
+      (
+        await call(owner.page, teamRoot + '/invitations', {
+          email: 'maria@example.test',
+          projects: [fixture.second],
+        })
+      ).status,
+      201,
+    )
+    const switchToken = await mailToken('token')
+    let accepts = 0
+    const sentPaths = []
+    other.page.on('request', (request) => {
+      const url = new URL(request.url())
+      if (url.pathname.startsWith('/api/')) {
+        sentPaths.push(url.pathname + url.search)
+        if (url.pathname === '/api/invitations/accept') accepts++
+      }
+    })
+    await go(other.page, '/invitation#token=' + switchToken)
+    const notice = other.page.locator('.invitation-account-notice')
+    await notice.waitFor()
+    assert.ok((await notice.innerText()).includes('owner@example.test'))
+    assert.ok((await other.page.locator('form').innerText()).includes('maria@example.test'))
+    assert.equal(await other.page.locator('form button[type=submit]').count(), 0)
+    assert.equal(await other.page.locator('.field-error').count(), 0)
+    assert.equal(accepts, 0)
+    await other.page.getByRole('button', { name: 'Выйти и продолжить', exact: true }).tap()
+    await other.page.locator('#invited-password').fill('Local-e2e-password!')
+    assert.equal(new URL(other.page.url()).pathname, '/invitation')
+    assert.equal(new URL(other.page.url()).hash, '')
+    await other.page.locator('form button[type=submit]').tap()
+    await other.page.waitForURL(origin + '/admin')
+    assert.equal((await call(other.page, '/api/admin/me')).json.user.email, 'maria@example.test')
+    assert.equal(accepts, 1)
+    assert.equal((await call(other.page, '/api/admin/projects')).json.data.length, 2)
+    assert.ok(sentPaths.every((value) => !value.includes(switchToken) && !value.includes('token=')))
+    assert.equal(
+      await other.page.evaluate(
+        (value) =>
+          [localStorage, sessionStorage].some((storage) =>
+            Object.keys(storage).some((key) => storage.getItem(key)?.includes(value)),
+          ),
+        switchToken,
+      ),
+      false,
+    )
+    results.push(
+      'Mobile: mismatched account sees neutral emails/CTA, issues no premature accept, signs out and accepts original invitation as invited user; no token in query/storage',
+    )
+    for (const invalid of [existingToken, expiredToken]) {
+      await go(existing.page, '/invitation#token=' + invalid)
+      await existing.page.getByRole('alert').waitFor()
+      assert.equal(await existing.page.locator('form').count(), 0)
+      assert.ok(
+        (await existing.page.getByRole('alert').innerText()).includes('Ссылка недействительна'),
+      )
+    }
+    results.push('Consumed and expired invitation links show a clear message and no form')
+    assert.equal(
+      (
+        await call(owner.page, teamRoot + '/invitations', {
+          email: 'visual@example.test',
+          projects: [fixture.first],
+        })
+      ).status,
+      201,
+    )
+    const visualToken = await mailToken('token')
+    for (const width of [1440, 390, 320])
+      for (const lang of ['ru', 'en'])
+        for (const mode of ['light', 'dark']) {
+          const f = await context(width, lang, mode),
+            label = `${width}-${lang}-${mode}`
+          await go(f.page, '/invitation#token=' + visualToken)
+          await f.page.locator('#invited-name').waitFor()
+          assert.equal(await f.page.locator('.theme-switcher').count(), 1)
+          assert.equal(await f.page.locator('.language-switcher').count(), 1)
+          const header = await f.page.locator('.app-topbar').boundingBox(),
+            title = await f.page.locator('.invitation-page h1').boundingBox()
+          assert.ok(
+            title.y - (header.y + header.height) <= (width < 600 ? 24 : 50),
+            'Compact header-to-title gap',
+          )
+          await fits(f.page)
+          await shot(f.page, 'entry-' + label)
+          if (width < 600) {
+            await f.page.setViewportSize({ width, height: 440 })
+            await f.page.locator('#invited-password').focus()
+            await f.page.locator('form button[type=submit]').scrollIntoViewIfNeeded()
+            await fits(f.page)
+            await f.page.setViewportSize({ width, height: 844 })
+          }
+          await login(f.page)
+          await go(f.page, '/invitation#token=' + visualToken)
+          await f.page.locator('.invitation-account-notice').waitFor()
+          await fits(f.page)
+          assert.equal(await f.page.locator('form button[type=submit]').count(), 0)
+          await shot(f.page, 'switch-' + label)
+          results.push(
+            `Invitation UX ${label}: one theme/language control, compact registration, neutral mismatch, keyboard-height scrolling`,
+          )
+          await f.context.close()
+        }
+    await existing.context.close()
+    await other.context.close()
+  }
+
   // Repeat invitation reuses the authenticated account and adds a second assignment.
   assert.equal(
     (

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\DeveloperInvitation;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -19,6 +20,10 @@ $second = Project::factory()->create(['workspace_id' => $workspace->id, 'title' 
 $task = Task::factory()->create(['project_id' => $first->id, 'project_section_id' => $first->briefSections()->first()->id, 'title' => 'Фотографии товаров на телефоне']);
 $developer = User::factory()->memberOf($workspace)->create(['name' => 'Мария Волкова', 'email' => 'maria@example.test', 'password' => 'Local-e2e-password!']);
 $first->members()->create(['workspace_id' => $workspace->id, 'workspace_member_id' => $developer->workspaceMembers()->first()->id]);
+if (getenv('M481_EXPIRED_TOKEN')) {
+    User::factory()->create(['name' => 'Existing developer', 'email' => 'Legacy@Example.test', 'password' => 'Local-e2e-password!']);
+    DeveloperInvitation::factory()->create(['workspace_id' => $workspace->id, 'invited_by' => $owner->id, 'email' => 'expired@example.test', 'project_ids' => [$first->id], 'token_hash' => hash('sha256', getenv('M481_EXPIRED_TOKEN')), 'expires_at' => now()->subSecond()]);
+}
 $image = imagecreatetruecolor(380, 540);
 imagefill($image, 0, 0, imagecolorallocate($image, 80, 100, 210));
 imagepng($image, getenv('M48_AVATAR_FILE'));

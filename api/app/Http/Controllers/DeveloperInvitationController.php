@@ -16,7 +16,7 @@ class DeveloperInvitationController extends Controller
         $data = $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/']]);
         $invitation = $invitations->resolve($data['token']);
 
-        return response()->json(['email' => $invitation->email, 'name' => $invitation->name, 'workspace' => $invitation->workspace->name, 'projects' => $invitation->workspace->projects()->whereIn('id', $invitation->project_ids)->pluck('title'), 'authenticated' => (bool) $request->user(), 'expiresAt' => $invitation->expires_at->toISOString()])->header('Cache-Control', 'no-store');
+        return response()->json(['email' => $invitation->email, 'name' => $invitation->name, 'workspace' => $invitation->workspace->name, 'projects' => $invitation->workspace->projects()->whereIn('id', $invitation->project_ids)->pluck('title'), 'authenticated' => (bool) $request->user(), 'authenticatedEmail' => $request->user()?->email, 'accountMatches' => $request->user() ? DeveloperInvitations::emailsMatch($request->user()->email, $invitation->email) : null, 'expiresAt' => $invitation->expires_at->toISOString()])->header('Cache-Control', 'no-store');
     }
 
     public function accept(Request $request, DeveloperInvitations $invitations): JsonResponse

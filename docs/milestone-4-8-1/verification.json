@@ -1,0 +1,46 @@
+{
+  "milestone": "4.8.1",
+  "baseCommit": "6ab3389",
+  "branch": "codex/milestone-4-8-1-invitation-ux",
+  "laravel": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 571,
+    "passed": 571,
+    "assertions": 5725,
+    "duration_ms": 23078
+  },
+  "frontend": {
+    "tests": 212,
+    "passed": 212
+  },
+  "e2e": {
+    "scenariosAndConfigurations": 29,
+    "invitationVisualConfigurations": 12,
+    "realLaravel": true,
+    "databaseSessions": true,
+    "smtp": "local sink",
+    "passed": true
+  },
+  "checks": {
+    "build": true,
+    "pint": true,
+    "prettier": true
+  },
+  "security": {
+    "mismatchRejectedByServer": true,
+    "noPublicAccountExistenceFlag": true,
+    "tokenInQueryOrStorage": false,
+    "newUserAndExistingUserWithoutMembership": true,
+    "emailCaseAndWhitespace": true
+  },
+  "packaging": {
+    "base": "Milestone 4.8 production ZIP, exact 6ab3389 commit",
+    "phpFiles": 3,
+    "vendorUpdate": false,
+    "migrations": false,
+    "runtimeValidation": "Patch overlay is checked against the base ZIP by deployment/build-invitation-patch.mjs"
+  },
+  "push": false,
+  "deployment": false
+}

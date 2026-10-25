@@ -1,4 +1,20 @@
 export default {
+  invitation: {
+    invitedEmail: 'Invited email:',
+    currentEmail: 'Signed in as:',
+    otherAccount: 'Invitation for another account',
+    switchHelp:
+      'This invitation is addressed to another email. Sign out and continue with the invited address. Your invitation will be kept.',
+    switchAccount: 'Sign out and continue',
+    entryHelp:
+      'New here? Create an account with the invited email. If you already have an account, choose sign in.',
+    existingAccount: 'Already have an account — sign in',
+    signInRequired:
+      'Continue by signing in with the invited email. If you forgot your password, use password recovery.',
+    ready: 'Your account email matches the invitation. You can join the team.',
+    registerAndAccept: 'Create account and accept',
+    signInAndAccept: 'Sign in and accept',
+  },
   account: {
     title: 'My account',
     profile: 'Profile',

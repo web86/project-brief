@@ -14,6 +14,16 @@ use Illuminate\Validation\ValidationException;
 
 class DeveloperInvitations
 {
+    public static function normalizeEmail(string $email): string
+    {
+        return mb_strtolower(trim($email));
+    }
+
+    public static function emailsMatch(string $accountEmail, string $invitedEmail): bool
+    {
+        return self::normalizeEmail($accountEmail) === self::normalizeEmail($invitedEmail);
+    }
+
     public function owner(Request $request): WorkspaceMember
     {
         $member = app(CurrentWorkspace::class)->resolve($request);
@@ -62,7 +72,7 @@ class DeveloperInvitations
             $invitation = $this->resolve($data['token'], true);
             $user = $request->user();
             if (! $user) {
-                abort_if(User::whereRaw('LOWER(email) = ?', [$invitation->email])->exists(), 401, 'Sign in to accept this invitation.');
+                abort_if(User::whereRaw('LOWER(TRIM(email)) = ?', [$invitation->email])->exists(), 401, 'Sign in to accept this invitation.');
                 validator($data, ['name' => ['required', 'string', 'max:255'], 'password' => ['required', 'string', 'min:9', 'max:1024', 'confirmed']])->validate();
                 try {
                     $user = User::create(['name' => $data['name'], 'email' => $invitation->email, 'password' => $data['password'], 'preferred_locale' => $invitation->locale]);
@@ -70,7 +80,7 @@ class DeveloperInvitations
                     abort(401, 'Sign in to accept this invitation.');
                 }
             }
-            abort_unless(strcasecmp($user->email, $invitation->email) === 0, 403, 'Invitation email must match your account.');
+            abort_unless(self::emailsMatch($user->email, $invitation->email), 403, 'Invitation email must match your account.');
             // The emailed single-use token proves the mailbox, while existing accounts also require authentication.
             $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
             $member = WorkspaceMember::firstOrCreate(['workspace_id' => $invitation->workspace_id, 'user_id' => $user->id], ['role' => 'admin', 'status' => 'active', 'joined_at' => now()]);

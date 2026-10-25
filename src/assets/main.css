@@ -4826,7 +4826,6 @@ button.attachment-item:hover {
 .team-edit {
   margin-top: 16px;
 }
-.invitation-page .appearance-controls,
 .admin-login > .appearance-controls {
   justify-content: flex-end;
   margin-bottom: 24px;
@@ -4859,4 +4858,61 @@ button.attachment-item:hover {
 }
 .project-choices label {
   min-height: 32px;
+}
+
+/* Invitations use the existing topbar appearance controls and stay near it on mobile. */
+.invitation-page {
+  margin: 20px auto 32px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.invitation-page > h1 {
+  margin-bottom: 16px;
+}
+.invitation-page .admin-form {
+  gap: 16px;
+}
+.invitation-page .invitation-projects {
+  margin: 0;
+  padding-left: 20px;
+}
+.invitation-page p,
+.invitation-page strong {
+  overflow-wrap: anywhere;
+}
+.invitation-entry-actions {
+  margin-top: 0;
+}
+.invitation-entry-actions button {
+  flex: 1 1 160px;
+}
+.invitation-entry-actions [aria-pressed='true'] {
+  background: var(--nav-selected-bg);
+  color: var(--nav-selected-text);
+  border-color: var(--control-border);
+}
+.invitation-account-notice {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+.invitation-account-notice h3 {
+  font-size: 16px;
+}
+@media (max-width: 600px) {
+  .invitation-page {
+    margin-top: 0;
+    margin-bottom: 20px;
+  }
+  .invitation-page > h1 {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  .invitation-page .admin-form {
+    padding: 18px;
+    gap: 14px;
+  }
 }
