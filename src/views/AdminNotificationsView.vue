@@ -72,13 +72,7 @@ async function run(action, success) {
 function toggle(channel, event) {
   const enabled = event.target.checked
   event.target.checked = settings.value.preferences[channel]
-  return run(async (key, current) => {
-    const result = await api.request(root, {
-      method: 'PATCH',
-      body: { preferences: { ...settings.value.preferences, [channel]: enabled } },
-    })
-    if (current()) personal.adoptSettings(result, key)
-  }, 'notifications.saved')
+  return run(() => personal.savePreference(channel, enabled), 'notifications.saved')
 }
 function saveEmail() {
   return run(async (key, current) => {

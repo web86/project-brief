@@ -26,6 +26,7 @@ export default {
     manage_trashHint: 'View and restore deleted ideas.',
   },
   notificationUi: {
+    saving: 'Saving…',
     promptTitle: 'Never miss an important update!',
     promptDescription:
       'Connect Telegram to receive notifications about new comments, task changes and other project updates.',
@@ -274,9 +275,13 @@ export default {
     manageProject: 'Project management',
   },
   discussions: {
+    markTab: 'Mark this tab as read',
+    targetUnavailable:
+      'This comment is unavailable or has been deleted. You can continue reading discussions.',
+    showLatest: 'Show latest messages',
     title: 'Discussions',
-    general: 'Project comments',
-    tasks: 'Latest task comments',
+    general: 'General comments',
+    tasks: 'Latest comments',
     all: 'All',
     unread: 'Unread',
     markAll: 'Mark all as read',

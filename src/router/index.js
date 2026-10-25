@@ -434,7 +434,10 @@ export function createProjectRouter({
             if (current !== revision || loaded === false) return false
             let discussionCommit
             if (to.meta.projectSection === 'discussions') {
-              discussionCommit = await useDiscussionsStore().load(to.params.uuid, { defer: true })
+              discussionCommit = await useDiscussionsStore().load(to.params.uuid, {
+                defer: true,
+                reuse: to.path === from.path,
+              })
               if (current !== revision || discussionCommit === false) return false
             }
             commits.set(to, () => {
@@ -478,7 +481,10 @@ export function createProjectRouter({
       if (current !== revision || loaded === false) return false
       let discussionCommit
       if (to.meta.clientSection === 'discussions') {
-        discussionCommit = await useClientDiscussionsStore().load(to.params.uuid, { defer: true })
+        discussionCommit = await useClientDiscussionsStore().load(to.params.uuid, {
+          defer: true,
+          reuse: to.path === from.path,
+        })
         if (current !== revision || discussionCommit === false) return false
       }
       commits.set(to, () => {

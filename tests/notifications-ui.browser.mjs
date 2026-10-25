@@ -42,6 +42,7 @@ async function fixture(config) {
     gate: null,
     reads: { settings: 0, telegram: 0 },
     writes: [],
+    telegramWrites: [],
   }
   const f = await taskWorkspaceFixture(browser, config, {
     output,
@@ -104,6 +105,7 @@ async function fixture(config) {
           })
         }
         if (/^\/api\/(admin|client)\/telegram(?:\/.*)?$/.test(path)) {
+          if (method !== 'GET') state.telegramWrites.push({ path, method })
           if (method === 'GET') {
             state.reads.telegram++
             if (state.failTelegramRead)
@@ -242,30 +244,27 @@ try {
     state.fail = true
     await toggle.focus()
     await page.keyboard.press('Space')
-    if (!admin) {
-      assert.equal(state.writes.length, 0, 'Client draft does not auto-save')
-      await page.locator('.notification-save-bar button').click()
-    }
     await page.waitForFunction(
       () =>
         document.querySelector('button[aria-busy=true]') ||
         document.querySelector('input[disabled]'),
     )
     assert.equal(await page.locator('.telegram-prompt').count(), 0, 'No unconfirmed success state')
-    if (admin)
-      assert.equal(await toggle.isChecked(), true, 'Admin keeps confirmed setting during request')
+    assert.equal(
+      await toggle.isChecked(),
+      true,
+      'Both personas keep confirmed setting during request',
+    )
     state.gate.finish()
     await page.locator('.field-error').first().waitFor()
     assert.equal(state.preferences.telegram, true)
-    if (admin) assert.equal(await toggle.isChecked(), true)
+    assert.equal(await toggle.isChecked(), true)
     state.fail = false
     state.gate = null
-    if (admin) await toggle.click()
-    else await page.locator('.notification-save-bar button').click()
+    await toggle.click()
     await page.locator('.telegram-prompt').waitFor()
     assert.equal(state.preferences.telegram, false)
     await toggle.click()
-    if (!admin) await page.locator('.notification-save-bar button').click()
     await page.locator('.telegram-prompt').waitFor({ state: 'detached' })
     await page.getByRole('button', { name: 'Reconnect', exact: true }).click()
     await page.locator('.telegram-link a').waitFor()
@@ -354,6 +353,60 @@ try {
     await noOverflow(page)
     assert.deepEqual(f.errors, [])
     results.push({ label: 'client-load-errors-unavailable-and-empty-email', passed: true })
+    await f.context.close()
+  }
+  {
+    const f = await fixture({ admin: false, width: 390, language: 'en', mode: 'dark' })
+    const { page, state } = f
+    await f.go(f.settingsPath)
+    await page.locator('.personal-email input').waitFor()
+    assert.equal(
+      await page.locator('.notification-save-bar, .client-notifications form').count(),
+      0,
+    )
+    state.gate = delay()
+    const firstWrite = page.waitForRequest(
+      (request) =>
+        request.url().endsWith('/api/client/notifications') && request.method() === 'PATCH',
+    )
+    await page.locator('.personal-email input').click()
+    await firstWrite
+    await page.locator('.personal-push input').click()
+    await page.locator('.telegram-settings input').click()
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('.client-notifications .notification-toggle input')].every(
+        (input) => input.disabled,
+      ),
+    )
+    assert.equal(state.writes.length, 1, 'Only one preference PATCH in flight')
+    await page.locator('.personal-email input').evaluate((input) => {
+      input.checked = false
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    assert.equal(state.writes.length, 1, 'A duplicate pending channel cannot dispatch again')
+    state.gate.finish()
+    state.gate = null
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('.client-notifications .notification-toggle input')].every(
+        (input) => !input.disabled && !input.checked,
+      ),
+    )
+    assert.deepEqual(state.preferences, { email: false, push: false, telegram: false })
+    assert.equal(state.writes.length, 3)
+    await f.go(f.settingsPath)
+    await page.locator('.telegram-settings input').waitFor()
+    assert.equal(await page.locator('.personal-email input').isChecked(), false)
+    assert.equal(await page.locator('.personal-push input').isChecked(), false)
+    await page.locator('.telegram-settings input').click()
+    await page.waitForFunction(() => document.querySelector('.telegram-settings input')?.checked)
+    assert.equal(state.preferences.telegram, true)
+    assert.equal(state.telegram.connected, false)
+    assert.equal(state.telegramWrites.length, 0, 'A personal permission does not connect Telegram')
+    assert.deepEqual(f.errors, [])
+    results.push({
+      label: 'client-mobile-rapid-autosave-deduplication-reload-and-separate-telegram-connection',
+      passed: true,
+    })
     await f.context.close()
   }
   await writeFile(new URL('browser-results.json', output), JSON.stringify(results, null, 2) + '\n')

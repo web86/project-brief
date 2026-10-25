@@ -36,6 +36,15 @@ class ProjectDiscussions
         return $this->unread($this->query($project), $user)->count();
     }
 
+    /** @return array{general: int, tasks: int} */
+    public function counts(Project $project, User|ProjectClient $user): array
+    {
+        $counts = $this->unread($this->query($project), $user)->toBase()
+            ->selectRaw('COUNT(CASE WHEN comments.task_id IS NULL THEN 1 END) AS general, COUNT(CASE WHEN comments.task_id IS NOT NULL THEN 1 END) AS tasks')->first();
+
+        return ['general' => (int) $counts->general, 'tasks' => (int) $counts->tasks];
+    }
+
     public function mark(Builder $query, User|ProjectClient $user): void
     {
         // One INSERT SELECT snapshots the selected comments; concurrent newer comments remain unread.

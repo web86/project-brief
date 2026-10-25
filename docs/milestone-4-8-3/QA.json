@@ -1,0 +1,53 @@
+{
+  "milestone": "4.8.3",
+  "branch": "codex/milestone-4-8-3",
+  "baseCommit": "be2b883f99ef35bbe61bc2113bece51a543b6822",
+  "laravelSqlite": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 593,
+    "passed": 593,
+    "assertions": 6107,
+    "duration_ms": 23391
+  },
+  "laravelMariaDbRelated": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 20,
+    "passed": 20,
+    "assertions": 464,
+    "duration_ms": 12585
+  },
+  "frontend": {
+    "tests": 232,
+    "failures": 0
+  },
+  "browserDiscussions": {
+    "configurations": 24,
+    "realLaravelApi": true,
+    "screenshots": 48,
+    "jsErrors": [],
+    "roles": ["owner", "developer", "client"],
+    "widths": [1440, 390],
+    "languages": ["ru", "en"],
+    "themes": ["light", "dark"]
+  },
+  "browserNotifications": {
+    "scenarios": 36,
+    "passed": true,
+    "includesAutosaveFailureRapidChangesReloadAndTelegramIsolation": true
+  },
+  "browserM46Quick": {
+    "configurations": 2,
+    "functionalScenarios": 5,
+    "passed": true
+  },
+  "build": true,
+  "pint": true,
+  "prettier": true,
+  "diffCheck": true,
+  "patchValidation": "Run separately after committing by node deployment/build-milestone483-patch.mjs; PATCH.json records the packaged source commit.",
+  "historicalM45Browser": "Not an acceptance suite for the current project-notification/Telegram screens; current flows covered by real discussion E2E, notifications-ui E2E and M46 quick.",
+  "physicalDeviceAndSafari": false,
+  "externalMessageDelivery": false
+}

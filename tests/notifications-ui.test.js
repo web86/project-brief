@@ -132,3 +132,86 @@ test('blocked localStorage preserves in-memory dismissal and identity isolation'
   state.setIdentity('admin', 'b')
   assert.equal(state.dismissed, false)
 })
+
+const deferred = () => {
+  let resolve, reject
+  const promise = new Promise((yes, no) => {
+    resolve = yes
+    reject = no
+  })
+  return { promise, resolve, reject }
+}
+test('personal autosave serializes rapid channels, deduplicates and uses the confirmed server response', async () => {
+  const state = usePersonalNotificationsStore()
+  state.setIdentity('client', 'anna')
+  state.adoptSettings(settings(true))
+  const gate = deferred(),
+    calls = []
+  const request = async (path, options) => {
+    calls.push({ path, ...options })
+    if (calls.length === 1) await gate.promise
+    return { email: 'server@example.test', preferences: { ...options.body.preferences } }
+  }
+  const first = state.savePreference('email', false, request)
+  const duplicate = state.savePreference('email', false, request)
+  const second = state.savePreference('push', false, request)
+  const third = state.savePreference('telegram', false, request)
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(calls.length, 1)
+  assert.deepEqual(state.savingPreferences, { email: true, push: true, telegram: true })
+  assert.equal(state.settings.preferences.email, true, 'unconfirmed settings remain unchanged')
+  gate.resolve()
+  await Promise.all([first, duplicate, second, third])
+  assert.equal(calls.length, 3)
+  assert.ok(
+    calls.every((call) => call.path === '/api/client/notifications' && call.method === 'PATCH'),
+  )
+  assert.deepEqual(calls[1].body.preferences, { email: false, push: false, telegram: true })
+  assert.deepEqual(calls[2].body.preferences, { email: false, push: false, telegram: false })
+  assert.deepEqual(state.settings.preferences, { email: false, push: false, telegram: false })
+  assert.equal(state.settings.email, 'server@example.test')
+  assert.deepEqual(state.savingPreferences, {})
+  assert.equal(await state.savePreference('telegram', false, request), false)
+  assert.equal(calls.length, 3)
+})
+test('failed preference restores confirmed value and does not drop a queued channel', async () => {
+  const state = usePersonalNotificationsStore()
+  state.setIdentity('client', 'anna')
+  state.adoptSettings(settings(true))
+  const calls = []
+  const request = async (path, options) => {
+    calls.push(options.body.preferences)
+    if (calls.length === 1) throw Error('offline')
+    return { preferences: options.body.preferences }
+  }
+  const email = state.savePreference('email', false, request)
+  const push = state.savePreference('push', false, request)
+  await assert.rejects(email, /offline/)
+  await push
+  assert.deepEqual(state.settings.preferences, { email: true, push: false, telegram: true })
+  assert.deepEqual(state.savingPreferences, {})
+})
+test('autosave and queued writes cannot leak across identity changes, including switching back', async () => {
+  const state = usePersonalNotificationsStore()
+  state.setIdentity('client', 'a')
+  state.adoptSettings(settings(true))
+  const gate = deferred(),
+    calls = []
+  const request = async (path, options) => {
+    calls.push(path)
+    await gate.promise
+    return { preferences: options.body.preferences }
+  }
+  const email = state.savePreference('email', false, request),
+    push = state.savePreference('push', false, request)
+  await new Promise((resolve) => setImmediate(resolve))
+  state.setIdentity('client', 'b')
+  state.adoptSettings(settings(false))
+  state.setIdentity('client', 'a')
+  state.adoptSettings(settings(true))
+  gate.resolve()
+  assert.deepEqual(await Promise.all([email, push]), [false, false])
+  assert.equal(calls.length, 1)
+  assert.deepEqual(state.settings, settings(true))
+  assert.deepEqual(state.savingPreferences, {})
+})

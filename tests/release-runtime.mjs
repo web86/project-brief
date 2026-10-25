@@ -255,6 +255,21 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       headers: personalHeaders,
       body: method === 'DELETE' ? undefined : JSON.stringify(body),
     })
+  const discussionRoot = '/api/admin/projects/' + fixture.project + '/discussions'
+  const discussionState = await (await request(discussionRoot + '?kind=general')).json()
+  assert.deepEqual(Object.keys(discussionState.unreadCounts).sort(), ['general', 'tasks'])
+  assert.equal(
+    discussionState.unreadCount,
+    discussionState.unreadCounts.general + discussionState.unreadCounts.tasks,
+  )
+  const scopedRead = await mutation(discussionRoot + '/read', 'POST', {
+    all: true,
+    kind: 'general',
+  })
+  assert.equal(scopedRead.status, 200)
+  const scopedState = await scopedRead.json()
+  assert.equal(scopedState.unreadCounts.general, 0)
+  assert.equal(scopedState.unreadCounts.tasks, discussionState.unreadCounts.tasks)
   let placed = await mutation(trashRoot + '/place', 'POST', {
     sectionId: fixture.targetSection,
     beforeTaskId: null,

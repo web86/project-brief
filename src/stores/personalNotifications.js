@@ -12,16 +12,22 @@ export const usePersonalNotificationsStore = defineStore('personalNotifications'
   const identity = ref(null),
     settings = ref(null),
     telegram = ref(null),
-    dismissed = ref(false)
+    dismissed = ref(false),
+    savingPreferences = ref({})
   const root = computed(() => (identity.value ? `/api/${identity.value.persona}` : null))
   let revision = 0,
     settingsRevision = 0,
     settingsPending = null,
     telegramPending = null
+  let preferenceQueue = Promise.resolve(),
+    preferencePending = {}
   function setIdentity(persona, id) {
     const key = telegramDismissalKey(persona, id)
     if (key === identity.value?.key || (!key && !identity.value)) return
     revision++
+    preferenceQueue = Promise.resolve()
+    preferencePending = {}
+    savingPreferences.value = {}
     identity.value = key ? { persona, id, key } : null
     settings.value = null
     telegram.value = null
@@ -43,6 +49,49 @@ export const usePersonalNotificationsStore = defineStore('personalNotifications'
       settingsRevision++
       settings.value = result
     }
+  }
+  function savePreference(channel, enabled, request = api.request) {
+    if (
+      !['email', 'push', 'telegram'].includes(channel) ||
+      typeof enabled !== 'boolean' ||
+      !identity.value ||
+      !settings.value
+    )
+      return Promise.resolve(false)
+    if (preferencePending[channel]) return preferencePending[channel]
+    if (settings.value.preferences[channel] === enabled) return Promise.resolve(false)
+    const current = revision,
+      key = identity.value.key,
+      path = root.value + '/notifications'
+    savingPreferences.value = { ...savingPreferences.value, [channel]: true }
+    const operation = preferenceQueue
+      .catch(() => {})
+      .then(async () => {
+        if (current !== revision) return false
+        try {
+          const result = await request(path, {
+            method: 'PATCH',
+            body: { preferences: { ...settings.value.preferences, [channel]: enabled } },
+          })
+          if (current !== revision) return false
+          adoptSettings(result, key)
+          return true
+        } catch (error) {
+          if (current !== revision) return false
+          throw error
+        }
+      })
+      .finally(() => {
+        if (current === revision && preferencePending[channel] === operation) {
+          delete preferencePending[channel]
+          const pending = { ...savingPreferences.value }
+          delete pending[channel]
+          savingPreferences.value = pending
+        }
+      })
+    preferencePending[channel] = operation
+    preferenceQueue = operation
+    return operation
   }
   async function loadSettings(force = false, request = api.request) {
     if (!root.value) return null
@@ -97,6 +146,8 @@ export const usePersonalNotificationsStore = defineStore('personalNotifications'
   )
   return {
     identity,
+    savingPreferences,
+    savePreference,
     root,
     settings,
     telegram,
