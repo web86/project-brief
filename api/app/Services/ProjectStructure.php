@@ -134,6 +134,43 @@ class ProjectStructure
         }, 3);
     }
 
+    /** Place relative to a current, scoped anchor after taking the shared project lock. */
+    public static function placeTask(Request $request, string $uuid, string $target, ?string $before = null, ?string $after = null): Task
+    {
+        $project = TaskAccess::task($request, $uuid)->project;
+
+        return DB::transaction(function () use ($request, $uuid, $target, $before, $after, $project): Task {
+            self::lock($project);
+            $task = TaskAccess::task($request, $uuid, true);
+            $section = self::section($project, $target);
+            $items = $section->tasks()->whereKeyNot($task->id)->orderBy('position')->orderBy('id')->get()->all();
+            $index = count($items);
+            if ($before !== null || $after !== null) {
+                $anchor = $before ?? $after;
+                $index = array_search($anchor, array_map(fn ($item) => $item->uuid, $items), true);
+                abort_if($index === false, 409, 'The target idea has moved. Refresh the project and try again.');
+                if ($after !== null) {
+                    $index++;
+                }
+            }
+            $oldNumber = self::number($task);
+            $oldSection = $task->project_section_id;
+            $task->forceFill(['project_section_id' => $section->id])->save();
+            array_splice($items, $index, 0, [$task]);
+            self::normalize($items);
+            if ($oldSection !== $section->id) {
+                self::normalize($project->tasks()->where('project_section_id', $oldSection)->orderBy('position')->orderBy('id')->get());
+            }
+            $task->refresh()->unsetRelation('projectSection');
+            $newNumber = self::number($task);
+            if ($oldNumber !== $newNumber) {
+                TaskAudit::record($request, $task, $oldSection === $section->id ? 'reordered' : 'section_moved', 'Разработчик изменил порядок идеи', $oldNumber, $newNumber);
+            }
+
+            return $task;
+        }, 3);
+    }
+
     public static function number(Task $task): ?string
     {
         return $task->projectSection && $task->position ? $task->projectSection->position.'.'.$task->position : null;

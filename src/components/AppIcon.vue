@@ -4,6 +4,7 @@ defineProps({
   size: { type: [Number, String], default: 20 },
 })
 const paths = {
+  grip: 'M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01',
   logout: 'M9 3H4v18h5M14 7l5 5-5 5M8 12h12',
   panel: 'M3 3h18v18H3zM9 3v18M5.5 8h1M5.5 12h1M5.5 16h1',
   money: 'M3 5h18v14H3zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM6 9v.01M18 15v.01',

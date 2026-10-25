@@ -44,7 +44,7 @@ test('deletion requires confirmation, cancel keeps data, success returns to proj
 })
 test('failed deletion keeps dialog open and does not navigate; approval prevents stale confirmation', async () => {
   const calls = []
-  const task = ref({ id: 'draft', status: 'clarification', clientApproved: false })
+  const task = ref({ id: 'draft', status: 'new', clientApproved: false })
   const action = useDraftDeletion({
     store: { isDeveloper: false, deleteTask: async () => false },
     task,

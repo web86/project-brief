@@ -131,13 +131,13 @@ test('dates, currency, pluralization, errors and confirmation react to locale ch
     [22, 'идеи'],
   ])
     assert.equal(t('counts.ideas', count), noun)
-  assert.equal(t('flow.deleteTitle'), 'Удалить эту идею?')
+  assert.equal(t('flow.deleteTitle'), 'Переместить идею в корзину?')
   locale.value = 'en'
   assert.match(formatDate('2026-10-05T12:00:00Z'), /October/)
   assert.match(formatCurrency(1234.5, { currency: 'USD' }), /1,234\.50/)
   assert.equal(t('counts.ideas', 1), 'idea')
   assert.equal(t('counts.ideas', 2), 'ideas')
-  assert.equal(t('flow.deleteTitle'), 'Delete this idea?')
+  assert.equal(t('flow.deleteTitle'), 'Move idea to trash?')
   assert.equal(t('flow.deleteIdea'), 'Delete idea')
   assert.equal(
     formatApiError({ status: 422, errors: { name: ['Russian server text'] } }),

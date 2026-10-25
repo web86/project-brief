@@ -129,6 +129,10 @@ class WorkspaceMigrationTest extends TestCase
                         $this->assertNull($data['project_id']);
                         unset($data['project_id']);
                     }
+                    if ($table === 'tasks') {
+                        $this->assertNull($data['deleted_at']);
+                        unset($data['deleted_at']);
+                    }
                     if ($table === 'projects') {
                         unset($data['workspace_id']);
                     }

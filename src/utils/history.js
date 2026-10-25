@@ -15,6 +15,7 @@ const known = new Set([
   'reordered',
 ])
 export function historyText(event) {
+  if (['trashed', 'restored'].includes(event.type)) return t(`management.${event.type}`)
   if (!known.has(event.type)) return event.text || t('flow.unknownHistory')
   const actor =
     event.actorName ||

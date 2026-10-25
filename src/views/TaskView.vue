@@ -18,7 +18,7 @@ import HistoryTimeline from '../components/HistoryTimeline.vue'
 import DeveloperTaskPanel from '../components/DeveloperTaskPanel.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import LoadingButton from '../components/LoadingButton.vue'
-import { canEditClientTask, useDraftDeletion } from '../utils/clientDraft.js'
+import { canDeleteTask, canEditClientTask, useDraftDeletion } from '../utils/clientDraft.js'
 import DeveloperNotes from '../components/DeveloperNotes.vue'
 const route = useRoute()
 const storeRouter = useRouter()
@@ -128,13 +128,6 @@ function focusClarification() {
         <RouterLink :to="`${store.taskPath(task.id)}/edit`" class="text-button">{{
           t('ui.edit')
         }}</RouterLink>
-        <button
-          type="button"
-          class="text-button delete-idea-action"
-          @click="deletion.requestDeletion"
-        >
-          {{ t('flow.deleteIdea') }}
-        </button>
       </div>
       <p v-else-if="!store.isDeveloper" class="brief-lock-copy">
         {{
@@ -163,9 +156,13 @@ function focusClarification() {
             @click="deletion.cancel"
           >
             {{ t('ui.cancel') }}</button
-          ><LoadingButton class="button danger" :busy="deleting" @click="deletion.confirm">{{
-            t('ui.delete')
-          }}</LoadingButton></template
+          ><LoadingButton
+            class="button danger"
+            :busy="deleting"
+            :disabled="deleting || !canDeleteTask(task)"
+            @click="deletion.confirm"
+            >{{ t('management.toTrash') }}</LoadingButton
+          ></template
         >
       </BaseDialog>
       <div class="task-layout" :class="{ 'has-developer': store.isDeveloper }">
@@ -193,6 +190,20 @@ function focusClarification() {
           <HistoryTimeline :history="task.history" :developer="store.isDeveloper" />
         </div>
       </div>
+      <footer class="task-trash-action">
+        <button
+          type="button"
+          class="text-button delete-idea-action"
+          :disabled="!canDeleteTask(task) || deleting || store.storageBlocked || store.orderPending"
+          :aria-describedby="!canDeleteTask(task) ? 'delete-idea-help' : undefined"
+          @click="deletion.requestDeletion"
+        >
+          <AppIcon name="trash" :size="18" />{{ t('flow.deleteIdea') }}
+        </button>
+        <p v-if="!canDeleteTask(task)" id="delete-idea-help">
+          {{ t(task.clientApproved ? 'management.approvedProtected' : 'management.onlyNew') }}
+        </p>
+      </footer>
     </div>
   </div>
   <div v-else class="empty-state page-empty">

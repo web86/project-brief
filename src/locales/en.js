@@ -1,4 +1,31 @@
 export default {
+  management: {
+    moveNamed: 'Move idea “{title}”',
+    moveIdea: 'Move idea',
+    up: 'Move up',
+    down: 'Move down',
+    section: 'Section',
+    position: 'Insert position',
+    atEnd: 'End of section',
+    before: 'Before: {title}',
+    move: 'Move',
+    dragHint: 'Drag the handle or press it to choose a position.',
+    filterHint: 'Choose “All ideas” and “All sections” to move ideas.',
+    savingOrder: 'Saving order…',
+    dragging: 'Choose an insertion point. Escape to cancel.',
+    orderSaved: 'Idea order saved',
+    orderConflict:
+      'Another administrator changed the idea or section. Refresh the page and try again.',
+    trash: 'Trash',
+    trashHelp: 'Deleted ideas are kept here with their files, comments and history.',
+    trashEmpty: 'Trash is empty',
+    restore: 'Restore',
+    restored: 'Idea restored',
+    trashed: 'Idea moved to trash',
+    toTrash: 'Move to trash',
+    onlyNew: 'Only ideas with the “New idea” status can be deleted.',
+    approvedProtected: 'Approved ideas cannot be deleted. Client approval is preserved.',
+  },
   centralNotifications: {
     unavailableRecipients:
       'Some previously selected participants no longer have access. They will not be notified; save the current recipient list.',
@@ -595,9 +622,8 @@ export default {
     ideaNumber: 'Idea {number}',
     locationDetail: 'Link or location details',
     deleteIdea: 'Delete idea',
-    deleteTitle: 'Delete this idea?',
-    deleteBody:
-      'The task and its related comments, history and attachments will be deleted. This action cannot be undone.',
+    deleteTitle: 'Move idea to trash?',
+    deleteBody: 'The idea will be removed from the project. It can be restored from trash.',
     briefLocked: 'The brief has been approved. Further changes can be discussed in the comments.',
     workLocked: 'Work on this idea has started. Further changes can be discussed in the comments.',
     fieldError: 'Check this field.',

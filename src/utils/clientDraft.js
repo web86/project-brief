@@ -1,4 +1,8 @@
 import { ref, watch } from 'vue'
+import { toast } from '../services/toast.js'
+import { t } from '../i18n/index.js'
+
+export const canDeleteTask = (task) => !!task && task.status === 'new' && !task.clientApproved
 
 export const canEditClientTask = (task) =>
   !!task && !task.clientApproved && ['new', 'clarification'].includes(task.status)
@@ -6,7 +10,7 @@ export const canEditClientTask = (task) =>
 export function useDraftDeletion({ store, task, router }) {
   const open = ref(false)
   const pending = ref(false)
-  const canDelete = () => !store.isDeveloper && canEditClientTask(task.value)
+  const canDelete = () => canDeleteTask(task.value)
   function requestDeletion() {
     if (canDelete()) open.value = true
   }
@@ -19,6 +23,7 @@ export function useDraftDeletion({ store, task, router }) {
     try {
       if (!(await store.deleteTask(task.value.id))) return false
       open.value = false
+      toast.success(() => t('management.trashed'))
       await router.push(store.projectPath)
       return true
     } finally {
@@ -26,7 +31,7 @@ export function useDraftDeletion({ store, task, router }) {
     }
   }
   watch(
-    () => canEditClientTask(task.value),
+    () => canDeleteTask(task.value),
     (editable) => {
       if (!editable) open.value = false
     },

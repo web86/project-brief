@@ -10,7 +10,7 @@ import {
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { api, API_MODE, taskBody } from '../api/client.js'
-import { canEditClientTask } from '../utils/clientDraft.js'
+import { canDeleteTask, canEditClientTask } from '../utils/clientDraft.js'
 import { createDemoData } from '../data/demo.js'
 import {
   FILTERS,
@@ -50,6 +50,12 @@ const validAttachment = (file) =>
 // Validate the entire snapshot before replacing any reactive state.
 export function isValidSnapshot(data) {
   if (!Array.isArray(data?.sections) || !Array.isArray(data?.tasks)) return false
+  if (
+    data.trash !== undefined &&
+    (!Array.isArray(data.trash) ||
+      data.trash.some((task) => !isValidSnapshot({ ...data, tasks: [task], trash: undefined })))
+  )
+    return false
   const canonical = data.sections.every((section) => section && typeof section === 'object')
   const legacy = data.sections.every(isText)
   if (!canonical && !legacy) return false
@@ -144,6 +150,7 @@ export const useProjectStore = defineStore('project', () => {
   const project = ref(demo.project)
   const sections = ref(demo.sections)
   const tasks = ref(demo.tasks)
+  const trash = ref([])
   const currentMode = ref(demo.currentMode)
   const apiMode = API_MODE
   const admin = ref(null)
@@ -222,6 +229,7 @@ export const useProjectStore = defineStore('project', () => {
     apiRevision++
     project.value = { id: '', name: '', website: '', description: '', currency: 'RUB' }
     tasks.value = []
+    trash.value = []
     sections.value = []
     developerDrafts.value = {}
     currentClient.value = null
@@ -405,6 +413,7 @@ export const useProjectStore = defineStore('project', () => {
           project: project.value,
           sections: sections.value,
           tasks: tasks.value,
+          trash: trash.value,
           currentMode: currentMode.value,
         }),
       )
@@ -431,6 +440,7 @@ export const useProjectStore = defineStore('project', () => {
         project.value = data.project
         sections.value = data.sections
         tasks.value = data.tasks
+        trash.value = data.trash || []
         currentMode.value = data.currentMode
       }
       storageBlocked.value = false
@@ -582,24 +592,153 @@ export const useProjectStore = defineStore('project', () => {
 
   function deleteTask(id) {
     const task = findTask(id)
-    if (!task || storageBlocked.value || (!isDeveloper.value && !canEditClientTask(task)))
-      return false
+    if (!canDeleteTask(task) || storageBlocked.value || orderPending.value) return false
     if (API_MODE)
-      return (async () => {
+      return serialize(id, async () => {
+        apiError.value = ''
         try {
-          await serialize(id, () => api.request(`/api/client/tasks/${id}`, { method: 'DELETE' }))
-          await loadApiProject(project.value.id, false)
+          await api.request(`${actorPath()}/tasks/${id}`, { method: 'DELETE' })
+          tasks.value = tasks.value.filter((item) => item.id !== id)
+          normalizePositions(sectionTasks(task.sectionId))
+          delete developerDrafts.value[id]
           return true
         } catch (error) {
           reportError(error)
           return false
         }
-      })()
-    const sectionId = task.sectionId
-    tasks.value = tasks.value.filter((item) => item.id !== id)
-    normalizePositions(sectionTasks(sectionId))
-    normalizePositions(canonicalOrder(sections.value))
-    return true
+      })
+    const previous = tasks.value.map((item) => ({ ...item }))
+    loading = true
+    try {
+      trash.value.push({ ...task })
+      tasks.value = tasks.value.filter((item) => item.id !== id)
+      normalizePositions(sectionTasks(task.sectionId))
+      if (!saveToStorage()) {
+        tasks.value = previous
+        trash.value = trash.value.filter((item) => item.id !== id)
+        return false
+      }
+      delete developerDrafts.value[id]
+      return true
+    } finally {
+      loading = false
+    }
+  }
+  async function loadTrash() {
+    if (!isDeveloper.value) return false
+    if (!API_MODE) return true
+    const requestedProject = project.value.id
+    const requestedRevision = apiRevision
+    try {
+      const { data } = await api.request(`/api/admin/projects/${requestedProject}/trash`)
+      if (project.value.id !== requestedProject || apiRevision !== requestedRevision) return false
+      trash.value = data
+      return true
+    } catch (error) {
+      toast.error(() => formatApiError(error))
+      return false
+    }
+  }
+  async function restoreTask(id) {
+    if (!isDeveloper.value || orderPending.value || storageBlocked.value) return false
+    orderPending.value = true
+    const restoringProject = project.value.id
+    const restoringRevision = apiRevision
+    if (!API_MODE) loading = true
+    try {
+      if (API_MODE) {
+        const { data } = await api.request(`/api/admin/tasks/${id}/restore`, { method: 'POST' })
+        if (project.value.id !== restoringProject || apiRevision !== restoringRevision) return true
+        const items = sectionTasks(data.sectionId)
+        items.splice(Math.min(data.position - 1, items.length), 0, data)
+        normalizePositions(items)
+        tasks.value.push(data)
+      } else {
+        const task = trash.value.find((item) => item.id === id)
+        if (!task) return false
+        const previous = tasks.value.map((item) => ({ ...item }))
+        const items = sectionTasks(task.sectionId)
+        items.splice(Math.min(task.position - 1, items.length), 0, { ...task })
+        normalizePositions(items)
+        tasks.value.push(items.find((item) => item.id === id))
+        const previousTrash = trash.value
+        trash.value = trash.value.filter((item) => item.id !== id)
+        if (!saveToStorage()) {
+          tasks.value = previous
+          trash.value = previousTrash
+          return false
+        }
+      }
+      trash.value = trash.value.filter((item) => item.id !== id)
+      toast.success(() => t('management.restored'))
+      return true
+    } catch (error) {
+      toast.error(() => formatApiError(error))
+      return false
+    } finally {
+      orderPending.value = false
+      if (!API_MODE) loading = false
+    }
+  }
+  async function placeTask(id, sectionId, beforeTaskId = null, afterTaskId = null) {
+    if (!isDeveloper.value || storageBlocked.value || orderPending.value) return false
+    const task = findTask(id)
+    if (!task || !sections.value.some((section) => section.id === sectionId)) return false
+    const previous = tasks.value.map((item) => ({
+      id: item.id,
+      sectionId: item.sectionId,
+      position: item.position,
+    }))
+    const items = sectionTasks(sectionId).filter((item) => item.id !== id)
+    let index = items.length
+    if (beforeTaskId || afterTaskId) {
+      index = items.findIndex((item) => item.id === (beforeTaskId || afterTaskId))
+      if (index < 0) return false
+      if (afterTaskId) index++
+    }
+    const oldSection = task.sectionId
+    const movingProject = project.value.id
+    const movingRevision = apiRevision
+    orderPending.value = true
+    loading = true
+    task.sectionId = sectionId
+    items.splice(index, 0, task)
+    normalizePositions(items)
+    if (oldSection !== sectionId) normalizePositions(sectionTasks(oldSection))
+    const rollback = () => {
+      if (project.value.id !== movingProject || apiRevision !== movingRevision) return
+      for (const saved of previous) {
+        const item = findTask(saved.id)
+        if (item) Object.assign(item, saved)
+      }
+    }
+    try {
+      if (API_MODE) {
+        const { data } = await api.request(`/api/admin/tasks/${id}/place`, {
+          method: 'POST',
+          body: { sectionId, beforeTaskId, afterTaskId },
+        })
+        if (project.value.id !== movingProject || apiRevision !== movingRevision) return true
+        if (!Array.isArray(data)) throw new Error('Invalid task response')
+        tasks.value = data
+        tasks.value.forEach(reconcileDeveloperDraft)
+      } else if (!saveToStorage()) {
+        rollback()
+        toast.error(() => formatApiError(storageError.value))
+        return false
+      }
+      toast.success(() => t('management.orderSaved'))
+      return true
+    } catch (error) {
+      rollback()
+      toast.error(() =>
+        error.status === 409 ? t('management.orderConflict') : formatApiError(error),
+      )
+      return false
+    } finally {
+      loading = false
+      orderPending.value = false
+    }
   }
   function ensureLocalSection(name) {
     let section = sections.value.find((item) => item.name.trim() === name)
@@ -807,7 +946,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   watch(
-    [project, sections, tasks, currentMode],
+    [project, sections, tasks, trash, currentMode],
     () => {
       if (initialized.value && !loading) saveToStorage()
     },
@@ -815,6 +954,10 @@ export const useProjectStore = defineStore('project', () => {
   )
 
   return {
+    trash,
+    loadTrash,
+    restoreTask,
+    placeTask,
     apiMode,
     admin,
     currentClient,

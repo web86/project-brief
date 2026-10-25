@@ -549,6 +549,10 @@ h2 {
 }
 
 .ideas-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 12px;
 }
 .ideas-heading h2 {
@@ -4328,4 +4332,183 @@ button.attachment-item:hover {
 }
 .personal-push > .button {
   margin-top: 10px;
+}
+
+/* Idea placement and recoverable deletion. */
+.task-card-shell {
+  position: relative;
+  min-width: 0;
+}
+.task-move-control {
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  z-index: 4;
+}
+.task-grip {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+.task-grip svg {
+  stroke-width: 3.5;
+}
+.task-grip:active {
+  cursor: grabbing;
+}
+.task-grip:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.task-card-shell:has(.task-grip) .card-top {
+  padding-right: 38px;
+  min-height: 30px;
+}
+.task-card-shell.is-dragging {
+  opacity: 0.3;
+}
+.task-drag-ghost {
+  position: fixed !important;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  pointer-events: none !important;
+  margin: 0;
+  opacity: 0.96;
+  box-shadow: 0 18px 48px #0004;
+  border-radius: 18px;
+  will-change: transform;
+}
+.task-drag-ghost * {
+  pointer-events: none !important;
+}
+.task-drag-active {
+  user-select: none;
+  cursor: grabbing;
+}
+.task-card-shell.drop-before::before,
+.task-card-shell.drop-after::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--accent, #5277dd);
+  box-shadow: 0 0 0 3px #5277dd20;
+  z-index: 5;
+}
+.task-card-shell.drop-before::before {
+  left: -9px;
+}
+.task-card-shell.drop-after::after {
+  right: -9px;
+}
+.section-block.section-drop-target {
+  outline: 2px dashed var(--accent, #5277dd);
+  outline-offset: 6px;
+  border-radius: 12px;
+  background: #5277dd0a;
+}
+.task-order-move {
+  transition: transform 0.22s ease;
+}
+.task-order-help {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 8px 0 20px;
+}
+.move-field {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+}
+.move-field select {
+  width: 100%;
+  min-height: 44px;
+}
+.move-step-actions {
+  display: flex;
+  gap: 12px;
+}
+.move-task-title,
+.trash-list strong {
+  overflow-wrap: anywhere;
+}
+.task-trash-action {
+  border-top: 1px solid var(--border);
+  margin-top: 32px;
+  padding: 24px 0 12px;
+}
+.task-trash-action p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 5px 0;
+}
+.task-trash-action .delete-idea-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--muted);
+}
+.task-trash-action .delete-idea-action:hover:enabled {
+  color: #d75050;
+}
+.delete-idea-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.project-trash-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-left: auto;
+}
+.trash-list {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.trash-list li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.trash-list li > div {
+  flex: 1;
+  min-width: 0;
+}
+.trash-list span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+@media (max-width: 600px) {
+  .task-grip {
+    width: 44px;
+    height: 44px;
+  }
+  .trash-list li {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-order-move {
+    transition: none;
+  }
 }

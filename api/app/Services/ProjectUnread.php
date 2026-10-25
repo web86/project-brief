@@ -17,7 +17,7 @@ class ProjectUnread
     private function relevant(): QueryBuilder
     {
         return DB::table('task_history')->join('tasks', 'tasks.id', '=', 'task_history.task_id')
-            ->where('task_history.actor_type', 'client')->whereIn('task_history.event_type', self::EVENTS);
+            ->whereNull('tasks.deleted_at')->where('task_history.actor_type', 'client')->whereIn('task_history.event_type', self::EVENTS);
     }
 
     public function withCounts(Builder $projects, User $user): Builder

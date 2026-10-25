@@ -57,9 +57,13 @@ test('actual client view shows edit/delete only for eligible states and translat
       Object.assign(store.findTask('demo-1'), { status, clientApproved: approved })
     })
     assert.equal(html.includes('class="client-draft-actions"'), visible, status + ' ' + approved)
-    assert.equal(html.includes('class="text-button delete-idea-action"'), visible)
-    assert.ok(html.includes('Delete this idea?'))
-    assert.ok(html.includes('This action cannot be undone.'))
+    assert.equal(html.includes('class="text-button delete-idea-action"'), true)
+    assert.equal(
+      /class="text-button delete-idea-action" disabled/.test(html),
+      status !== 'new' || approved,
+    )
+    assert.ok(html.includes('Move idea to trash?'))
+    assert.ok(html.includes('It can be restored from trash.'))
     assert.ok(html.includes('Обновить первый экран'))
   }
   const russian = await render(
@@ -71,7 +75,7 @@ test('actual client view shows edit/delete only for eligible states and translat
     },
     'ru',
   )
-  assert.ok(russian.includes('Удалить эту идею?'))
+  assert.ok(russian.includes('Переместить идею в корзину?'))
   assert.ok(russian.includes('Удалить идею'))
 })
 test('project renders empty canonical sections and developer controls outside links', async () => {

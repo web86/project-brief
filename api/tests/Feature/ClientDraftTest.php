@@ -32,7 +32,7 @@ class ClientDraftTest extends TestCase
     }
 
     #[DataProvider('editableStates')]
-    public function test_edit_and_full_delete_are_allowed_only_for_unapproved_drafts(string $status): void
+    public function test_editing_is_allowed_for_unapproved_drafts_and_trash_is_restricted_to_new(string $status): void
     {
         Storage::fake('local');
         $task = Task::factory()->create(['status' => $status, 'client_approved' => false]);
@@ -49,12 +49,17 @@ class ClientDraftTest extends TestCase
         Storage::disk('local')->put('other/private.txt', 'keep');
         $other->attachments()->create(['uploaded_by_type' => 'client', 'original_name' => 'private.txt', 'stored_name' => 'private.txt', 'mime_type' => 'text/plain', 'size' => 4, 'disk' => 'local', 'path' => 'other/private.txt']);
         $section = $task->fresh()->projectSection;
+        if ($status === 'clarification') {
+            $this->deleteJson('/api/client/tasks/'.$task->uuid)->assertForbidden();
+
+            return;
+        }
         $this->deleteJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonPath('deleted', true);
-        $this->assertModelMissing($task);
-        $this->assertDatabaseMissing('comments', ['task_id' => $task->id]);
-        $this->assertDatabaseMissing('task_history', ['task_id' => $task->id]);
-        $this->assertDatabaseMissing('attachments', ['task_id' => $task->id]);
-        Storage::disk('local')->assertMissing($path);
+        $this->assertSoftDeleted($task);
+        $this->assertDatabaseHas('comments', ['task_id' => $task->id]);
+        $this->assertDatabaseHas('task_history', ['task_id' => $task->id]);
+        $this->assertDatabaseHas('attachments', ['task_id' => $task->id]);
+        Storage::disk('local')->assertExists($path);
         Storage::disk('local')->assertExists('other/private.txt');
         $this->assertModelExists($section);
         $this->assertModelExists($sibling);
@@ -106,26 +111,6 @@ class ClientDraftTest extends TestCase
         $this->assertSame('new', $own->fresh()->status);
     }
 
-    public function test_partial_file_deletion_failure_restores_files_and_preserves_all_records(): void
-    {
-        $disk = Storage::fake('local');
-        $task = Task::factory()->create();
-        $this->client($task->project);
-        foreach (['one', 'two'] as $name) {
-            $disk->put($name.'.txt', $name);
-            $task->attachments()->create(['uploaded_by_type' => 'client', 'original_name' => $name.'.txt', 'stored_name' => $name.'.txt', 'mime_type' => 'text/plain', 'size' => 3, 'disk' => 'local', 'path' => $name.'.txt']);
-        }
-        $failing = \Mockery::mock($disk)->makePartial();
-        $failing->shouldReceive('delete')->with('one.txt')->once()->andReturnUsing(fn () => $disk->delete('one.txt'));
-        $failing->shouldReceive('delete')->with('two.txt')->once()->andReturn(false);
-        Storage::shouldReceive('disk')->with('local')->andReturn($failing);
-        $this->deleteJson('/api/client/tasks/'.$task->uuid)->assertServiceUnavailable();
-        $this->assertModelExists($task);
-        $this->assertDatabaseCount('attachments', 2);
-        $this->assertSame('one', $disk->get('one.txt'));
-        $this->assertSame('two', $disk->get('two.txt'));
-    }
-
     public function test_shared_legacy_file_is_retained_for_its_other_task(): void
     {
         Storage::fake('local');
@@ -137,7 +122,7 @@ class ClientDraftTest extends TestCase
             $owner->attachments()->create(['uploaded_by_type' => 'client', 'original_name' => 'file.txt', 'stored_name' => 'file.txt', 'mime_type' => 'text/plain', 'size' => 15, 'disk' => 'local', 'path' => 'shared/file.txt']);
         }
         $this->deleteJson('/api/client/tasks/'.$task->uuid)->assertOk();
-        $this->assertModelMissing($task);
+        $this->assertSoftDeleted($task);
         $this->assertModelExists($other);
         $this->assertDatabaseHas('attachments', ['task_id' => $other->id, 'path' => 'shared/file.txt']);
         Storage::disk('local')->assertExists('shared/file.txt');
@@ -146,24 +131,5 @@ class ClientDraftTest extends TestCase
     public function test_guest_cannot_delete_a_client_idea(): void
     {
         $this->deleteJson('/api/client/tasks/00000000-0000-4000-8000-000000000000')->assertUnauthorized();
-    }
-
-    public function test_incomplete_backup_never_deletes_the_original_file_or_records(): void
-    {
-        $disk = Storage::fake('local');
-        $task = Task::factory()->create();
-        $this->client($task->project);
-        $disk->put('original.txt', 'original bytes');
-        $task->attachments()->create(['uploaded_by_type' => 'client', 'original_name' => 'original.txt', 'stored_name' => 'original.txt', 'mime_type' => 'text/plain', 'size' => 14, 'disk' => 'local', 'path' => 'original.txt']);
-        $source = fopen('php://temp', 'w+b');
-        fwrite($source, 'short');
-        rewind($source);
-        $failing = \Mockery::mock($disk)->makePartial();
-        $failing->shouldReceive('readStream')->with('original.txt')->once()->andReturn($source);
-        Storage::shouldReceive('disk')->with('local')->andReturn($failing);
-        $this->deleteJson('/api/client/tasks/'.$task->uuid)->assertServiceUnavailable();
-        $this->assertModelExists($task);
-        $this->assertDatabaseCount('attachments', 1);
-        $this->assertSame('original bytes', $disk->get('original.txt'));
     }
 }

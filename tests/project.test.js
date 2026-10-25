@@ -130,7 +130,11 @@ test('updates, developer deletion and an intentionally empty project persist', (
     'Новое название',
   )
   store.setMode('developer')
-  for (const task of [...store.tasks]) assert.equal(store.deleteTask(task.id), true)
+  for (const task of [...store.tasks]) {
+    task.status = 'new'
+    task.clientApproved = false
+    assert.equal(store.deleteTask(task.id), true)
+  }
   setActivePinia(createPinia())
   const reloaded = createStore()
   assert.equal(reloaded.tasks.length, 0)

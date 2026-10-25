@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "database": "MariaDB 11.8.9 (disposable container)",
+  "results": [
+    "Two administrators moving different ideas serialize on the project lock; all positions remain contiguous.",
+    "Two administrators moving the same idea produce one current location and no duplicate positions.",
+    "A destination anchor moved by another administrator is rejected with 409 without changing order.",
+    "An approval committed while deletion waits on the task lock is rechecked; deletion is rejected with 403."
+  ]
+}

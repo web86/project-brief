@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
 {
-    use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory;
+    use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     // section is deprecated, retained only for legacy backfill/fallback.
     protected $fillable = ['project_id', 'project_section_id', 'position', 'title', 'location', 'section', 'description', 'expected_result', 'priority', 'status', 'client_approved', 'client_approved_at', 'estimate_hours', 'price', 'developer_notes'];

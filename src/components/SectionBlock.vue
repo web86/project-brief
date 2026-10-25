@@ -1,5 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
+import { taskDragKey } from '../utils/taskDrag.js'
+const drag = inject(taskDragKey, null)
 import { readSectionCollapsed, writeSectionCollapsed } from '../utils/sectionCollapse.js'
 import TaskCard from './TaskCard.vue'
 import { pluralize } from '../constants/project.js'
@@ -29,7 +31,18 @@ function toggle() {
 }
 </script>
 <template>
-  <section class="section-block" :class="{ 'empty-section': !tasks.length }" :aria-label="name">
+  <section
+    class="section-block"
+    :data-drop-section="id"
+    :class="{
+      'empty-section': !tasks.length,
+      'section-drop-target':
+        drag?.target.value?.sectionId === id &&
+        !drag?.target.value?.beforeTaskId &&
+        !drag?.target.value?.afterTaskId,
+    }"
+    :aria-label="name"
+  >
     <div class="section-heading">
       <h2 :title="name">
         <button
@@ -70,9 +83,9 @@ function toggle() {
       </div>
     </div>
     <div :id="contentId" v-show="!collapsed">
-      <div v-if="tasks.length" class="task-grid">
+      <TransitionGroup v-if="tasks.length" name="task-order" tag="div" class="task-grid">
         <TaskCard v-for="task in tasks" :key="task.id" :task="task" />
-      </div>
+      </TransitionGroup>
       <p v-else class="empty-section-copy">{{ t('flow.emptySection') }}</p>
     </div>
   </section>

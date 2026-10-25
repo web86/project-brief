@@ -51,7 +51,7 @@ class ProjectSectionController extends Controller
         abort_unless($section->project_id === $project->id, 404);
         DB::transaction(function () use ($project, $section): void {
             ProjectStructure::lock($project);
-            if ($section->tasks()->exists()) {
+            if ($section->tasks()->withTrashed()->exists()) {
                 throw ValidationException::withMessages(['section' => 'Сначала переместите задачи в другой раздел.']);
             }
             $section->delete();

@@ -20,6 +20,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
+use App\Http\Controllers\TaskTrashController;
 use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Resources\ProjectResource;
@@ -96,6 +97,10 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
 });
 
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
+    Route::get('/projects/{project}/trash', [TaskTrashController::class, 'index']);
+    Route::post('/tasks/{task}/restore', [TaskTrashController::class, 'restore']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+    Route::post('/tasks/{task}/place', [TaskOrderController::class, 'place']);
     Route::get('/projects/{project}/tasks', [TaskController::class, 'index']);
     Route::post('/projects/{project}/tasks', [TaskController::class, 'store'])->middleware('throttle:uploads');
     Route::get('/tasks/{task}', [TaskController::class, 'show']);

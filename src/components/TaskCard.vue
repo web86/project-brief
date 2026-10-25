@@ -4,6 +4,10 @@ import { t, formatCurrency, intlLocale } from '../i18n/index.js'
 import { useProjectStore } from '../stores/project'
 const store = useProjectStore()
 import AppIcon from './AppIcon.vue'
+import TaskMoveControl from './TaskMoveControl.vue'
+import { inject } from 'vue'
+import { taskDragKey } from '../utils/taskDrag.js'
+const drag = inject(taskDragKey, null)
 import TaskStatus from './TaskStatus.vue'
 import TaskPriority from './TaskPriority.vue'
 import { getTaskLocation } from '../constants/project'
@@ -11,10 +15,20 @@ const props = defineProps({ task: { type: Object, required: true } })
 const filled = (value) => value !== null && value !== undefined && value !== ''
 </script>
 <template>
-  <article class="task-card-shell">
+  <article
+    class="task-card-shell"
+    :data-task-id="task.id"
+    :class="{
+      'is-dragging': drag?.dragging.value === task.id,
+      'drop-before': drag?.target.value?.beforeTaskId === task.id,
+      'drop-after': drag?.target.value?.afterTaskId === task.id,
+    }"
+  >
+    <TaskMoveControl v-if="store.isDeveloper" :task="task" />
     <RouterLink
       :to="store.taskPath(task.id)"
       class="task-card"
+      :draggable="false"
       :class="{ 'is-done': task.status === 'done' }"
     >
       <div class="card-top">

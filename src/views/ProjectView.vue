@@ -1,7 +1,9 @@
 <script setup>
 import { t } from '../i18n/index.js'
 
-import { computed, ref } from 'vue'
+import { computed, provide, ref } from 'vue'
+import { useTaskDrag, taskDragKey } from '../utils/taskDrag.js'
+import ProjectTrash from '../components/ProjectTrash.vue'
 import { useProjectStore } from '../stores/project'
 import { FILTERS } from '../constants/project'
 import { groupBriefTasks } from '../utils/structure'
@@ -12,6 +14,11 @@ import AppIcon from '../components/AppIcon.vue'
 const store = useProjectStore()
 const activeFilter = ref('all')
 const activeSection = ref('')
+const dragEnabled = computed(
+  () => store.isDeveloper && activeFilter.value === 'all' && !activeSection.value,
+)
+const drag = useTaskDrag(store, dragEnabled)
+provide(taskDragKey, drag)
 function resetFilters() {
   activeFilter.value = 'all'
   activeSection.value = ''
@@ -30,6 +37,7 @@ const groups = computed(() =>
     <ProjectHeader />
     <div class="ideas-heading">
       <h2>{{ t('ui.ideasAndChanges') }}</h2>
+      <ProjectTrash v-if="store.isDeveloper" />
     </div>
     <div class="filter-bar">
       <div class="filter-tabs" role="group" :aria-label="t('ui.filterByStatus')">
@@ -55,7 +63,20 @@ const groups = computed(() =>
         </select>
       </div>
     </div>
-    <div class="section-list">
+    <p v-if="store.isDeveloper" class="task-order-help" role="status" aria-live="polite">
+      {{
+        t(
+          store.orderPending
+            ? 'management.savingOrder'
+            : drag.dragging.value
+              ? 'management.dragging'
+              : dragEnabled
+                ? 'management.dragHint'
+                : 'management.filterHint',
+        )
+      }}
+    </p>
+    <div class="section-list" :aria-busy="store.orderPending">
       <SectionBlock
         v-for="group in groups"
         :key="group.id"

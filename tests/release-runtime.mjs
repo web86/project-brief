@@ -84,6 +84,11 @@ $section = $project->briefSections()->create(['name'=>'Главная', 'positio
 $exportTask = $project->tasks()->create(['project_section_id'=>$section->id, 'position'=>1, 'title'=>'Кириллица: задача', 'description'=>'Описание проекта & результат', 'developer_notes'=>'PRIVATE_RELEASE_NOTE', 'client_approved'=>true, 'client_approved_at'=>'2026-10-18 12:00:00', 'estimate_hours'=>6, 'price'=>18000]);
 $exportTask->attachments()->create(['uploaded_by_type'=>'admin', 'original_name'=>'requirements.pdf', 'stored_name'=>'PRIVATE_STORED_NAME', 'disk'=>'local', 'path'=>'PRIVATE_STORAGE_PATH', 'mime_type'=>'application/pdf', 'size'=>1]);
 $exportSection = $project->briefSections()->create(['name'=>'Каталог', 'position'=>2]);
+$trashTask = $project->tasks()->create(['project_section_id'=>$section->id, 'position'=>2, 'title'=>'Recoverable runtime idea', 'description'=>'Keep all content', 'status'=>'new']);
+$trashTask->comments()->create(['author_type'=>'client', 'text'=>'Retained runtime comment']);
+file_put_contents(storage_path('app/private/runtime-trash.txt'), 'retained runtime bytes');
+$trashFile = $trashTask->attachments()->create(['uploaded_by_type'=>'client', 'original_name'=>'runtime-trash.txt', 'stored_name'=>'runtime-trash.txt', 'disk'=>'local', 'path'=>'runtime-trash.txt', 'mime_type'=>'text/plain', 'size'=>22]);
+
 $project->tasks()->create(['project_section_id'=>$exportSection->id, 'position'=>1, 'title'=>'Готовая задача', 'description'=>'Результат', 'status'=>'done', 'client_approved'=>true, 'estimate_hours'=>0]);
 $token = str_repeat('a', 64);
 $client = $project->clients()->create(['name'=>'Release client']);
@@ -92,7 +97,7 @@ $foreign = $app->make(\\App\\Services\\OwnerProvisioning::class)->create(['name'
 $foreignWorkspace = $foreign->workspaceMembers()->active()->firstOrFail()->workspace;
 $foreignProject = $foreignWorkspace->projects()->create(['title'=>'Foreign QA project']);
 $foreignTask = $foreignProject->tasks()->create(['title'=>'Foreign QA task', 'description'=>'Protected foreign task']);
-echo json_encode(['project'=>$project->uuid, 'workspace'=>$workspace->uuid, 'foreignWorkspace'=>$foreignWorkspace->uuid, 'foreignProject'=>$foreignProject->uuid, 'foreignTask'=>$foreignTask->uuid]);
+echo json_encode(['project'=>$project->uuid, 'workspace'=>$workspace->uuid, 'foreignWorkspace'=>$foreignWorkspace->uuid, 'foreignProject'=>$foreignProject->uuid, 'foreignTask'=>$foreignTask->uuid, 'trashTask'=>$trashTask->uuid, 'trashFile'=>$trashFile->uuid, 'mainSection'=>$section->uuid, 'targetSection'=>$exportSection->uuid, 'exportTask'=>$exportTask->uuid]);
 `,
   )
   const fixture = JSON.parse(command([fixturePhp, application]))
@@ -240,6 +245,53 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       })
     ).status,
     422,
+  )
+  // Exercise the packaged implementation, database migration and retained file through HTTP.
+  const trashRoot = '/api/admin/tasks/' + fixture.trashTask
+  const mutation = (url, method, body = {}) =>
+    request(url, {
+      method,
+      headers: personalHeaders,
+      body: method === 'DELETE' ? undefined : JSON.stringify(body),
+    })
+  let placed = await mutation(trashRoot + '/place', 'POST', {
+    sectionId: fixture.targetSection,
+    beforeTaskId: null,
+    afterTaskId: null,
+  })
+  assert.equal(placed.status, 200)
+  assert.equal((await placed.json()).data.find((task) => task.id === fixture.trashTask).position, 2)
+  placed = await mutation(trashRoot + '/place', 'POST', {
+    sectionId: fixture.mainSection,
+    beforeTaskId: fixture.exportTask,
+  })
+  assert.equal(placed.status, 200)
+  assert.equal(
+    (await placed.json()).data.find((task) => task.id === fixture.trashTask).displayNumber,
+    '1.1',
+  )
+  assert.equal((await mutation('/api/admin/tasks/' + fixture.exportTask, 'DELETE')).status, 403)
+  assert.equal((await mutation(trashRoot, 'DELETE')).status, 200)
+  assert.equal((await request(trashRoot)).status, 404)
+  assert.equal(
+    (await request('/api/admin/attachments/' + fixture.trashFile + '/download')).status,
+    404,
+  )
+  const trash = await (await request('/api/admin/projects/' + fixture.project + '/trash')).json()
+  assert.equal(trash.data.length, 1)
+  assert.equal(trash.data[0].comments[0].text, 'Retained runtime comment')
+  assert.equal(trash.data[0].attachments[0].name, 'runtime-trash.txt')
+  assert.equal((await mutation(trashRoot + '/restore', 'POST')).status, 200)
+  assert.equal(
+    (await request('/api/admin/attachments/' + fixture.trashFile + '/download')).status,
+    200,
+  )
+  assert.equal((await mutation(trashRoot + '/restore', 'POST')).status, 409)
+  assert.equal((await mutation(trashRoot, 'DELETE')).status, 200)
+  assert.equal((await mutation(trashRoot, 'DELETE')).status, 404)
+  assert.equal(
+    (await request('/api/admin/projects/' + fixture.foreignProject + '/trash')).status,
+    404,
   )
   const personalPage = await request('/admin/settings/notifications')
   assert.equal(personalPage.status, 200)
@@ -413,6 +465,39 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     401,
   )
   const clientCsrf = await (await request('/api/csrf')).json()
+  assert.equal((await request('/api/client/tasks/' + fixture.trashTask)).status, 404)
+  assert.equal(
+    (await request('/api/client/attachments/' + fixture.trashFile + '/download')).status,
+    404,
+  )
+  const clientHeaders = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': clientCsrf.token,
+  }
+  const clientDraft = await request('/api/client/tasks', {
+    method: 'POST',
+    headers: clientHeaders,
+    body: JSON.stringify({
+      title: 'Client runtime draft',
+      description: 'Delete safely',
+      location: 'Главная',
+      priority: 'normal',
+    }),
+  })
+  assert.equal(clientDraft.status, 201)
+  const clientDraftId = (await clientDraft.json()).data.id
+  assert.equal(
+    (
+      await request('/api/client/tasks/' + clientDraftId, {
+        method: 'DELETE',
+        headers: clientHeaders,
+      })
+    ).status,
+    200,
+  )
+  assert.equal((await request('/api/client/tasks/' + clientDraftId)).status, 404)
+
   assert.equal(
     (
       await request('/api/admin/projects/' + fixture.project + '/export', {
@@ -486,7 +571,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal((await request('/admin/login')).status, 200)
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
-    'PASS: Packaged runtime, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
+    'PASS: Packaged runtime, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
   )
 } finally {
   if (server && server.exitCode === null) {
