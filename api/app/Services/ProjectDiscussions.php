@@ -47,7 +47,9 @@ class ProjectDiscussions
 
     public function data(Comment $comment, bool $unread = false): array
     {
-        return ['id' => $comment->uuid, 'author' => $comment->author_type === 'admin' ? 'developer' : 'client',
+        return [
+            ...(request()->is('api/admin/*') && $comment->author_type === 'admin' && $comment->authorUser ? ['avatarUrl' => app(AccountProfile::class)->state($comment->authorUser)['avatarUrl']] : []),
+            'id' => $comment->uuid, 'author' => $comment->author_type === 'admin' ? 'developer' : 'client',
             'authorId' => $comment->author_type === 'admin' ? $comment->author_user_id : $comment->projectClient?->uuid,
             'authorName' => $comment->author_type === 'admin' ? ($comment->authorUser?->name ?? 'Developer') : ($comment->projectClient?->name ?? 'Client'),
             'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString(), 'unread' => $unread,

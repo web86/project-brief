@@ -31,6 +31,8 @@ function checkPrerequisites(bool $requireEnvironment): void
     foreach (['ctype', 'curl', 'dom', 'gd', 'xml', 'xmlwriter', 'libxml', 'fileinfo', 'filter', 'hash', 'iconv', 'json', 'mbstring', 'openssl', 'pcre', 'pdo', 'pdo_mysql', 'session', 'tokenizer', 'zip'] as $extension) {
         $passed = report(extension_loaded($extension), 'Extension '.$extension) && $passed;
     }
+    $passed = report(in_array('argon2id', password_algos(), true), 'Argon2id password hashing') && $passed;
+    $passed = report(function_exists('imagewebp') && function_exists('imagecreatefromwebp'), 'GD WebP support') && $passed;
     foreach (['vendor/autoload.php', 'bootstrap/app.php', 'artisan'] as $file) {
         $passed = report(is_file(applicationRoot().'/'.$file), $file.' exists') && $passed;
     }

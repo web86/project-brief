@@ -17,8 +17,10 @@ class EnsureAdmin
         // "admin" remains the interface persona, not a global account role.
         if (! $request->is('api/admin/logout')) {
             $context = app(CurrentWorkspace::class);
-            abort_unless($context->memberships($request)->exists(), 403);
-            if (! $request->is('api/admin/workspaces', 'api/admin/workspaces/*/select', 'api/admin/me/locale', 'api/admin/notifications', 'api/admin/notifications/*', 'api/admin/push/*', 'api/admin/telegram', 'api/admin/telegram/*')) {
+            if (! $request->is('api/admin/account', 'api/admin/account/*', 'api/admin/avatars/*', 'api/admin/notifications', 'api/admin/notifications/*')) {
+                abort_unless($context->memberships($request)->exists(), 403);
+            }
+            if (! $request->is('api/admin/workspaces', 'api/admin/workspaces/*/select', 'api/admin/me/locale', 'api/admin/account', 'api/admin/account/*', 'api/admin/avatars/*', 'api/admin/notifications', 'api/admin/notifications/*', 'api/admin/push/*', 'api/admin/telegram', 'api/admin/telegram/*')) {
                 $context->resolve($request);
                 if ($project = $request->route('project')) {
                     $request->route()->setParameter('project', ProjectAccess::project($request, $project instanceof Project ? $project->uuid : $project));

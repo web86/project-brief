@@ -46,11 +46,26 @@ export function createProjectRouter({
           },
         },
       },
+      { path: '/invitation', component: () => import('../views/InvitationView.vue') },
+      ...['forgot-password', 'reset-password'].map((path) => ({
+        path: '/admin/' + path,
+        component: () => import('../views/PasswordRecoveryView.vue'),
+      })),
       {
         path: '/admin',
         component: () => import('../views/AdminShell.vue'),
         meta: { requiresAdmin: true, adminShell: true },
         children: [
+          ...['account', 'account/security'].map((path) => ({
+            path,
+            component: () => import('../views/AdminAccountView.vue'),
+            meta: {
+              personalSettings: true,
+              get title() {
+                return t('account.title')
+              },
+            },
+          })),
           {
             path: 'unavailable',
             component: () => import('../views/AdminProjectUnavailableView.vue'),
@@ -94,25 +109,32 @@ export function createProjectRouter({
                   hash: '',
                 }),
               },
-              ...['discussions', 'clients', 'structure', 'notifications', 'settings', 'export'].map(
-                (section) => ({
-                  path: section,
-                  component: {
-                    discussions: () => import('../views/AdminProjectDiscussionsView.vue'),
-                    clients: () => import('../views/AdminProjectClientsView.vue'),
-                    structure: () => import('../views/AdminProjectStructureView.vue'),
-                    notifications: () => import('../views/AdminProjectNotificationsView.vue'),
-                    settings: () => import('../views/AdminProjectSettingsView.vue'),
-                    export: () => import('../views/AdminProjectExportView.vue'),
-                  }[section],
-                  meta: {
-                    projectSection: section,
-                    get title() {
-                      return t('nav.' + section)
-                    },
+              ...[
+                'discussions',
+                'clients',
+                'team',
+                'structure',
+                'notifications',
+                'settings',
+                'export',
+              ].map((section) => ({
+                path: section,
+                component: {
+                  discussions: () => import('../views/AdminProjectDiscussionsView.vue'),
+                  clients: () => import('../views/AdminProjectClientsView.vue'),
+                  team: () => import('../views/AdminProjectTeamView.vue'),
+                  structure: () => import('../views/AdminProjectStructureView.vue'),
+                  notifications: () => import('../views/AdminProjectNotificationsView.vue'),
+                  settings: () => import('../views/AdminProjectSettingsView.vue'),
+                  export: () => import('../views/AdminProjectExportView.vue'),
+                }[section],
+                meta: {
+                  projectSection: section,
+                  get title() {
+                    return t(section === 'team' ? 'team.title' : 'nav.' + section)
                   },
-                }),
-              ),
+                },
+              })),
               ...[
                 ['brief', ProjectView, false],
                 ['brief/task/new', () => import('../views/TaskFormView.vue'), false],
@@ -345,7 +367,10 @@ export function createProjectRouter({
           nav.clear()
           store.admin = null
           return to.meta.personalSettings
-            ? { path: '/admin/login', hash: /^#verify=[a-f0-9]{64}$/.test(to.hash) ? to.hash : '' }
+            ? {
+                path: '/admin/login',
+                hash: /^#(?:verify|email)=[a-f0-9]{64}$/.test(to.hash) ? to.hash : '',
+              }
             : '/admin/login'
         }
         if (from.matched.length) {

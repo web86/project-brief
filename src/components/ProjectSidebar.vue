@@ -31,7 +31,7 @@ const nav = useAdminNavigationStore()
       class="task-all-projects project-all-projects"
       @click="emit('navigate')"
     >
-      <AppIcon name="arrow" :size="17" /><span>{{ t('nav.allProjects') }}</span>
+      <AppIcon name="arrow" :size="20" /><span>{{ t('nav.allProjects') }}</span>
     </RouterLink>
     <section class="task-project-management">
       <h2 v-if="task">{{ t('taskWorkspace.manageProject') }}</h2>
@@ -44,13 +44,24 @@ const nav = useAdminNavigationStore()
         @trash="emit('trash')"
       />
     </section>
-    <RouterLink
-      to="/admin/settings/notifications"
-      class="task-personal-settings"
-      @click="emit('navigate')"
-    >
-      <AppIcon name="bell" :size="20" />{{ t('centralNotifications.myNotifications') }}
-    </RouterLink>
-    <AdminAccount v-if="nav.user" :user="nav.user" :busy="busy" @logout="emit('logout')" />
+    <div class="project-personal-navigation">
+      <RouterLink
+        to="/admin/settings/notifications"
+        class="task-personal-settings"
+        @click="emit('navigate')"
+      >
+        <AppIcon name="bell" :size="20" />{{ t('centralNotifications.myNotifications') }}
+      </RouterLink>
+      <RouterLink to="/admin/account" class="task-personal-settings" @click="emit('navigate')"
+        ><AppIcon name="user" :size="20" />{{ t('account.title') }}</RouterLink
+      >
+      <AdminAccount
+        @navigate="emit('navigate')"
+        v-if="nav.user"
+        :user="nav.user"
+        :busy="busy"
+        @logout="emit('logout')"
+      />
+    </div>
   </div>
 </template>

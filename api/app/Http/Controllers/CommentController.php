@@ -21,6 +21,6 @@ class CommentController extends Controller
             return $model;
         });
 
-        return new TaskResource($model->load(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient']));
+        return new TaskResource($model->load(['projectSection', 'comments.projectClient', 'comments.authorUser', 'attachments.projectClient', 'history.projectClient']));
     }
 }

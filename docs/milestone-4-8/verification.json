@@ -1,0 +1,71 @@
+{
+  "milestone": "4.8",
+  "date": "2026-10-25",
+  "branch": "codex/milestone-4-8-developer-invitations-account",
+  "baseCommit": "e4ebc27",
+  "laravelSQLite": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 566,
+    "passed": 566,
+    "assertions": 5665,
+    "duration_ms": 37216
+  },
+  "laravelMariaDB": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 566,
+    "passed": 566,
+    "assertions": 5665,
+    "duration_ms": 81280
+  },
+  "frontend": {
+    "command": "npm test",
+    "tests": 204,
+    "passed": 204
+  },
+  "build": {
+    "command": "npm run build",
+    "passed": true
+  },
+  "formatting": {
+    "pint": "vendor/bin/pint --dirty --format agent; fixed and passed",
+    "prettier": "npm run format:check; passed"
+  },
+  "browser": {
+    "realLaravelAndSmtpSink": {
+      "functionalScenarios": 6,
+      "visualConfigurations": 8,
+      "passed": true
+    },
+    "navigation": {
+      "configurations": 32,
+      "passed": true
+    },
+    "notifications": {
+      "configurations": 60,
+      "functionalScenarios": 5,
+      "passed": true
+    },
+    "taskManagement": {
+      "configurations": 20,
+      "passed": true
+    }
+  },
+  "concurrency": {
+    "database": "MariaDB 11.8.9",
+    "races": 6,
+    "processesPerRace": 6,
+    "acceptedPerRace": 1,
+    "duplicates": 0,
+    "passed": true
+  },
+  "smtpJino": {
+    "performed": false,
+    "reason": "User will test manually; no credentials configured"
+  },
+  "push": false,
+  "deployment": false,
+  "githubRelease": false,
+  "release": "Production ZIP created by bin/build-release from a clean local commit; includes no-dev vendor, assets and checksums. See release.json in the ZIP for the exact source commit."
+}

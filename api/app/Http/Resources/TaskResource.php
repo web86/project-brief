@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\AccountProfile;
 use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
 use Illuminate\Http\Request;
@@ -23,7 +24,8 @@ class TaskResource extends JsonResource
             'attachments' => $this->attachments->map(fn ($file) => ['id' => $file->uuid, 'name' => $file->original_name, 'size' => $file->size, 'type' => $file->mime_type,
                 'preview' => str_starts_with($file->mime_type, 'image/') ? '/api/'.$prefix.'/attachments/'.$file->uuid.'/preview' : null,
                 'uploadedByName' => $file->projectClient?->name, 'downloadUrl' => '/api/'.$prefix.'/attachments/'.$file->uuid.'/download'])->values(),
-            'comments' => $this->comments->map(fn ($comment) => ['id' => $comment->uuid, 'author' => $comment->author_type === 'admin' ? 'developer' : 'client', 'authorId' => $comment->projectClient?->uuid, 'authorName' => $comment->author_type === 'admin' ? 'Разработчик' : ($comment->projectClient?->name ?? 'Клиент'), 'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString()])->values(),
+            'comments' => $this->comments->map(fn ($comment) => [
+                ...($admin && $comment->author_type === 'admin' && $comment->authorUser ? ['avatarUrl' => app(AccountProfile::class)->state($comment->authorUser)['avatarUrl']] : []), 'id' => $comment->uuid, 'author' => $comment->author_type === 'admin' ? 'developer' : 'client', 'authorId' => $comment->projectClient?->uuid, 'authorName' => $comment->author_type === 'admin' ? 'Разработчик' : ($comment->projectClient?->name ?? 'Клиент'), 'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString()])->values(),
             'history' => $this->history->filter(fn ($event) => $admin || ! in_array($event->event_type, ['estimate', 'price', 'developer_notes']))->map(fn ($event) => [
                 'fileName' => $event->meta['fileName'] ?? null, 'actorType' => $event->actor_type === 'admin' ? 'developer' : 'client', 'actorName' => $event->projectClient?->name, 'oldValue' => $event->old_value, 'newValue' => $event->new_value, 'id' => (string) $event->id, 'type' => $event->event_type, 'text' => $event->meta['text'] ?? 'Изменение задачи', 'createdAt' => $event->created_at->toISOString()])->values(),
             'createdAt' => $this->created_at->toISOString(), 'updatedAt' => $this->updated_at->toISOString()];

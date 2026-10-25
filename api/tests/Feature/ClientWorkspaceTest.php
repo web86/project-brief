@@ -136,8 +136,9 @@ class ClientWorkspaceTest extends TestCase
         $fields = array_fill_keys(array_keys(ProjectExportData::DEFAULT_FIELDS), true);
         $queries = [];
         DB::listen(function ($query) use (&$queries): void {
-            if (str_contains($query->sql, 'from "tasks"') && str_starts_with($query->sql, 'select')) {
-                $queries[] = $query->sql;
+            $sql = str_replace('`', '"', $query->sql);
+            if (str_contains($sql, 'from "tasks"') && str_starts_with($sql, 'select')) {
+                $queries[] = $sql;
             }
         });
         $document = app(ProjectExportData::class)->build($task->project, 'all', 'en', $fields, [], true);

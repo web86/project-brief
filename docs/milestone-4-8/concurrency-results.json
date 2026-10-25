@@ -1,0 +1,59 @@
+{
+  "database": "MariaDB 11.8.9; disposable QA container",
+  "results": [
+    {
+      "kind": "existing",
+      "round": 1,
+      "workers": 6,
+      "accepted": 1,
+      "unavailable": 5,
+      "duplicateUsers": 0,
+      "duplicateMemberships": 0
+    },
+    {
+      "kind": "existing",
+      "round": 2,
+      "workers": 6,
+      "accepted": 1,
+      "unavailable": 5,
+      "duplicateUsers": 0,
+      "duplicateMemberships": 0
+    },
+    {
+      "kind": "existing",
+      "round": 3,
+      "workers": 6,
+      "accepted": 1,
+      "unavailable": 5,
+      "duplicateUsers": 0,
+      "duplicateMemberships": 0
+    },
+    {
+      "kind": "new",
+      "round": 1,
+      "workers": 6,
+      "accepted": 1,
+      "unavailable": 5,
+      "duplicateUsers": 0,
+      "duplicateMemberships": 0
+    },
+    {
+      "kind": "new",
+      "round": 2,
+      "workers": 6,
+      "accepted": 1,
+      "unavailable": 5,
+      "duplicateUsers": 0,
+      "duplicateMemberships": 0
+    },
+    {
+      "kind": "new",
+      "round": 3,
+      "workers": 6,
+      "accepted": 1,
+      "unavailable": 5,
+      "duplicateUsers": 0,
+      "duplicateMemberships": 0
+    }
+  ]
+}

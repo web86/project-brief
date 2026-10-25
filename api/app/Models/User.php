@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'preferred_locale'])]
-#[Hidden(['password', 'remember_token', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at'])]
+#[Hidden(['password', 'remember_token', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_path', 'auth_session_version'])]
 /** Legacy users.role has no authorization meaning; active workspace memberships grant access. */
 class User extends Authenticatable
 {
@@ -43,6 +43,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_change_expires_at' => 'datetime',
+            'auth_session_version' => 'integer',
             'password' => 'hashed',
             'notification_preferences' => 'array',
             'notification_email_resolved_at' => 'datetime',

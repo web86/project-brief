@@ -221,7 +221,7 @@ try {
       assert.equal(before.x, during.x)
       assert.equal(before.width, during.width)
       assert.ok((await panel.boundingBox()).x > 0, 'Management drawer is on the right')
-      assert.equal(await panel.locator('.project-panel-nav a').count(), 7)
+      assert.equal(await panel.locator('.project-panel-nav a').count(), 8)
       assert.equal(await panel.locator('.discussion-badge').innerText(), '3')
       assert.equal(await panel.locator('.sidebar-workspace, .sidebar-project-group').count(), 0)
       assert.equal(await panel.locator('.task-all-projects').count(), 1)

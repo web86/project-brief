@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { t } from '../i18n/index.js'
 
 import { formatDate } from '../constants/project'
+import UserAvatar from './UserAvatar.vue'
 import AppIcon from './AppIcon.vue'
 const props = defineProps({ comments: Array, target: String })
 const emit = defineEmits(['seen'])
@@ -61,7 +62,12 @@ onUnmounted(() => {
       class="comment"
       :class="[comment.author, { 'is-target': highlighted === comment.id }]"
     >
-      <span class="comment-avatar"
+      <UserAvatar
+        v-if="comment.author === 'developer' && comment.avatarUrl"
+        :user="{ name: comment.authorName, avatarUrl: comment.avatarUrl }"
+        class="comment-avatar"
+      />
+      <span v-else class="comment-avatar"
         ><AppIcon :name="comment.author === 'developer' ? 'code' : 'user'" :size="17"
       /></span>
       <div class="comment-content">

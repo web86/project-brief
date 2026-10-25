@@ -14,6 +14,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('admin-login', fn (Request $r) => [Limit::perMinute(5)->by($r->ip()), Limit::perMinute(5)->by(hash('sha256', strtolower((string) $r->input('email'))))]);
+        RateLimiter::for('account-security', fn (Request $r) => [Limit::perMinute(5)->by('account:'.$r->user()?->id), Limit::perMinute(15)->by($r->ip())]);
+        RateLimiter::for('account-recovery', fn (Request $r) => [Limit::perMinute(5)->by($r->ip()), Limit::perMinute(3)->by('recovery:'.hash('sha256', mb_strtolower(trim((string) $r->input('email')))))]);
         RateLimiter::for('access', fn (Request $r) => Limit::perMinute(20)->by($r->ip()));
         RateLimiter::for('comments', fn (Request $r) => Limit::perMinute(30)->by($r->session()->getId()));
         foreach (['telegram-connect', 'telegram-test'] as $name) {

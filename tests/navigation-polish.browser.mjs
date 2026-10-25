@@ -67,14 +67,23 @@ try {
             .count(),
           0,
         )
-        assert.equal(await panel.locator('.project-panel-nav a').count(), 7)
+        assert.equal(
+          await panel.locator('.project-panel-nav a').count(),
+          config.role === 'admin' ? 7 : 8,
+        )
         assert.equal(await panel.locator('.discussion-badge').innerText(), '3')
         assert.equal(await panel.locator('.task-all-projects').count(), 1)
         assert.equal(await panel.locator('.task-account strong').innerText(), f.accountName)
-        assert.equal(await panel.locator('.task-account a').count(), 0)
+        assert.equal(await panel.locator('.task-account a').count(), 1)
         assert.equal(
           await panel.locator('.task-account-details > span').innerText(),
-          config.role === 'admin' ? 'Admin' : config.language === 'ru' ? 'Владелец' : 'Owner',
+          config.role === 'admin'
+            ? config.language === 'ru'
+              ? 'Разработчик'
+              : 'Developer'
+            : config.language === 'ru'
+              ? 'Владелец'
+              : 'Owner',
         )
         const scroll = await panel.evaluate((node) => ({
           nested: [...node.querySelectorAll('*')]

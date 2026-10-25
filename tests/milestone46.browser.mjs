@@ -4,7 +4,9 @@ import { createServer } from 'vite'
 import { taskWorkspaceFixture, uuid, adminRoot } from './helpers/taskWorkspace.browser.mjs'
 import { notificationEvents } from '../src/services/notificationSettings.js'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
-const output = new URL('../docs/milestone-4-6/', import.meta.url)
+const output = process.env.M46_OUTPUT_DIR
+  ? new URL('file://' + process.env.M46_OUTPUT_DIR.replace(/\/$/, '') + '/')
+  : new URL('../docs/milestone-4-6/', import.meta.url)
 await mkdir(output, { recursive: true })
 const port = 5192,
   origin = `http://127.0.0.1:${port}`

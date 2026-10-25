@@ -339,7 +339,7 @@ test('the task logo targets the admin project list or the current client project
     assert.ok(output.indexOf('task-navigation-brand') < output.indexOf('task-topbar'))
   }
 })
-test('compact account always uses the signed-in user and actual membership role, without profile links', async () => {
+test('compact account always uses the signed-in user and actual membership role, with a global account link and separate logout', async () => {
   const { router } = await fixture()
   for (const lang of ['en', 'ru']) {
     i18n.global.locale.value = lang
@@ -351,7 +351,7 @@ test('compact account always uses the signed-in user and actual membership role,
       assert.ok(output.includes('АС'))
       assert.ok(output.includes(i18n.global.t('nav.' + role)))
       assert.ok(output.includes('aria-label="' + i18n.global.t('ui.signOut') + '"'))
-      assert.equal(output.includes('<a '), false)
+      assert.ok(output.includes('href="/admin/account"'))
     }
   }
 })

@@ -4663,3 +4663,200 @@ button.attachment-item:hover {
     width: 100%;
   }
 }
+
+/* Developer navigation shares the same components in the sidebar and drawer. */
+.project-panel-nav a,
+.sidebar-general a,
+.sidebar-project {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+.project-panel-nav a > svg,
+.sidebar-general a > svg,
+.sidebar-project > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+.nav-item-label,
+.sidebar-project-name {
+  flex: 1;
+  min-width: 0;
+}
+.project-panel-nav .discussion-badge {
+  margin-left: auto;
+}
+.project-panel-nav .project-trash-link {
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+  border-radius: 0;
+}
+.sidebar-general a {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 7px;
+}
+.sidebar-general a[aria-current='page'],
+.task-personal-settings.router-link-active {
+  background: var(--nav-selected-bg);
+  color: var(--nav-selected-text);
+}
+.account-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+  color: var(--text);
+  border-radius: 7px;
+}
+.user-avatar {
+  overflow: hidden;
+}
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.account-page {
+  max-width: 860px;
+}
+.account-page > h1 {
+  margin-bottom: 20px;
+}
+.account-page .admin-form {
+  max-width: none;
+  margin-bottom: 24px;
+}
+.account-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+.account-tabs a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  color: var(--text-subtle);
+}
+.account-tabs a[aria-current='page'] {
+  background: var(--nav-selected-bg);
+  color: var(--nav-selected-text);
+}
+.account-tabs svg {
+  flex-shrink: 0;
+}
+.account-heading,
+.team-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.account-success {
+  color: var(--text);
+  background: var(--nav-selected-bg);
+  padding: 14px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.team-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.team-heading p {
+  max-width: 700px;
+}
+.team-heading button {
+  flex-shrink: 0;
+}
+.team-list {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.team-member {
+  padding: 20px 0;
+  border-top: 1px solid var(--divider);
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+.team-identity > div {
+  min-width: 0;
+}
+.team-identity p {
+  margin: 4px 0;
+}
+.team-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.project-choices {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 0;
+}
+.project-choices label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.project-choices input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  flex: 0 0 18px;
+  accent-color: var(--action);
+}
+.team-edit {
+  margin-top: 16px;
+}
+.invitation-page .appearance-controls,
+.admin-login > .appearance-controls {
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+@media (max-width: 600px) {
+  .team-heading {
+    flex-direction: column;
+  }
+  .team-list {
+    padding: 18px;
+  }
+  .account-tabs {
+    gap: 2px;
+  }
+  .account-tabs a {
+    font-size: 13px;
+    padding: 8px;
+    gap: 6px;
+  }
+}
+
+.project-personal-navigation {
+  margin-top: auto;
+  display: grid;
+  gap: 8px;
+}
+.project-sidebar-content .project-personal-navigation .task-personal-settings {
+  margin-top: 0;
+  min-height: 44px;
+}
+.project-choices label {
+  min-height: 32px;
+}

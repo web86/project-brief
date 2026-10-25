@@ -6,6 +6,7 @@ import { t, formatApiError } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
 import UnreadBadge from './UnreadBadge.vue'
 import ProjectSidebar from './ProjectSidebar.vue'
+import AdminAccount from './AdminAccount.vue'
 defineProps({ busy: Boolean, trashBusy: Boolean, trashOpen: Boolean })
 const emit = defineEmits(['navigate', 'logout', 'trash'])
 const nav = useAdminNavigationStore(),
@@ -98,7 +99,9 @@ async function select(event) {
           :aria-current="activeProject === project.id ? 'page' : undefined"
           @click="emit('navigate')"
         >
-          <span class="sidebar-project-name">{{ project.name }}</span
+          <AppIcon name="grid" :size="20" /><span class="sidebar-project-name">{{
+            project.name
+          }}</span
           ><UnreadBadge :count="project.unreadCount || 0" />
         </RouterLink>
         <div v-if="nav.listError" class="sidebar-error" role="alert">
@@ -114,7 +117,7 @@ async function select(event) {
         to="/admin"
         :aria-current="route.path === '/admin' ? 'page' : undefined"
         @click="emit('navigate')"
-        >{{ t('nav.allProjects') }}</RouterLink
+        ><AppIcon name="arrow" :size="20" /><span>{{ t('nav.allProjects') }}</span></RouterLink
       >
     </nav>
     <nav
@@ -123,17 +126,25 @@ async function select(event) {
     >
       <h2>{{ t('centralNotifications.mySettings') }}</h2>
       <RouterLink
-        to="/admin/settings/notifications"
-        :aria-current="route.meta.personalSettings ? 'page' : undefined"
+        to="/admin/account"
+        :aria-current="route.path.startsWith('/admin/account') ? 'page' : undefined"
         @click="emit('navigate')"
-        >{{ t('nav.notifications') }}</RouterLink
+        ><AppIcon name="user" :size="20" /><span>{{ t('account.title') }}</span></RouterLink
+      >
+      <RouterLink
+        to="/admin/settings/notifications"
+        :aria-current="route.path === '/admin/settings/notifications' ? 'page' : undefined"
+        @click="emit('navigate')"
+        ><AppIcon name="bell" :size="20" /><span>{{ t('nav.notifications') }}</span></RouterLink
       >
     </nav>
-    <footer class="sidebar-account" v-if="nav.user">
-      <strong>{{ nav.user.name }}</strong>
-      <span>{{ nav.user.membershipRole === 'owner' ? t('nav.owner') : t('nav.admin') }}</span>
-      <slot name="logout" />
-    </footer>
+    <AdminAccount
+      v-if="nav.user"
+      :user="nav.user"
+      :busy="busy"
+      @navigate="emit('navigate')"
+      @logout="emit('logout')"
+    />
   </div>
   <div v-else class="admin-sidebar-content" role="status">{{ t('nav.loading') }}</div>
 </template>

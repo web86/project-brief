@@ -30,9 +30,11 @@ async function login() {
     store.sessionLost = false
     password.value = ''
     await router.replace(
-      /^#verify=[a-f0-9]{64}$/.test(route.hash)
-        ? '/admin/settings/notifications' + route.hash
-        : '/admin',
+      /^#email=[a-f0-9]{64}$/.test(route.hash)
+        ? '/admin/account' + route.hash
+        : /^#verify=[a-f0-9]{64}$/.test(route.hash)
+          ? '/admin/settings/notifications' + route.hash
+          : '/admin',
     )
   } catch (cause) {
     error.value = cause
@@ -76,6 +78,7 @@ async function login() {
       <LoadingButton :busy="pending" class="button primary" type="submit" :disabled="pending">
         {{ t('ui.signIn') }}
       </LoadingButton>
+      <RouterLink to="/admin/forgot-password">{{ t('account.forgot') }}</RouterLink>
     </form>
   </div>
 </template>

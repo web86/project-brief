@@ -1,27 +1,19 @@
 <script setup>
-import { computed } from 'vue'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
-const props = defineProps({ user: { type: Object, required: true }, busy: Boolean })
-defineEmits(['logout'])
-const initials = computed(() => {
-  const words = (props.user.name || '').trim().split(/\s+/).filter(Boolean)
-  return [words[0], words.length > 1 ? words.at(-1) : null]
-    .filter(Boolean)
-    .map((word) => Array.from(word)[0])
-    .join('')
-    .toLocaleUpperCase()
-})
+import UserAvatar from './UserAvatar.vue'
+defineProps({ user: { type: Object, required: true }, busy: Boolean })
+defineEmits(['logout', 'navigate'])
 </script>
 <template>
   <footer class="task-account">
-    <span class="task-account-avatar" aria-hidden="true">
-      {{ initials }}<AppIcon v-if="!initials" name="user" />
-    </span>
-    <div class="task-account-details">
-      <strong>{{ user.name }}</strong>
-      <span>{{ t(user.membershipRole === 'owner' ? 'nav.owner' : 'nav.admin') }}</span>
-    </div>
+    <RouterLink to="/admin/account" class="account-profile-link" @click="$emit('navigate')"
+      ><UserAvatar :user="user" />
+      <div class="task-account-details">
+        <strong>{{ user.name }}</strong
+        ><span>{{ t(user.membershipRole === 'owner' ? 'nav.owner' : 'team.developer') }}</span>
+      </div></RouterLink
+    >
     <button
       class="icon-button"
       :disabled="busy"

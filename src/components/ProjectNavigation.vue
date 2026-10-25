@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
+import { projectMenu } from '../services/adminMenu.js'
 defineProps({ vertical: Boolean, trashBusy: Boolean, trashOpen: Boolean })
 const emit = defineEmits(['navigate', 'trash'])
 const route = useRoute(),
@@ -11,15 +12,9 @@ const route = useRoute(),
 const unreadComments = computed(
   () => nav.projects.find((project) => project.id === route.params.uuid)?.unreadCommentCount || 0,
 )
-const sections = [
-  'brief',
-  'discussions',
-  'clients',
-  'structure',
-  'notifications',
-  'settings',
-  'export',
-]
+const sections = computed(() =>
+  projectMenu.filter((item) => !item.owner || nav.user?.membershipRole === 'owner'),
+)
 </script>
 <template>
   <nav
@@ -27,14 +22,16 @@ const sections = [
     :aria-label="t('nav.projectNavigation')"
   >
     <RouterLink
-      v-for="section in sections"
+      v-for="{ section, icon } in sections"
       :key="section"
       :to="`/admin/projects/${route.params.uuid}/${section}`"
       :aria-current="route.meta.projectSection === section ? 'page' : undefined"
       :class="{ active: route.meta.projectSection === section }"
       @click="emit('navigate')"
     >
-      {{ t('nav.' + section) }}
+      <AppIcon :name="icon" :size="20" /><span class="nav-item-label">{{
+        t(section === 'team' ? 'team.title' : 'nav.' + section)
+      }}</span>
       <span
         v-if="section === 'discussions' && unreadComments"
         class="discussion-badge"
@@ -50,7 +47,7 @@ const sections = [
       aria-haspopup="dialog"
       @click="emit('trash')"
     >
-      <AppIcon name="trash" :size="17" /><span>{{ t('management.trash') }}</span>
+      <AppIcon name="trash" :size="20" /><span>{{ t('management.trash') }}</span>
     </button>
   </nav>
 </template>

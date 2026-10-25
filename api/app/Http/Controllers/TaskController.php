@@ -19,7 +19,7 @@ class TaskController extends Controller
 {
     public function index(Request $request, ?Project $project = null): AnonymousResourceCollection
     {
-        return TaskResource::collection(TaskAccess::project($request, $project)->tasks()->with(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient'])->orderBy('project_section_id')->orderBy('position')->orderBy('id')->get());
+        return TaskResource::collection(TaskAccess::project($request, $project)->tasks()->with(['projectSection', 'comments.projectClient', 'comments.authorUser', 'attachments.projectClient', 'history.projectClient'])->orderBy('project_section_id')->orderBy('position')->orderBy('id')->get());
     }
 
     public function store(TaskRequest $request, ?Project $project = null): TaskResource
@@ -36,12 +36,12 @@ class TaskController extends Controller
             return $task;
         });
 
-        return new TaskResource($task->refresh()->load(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient']));
+        return new TaskResource($task->refresh()->load(['projectSection', 'comments.projectClient', 'comments.authorUser', 'attachments.projectClient', 'history.projectClient']));
     }
 
     public function show(Request $request, string $task): TaskResource
     {
-        return new TaskResource(TaskAccess::task($request, $task)->load(['projectSection', 'comments.projectClient', 'attachments.projectClient', 'history.projectClient']));
+        return new TaskResource(TaskAccess::task($request, $task)->load(['projectSection', 'comments.projectClient', 'comments.authorUser', 'attachments.projectClient', 'history.projectClient']));
     }
 
     public function update(TaskRequest $request, string $task): TaskResource

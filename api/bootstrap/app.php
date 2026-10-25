@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
 use Illuminate\Foundation\Application;
@@ -16,9 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);
+        $middleware->web(append: [EnsureAccountSession::class]);
         $middleware->alias(['admin' => EnsureAdmin::class, 'client' => EnsureClientProjectAccess::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token', 'invitation_token']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

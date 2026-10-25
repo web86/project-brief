@@ -13,6 +13,6 @@ class LoginRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['email' => ['required', 'email', 'max:255'], 'password' => ['required', 'string', 'max:1024']];
+        return ['invitation_token' => ['sometimes', 'string', 'regex:/^[a-f0-9]{64}$/'], 'email' => ['required', 'email', 'max:255'], 'password' => ['required', 'string', 'max:1024']];
     }
 }

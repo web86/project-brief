@@ -3,7 +3,9 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { createServer } from 'vite'
 import { taskWorkspaceFixture, uuid, adminRoot } from './helpers/taskWorkspace.browser.mjs'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
-const output = new URL('../docs/milestone-4-7-1/', import.meta.url)
+const output = process.env.M471_OUTPUT_DIR
+  ? new URL('file://' + process.env.M471_OUTPUT_DIR.replace(/\/$/, '') + '/')
+  : new URL('../docs/milestone-4-7-1/', import.meta.url)
 await mkdir(output, { recursive: true })
 const port = 5194,
   origin = `http://127.0.0.1:${port}`
@@ -206,13 +208,16 @@ try {
         await f.screenshot('project-' + stamp)
         await openMenu()
         const projectMenu = mobileDrawer ? page.locator('#admin-drawer .project-panel-nav') : menu()
-        assert.equal(await projectMenu.locator('a').count(), 7)
+        assert.equal(await projectMenu.locator('a').count(), language === 'en' ? 7 : 8)
         assert.equal(await projectMenu.locator('.discussion-badge').innerText(), '3')
         assert.equal(
           await projectMenu.locator('button:last-child').getAttribute('class'),
           'project-trash-link',
         )
-        assert.equal(await projectMenu.locator('[href$="/team"]').count(), 0)
+        assert.equal(
+          await projectMenu.locator('[href$="/team"]').count(),
+          language === 'en' ? 0 : 1,
+        )
         if (mobileDrawer) {
           await page.screenshot({ path: new URL('menu-' + stamp + '.png', output).pathname })
           await page.keyboard.press('Escape')
@@ -345,7 +350,10 @@ try {
         await page.locator('.task-admin-trigger').click()
         const taskMenu = page.locator('#admin-drawer[open]')
         await taskMenu.waitFor()
-        assert.equal(await taskMenu.locator('.project-panel-nav a').count(), 7)
+        assert.equal(
+          await taskMenu.locator('.project-panel-nav a').count(),
+          language === 'en' ? 7 : 8,
+        )
         assert.equal(await taskMenu.locator('.project-trash-link').count(), 1)
         assert.equal(await taskMenu.locator('.task-all-projects').count(), 1)
         if (mode === 'light')
@@ -377,7 +385,9 @@ try {
           ? page.locator('#admin-drawer')
           : page.locator('.admin-sidebar')
         if (mobileDrawer) await page.locator('.admin-menu-trigger').click()
-        await globalSidebar.locator('.personal-settings-nav a').click()
+        await globalSidebar
+          .locator('.personal-settings-nav a[href="/admin/settings/notifications"]')
+          .click()
         await page.waitForURL('**/admin/settings/notifications')
         await page.locator('#personal-notification-email').waitFor()
         assert.equal(await page.locator('.project-panel-nav').count(), 0)

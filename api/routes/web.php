@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessLinkController;
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AiTaskAssistantController;
@@ -8,13 +9,16 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\DeveloperInvitationController;
 use App\Http\Controllers\NotificationSettingsController;
+use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDiscussionController;
 use App\Http\Controllers\ProjectExportController;
 use App\Http\Controllers\ProjectSectionController;
+use App\Http\Controllers\ProjectTeamController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SpaController;
@@ -42,7 +46,20 @@ Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cac
 Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'));
 Route::get('/api/session', SessionController::class);
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login');
+Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:20,1');
+Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:10,1');
+Route::post('/api/admin/password/forgot', [PasswordRecoveryController::class, 'request'])->middleware('throttle:account-recovery');
+Route::post('/api/admin/password/reset', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:account-recovery');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
+    Route::get('/account', [AccountController::class, 'show']);
+    Route::patch('/account', [AccountController::class, 'update'])->middleware('throttle:30,1');
+    Route::post('/account/email', [AccountController::class, 'email'])->middleware('throttle:account-security');
+    Route::post('/account/email/confirm', [AccountController::class, 'confirmEmail'])->middleware('throttle:account-security');
+    Route::delete('/account/email', [AccountController::class, 'cancelEmail']);
+    Route::post('/account/password', [AccountController::class, 'password'])->middleware('throttle:account-security');
+    Route::post('/account/avatar', [AccountController::class, 'avatar'])->middleware('throttle:uploads');
+    Route::get('/avatars/{key}', [AccountController::class, 'image']);
+
     Route::get('/notifications', [AdminNotificationController::class, 'show']);
     Route::patch('/notifications', [AdminNotificationController::class, 'update'])->middleware('throttle:30,1');
     Route::post('/notifications/email/verify', [AdminNotificationController::class, 'verify'])->middleware('throttle:10,1');
@@ -63,6 +80,12 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
+    Route::get('/team', [ProjectTeamController::class, 'index']);
+    Route::post('/team/invitations', [ProjectTeamController::class, 'invite'])->middleware('throttle:account-security');
+    Route::post('/team/invitations/{invitation}/resend', [ProjectTeamController::class, 'resend'])->middleware('throttle:account-security');
+    Route::delete('/team/invitations/{invitation}', [ProjectTeamController::class, 'revoke']);
+    Route::patch('/team/members/{member}', [ProjectTeamController::class, 'update']);
+    Route::delete('/team/members/{member}', [ProjectTeamController::class, 'destroy']);
     Route::post('/ai/task-assistant', AiTaskAssistantController::class);
     Route::post('/export', ProjectExportController::class);
     Route::get('/discussions', [ProjectDiscussionController::class, 'index']);
@@ -96,7 +119,20 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/project/{project}/sections', fn (Project $project) => response()->json(['data' => $project->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))]));
 });
 
+Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:20,1');
+Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:10,1');
+Route::post('/api/admin/password/forgot', [PasswordRecoveryController::class, 'request'])->middleware('throttle:account-recovery');
+Route::post('/api/admin/password/reset', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:account-recovery');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
+    Route::get('/account', [AccountController::class, 'show']);
+    Route::patch('/account', [AccountController::class, 'update'])->middleware('throttle:30,1');
+    Route::post('/account/email', [AccountController::class, 'email'])->middleware('throttle:account-security');
+    Route::post('/account/email/confirm', [AccountController::class, 'confirmEmail'])->middleware('throttle:account-security');
+    Route::delete('/account/email', [AccountController::class, 'cancelEmail']);
+    Route::post('/account/password', [AccountController::class, 'password'])->middleware('throttle:account-security');
+    Route::post('/account/avatar', [AccountController::class, 'avatar'])->middleware('throttle:uploads');
+    Route::get('/avatars/{key}', [AccountController::class, 'image']);
+
     Route::get('/projects/{project}/trash', [TaskTrashController::class, 'index']);
     Route::post('/tasks/{task}/restore', [TaskTrashController::class, 'restore']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);

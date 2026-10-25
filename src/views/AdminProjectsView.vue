@@ -1,9 +1,11 @@
 <script setup>
+import { onMounted } from 'vue'
 import UnreadBadge from '../components/UnreadBadge.vue'
 import { t, formatApiError } from '../i18n/index.js'
 
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const nav = useAdminNavigationStore()
+onMounted(() => nav.refreshProjects())
 </script>
 <template>
   <div>
@@ -24,8 +26,24 @@ const nav = useAdminNavigationStore()
       </button>
     </div>
     <div v-else-if="!nav.projects.length" class="empty-state">
-      <h2>{{ t('ui.startWithYourFirstProject') }}</h2>
-      <p>{{ t('ui.createAProjectAndSendYourClientA') }}</p>
+      <h2>
+        {{
+          t(
+            nav.user?.membershipRole === 'owner'
+              ? 'ui.startWithYourFirstProject'
+              : 'team.noProjects',
+          )
+        }}
+      </h2>
+      <p>
+        {{
+          t(
+            nav.user?.membershipRole === 'owner'
+              ? 'ui.createAProjectAndSendYourClientA'
+              : 'team.noProjectsHint',
+          )
+        }}
+      </p>
     </div>
     <div v-else class="admin-project-list">
       <article v-for="project in nav.projects" :key="project.id" class="surface admin-project-card">

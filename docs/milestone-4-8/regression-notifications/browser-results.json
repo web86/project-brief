@@ -1,0 +1,492 @@
+{
+  "configurations": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1440,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 1280,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 768,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "light",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "light",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "light",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "light",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "dark",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "dark",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "dark",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "dark",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "system",
+      "language": "ru",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "system",
+      "language": "ru",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "system",
+      "language": "en",
+      "admin": true,
+      "longNames": true,
+      "status": "passed"
+    },
+    {
+      "width": 320,
+      "mode": "system",
+      "language": "en",
+      "admin": false,
+      "longNames": true,
+      "status": "passed"
+    }
+  ],
+  "scenarios": [
+    "Explicit project migration and recipient selection",
+    "Channels persist across projects; Telegram not rebound; Push not resubscribed",
+    "Personal preferences survive workspace switch",
+    "Email waits for proof; fragment token removed after verification",
+    "In-progress animation reserves chip width; reduced-motion matrix is static"
+  ],
+  "realProviders": false
+}

@@ -10,6 +10,11 @@ const route = useRoute(),
   store = useProjectStore()
 const items = computed(() => {
   if (!route.meta.adminShell || route.meta.taskDetail) return []
+  if (route.path.startsWith('/admin/account'))
+    return [
+      { label: t('account.title'), to: '/admin/account' },
+      { label: t(route.path.endsWith('/security') ? 'account.security' : 'account.profile') },
+    ]
   if (route.meta.personalSettings)
     return [
       { label: t('centralNotifications.mySettings'), to: '/admin/settings/notifications' },
@@ -22,7 +27,11 @@ const items = computed(() => {
   const root = `/admin/projects/${route.params.uuid}/brief`
   const path = [projects, { label: project.name, to: root }]
   if (route.meta.projectSection !== 'brief') {
-    path.push({ label: t('nav.' + route.meta.projectSection) })
+    path.push({
+      label: t(
+        route.meta.projectSection === 'team' ? 'team.title' : 'nav.' + route.meta.projectSection,
+      ),
+    })
   } else if (route.meta.editTask || route.path.endsWith('/task/new')) {
     path.push({ label: t('nav.brief'), to: root })
     const task = store.findTask(route.params.id)

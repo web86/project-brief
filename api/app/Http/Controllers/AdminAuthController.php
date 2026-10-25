@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
+use App\Models\DeveloperInvitation;
 use App\Models\User;
+use App\Services\AccountProfile;
 use App\Services\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,13 +15,16 @@ class AdminAuthController extends Controller
 {
     public function login(LoginRequest $request): JsonResponse
     {
-        if (! Auth::attemptWhen($request->validated(), fn (User $user) => $user->workspaceMembers()->active()->exists())) {
+        if (! Auth::attemptWhen($request->only('email', 'password'), function (User $user) use ($request): bool {
+            return $user->workspaceMembers()->active()->exists() || DeveloperInvitation::where('token_hash', hash('sha256', (string) $request->input('invitation_token')))->whereRaw('LOWER(email) = ?', [mb_strtolower($user->email)])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->exists();
+        })) {
             return response()->json(['code' => 'invalid_credentials', 'errors' => ['email' => ['Неверный email или пароль.']]], 422);
         }
         $request->session()->forget(['client_project_id', 'project_client_id', 'client_access_token_id', CurrentWorkspace::SESSION_KEY]);
+        $request->session()->put('auth_session_version', (int) $request->user()->auth_session_version);
         $request->session()->regenerate();
 
-        return $this->me($request);
+        return $request->user()->workspaceMembers()->active()->exists() ? $this->me($request) : response()->json(['user' => app(AccountProfile::class)->state($request->user())]);
     }
 
     public function me(Request $request): JsonResponse
@@ -27,7 +32,7 @@ class AdminAuthController extends Controller
         $context = app(CurrentWorkspace::class);
         $member = $context->resolve($request);
 
-        return response()->json(['user' => ['name' => $request->user()->name, 'email' => $request->user()->email, 'role' => 'admin', 'preferredLocale' => $request->user()->preferred_locale, 'membershipRole' => $member->role], 'workspace' => $context->state($member)])->header('Cache-Control', 'no-store');
+        return response()->json(['user' => [...app(AccountProfile::class)->state($request->user()), 'membershipRole' => $member->role], 'workspace' => $context->state($member)])->header('Cache-Control', 'no-store');
     }
 
     public function logout(Request $request): JsonResponse

@@ -139,6 +139,16 @@ class WorkspaceMigrationTest extends TestCase
 
                     return $data;
                 })->all();
+                if ($table === 'users') {
+                    foreach ($after as &$row) {
+                        $this->assertSame('initials', $row['avatar_source']);
+                        $this->assertSame(0, $row['auth_session_version']);
+                        foreach (['pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_source', 'avatar_path', 'auth_session_version'] as $column) {
+                            unset($row[$column]);
+                        }
+                    }
+                    unset($row);
+                }
                 if ($table === 'project_access_tokens') {
                     // Entering the preserved link intentionally updates these activity timestamps.
                     foreach ($rows as &$row) {
