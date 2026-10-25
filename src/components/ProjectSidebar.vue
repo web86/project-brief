@@ -17,6 +17,16 @@ const nav = useAdminNavigationStore()
 <template>
   <div class="project-sidebar-content" :class="{ 'admin-sidebar-content': !task }">
     <RouterLink
+      v-if="!task"
+      to="/admin"
+      class="brand"
+      :aria-label="t('ui.projectBriefOpenTheProject')"
+      @click="emit('navigate')"
+    >
+      <span class="brand-mark">p<span class="brand-dot">.</span></span>
+      <span>project<span class="brand-light">brief</span></span>
+    </RouterLink>
+    <RouterLink
       to="/admin"
       class="task-all-projects project-all-projects"
       @click="emit('navigate')"

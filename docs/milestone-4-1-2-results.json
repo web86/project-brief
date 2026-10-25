@@ -1,0 +1,265 @@
+{
+  "milestone": "4.1.2",
+  "sourceCommit": "8428d556ea55740e557dce3de27a83117c88ee9a",
+  "sourceBranch": "codex/appearance-localization",
+  "origin": "local CLI; not a Jino hosting measurement",
+  "syntheticOnly": true,
+  "generationRequests": 2,
+  "catalogRequests": 2,
+  "format": "prompt_json",
+  "responseFormatSent": false,
+  "reasoningParametersSent": false,
+  "tlsVerification": true,
+  "retries": 0,
+  "paidModels": false,
+  "stopReason": "Gemma HTTP 429; no Dots3 request or retry",
+  "nextRunScheduled": false,
+  "reports": [
+    {
+      "startedAt": "2026-10-20T00:05:59+00:00",
+      "origin": "local CLI; not a Jino hosting measurement",
+      "syntheticOnly": true,
+      "settings": {
+        "timeoutSeconds": 25,
+        "connectTimeoutSeconds": 5,
+        "maxCompletionTokens": 6000,
+        "reasoningEffort": null,
+        "excludeReasoning": null,
+        "format": "prompt_json",
+        "strictJsonSchema": false,
+        "serverValidation": true,
+        "diagnosticOnly": false,
+        "delaySeconds": 10,
+        "retries": 0
+      },
+      "plannedRequests": 1,
+      "catalog": {
+        "httpStatus": 200,
+        "models": {
+          "nvidia/nemotron-3-super-120b-a12b:free": {
+            "present": true,
+            "free": true,
+            "pricing": {
+              "prompt": "0",
+              "completion": "0"
+            },
+            "supportedParameters": [
+              "include_reasoning",
+              "max_tokens",
+              "reasoning",
+              "reasoning_effort",
+              "response_format",
+              "seed",
+              "structured_outputs",
+              "temperature",
+              "tool_choice",
+              "tools",
+              "top_p"
+            ]
+          },
+          "google/gemma-4-26b-a4b-it:free": {
+            "present": true,
+            "free": true,
+            "pricing": {
+              "prompt": "0",
+              "completion": "0"
+            },
+            "supportedParameters": [
+              "include_reasoning",
+              "max_tokens",
+              "reasoning",
+              "response_format",
+              "seed",
+              "temperature",
+              "tool_choice",
+              "tools",
+              "top_p"
+            ]
+          },
+          "dots-studio/dots-3-note-preview:free": {
+            "present": true,
+            "free": true,
+            "pricing": {
+              "prompt": "0",
+              "completion": "0"
+            },
+            "supportedParameters": [
+              "include_reasoning",
+              "max_tokens",
+              "reasoning",
+              "response_format",
+              "structured_outputs",
+              "temperature",
+              "tool_choice",
+              "tools",
+              "top_p"
+            ]
+          }
+        }
+      },
+      "runs": [
+        {
+          "model": "nvidia/nemotron-3-super-120b-a12b:free",
+          "scenario": "simple",
+          "input": "Хочу, чтобы фотографии товаров были крупнее и их можно было листать на телефоне",
+          "httpStatus": 200,
+          "elapsedMs": 18847.7,
+          "jsonValid": true,
+          "schemaValid": true,
+          "finishReason": "stop",
+          "usage": {
+            "prompt_tokens": 474,
+            "completion_tokens": 866,
+            "total_tokens": 1340
+          },
+          "error": null,
+          "suggestion": {
+            "title": "Увеличить размер фотографий товаров и добавить возможность свайпа на мобильных устройствах",
+            "description": "Необходимо изменить отображение фотографий товаров на сайте/приложении так, чтобы изображения увеличивались в размере и обеспечивали удобную прокрутку (свайп) по галерее на мобильных устройствах.",
+            "expectedResult": "Пользователи видят увеличенные фотографии товаров и могут листать их свайпом на смартфонах и планшетах.",
+            "questions": [],
+            "suggestedIdeas": []
+          }
+        }
+      ],
+      "expertReview": "Not scored automatically. Review Russian, expected result, questions and invented requirements manually.",
+      "finishedAt": "2026-10-20T00:06:21+00:00",
+      "attemptedRequests": 1
+    },
+    {
+      "startedAt": "2026-10-20T01:20:47+00:00",
+      "origin": "local CLI; not a Jino hosting measurement",
+      "syntheticOnly": true,
+      "settings": {
+        "timeoutSeconds": 25,
+        "connectTimeoutSeconds": 5,
+        "maxCompletionTokens": 6000,
+        "reasoningEffort": null,
+        "excludeReasoning": null,
+        "format": "prompt_json",
+        "strictJsonSchema": false,
+        "serverValidation": true,
+        "diagnosticOnly": false,
+        "delaySeconds": 10,
+        "retries": 0
+      },
+      "plannedRequests": 1,
+      "catalog": {
+        "httpStatus": 200,
+        "models": {
+          "nvidia/nemotron-3-super-120b-a12b:free": {
+            "present": true,
+            "free": true,
+            "pricing": {
+              "prompt": "0",
+              "completion": "0"
+            },
+            "supportedParameters": [
+              "include_reasoning",
+              "max_tokens",
+              "reasoning",
+              "reasoning_effort",
+              "response_format",
+              "seed",
+              "structured_outputs",
+              "temperature",
+              "tool_choice",
+              "tools",
+              "top_p"
+            ]
+          },
+          "google/gemma-4-26b-a4b-it:free": {
+            "present": true,
+            "free": true,
+            "pricing": {
+              "prompt": "0",
+              "completion": "0"
+            },
+            "supportedParameters": [
+              "include_reasoning",
+              "max_tokens",
+              "reasoning",
+              "response_format",
+              "seed",
+              "temperature",
+              "tool_choice",
+              "tools",
+              "top_p"
+            ]
+          },
+          "dots-studio/dots-3-note-preview:free": {
+            "present": true,
+            "free": true,
+            "pricing": {
+              "prompt": "0",
+              "completion": "0"
+            },
+            "supportedParameters": [
+              "include_reasoning",
+              "max_tokens",
+              "reasoning",
+              "response_format",
+              "structured_outputs",
+              "temperature",
+              "tool_choice",
+              "tools",
+              "top_p"
+            ]
+          }
+        }
+      },
+      "runs": [
+        {
+          "model": "google/gemma-4-26b-a4b-it:free",
+          "scenario": "simple",
+          "input": "Хочу, чтобы фотографии товаров были крупнее и их можно было листать на телефоне",
+          "httpStatus": 429,
+          "elapsedMs": 592.7,
+          "jsonValid": null,
+          "schemaValid": null,
+          "finishReason": null,
+          "usage": null,
+          "error": "ai_provider_limit",
+          "suggestion": null,
+          "providerError": "rate limit exceeded; try one of: nvidia/nemotron-3-ultra-550b-a55b:free, nvidia/nemotron-3-super-120b-a12b:free, cohere/north-mini-code:free"
+        }
+      ],
+      "expertReview": "Not scored automatically. Review Russian, expected result, questions and invented requirements manually.",
+      "finishedAt": "2026-10-20T01:20:48+00:00",
+      "attemptedRequests": 1
+    }
+  ],
+  "expertReview": {
+    "nemotron": {
+      "status": "valid_generation_with_editorial_caveats",
+      "jsonDecode": "passed",
+      "laravelValidator": "passed",
+      "russian": "Грамотный, понятный русский; название, описание и ожидаемый результат покрывают увеличение фотографий товаров и перелистывание на телефоне.",
+      "scopeCaveats": [
+        "Планшеты добавлены моделью: исходный запрос упоминает только телефон. Удалить или согласовать перед применением.",
+        "Сайт/приложение — предположение о платформе: уточнить контекст. Свайп — разумная, но не единственная трактовка слова «листать»."
+      ],
+      "inventedTechnicalRequirements": "Не добавлены стек, сроки, бюджет, метрики или дополнительные независимые функции.",
+      "questions": "Модель вернула пустой список; уточняющий вопрос о платформе и размере фото был бы полезен.",
+      "suggestedIdeas": "Пустой список уместен для одного простого требования.",
+      "manualApplication": "Ответ не применялся к форме и не сохранялся в БД.",
+      "timing": "18.85 с при лимите Laravel 25 с; одна выборка не подтверждает стабильность или p95."
+    },
+    "gemma": {
+      "status": "not_evaluated",
+      "reason": "HTTP 429 rate limit exceeded; no model output received."
+    },
+    "dots3": {
+      "status": "not_requested",
+      "reason": "Stopped after Gemma HTTP 429 as instructed."
+    }
+  },
+  "verification": {
+    "fakeTests": 88,
+    "assertions": 624,
+    "result": "passed",
+    "productionChanged": false,
+    "groqRequested": false,
+    "pushPerformed": false
+  }
+}

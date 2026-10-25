@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "apiRequests": [],
+  "unexpectedHosts": [],
+  "browserErrors": [],
+  "checks": [
+    "RU/EN landing and demo",
+    "Light/dark/system themes",
+    "1440/390/320 layouts without overflow",
+    "Role switch keeps the same task",
+    "Task selection, filters and discussions",
+    "Explicit prepared AI example",
+    "In-memory idea disappears on reload",
+    "No real session, project or appearance storage changes",
+    "Direct /demo reload",
+    "Native dialog focus and Escape",
+    "No API, AI or external network calls"
+  ]
+}
