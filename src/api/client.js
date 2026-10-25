@@ -76,6 +76,7 @@ export function createApiClient({
         401: t('ui.yourSessionHasEndedSignInAgainOr'),
         403: t('ui.thisActionIsUnavailableDiscussChangesInThe'),
         404: t('ui.thisRecordWasNotFoundOrIsUnavailable'),
+        413: t('commentFiles.serverLimit'),
         419: t('ui.yourSessionHasChangedTryThisActionAgain'),
         422: t('ui.checkTheFields'),
         429: t('ui.tooManyRequestsPleaseWaitALittle'),
@@ -98,6 +99,18 @@ export function createApiClient({
 }
 export const api = createApiClient({ baseUrl: import.meta.env?.VITE_API_BASE_URL || '' })
 export const API_MODE = !!import.meta.env?.PROD || import.meta.env?.VITE_DATA_SOURCE === 'api'
+
+export function commentBody(text, attachments = [], submissionId) {
+  if (!attachments.length && !submissionId) return { text: text.trim() }
+  const form = new FormData()
+  form.append('text', text.trim())
+  if (submissionId) form.append('submissionId', submissionId)
+  for (const item of attachments) {
+    if (!(item.file instanceof Blob)) throw new Error(t('ui.chooseTheFilesAgainBeforeSubmitting'))
+    form.append('attachments[]', item.file, item.name)
+  }
+  return form
+}
 
 export function taskBody(input) {
   const form = new FormData()

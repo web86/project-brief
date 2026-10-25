@@ -61,7 +61,7 @@ class ProjectDiscussions
             'id' => $comment->uuid, 'author' => $comment->author_type === 'admin' ? 'developer' : 'client',
             'authorId' => $comment->author_type === 'admin' ? $comment->author_user_id : $comment->projectClient?->uuid,
             'authorName' => $comment->author_type === 'admin' ? ($comment->authorUser?->name ?? 'Developer') : ($comment->projectClient?->name ?? 'Client'),
-            'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString(), 'unread' => $unread,
+            'attachments' => $comment->attachments->map(fn ($file) => $file->data(TaskAccess::isAdmin(request()) ? 'admin' : 'client'))->values(), 'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString(), 'unread' => $unread,
             'task' => $comment->task ? ['id' => $comment->task->uuid, 'title' => $comment->task->title, 'section' => $comment->task->projectSection?->name] : null];
     }
 }

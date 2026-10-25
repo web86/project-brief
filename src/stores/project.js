@@ -9,7 +9,7 @@ import {
 } from '../i18n/index.js'
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-import { api, API_MODE, taskBody } from '../api/client.js'
+import { api, API_MODE, taskBody, commentBody } from '../api/client.js'
 import { canDeleteTask, canEditClientTask } from '../utils/clientDraft.js'
 import { createDemoData } from '../data/demo.js'
 import {
@@ -831,15 +831,18 @@ export const useProjectStore = defineStore('project', () => {
     return true
   }
 
-  function addComment(id, text) {
+  function addComment(id, text, attachments = [], submissionId) {
     if (API_MODE)
-      return text.trim() ? mutateTask(id, '/comments', 'POST', { text: text.trim() }) : false
+      return text.trim() || attachments.length
+        ? mutateTask(id, '/comments', 'POST', commentBody(text, attachments, submissionId))
+        : false
     const task = findTask(id)
-    if (!task || !isText(text) || !text.trim()) return false
+    if (!task || !isText(text) || (!text.trim() && !attachments.length)) return false
     task.comments.push({
       id: uuid(),
       author: currentMode.value,
       text: text.trim().slice(0, 5000),
+      attachments: attachments.map(({ file, ...metadata }) => metadata),
       createdAt: timestamp(),
     })
     addHistory(

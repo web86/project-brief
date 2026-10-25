@@ -314,7 +314,11 @@ export function createProjectRouter({
       store.project.id === to.params.uuid &&
       !store.sessionLost &&
       (to.meta.admin ? !!store.admin : !!store.currentClient) &&
-      !!store.findTask(to.params.id)
+      !!store.findTask(to.params.id) &&
+      (!to.hash.startsWith('#comment-') ||
+        store
+          .findTask(to.params.id)
+          .comments.some((comment) => '#comment-' + comment.id === to.hash))
     )
   }
   router.beforeEach(async (to, from) => {

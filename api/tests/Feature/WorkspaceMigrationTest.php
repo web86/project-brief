@@ -127,7 +127,13 @@ class WorkspaceMigrationTest extends TestCase
                     }
                     if ($table === 'comments') {
                         $this->assertNull($data['project_id']);
-                        unset($data['project_id']);
+                        $this->assertNull($data['submission_key']);
+                        $this->assertNull($data['submission_fingerprint']);
+                        unset($data['project_id'], $data['submission_key'], $data['submission_fingerprint']);
+                    }
+                    if ($table === 'attachments') {
+                        $this->assertNull($data['thumbnail_path']);
+                        unset($data['thumbnail_path']);
                     }
                     if ($table === 'tasks') {
                         $this->assertNull($data['deleted_at']);

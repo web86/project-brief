@@ -81,7 +81,7 @@ class ProjectExportData
                 }
                 $filenames = [];
                 if ($fields['attachments']) {
-                    foreach ($task->attachments as $attachment) {
+                    foreach ($task->attachments->whereNull('comment_id') as $attachment) {
                         $filename = $this->safeFilename($attachment->original_name);
                         if ($filename !== '') {
                             $filenames[] = $filename;

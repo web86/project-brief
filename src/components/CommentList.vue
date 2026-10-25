@@ -5,6 +5,7 @@ import { t } from '../i18n/index.js'
 import { formatDate } from '../constants/project'
 import UserAvatar from './UserAvatar.vue'
 import AppIcon from './AppIcon.vue'
+import AttachmentList from './AttachmentList.vue'
 const props = defineProps({ comments: Array, target: String })
 const emit = defineEmits(['seen'])
 const container = ref(null),
@@ -78,7 +79,8 @@ onUnmounted(() => {
           }}</strong
           ><time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
         </div>
-        <p>{{ comment.text }}</p>
+        <p v-if="comment.text">{{ comment.text }}</p>
+        <AttachmentList :attachments="comment.attachments || []" compact />
       </div>
     </article>
   </div>

@@ -1,4 +1,11 @@
 export default {
+  commentFiles: {
+    serverLimit: 'The server rejected the upload size. Choose smaller files and try again.',
+    attach: 'Attach files',
+    countLimit: 'Attach up to 5 files per comment.',
+    totalLimit: 'Total attachment size must not exceed 40 MB.',
+    zoom: 'Zoom image in or out',
+  },
   permissions: {
     createProjects: 'Allow project creation',
     createProjectsHint:

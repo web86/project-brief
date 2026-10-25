@@ -29,6 +29,12 @@ class SafeAttachment implements ValidationRule
         if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp']) && @getimagesize($value->getPathname()) === false) {
             $fail('Изображение повреждено.');
         }
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp'])) {
+            $size = @getimagesize($value->getPathname());
+            if ($size && ($size[0] > 8192 || $size[1] > 8192 || $size[0] * $size[1] > 24000000)) {
+                $fail('Изображение слишком большое: максимум 8192 px на сторону и 24 мегапикселя.');
+            }
+        }
         if (in_array($extension, ['docx', 'zip'])) {
             $zip = new \ZipArchive;
             $opened = $zip->open($value->getPathname());

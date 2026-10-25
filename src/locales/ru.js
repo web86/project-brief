@@ -1,4 +1,11 @@
 export default {
+  commentFiles: {
+    serverLimit: 'Сервер отклонил размер загрузки. Уменьшите файлы и повторите отправку.',
+    attach: 'Прикрепить файл',
+    countLimit: 'К комментарию можно прикрепить до 5 файлов.',
+    totalLimit: 'Общий размер файлов — не более 40 МБ.',
+    zoom: 'Увеличить или уменьшить изображение',
+  },
   permissions: {
     createProjects: 'Разрешить создание проектов',
     createProjectsHint:

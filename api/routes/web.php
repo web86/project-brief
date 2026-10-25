@@ -160,6 +160,7 @@ foreach (['admin', 'client'] as $actor) {
     Route::middleware($actor)->prefix('/api/'.$actor)->group(function () {
         Route::post('/tasks/{task}/attachments', [AttachmentController::class, 'store'])->middleware('throttle:uploads');
         Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download']);
+        Route::get('/attachments/{attachment}/original', [AttachmentController::class, 'original']);
         Route::get('/attachments/{attachment}/preview', [AttachmentController::class, 'preview']);
     });
 }

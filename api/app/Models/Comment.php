@@ -5,12 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Comment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['project_id', 'project_client_id', 'task_id', 'author_type', 'author_user_id', 'text'];
+    protected $fillable = ['submission_key', 'submission_fingerprint', 'project_id', 'project_client_id', 'task_id', 'author_type', 'author_user_id', 'text'];
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class)->orderBy('id');
+    }
 
     public function authorUser(): BelongsTo
     {

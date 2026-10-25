@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { api } from '../api/client.js'
+import { api, commentBody } from '../api/client.js'
 import { useProjectStore } from './project.js'
 import { useAdminNavigationStore } from './adminNavigation.js'
 
@@ -236,13 +236,16 @@ function createDiscussionsStore(name, persona) {
       readQueue = operation
       return operation
     }
-    async function send(text) {
+    async function send(text, attachments = [], submissionId) {
       const id = projectId.value,
         current = revision,
         currentIdentity = identity
       let result
       try {
-        result = await api.request(root(id), { method: 'POST', body: { text: text.trim() } })
+        result = await api.request(root(id), {
+          method: 'POST',
+          body: commentBody(text, attachments, submissionId),
+        })
       } catch (error) {
         if (currentIdentity !== identity) return false
         throw error
@@ -255,7 +258,10 @@ function createDiscussionsStore(name, persona) {
         filter.value === 'all' &&
         !targetWindows.value.general
       )
-        general.value.unshift(result.data)
+        general.value = [
+          result.data,
+          ...general.value.filter((comment) => comment.id !== result.data.id),
+        ]
       else if (id === projectId.value && targetWindows.value.general) await latest('general')
       return true
     }

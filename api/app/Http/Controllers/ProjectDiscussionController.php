@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\ProjectNotificationRequested;
 use App\Http\Requests\CommentRequest;
-use App\Models\Comment;
 use App\Models\Project;
+use App\Services\CommentSubmission;
 use App\Services\ProjectDiscussions;
 use App\Services\TaskAccess;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +33,7 @@ class ProjectDiscussionController extends Controller
         if (($data['filter'] ?? 'all') === 'unread') {
             $discussions->unread($query, TaskAccess::recipient($request));
         }
-        $page = $query->with(['authorUser', 'projectClient', 'task.projectSection'])->orderByDesc('created_at')->orderByDesc('id')->cursorPaginate(25);
+        $page = $query->with(['authorUser', 'projectClient', 'task.projectSection', 'attachments.projectClient'])->orderByDesc('created_at')->orderByDesc('id')->cursorPaginate(25);
         $ids = $discussions->unread($discussions->query($project), TaskAccess::recipient($request))->whereIn('comments.id', $page->pluck('id'))->pluck('comments.id')->all();
 
         $counts = $discussions->counts($project, TaskAccess::recipient($request));
@@ -46,14 +45,9 @@ class ProjectDiscussionController extends Controller
     public function store(CommentRequest $request, Project $project, ProjectDiscussions $discussions): JsonResponse
     {
         $project = TaskAccess::project($request, $project);
-        $client = $request->attributes->get('project_client');
-        $recipient = TaskAccess::recipient($request);
-        $actor = $client ? 'client' : 'admin';
-        $comment = Comment::create(['project_id' => $project->id, 'text' => $request->validated('text'), 'author_type' => $actor,
-            'author_user_id' => $client ? null : $recipient->id, 'project_client_id' => $client?->id]);
-        event(new ProjectNotificationRequested($comment->id, $actor.'.project_comment_created', null, $actor, $recipient->id, $recipient->name, $comment->id));
+        $comment = CommentSubmission::store($request, $project);
 
-        return response()->json(['data' => $discussions->data($comment->load(['authorUser', 'projectClient']))], 201);
+        return response()->json(['data' => $discussions->data($comment->load(['authorUser', 'projectClient', 'attachments.projectClient']))], 201);
     }
 
     public function read(Request $request, Project $project, ProjectDiscussions $discussions): JsonResponse

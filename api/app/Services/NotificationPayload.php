@@ -20,7 +20,7 @@ class NotificationPayload
         return mb_strlen($text, 'UTF-8') > $limit ? mb_substr($text, 0, $limit, 'UTF-8').'…' : $text;
     }
 
-    private static function comment(Task $task, string $event, string $eventId): ?string
+    private static function comment(Task $task, string $event, string $eventId, string $locale): ?string
     {
         $history = $task->history()->whereKey($eventId)->first();
         if (! $history || NotificationEvents::fromHistory($history->actor_type, $history->event_type, $history->old_value, $history->new_value) !== $event || $history->event_type !== 'comment') {
@@ -32,7 +32,23 @@ class NotificationPayload
             ->where('author_user_id', $history->actor_user_id)
             ->where('project_client_id', $history->project_client_id)->first();
 
-        return $comment ? self::excerpt($comment->text, self::COMMENT_LIMIT) : null;
+        return $comment ? self::excerpt(self::commentText($comment, $locale), self::COMMENT_LIMIT) : null;
+    }
+
+    public static function commentText(Comment $comment, string $locale): string
+    {
+        if (trim($comment->text) !== '') {
+            return $comment->text;
+        }
+        $files = $comment->attachments;
+        $image = $files->count() === 1 && str_starts_with($files->first()->mime_type, 'image/');
+        if ($locale === 'en') {
+            return ($comment->author_type === 'admin' ? 'Developer' : 'Client').' attached '.($image ? 'an image' : $files->count().' file'.($files->count() === 1 ? '' : 's'));
+        }
+        $count = $files->count();
+        $noun = $count === 1 ? 'файл' : ($count < 5 ? 'файла' : 'файлов');
+
+        return ($comment->author_type === 'admin' ? 'Разработчик' : 'Клиент').' прикрепил '.($image ? 'изображение' : $count.' '.$noun);
     }
 
     public static function make(string $event, Task $task, string $actor, string $locale, bool $admin, string $eventId): array
@@ -41,9 +57,16 @@ class NotificationPayload
         $number = ProjectStructure::number($task) ?? '';
         $eventText = trans('notifications.events.'.$event, [], $locale);
         $url = rtrim(config('app.url'), '/').($admin ? '/admin/projects/'.$project->uuid.'/brief/task/' : '/project/'.$project->uuid.'/task/').$task->uuid;
+        if (str_ends_with($event, '.comment_created')) {
+            $history = $task->history()->whereKey($eventId)->first();
+            $comment = $task->comments()->whereKey($history?->meta['commentId'] ?? null)->first();
+            if ($comment) {
+                $url .= '#comment-'.$comment->uuid;
+            }
+        }
         $message = match ($event) {
             'client.task_created' => self::excerpt($task->description ?? '', self::DESCRIPTION_LIMIT),
-            'client.comment_created', 'admin.comment_created' => self::comment($task, $event, $eventId),
+            'client.comment_created', 'admin.comment_created' => self::comment($task, $event, $eventId, $locale),
             default => null,
         };
         $body = $message !== null && $message !== '' && str_ends_with($event, '.comment_created')
@@ -71,8 +94,8 @@ class NotificationPayload
         return array_replace($payload, ['title' => self::excerpt($heading.' · '.$project->title, 120), 'heading' => $heading,
             'subject' => '[ProjectBrief] '.$heading.' — '.self::excerpt($project->title, 80), 'project' => $project->title,
             'actor' => $actor, 'event' => $event, 'tag' => 'projectbrief-comment-'.$comment->id,
-            'project_uuid' => $project->uuid, 'body' => self::excerpt($actor.': '.$comment->text, self::PUSH_LIMIT),
-            'message' => self::excerpt($comment->text, self::COMMENT_LIMIT), 'message_label' => trans('notifications.comment', [], $locale),
+            'project_uuid' => $project->uuid, 'body' => self::excerpt($actor.': '.self::commentText($comment, $locale), self::PUSH_LIMIT),
+            'message' => self::excerpt(self::commentText($comment, $locale), self::COMMENT_LIMIT), 'message_label' => trans('notifications.comment', [], $locale),
             'explanation' => $locale === 'ru' ? $actor.' оставил(а) комментарий к проекту.' : $actor.' commented on the project.',
             'open' => $locale === 'ru' ? 'Открыть обсуждение' : 'Open discussion']);
     }

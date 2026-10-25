@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdtemp, cp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -97,7 +98,8 @@ $foreign = $app->make(\\App\\Services\\OwnerProvisioning::class)->create(['name'
 $foreignWorkspace = $foreign->workspaceMembers()->active()->firstOrFail()->workspace;
 $foreignProject = $foreignWorkspace->projects()->create(['title'=>'Foreign QA project']);
 $foreignTask = $foreignProject->tasks()->create(['title'=>'Foreign QA task', 'description'=>'Protected foreign task']);
-echo json_encode(['project'=>$project->uuid, 'workspace'=>$workspace->uuid, 'foreignWorkspace'=>$foreignWorkspace->uuid, 'foreignProject'=>$foreignProject->uuid, 'foreignTask'=>$foreignTask->uuid, 'trashTask'=>$trashTask->uuid, 'trashFile'=>$trashFile->uuid, 'mainSection'=>$section->uuid, 'targetSection'=>$exportSection->uuid, 'exportTask'=>$exportTask->uuid]);
+$runtimeImage = imagecreatetruecolor(4, 4); ob_start(); imagepng($runtimeImage); $runtimePng = base64_encode(ob_get_clean());
+echo json_encode(['png'=>$runtimePng, 'project'=>$project->uuid, 'workspace'=>$workspace->uuid, 'foreignWorkspace'=>$foreignWorkspace->uuid, 'foreignProject'=>$foreignProject->uuid, 'foreignTask'=>$foreignTask->uuid, 'trashTask'=>$trashTask->uuid, 'trashFile'=>$trashFile->uuid, 'mainSection'=>$section->uuid, 'targetSection'=>$exportSection->uuid, 'exportTask'=>$exportTask->uuid]);
 `,
   )
   const fixture = JSON.parse(command([fixturePhp, application]))
@@ -534,6 +536,50 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     '/api/client/telegram',
   ])
     assert.equal((await request(endpoint)).status, 200)
+  for (const endpoint of [
+    '/api/client/tasks/' + fixture.exportTask + '/comments',
+    '/api/client/project/' + fixture.project + '/discussions',
+  ]) {
+    const submissionId = randomUUID()
+    let comment
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const body = new FormData()
+      body.append('text', '')
+      body.append('submissionId', submissionId)
+      body.append(
+        'attachments[]',
+        new Blob(['release comment attachment'], { type: 'text/plain' }),
+        'runtime-comment.txt',
+      )
+      body.append(
+        'attachments[]',
+        new Blob([Buffer.from(fixture.png, 'base64')], { type: 'image/png' }),
+        'runtime-comment.png',
+      )
+      const saved = await request(endpoint, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': clientCsrf.token },
+        body,
+      })
+      assert.ok(saved.ok, 'Packaged multipart comment must save')
+      const data = (await saved.json()).data
+      const latest = endpoint.endsWith('/comments') ? data.comments.at(-1) : data
+      if (comment) assert.equal(latest.id, comment.id, 'Packaged retry must be idempotent')
+      comment = latest
+      assert.equal(comment.attachments.length, 2)
+      assert.equal(comment.text, '')
+      if (data.comments)
+        assert.equal(data.attachments.length, 1, 'Idea attachment list excludes comment files')
+    }
+    const [document, image] = comment.attachments
+    assert.equal(await (await request(document.downloadUrl)).text(), 'release comment attachment')
+    const thumbnail = await request(image.preview)
+    assert.equal(thumbnail.status, 200)
+    assert.match(thumbnail.headers.get('content-type'), /image\/jpeg/)
+    const original = await request(image.originalUrl)
+    assert.equal(original.status, 200)
+    assert.deepEqual(Buffer.from(await original.arrayBuffer()), Buffer.from(fixture.png, 'base64'))
+  }
   for (const format of ['pdf', 'docx']) {
     const exported = await request('/api/client/project/' + fixture.project + '/export', {
       method: 'POST',
@@ -587,7 +633,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal((await request('/admin/login')).status, 200)
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
-    'PASS: Packaged runtime, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
+    'PASS: Packaged comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
   )
 } finally {
   if (server && server.exitCode === null) {

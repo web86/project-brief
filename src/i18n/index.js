@@ -124,6 +124,7 @@ export function formatApiError(error) {
     401: 'ui.yourSessionHasEndedSignInAgainOr',
     403: 'ui.thisActionIsUnavailableDiscussChangesInThe',
     404: 'ui.thisRecordWasNotFoundOrIsUnavailable',
+    413: 'commentFiles.serverLimit',
     419: 'ui.yourSessionHasChangedTryThisActionAgain',
     422: 'ui.checkTheFields',
     429: 'ui.tooManyRequestsPleaseWaitALittle',

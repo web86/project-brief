@@ -46,7 +46,7 @@ class Task extends Model
 
     public function comments(): HasMany
     {
-        return $this->hasMany(Comment::class)->orderBy('id');
+        return $this->hasMany(Comment::class)->with(['attachments.projectClient', 'authorUser'])->orderBy('id');
     }
 
     public function attachments(): HasMany

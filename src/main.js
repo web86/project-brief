@@ -4,6 +4,7 @@ import App from './App.vue'
 import { i18n } from './i18n/index.js'
 import router from './router'
 import './assets/main.css'
+import './assets/comment-attachments.css'
 import { theme } from './services/theme.js'
 
 theme.initialize()

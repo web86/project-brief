@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import { t, formatDate, formatApiError } from '../i18n/index.js'
 import { useDiscussionsStore, useClientDiscussionsStore } from '../stores/discussions.js'
 import { toast } from '../services/toast.js'
+import CommentForm from '../components/CommentForm.vue'
+import AttachmentList from '../components/AttachmentList.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 const route = useRoute()
 const client = route.meta.clientSection === 'discussions'
@@ -86,10 +88,8 @@ function loadMore(kind) {
     if (active && route.params.uuid === id) toast.error(() => formatApiError(error))
   })
 }
-async function send() {
-  await run(async () => {
-    await discussions.send(text.value)
-  })
+async function send(text, files, submissionId) {
+  return discussions.send(text, files, submissionId)
 }
 </script>
 <template>
@@ -171,6 +171,7 @@ async function send() {
                 : comment.text
             }}
           </p>
+          <AttachmentList :attachments="comment.attachments || []" compact />
           <div class="discussion-actions">
             <RouterLink
               v-if="comment.task"
@@ -202,25 +203,13 @@ async function send() {
         @click="loadMore(kind)"
         >{{ t('discussions.more') }}</LoadingButton
       >
-      <form v-if="kind === 'general'" class="comment-form" @submit.prevent="send">
-        <label for="project-comment">{{ t('discussions.message') }}</label>
-        <textarea
-          id="project-comment"
-          v-model="text"
-          rows="3"
-          maxlength="5000"
-          :disabled="pending"
-        />
-        <div class="comment-form-footer">
-          <LoadingButton
-            type="submit"
-            class="button primary"
-            :busy="pending"
-            :disabled="pending || !text.trim()"
-            >{{ t('ui.send') }}</LoadingButton
-          >
-        </div>
-      </form>
+      <CommentForm
+        v-if="kind === 'general'"
+        :key="route.params.uuid"
+        v-model="text"
+        general
+        :send-comment="send"
+      />
     </section>
   </div>
 </template>
