@@ -1,0 +1,121 @@
+{
+  "source": "clean production ZIP",
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "zh-CN",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "zh-CN",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "zh-CN",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "zh-CN",
+      "status": "passed"
+    }
+  ],
+  "pdfDownloads": 16,
+  "docxDownloads": 4,
+  "physicalMobile": "not tested",
+  "safari": "not tested"
+}

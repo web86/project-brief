@@ -29,6 +29,7 @@ export async function verifyPackagedExports(origin, project, outputDirectory) {
           for (const locale of ['ru', 'en', 'tr', 'zh-CN']) {
             await page.goto(origin + `/admin/projects/${project}/export`)
             await page.locator('.export-form').waitFor()
+            await page.locator('#bootstrap-splash').waitFor({ state: 'detached' })
             await page.locator('.language-switcher select').selectOption(locale)
             await page.locator('#export-language').selectOption(locale)
             assert.ok(

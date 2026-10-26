@@ -1,0 +1,543 @@
+{
+  "passed": true,
+  "pdfCount": 16,
+  "docxCount": 4,
+  "results": [
+    {
+      "file": "chromium-1440-en.pdf",
+      "format": "pdf",
+      "bytes": 24828,
+      "sha256": "29439ff80f39d6204b0996b3d9e5196d3ea0beda39af7203f8df1484d403151f",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10793,
+          "glyphs": 57
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11027,
+          "glyphs": 55
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "chromium-1440-ru.pdf",
+      "format": "pdf",
+      "bytes": 23133,
+      "sha256": "a76b6726df984fc41ba8c53c3d09ad30411d82648fc423bc31e2901a2c3f7a44",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 8761,
+          "glyphs": 52
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 10907,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "chromium-1440-tr.pdf",
+      "format": "pdf",
+      "bytes": 24938,
+      "sha256": "8d8e09936bb808317744f2930cf1cc4c55e94bfeaddaddbe19f488060ba66270",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10605,
+          "glyphs": 60
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11343,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "chromium-1440-zh-CN.pdf",
+      "format": "pdf",
+      "bytes": 28751,
+      "sha256": "9ada4bdc86c48c2df31dc80c9acb763bdd0c905c71a4519190975292338005a4",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 4729,
+          "glyphs": 20
+        },
+        {
+          "name": "/CZZZZZ+NotoSansSC-Regular",
+          "embeddedBytes": 5186,
+          "glyphs": 22
+        },
+        {
+          "name": "/DZZZZZ+DejaVuSans",
+          "embeddedBytes": 8935,
+          "glyphs": 45
+        },
+        {
+          "name": "/EZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 7173,
+          "glyphs": 38
+        }
+      ]
+    },
+    {
+      "file": "chromium-390-en.pdf",
+      "format": "pdf",
+      "bytes": 24828,
+      "sha256": "e8a1438092490504f07a74b68433f1731c0ad37cc60e87defd5a7d78424d3ca5",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10793,
+          "glyphs": 57
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11027,
+          "glyphs": 55
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "chromium-390-ru.pdf",
+      "format": "pdf",
+      "bytes": 23133,
+      "sha256": "cd3d6ef5af86b389aeb7e12027e06ec24437a8b3150a635aa23e3d7745f7a362",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 8761,
+          "glyphs": 52
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 10907,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "chromium-390-tr.pdf",
+      "format": "pdf",
+      "bytes": 24938,
+      "sha256": "01087ce20e72cf0e4baed7d57c4c728b97650ad4721118ddf5a2d60aff73806c",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10605,
+          "glyphs": 60
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11343,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "chromium-390-zh-CN.pdf",
+      "format": "pdf",
+      "bytes": 28751,
+      "sha256": "954854ed05da062b88dc7eb7d840e805788127a4068186d26b5a41f36c2a944e",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 4729,
+          "glyphs": 20
+        },
+        {
+          "name": "/CZZZZZ+NotoSansSC-Regular",
+          "embeddedBytes": 5186,
+          "glyphs": 22
+        },
+        {
+          "name": "/DZZZZZ+DejaVuSans",
+          "embeddedBytes": 8935,
+          "glyphs": 45
+        },
+        {
+          "name": "/EZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 7173,
+          "glyphs": 38
+        }
+      ]
+    },
+    {
+      "file": "firefox-1440-en.pdf",
+      "format": "pdf",
+      "bytes": 24828,
+      "sha256": "7bb6b0f61da05d9d5c7dc816c4b91777b1899e333c6232cc0cd95868dfcf0224",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10793,
+          "glyphs": 57
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11027,
+          "glyphs": 55
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "firefox-1440-ru.pdf",
+      "format": "pdf",
+      "bytes": 23133,
+      "sha256": "07af3ec6a7cf6c0f22ac7c0ef61cf2f0450706fdb513fb9cf32262125c6f22fb",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 8761,
+          "glyphs": 52
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 10907,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "firefox-1440-tr.pdf",
+      "format": "pdf",
+      "bytes": 24938,
+      "sha256": "79e7556b8538ec72b31054b1bfa37a5fbaad980771a95258ea4bff8c324962b5",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10605,
+          "glyphs": 60
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11343,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "firefox-1440-zh-CN.pdf",
+      "format": "pdf",
+      "bytes": 28751,
+      "sha256": "bfeec961e5fc9654bfe7ffa92bf2edf2c608aa5dd24312acc513be5103ce38cd",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 4729,
+          "glyphs": 20
+        },
+        {
+          "name": "/CZZZZZ+NotoSansSC-Regular",
+          "embeddedBytes": 5186,
+          "glyphs": 22
+        },
+        {
+          "name": "/DZZZZZ+DejaVuSans",
+          "embeddedBytes": 8935,
+          "glyphs": 45
+        },
+        {
+          "name": "/EZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 7173,
+          "glyphs": 38
+        }
+      ]
+    },
+    {
+      "file": "firefox-390-en.pdf",
+      "format": "pdf",
+      "bytes": 24828,
+      "sha256": "885f9dabe987deb7cc9cd7259ccc60cff45616c981b64a73c95341d37528d48f",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10793,
+          "glyphs": 57
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11027,
+          "glyphs": 55
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "firefox-390-ru.pdf",
+      "format": "pdf",
+      "bytes": 23133,
+      "sha256": "4adf196379fe8a21da8b23db1b2699aa8b281eef93bf6582f604d3157ce7a9e9",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 8761,
+          "glyphs": 52
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 10907,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "firefox-390-tr.pdf",
+      "format": "pdf",
+      "bytes": 24938,
+      "sha256": "d2439ccd6ea728ed82e8aab8c5aa79d6ccafae00a8decd56d6dcdb98a7662ba3",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 10605,
+          "glyphs": 60
+        },
+        {
+          "name": "/CZZZZZ+DejaVuSans",
+          "embeddedBytes": 11343,
+          "glyphs": 62
+        },
+        {
+          "name": "/DZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 1072,
+          "glyphs": 5
+        }
+      ]
+    },
+    {
+      "file": "firefox-390-zh-CN.pdf",
+      "format": "pdf",
+      "bytes": 28751,
+      "sha256": "144f6e4bb8fc9faf0cb3a7ecb383f2898524022df3bbc294226bf5b731ed40ac",
+      "pages": 1,
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fonts": [
+        {
+          "name": "/BZZZZZ+NotoSansSC-Bold",
+          "embeddedBytes": 4729,
+          "glyphs": 20
+        },
+        {
+          "name": "/CZZZZZ+NotoSansSC-Regular",
+          "embeddedBytes": 5186,
+          "glyphs": 22
+        },
+        {
+          "name": "/DZZZZZ+DejaVuSans",
+          "embeddedBytes": 8935,
+          "glyphs": 45
+        },
+        {
+          "name": "/EZZZZZ+DejaVuSans-Bold",
+          "embeddedBytes": 7173,
+          "glyphs": 38
+        }
+      ]
+    },
+    {
+      "file": "chromium-1440-en.docx",
+      "format": "docx",
+      "bytes": 12689679,
+      "sha256": "e940ad3b4b592c6d0cdb2a6bb7e8212a02bd1b853bf0464d57ecb21554063525",
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fullEmbeddedCjkFaces": [
+        {
+          "weight": "Regular",
+          "bytes": 10595936,
+          "sourceFontSha256": "5f350ebec58a04afe5db2b910c66034e72be7678219db12e30d3f074f0d02771"
+        },
+        {
+          "weight": "Bold",
+          "bytes": 10585480,
+          "sourceFontSha256": "826208feb28f556c2116d704a9bf6ed4665c411e5f6e00acd9ad29052d8173b2"
+        }
+      ]
+    },
+    {
+      "file": "chromium-1440-ru.docx",
+      "format": "docx",
+      "bytes": 12689752,
+      "sha256": "352f313311257fe647031a2814847cd422a971b8c1d350ce4cb9dc26abfa3cbf",
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fullEmbeddedCjkFaces": [
+        {
+          "weight": "Regular",
+          "bytes": 10595936,
+          "sourceFontSha256": "5f350ebec58a04afe5db2b910c66034e72be7678219db12e30d3f074f0d02771"
+        },
+        {
+          "weight": "Bold",
+          "bytes": 10585480,
+          "sourceFontSha256": "826208feb28f556c2116d704a9bf6ed4665c411e5f6e00acd9ad29052d8173b2"
+        }
+      ]
+    },
+    {
+      "file": "chromium-1440-tr.docx",
+      "format": "docx",
+      "bytes": 12689704,
+      "sha256": "d0cd8f6784072faac1d5254bcbb7d51676328c4be46110bb3ccd2915cbec4aa1",
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fullEmbeddedCjkFaces": [
+        {
+          "weight": "Regular",
+          "bytes": 10595936,
+          "sourceFontSha256": "5f350ebec58a04afe5db2b910c66034e72be7678219db12e30d3f074f0d02771"
+        },
+        {
+          "weight": "Bold",
+          "bytes": 10585480,
+          "sourceFontSha256": "826208feb28f556c2116d704a9bf6ed4665c411e5f6e00acd9ad29052d8173b2"
+        }
+      ]
+    },
+    {
+      "file": "chromium-1440-zh-CN.docx",
+      "format": "docx",
+      "bytes": 12689743,
+      "sha256": "7010767ecab85d08b434f0ba007492410fc1977e0fe3e76f7b71ae3b162a338a",
+      "localizedHeading": true,
+      "chineseUserContent": true,
+      "turkishUserContent": true,
+      "fullEmbeddedCjkFaces": [
+        {
+          "weight": "Regular",
+          "bytes": 10595936,
+          "sourceFontSha256": "5f350ebec58a04afe5db2b910c66034e72be7678219db12e30d3f074f0d02771"
+        },
+        {
+          "weight": "Bold",
+          "bytes": 10585480,
+          "sourceFontSha256": "826208feb28f556c2116d704a9bf6ed4665c411e5f6e00acd9ad29052d8173b2"
+        }
+      ]
+    }
+  ]
+}

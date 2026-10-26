@@ -1,0 +1,25 @@
+{
+  "frontend": {
+    "passed": 252,
+    "failed": 0
+  },
+  "laravel": {
+    "passed": 682,
+    "failed": 0,
+    "assertions": 8057
+  },
+  "brandCheck": true,
+  "productionBuild": true,
+  "composerPlatformRequirements": true,
+  "archiveCrcVerified": true,
+  "sha256ManifestFilesVerified": 7589,
+  "freshUnpackedInstallationRuntime": true,
+  "browserPdfDownloads": 16,
+  "browserDocxDownloads": 4,
+  "documentUnicodeAndEmbeddedFonts": true,
+  "applicationRuntimeCodeUnchanged": true,
+  "productionDeployment": false,
+  "safari": "not tested",
+  "physicalMobile": "not tested",
+  "docxVisualRendering": "not repeated; structural/XML/font checks passed"
+}

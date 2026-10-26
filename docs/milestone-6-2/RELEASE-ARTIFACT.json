@@ -1,28 +1,39 @@
 {
-  "archive": "project-brief-v0.6.2-fe59c94.zip",
-  "relativePath": "release/project-brief-v0.6.2-fe59c94.zip",
-  "bytes": 122716659,
-  "sizeMiB": 117.03172588348389,
-  "sha256": "2690b046dd0bfb3222046bb52a8e857a4bb3995c25e7098218c8f9bbc50010c5",
-  "sourceCommit": "fe59c94d02f7a4b71a41b5d9c90bfd3b3a42bfc9",
-  "implementationCommit": "c677b4d",
+  "archive": "project-brief-v0.6.2-41da2a3.zip",
+  "relativePath": "release/project-brief-v0.6.2-41da2a3.zip",
+  "bytes": 37716083,
+  "sizeMiB": 35.96885967254639,
+  "sha256": "19047be35580010bd465ea86bd4483a93f8532126fa2352f188aec1635c43d64",
+  "sourceCommit": "41da2a3e0aada09d87d23de8c6041d9ffd58f547",
   "release": {
     "version": "0.6.2",
-    "commit": "fe59c94d02f7a4b71a41b5d9c90bfd3b3a42bfc9",
-    "builtAt": "2026-10-26T17:34:50.671Z",
+    "commit": "41da2a3e0aada09d87d23de8c6041d9ffd58f547",
+    "builtAt": "2026-10-26T19:24:34.651Z",
     "phpTarget": "8.4",
     "domain": "brief.web86.site"
   },
-  "fileCount": 7814,
+  "fileCount": 7590,
+  "archiveFilesSha256Verified": 7589,
+  "archiveCrcVerified": true,
+  "runtimeComparedFiles": 7586,
+  "runtimeIdenticalFiles": 7585,
+  "runtimeMetadataOnlyChanges": ["private/project-brief-app/vendor/composer/installed.php"],
+  "runtimeRemovedFiles": [],
+  "previousArchive": "project-brief-v0.6.2-fe59c94.zip",
+  "previousBytes": 122716659,
+  "savedBytes": 85000576,
+  "reductionPercent": 69.26571884588219,
+  "implementationCommit": "c677b4d",
+  "packagingCommit": "41da2a3",
   "productionComposerDev": false,
   "dompdfInstalled": false,
-  "publicFontAssets": [
-    "public/assets/NotoSansSC-Regular-CDnR9hCP.ttf",
-    "public/assets/NotoSansSC-Bold-Bj2WiPmA.ttf",
-    "public/assets/DejaVuSans-CHjR2eXl.ttf",
-    "public/assets/DejaVuSans-Bold-D3XZ3B4H.ttf"
-  ],
+  "historicalEvidence": "Preserved in repository docs/, excluded from production ZIP",
   "contents": {
+    "installation-and-manifests": {
+      "files": 4,
+      "bytes": 1205366,
+      "compressedBytes": 371565
+    },
     "public": {
       "files": 62,
       "bytes": 24172021,
@@ -31,19 +42,12 @@
     "private": {
       "files": 7523,
       "bytes": 54652188,
-      "compressedBytes": 21261133
+      "compressedBytes": 21261137
     },
-    "GUIDES": {
-      "files": 216,
-      "bytes": 86769445,
-      "compressedBytes": 84927644
-    },
-    "other": {
-      "files": 13,
-      "bytes": 1341661,
-      "compressedBytes": 409503
+    "deployment": {
+      "files": 1,
+      "bytes": 6513,
+      "compressedBytes": 2256
     }
-  },
-  "archiveFilesSha256Verified": 7813,
-  "archiveCrcVerified": true
+  }
 }

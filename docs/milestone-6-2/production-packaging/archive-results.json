@@ -1,0 +1,53 @@
+{
+  "archive": "project-brief-v0.6.2-41da2a3.zip",
+  "relativePath": "release/project-brief-v0.6.2-41da2a3.zip",
+  "bytes": 37716083,
+  "sizeMiB": 35.96885967254639,
+  "sha256": "19047be35580010bd465ea86bd4483a93f8532126fa2352f188aec1635c43d64",
+  "sourceCommit": "41da2a3e0aada09d87d23de8c6041d9ffd58f547",
+  "release": {
+    "version": "0.6.2",
+    "commit": "41da2a3e0aada09d87d23de8c6041d9ffd58f547",
+    "builtAt": "2026-10-26T19:24:34.651Z",
+    "phpTarget": "8.4",
+    "domain": "brief.web86.site"
+  },
+  "fileCount": 7590,
+  "archiveFilesSha256Verified": 7589,
+  "archiveCrcVerified": true,
+  "runtimeComparedFiles": 7586,
+  "runtimeIdenticalFiles": 7585,
+  "runtimeMetadataOnlyChanges": ["private/project-brief-app/vendor/composer/installed.php"],
+  "runtimeRemovedFiles": [],
+  "previousArchive": "project-brief-v0.6.2-fe59c94.zip",
+  "previousBytes": 122716659,
+  "savedBytes": 85000576,
+  "reductionPercent": 69.26571884588219,
+  "implementationCommit": "c677b4d",
+  "packagingCommit": "41da2a3",
+  "productionComposerDev": false,
+  "dompdfInstalled": false,
+  "historicalEvidence": "Preserved in repository docs/, excluded from production ZIP",
+  "contents": {
+    "installation-and-manifests": {
+      "files": 4,
+      "bytes": 1205366,
+      "compressedBytes": 371565
+    },
+    "public": {
+      "files": 62,
+      "bytes": 24172021,
+      "compressedBytes": 13962639
+    },
+    "private": {
+      "files": 7523,
+      "bytes": 54652188,
+      "compressedBytes": 21261137
+    },
+    "deployment": {
+      "files": 1,
+      "bytes": 6513,
+      "compressedBytes": 2256
+    }
+  }
+}

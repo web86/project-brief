@@ -2,7 +2,7 @@
 
 Исправление комплектации production ZIP: [PACKAGING.md](PACKAGING.md). Исторические отчёты, тестовые документы и скриншоты сохраняются в репозитории, но исключены из установочного архива. Актуальный архив и SHA-256 указаны в RELEASE-ARTIFACT.json.
 
-Реализован переход **PDF: Laravel JSON API → Web Worker → pdfmake → Browser Download**. **DOCX: Laravel → PHPWord → Download**. Серверный PDF, Dompdf и fallback удалены. Новые проекты в admin и REST создаются с пустой структурой; разделы добавляются вручную. Production и push не выполнялись.
+Реализован переход **PDF: Laravel JSON API → Web Worker → pdfmake → Browser Download**. **DOCX: Laravel → PHPWord → Download**. Серверный PDF, Dompdf и fallback удалены. Новые проекты в admin и REST создаются с пустой структурой; разделы добавляются вручную. Production не затронут. Исправленная комплектация подготовлена к публикации в `projects-manager/main` по отдельному запросу пользователя.
 
 Ветка `codex/milestone-6-2-browser-pdf-integration`, основа — прототип 6.1 `cd008cd`. Результаты его масштабных измерений приняты согласно ТЗ; новое исследование производительности не проводилось. Исторические отчёты 6.0/6.1 сохранены без изменений. Финальный ZIP/source commit/SHA-256 публикуются после сборки в RELEASE-ARTIFACT.json.
 
@@ -64,7 +64,7 @@ PDF проверены извлечением всех исходных текс
 
 Основной production entry: **429,91 kB / gzip 147,11 kB** по Vite. Для сравнения обычная 6.1-сборка имела 428,29 / 146,69 kB. pdfmake **787,01 kB** и Worker около **5,1 kB** — отдельные ленивые чанки, а не часть main entry. Четыре TTF — **22 644 176 байт**, в том числе Noto **21 181 416 байт**. Первый CJK export требует их загрузки; Cache API хранит только публичные шрифты. Извлечение subset в PDF не сокращает исходные скачиваемые TTF. [Точные размеры всех JS/TTF](bundle-sizes.json); gzip там измерен Python и может отличаться от Vite.
 
-ZIP собирается существующим `bin/build-release`: чистый commit, npm ci/tests/build, Laravel tests, production Composer install без dev, runtime test отдельной копии, проверка отсутствия секретов/SQLite/sourcemaps/старого PDF, checksums. Включены текущие public JS/Worker/TTF/licenses, private PHPWord/полные DOCX-шрифты и руководства. Архив также содержит исторические guides; его размер не равен размеру загружаемого браузером JS. Производственный vendor заменяется целиком, чтобы удалённые зависимости не остались от предыдущей версии.
+ZIP собирается существующим `bin/build-release`: чистый commit, npm ci/tests/build, Laravel tests, production Composer install без dev, проверка отсутствия секретов/SQLite/sourcemaps/старого PDF, checksums. Готовый ZIP распаковывается в новую папку, сверяется с манифестом и проходит runtime test на изолированной копии. Включены только runtime public/private, шрифты/лицензии, Telegram bridge и инструкции установки/отката. Исторические guides, результаты тестов, скриншоты и примеры документов остаются в Git вне дистрибутива. Производственный vendor заменяется целиком, чтобы удалённые зависимости не остались от предыдущей версии. Размер после исправления — **37 716 083 байта**, сокращение **69,27%**; подробности в [PACKAGING.md](PACKAGING.md).
 
 ## Образцы и скриншоты
 
