@@ -10,7 +10,7 @@
     "tests": 682,
     "passed": 682,
     "assertions": 8057,
-    "duration_ms": 37380
+    "duration_ms": 38249
   },
   "productionBuild": "passed",
   "browserSmoke": {
@@ -148,5 +148,17 @@
   "pdfSamples": 30,
   "docxExporterSha256": "77ef9172bcf128fc130bb760ee395a0c66ccc611d5d07f4fda3b85fdd689c38e",
   "sharedBuilderUnchangedFrom61": true,
-  "serverPdfPackagesInstalled": false
+  "serverPdfPackagesInstalled": false,
+  "productionRelease": {
+    "sourceCommit": "fe59c94d02f7a4b71a41b5d9c90bfd3b3a42bfc9",
+    "validation": "passed",
+    "runtime": "passed",
+    "filesBeforeChecksumManifest": 7813,
+    "filesInArchive": 7814,
+    "sha256VerifiedFiles": 7813,
+    "dompdfInstalled": false,
+    "archiveBytes": 122716659,
+    "archiveMiB": 117.03172588348389,
+    "archiveCrc": "passed"
+  }
 }
