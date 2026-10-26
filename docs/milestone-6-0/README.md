@@ -37,7 +37,7 @@ AI-интерфейс и служебные ошибки переведены. �
 
 ## Проверки и артефакты
 
-Результаты и команды: [VERIFICATION.md](VERIFICATION.md). Матрица браузера: [browser-results.json](browser-results.json).
+Результаты и команды: [VERIFICATION.md](VERIFICATION.md). Полный список изменённых файлов: [CHANGED-FILES.txt](CHANGED-FILES.txt). Готовый ZIP и source commit описаны в [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json); контрольная сумма — [SHA256SUMS.txt](SHA256SUMS.txt). Матрица браузера: [browser-results.json](browser-results.json).
 
 Снимки для каждого `ru/en/tr`: `desktop-login-*`, `mobile-login-*`, `desktop-admin-*`, `mobile-admin-*`, `desktop-client-*`, `mobile-client-*`. Всего 18 снимков на ширинах 1440 и 390 px.
 

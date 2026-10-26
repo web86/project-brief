@@ -46,7 +46,9 @@ deployment/release-files.mjs
 docs/milestone-6-0/CHANGED-FILES.txt
 docs/milestone-6-0/PRODUCTION.md
 docs/milestone-6-0/README.md
+docs/milestone-6-0/RELEASE-ARTIFACT.json
 docs/milestone-6-0/RELEASE.md
+docs/milestone-6-0/SHA256SUMS.txt
 docs/milestone-6-0/VERIFICATION.md
 docs/milestone-6-0/browser-results.json
 docs/milestone-6-0/desktop-admin-en.png

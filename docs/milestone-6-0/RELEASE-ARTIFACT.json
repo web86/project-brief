@@ -1,0 +1,17 @@
+{
+  "version": "0.6.0",
+  "archive": "project-brief-v0.6.0-be5d34d.zip",
+  "bytes": 18709657,
+  "sha256": "caae921107675e4f43a83b147cf792e1eef18234c7ded429e0c29c18e513aee6",
+  "sourceCommit": "be5d34dddf04cef1a9adaf8fe702522d927a1fb1",
+  "branch": "codex/milestone-6-0-multilingual",
+  "builtAt": "2026-10-26T12:07:52.796Z",
+  "checksumsVerified": 7951,
+  "zipCrc": "passed",
+  "frontendTests": 242,
+  "laravelTests": 672,
+  "browserScenarios": 12,
+  "uiScreenshots": 18,
+  "releaseRuntime": "passed",
+  "productionDeployment": false
+}

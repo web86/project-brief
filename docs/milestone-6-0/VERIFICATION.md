@@ -7,6 +7,7 @@
 | `npm test`                               | 242/242 PASS                                                                                                                                                  |
 | `npm run build`                          | PASS, Vite 7, основной JS 390.66 kB / gzip 132.14 kB                                                                                                          |
 | Laravel                                  | 672/672 PASS, 7897 assertions; подробная итоговая JSON-сводка в `laravel-results.json`                                                                        |
+| Release ZIP                              | PASS: production vendor, 7951 проверенная SHA-256 запись, CRC ZIP и packaged runtime, source commit `be5d34d`                                                 |
 | `vendor/bin/pint --dirty --format agent` | PASS                                                                                                                                                          |
 | I18n                                     | 782 одинаковых frontend-ключа в RU/EN/TR, непустые значения, совпадение параметров, рендер каждого ключа для 0/1/2/5/21, fallback EN                          |
 | Каталоги                                 | Одинаковые коды и Intl-регионы frontend/backend; общая серверная валидация профиля и экспорта                                                                 |
@@ -47,3 +48,5 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs npm run test:multilingual
 `./bin/build-release` запускается с чистого коммита, повторяет unit/build/Laravel, проверяет состав и отсутствие секретов, устанавливает production vendor в staging, выполняет `tests/release-runtime.mjs` на отдельной копии приложения и только затем создаёт ZIP. В packaged runtime также проверяются RU/EN/TR для сохранения языка и шаблонов Email. Source commit указан в `release.json`; итоговые данные архива и SHA-256 публикуются рядом с отчётом после сборки.
 
 Реальная доставка SMTP/Telegram/Web Push и ручная установка PWA на физические iOS/Android-устройства не проверялись; это не требуется для локальной сборки и не подменяется транспортными тестами. Production deployment не выполнялся.
+
+Итоговый архив: `project-brief-v0.6.0-be5d34d.zip`, 18 709 657 байт. Source commit: `be5d34dddf04cef1a9adaf8fe702522d927a1fb1`. Метаданные: [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json), SHA-256: [SHA256SUMS.txt](SHA256SUMS.txt). Проверка release pipeline повторно подтвердила 242 frontend-теста и 672 Laravel-теста (7897 assertions). После сборки изменены только документы с результатами, исходный код архива соответствует указанному коммиту.
