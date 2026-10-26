@@ -31,7 +31,10 @@ class AuthenticateIntegration
         $request->attributes->set('integration_token', $token);
         DB::table('integration_tokens')->where('id', $token->id)->update(['last_used_at' => now()]);
 
-        return $next($request)->header('Cache-Control', 'no-store');
+        $response = $next($request);
+        $response->headers->set('Cache-Control', 'no-store');
+
+        return $response;
     }
 
     private function limited(string $key): Response

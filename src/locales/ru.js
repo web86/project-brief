@@ -71,6 +71,10 @@ export default {
     scope_projects_write: 'Создавать проекты',
     scope_tasks_read: 'Читать задачи',
     scope_tasks_write: 'Создавать задачи',
+    scope_comments_read: 'Читать комментарии',
+    scope_attachments_read: 'Читать и скачивать вложения (с правами на задачу или комментарий)',
+    sensitiveReadHint:
+      'Текст комментариев и файлы могут содержать персональные сведения. Предоставляйте эти права только доверенной CRM.',
     scope_estimates_read: 'Читать часы и стоимость (вместе с чтением задач)',
     event_project_created: 'Проект создан',
     event_project_updated: 'Проект изменён',

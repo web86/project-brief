@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "screenshots": [
+    "desktop-scopes-ru-light",
+    "mobile-scopes-ru-light",
+    "desktop-scopes-ru-dark",
+    "mobile-scopes-ru-dark",
+    "desktop-scopes-ru-system",
+    "mobile-scopes-ru-system",
+    "desktop-scopes-en-light",
+    "mobile-scopes-en-light",
+    "desktop-scopes-en-dark",
+    "mobile-scopes-en-dark",
+    "desktop-scopes-en-system",
+    "mobile-scopes-en-system"
+  ],
+  "checks": [
+    "seven scope choices, new read scopes opt-in",
+    "RU/EN trusted CRM privacy notice",
+    "actual UI token creation with read scopes",
+    "real client general/task comment with private file",
+    "bearer comment list/direct lookup and safe metadata",
+    "authenticated file bytes without public URL",
+    "browser client session cannot download v1 without bearer",
+    "RU/EN light/dark/system desktop/320px no overflow"
+  ],
+  "errors": []
+}

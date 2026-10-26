@@ -28,13 +28,15 @@ stored token records and 20 webhook endpoints per workspace are supported.
 Webhook secrets contain 32 random bytes, prefixed `whsec_`, and are encrypted with
 Laravel's APP_KEY because signing requires the secret. Back up APP_KEY securely.
 
-| Scope            | Allows                                                                            |
-| ---------------- | --------------------------------------------------------------------------------- |
-| `projects:read`  | Project list and detail, including section metadata                               |
-| `projects:write` | Project creation and workspace-scoped external identity resolution                |
-| `tasks:read`     | Paginated task list for a project in the token workspace                          |
-| `tasks:write`    | Create an idea with the ordinary initial status and audit history                 |
-| `estimates:read` | Add `price` and `estimateHours` to task GET responses; also requires `tasks:read` |
+| Scope              | Allows                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `projects:read`    | Project list and detail, including section metadata                                         |
+| `projects:write`   | Project creation and workspace-scoped external identity resolution                          |
+| `tasks:read`       | Paginated task list for a project in the token workspace                                    |
+| `tasks:write`      | Create an idea with the ordinary initial status and audit history                           |
+| `comments:read`    | Read visible project/task comments, including text and safe file metadata; trusted CRM only |
+| `attachments:read` | List/download private files, together with tasks:read or comments:read for the parent       |
+| `estimates:read`   | Add `price` and `estimateHours` to task GET responses; also requires `tasks:read`           |
 
 `ProjectCreation` and `TaskCreation` are shared by the UI and REST API, including the standard five
 sections, optional associated client, task section ordering and audit creation. `ProjectStructure` assigns task sections,
@@ -47,7 +49,7 @@ status/content/project changes emit no events. The API does not create magic lin
 
 All URLs are relative to the application origin. Send `Authorization: Bearer …`.
 POST also requires `Content-Type: application/json` and `Idempotency-Key`.
-Only the five methods below are implemented; no CRM-specific connectors or
+The five core methods below are implemented; Milestone 5.0.3 adds the read endpoints documented below. no CRM-specific connectors or
 incoming webhook routes are provided. See [OpenAPI](openapi.json) for machine-readable
 request and response schemas.
 
@@ -347,6 +349,21 @@ Both extend the unchanged v1 envelope with `commentId` (comment UUID); changes i
 `{}`, actor is `{type:"client",id:<client_uuid>}`, origin is `ui`. taskId is the task
 UUID for task comments and null for general discussions. Payload contains **no**
 comment text, filenames/attachments/private URLs, names, email, developer notes,
-prices or hours. No magic links or new comment-read endpoint is provided. Existing
+prices or hours. No magic links or comment-read endpoint was provided in 5.0.1; see the explicit scoped 5.0.3 extension below. Existing
 event types do not gain commentId or otherwise change their payload format. Receiver
 HMAC verification over raw bytes and event ID deduplication are the same as 5.0.
+
+## Milestone 5.0.3 — read comments/files and quiet cron
+
+See [the 5.0.3 guide](../milestone-5-0-3/README.md) for the five new read-only routes,
+opaque cursor pagination, parent-scope download checks and curl examples using
+webhook commentId. Text/files may contain personal information; new scopes are
+opt-in and intended only for trusted CRM systems. Core project/task responses and
+all webhook payloads are unchanged. Comments always include safe attachment
+metadata; file contents require separate authenticated streaming requests.
+
+The cron command is now completely silent for idle, busy lease and successful
+attempts. Actual delivery failures emit sanitized stderr lines and exit 1 after
+processing other endpoints; internal errors emit a fixed diagnostic and exit 1.
+Use `--verbose` only for manual statistics. Backoff prevents logging on every idle
+minute. See the 5.0.3 production guide for error-only logging and rotation.

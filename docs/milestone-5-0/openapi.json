@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ProjectBrief Workspace Integrations API",
-    "version": "1.0.1",
-    "description": "Stateless workspace bearer API. 120 requests/minute/IP and 60/minute/workspace. Outgoing webhooks use immutable JSON and HMAC-SHA256(timestamp + \".\" + raw_body). See README for complete management and event delivery semantics. Milestone 5.0.1 adds owner-managed all/selected project webhook filters and opt-in metadata-only client comment events. API tokens remain workspace-scoped."
+    "version": "1.0.3",
+    "description": "Stateless workspace bearer API. 120 requests/minute/IP and 60/minute/workspace. Outgoing webhooks use immutable JSON and HMAC-SHA256(timestamp + \".\" + raw_body). See README for complete management and event delivery semantics. Milestone 5.0.1 adds owner-managed all/selected project webhook filters and opt-in metadata-only client comment events. API tokens remain workspace-scoped. Milestone 5.0.3 adds comments:read, attachments:read, scoped read-only comment/attachment endpoints and authenticated streaming downloads; webhook payloads are unchanged. Text and files may contain personal information; grant only to trusted CRM systems."
   },
   "servers": [
     {
@@ -679,6 +679,563 @@
           }
         }
       }
+    },
+    "/api/v1/projects/{projectUuid}/comments": {
+      "get": {
+        "operationId": "listComments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": ["comments:read"],
+        "description": "Requires comments:read, independently of projects:read/tasks:read. Validates project in token workspace before comment lookup. Shared client-visible discussions only, including client/admin authors. Strict filters: taskId requires kind=tasks; unknown query keys are 422. Opaque cursor uses deterministic ascending creation order and an initial high-water mark; do not change token/project/filters/perPage between pages. Hidden/deleted tasks and inconsistent parent links are excluded; removals do not duplicate results. No write API, public URLs, read counts or internal notes.",
+        "parameters": [
+          {
+            "name": "projectUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["all", "tasks", "general"],
+              "default": "all"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Requires kind=tasks. UUID must belong to this visible project."
+          },
+          {
+            "name": "authorType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["client", "admin"]
+            }
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadCommentList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found; absent, hidden, soft-deleted or foreign parent/resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validation_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited; Retry-After seconds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{projectUuid}/comments/{commentUuid}": {
+      "get": {
+        "operationId": "getComment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": ["comments:read"],
+        "description": "Get directly using projectId/commentId from an existing client-comment webhook. Requires comments:read. Missing, foreign, hidden/deleted parent or comment returns 404. Safe attachment metadata only. Webhooks never contain comment text or file bytes.",
+        "parameters": [
+          {
+            "name": "projectUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "commentUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadCommentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found; absent, hidden, soft-deleted or foreign parent/resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validation_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited; Retry-After seconds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{projectUuid}/tasks/{taskUuid}/attachments": {
+      "get": {
+        "operationId": "listTaskAttachments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": ["attachments:read", "tasks:read"],
+        "description": "Direct task attachments only; comment attachments use the comment endpoint. Both scopes required. Returns safe metadata without URLs, paths or bytes. Hidden/deleted/foreign project/task is 404.",
+        "parameters": [
+          {
+            "name": "projectUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found; absent, hidden, soft-deleted or foreign parent/resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validation_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited; Retry-After seconds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{projectUuid}/comments/{commentUuid}/attachments": {
+      "get": {
+        "operationId": "listCommentAttachments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": ["attachments:read", "comments:read"],
+        "description": "General or task-comment files; both scopes required. Parent comment must remain visible. Returns safe metadata without URLs, paths or bytes.",
+        "parameters": [
+          {
+            "name": "projectUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "commentUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found; absent, hidden, soft-deleted or foreign parent/resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validation_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited; Retry-After seconds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attachments/{attachmentUuid}/download": {
+      "get": {
+        "operationId": "downloadAttachment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": ["attachments:read"],
+        "description": "Authenticated streamed original bytes, with Content-Disposition: attachment, nosniff, sandbox CSP and no-store; never redirects to a public/signed URL. Also requires tasks:read for direct task files, or comments:read for comment files (including task-comment files). Checks token workspace, visible parent and consistent task/comment links. Missing file or hidden/deleted/foreign resource returns 404.",
+        "parameters": [
+          {
+            "name": "attachmentUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Streamed file bytes, Content-Type equals the stored MIME, Content-Disposition: attachment, Cache-Control: no-store. No public link or file content in JSON.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found; absent, hidden, soft-deleted or foreign parent/resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validation_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited; Retry-After seconds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-parent-required-scopes": {
+          "directTask": "tasks:read",
+          "comment": "comments:read"
+        }
+      }
     }
   },
   "components": {
@@ -1227,6 +1784,132 @@
             }
           }
         ]
+      },
+      "AttachmentMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "mimeType", "size"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ReadComment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "projectId", "taskId", "author", "text", "createdAt", "attachments"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "author": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "id"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["client", "admin"]
+              },
+              "id": {
+                "type": ["string", "null"],
+                "format": "uuid",
+                "description": "Client UUID if available; admin has no public UUID and is null."
+              }
+            }
+          },
+          "text": {
+            "type": "string",
+            "description": "Untrusted plain text, possibly personal information; never render as HTML. Only available with comments:read."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentMetadata"
+            },
+            "description": "Metadata only, also present with comments:read alone; file bytes require attachments:read and the parent read scope."
+          }
+        }
+      },
+      "ReadCommentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReadComment"
+          }
+        }
+      },
+      "ReadCommentList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data", "meta"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReadComment"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["perPage", "hasMore", "nextCursor"],
+            "properties": {
+              "perPage": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "hasMore": {
+                "type": "boolean"
+              },
+              "nextCursor": {
+                "type": ["string", "null"],
+                "description": "Opaque encrypted continuation; bound to token/project/filters/perPage. Ascending creation order with initial high-water mark. New inserts require restarting. Invalidated by APP_KEY rotation."
+              }
+            }
+          }
+        }
+      },
+      "AttachmentList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentMetadata"
+            }
+          }
+        }
       }
     }
   },

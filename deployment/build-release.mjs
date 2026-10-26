@@ -145,11 +145,11 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0-2/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-5-0-3/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0-2/RELEASE.md'),
+    path.join(root, 'docs/milestone-5-0-3/RELEASE.md'),
     path.join(staging, 'RELEASE-NOTES.md'),
   )
   for (const entry of ['README.md', 'openapi.json', 'verify-webhook.php']) {
@@ -206,10 +206,42 @@ try {
       path.join(staging, 'GUIDES/milestone-5-0-2', entry),
     )
   }
+  for (const entry of [
+    'README.md',
+    'PRODUCTION.md',
+    'RELEASE.md',
+    'VERIFICATION.md',
+    'browser-results.json',
+    ...['ru', 'en'].flatMap((locale) =>
+      ['light', 'dark', 'system'].flatMap((mode) =>
+        ['mobile', 'desktop'].map((size) => `${size}-scopes-${locale}-${mode}.png`),
+      ),
+    ),
+  ]) {
+    await copyRelease(
+      path.join(root, 'docs/milestone-5-0-3', entry),
+      path.join(staging, 'GUIDES/milestone-5-0-3', entry),
+    )
+  }
+  await copyRelease(
+    path.join(root, 'docs/milestone-5-0-3/README.md'),
+    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'),
+  )
+  const readApiGuide = await readFile(path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'), 'utf8')
+  await writeFile(
+    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'),
+    readApiGuide
+      .replaceAll('../milestone-5-0/openapi.json', 'openapi.json')
+      .replaceAll('(PRODUCTION.md)', '(../PRODUCTION.md)')
+      .replaceAll('(VERIFICATION.md)', '(../GUIDES/milestone-5-0-3/VERIFICATION.md)')
+      .replaceAll('(RELEASE.md)', '(../RELEASE-NOTES.md)'),
+  )
   const integrationReadme = await readFile(path.join(staging, 'INTEGRATIONS/README.md'), 'utf8')
   await writeFile(
     path.join(staging, 'INTEGRATIONS/README.md'),
-    integrationReadme.replaceAll('../milestone-5-0-1/', '../GUIDES/milestone-5-0-1/'),
+    integrationReadme
+      .replaceAll('../milestone-5-0-1/', '../GUIDES/milestone-5-0-1/')
+      .replaceAll('../milestone-5-0-3/', '../GUIDES/milestone-5-0-3/'),
   )
   const extensionReadme = await readFile(
     path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
@@ -225,7 +257,7 @@ try {
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.5.0.2', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.5.0.3', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }

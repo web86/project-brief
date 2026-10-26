@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 class IntegrationTokens
 {
-    public const SCOPES = ['projects:read', 'projects:write', 'tasks:read', 'tasks:write', 'estimates:read'];
+    public const SCOPES = ['projects:read', 'projects:write', 'tasks:read', 'tasks:write', 'estimates:read', 'comments:read', 'attachments:read'];
 
     public function create(int $workspaceId, array $data): array
     {

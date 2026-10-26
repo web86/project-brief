@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Closure;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -12,7 +13,7 @@ class WebhookProcessor
 {
     public const MAX_ATTEMPTS = 6;
 
-    public function process(int $limit = 20, int $seconds = 45): int
+    public function process(int $limit = 20, int $seconds = 45, ?Closure $report = null): int
     {
         $owner = bin2hex(random_bytes(16));
         DB::table('integration_locks')->insertOrIgnore(['name' => 'webhooks', 'owner' => '', 'expires_at' => now()->subDay()]);
@@ -27,8 +28,12 @@ class WebhookProcessor
                 if (! $delivery) {
                     break;
                 }
-                if (! $this->deliver($delivery->id, $owner)) {
+                $outcome = $this->deliver($delivery->id, $owner);
+                if ($outcome === false) {
                     break;
+                }
+                if (is_array($outcome) && $report) {
+                    $report($outcome);
                 }
                 $count++;
             }
@@ -39,14 +44,14 @@ class WebhookProcessor
         return $count;
     }
 
-    private function deliver(int $id, string $owner): bool
+    private function deliver(int $id, string $owner): bool|array
     {
         $delivery = DB::table('webhook_deliveries')->find($id);
         if (! $delivery) {
             return true;
         }
 
-        return DB::transaction(function () use ($delivery, $owner): bool {
+        return DB::transaction(function () use ($delivery, $owner): bool|array {
             $lease = DB::table('integration_locks')->where('name', 'webhooks')->lockForUpdate()->first();
             if (! $lease || $lease->owner !== $owner) {
                 return false;
@@ -103,7 +108,7 @@ class WebhookProcessor
             DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => $status, 'http_status' => $httpStatus, 'error_code' => $code, 'available_at' => now()->addSeconds(min(3600, 30 * (2 ** ($attempt - 1)))), 'updated_at' => now()]);
             DB::table('webhook_attempts')->insert(['webhook_delivery_id' => $delivery->id, 'attempt' => $attempt, 'status' => $status, 'http_status' => $httpStatus, 'error_code' => $code, 'duration_ms' => (int) ((microtime(true) - $started) * 1000), 'created_at' => now()]);
 
-            return true;
+            return ['delivery' => $delivery->uuid, 'status' => $status, 'attempt' => $attempt, 'httpStatus' => $httpStatus, 'code' => $code];
         });
     }
 }

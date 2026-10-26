@@ -391,6 +391,13 @@ async function confirmAction(key, path, method = 'POST') {
                 <code>{{ scope }}</code></label
               >
             </fieldset>
+            <p
+              v-if="scopes.includes('comments:read') || scopes.includes('attachments:read')"
+              class="small muted"
+              role="note"
+            >
+              {{ t('integrations.sensitiveReadHint') }}
+            </p>
             <label class="field" for="token-expires"
               >{{ t('integrations.expires')
               }}<input id="token-expires" v-model="expires" type="date" :disabled="busy"

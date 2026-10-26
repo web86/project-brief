@@ -71,6 +71,10 @@ export default {
     scope_projects_write: 'Create projects',
     scope_tasks_read: 'Read tasks',
     scope_tasks_write: 'Create tasks',
+    scope_comments_read: 'Read comments',
+    scope_attachments_read: 'Read and download attachments (with task or comment read access)',
+    sensitiveReadHint:
+      'Comment text and files may contain personal information. Grant these permissions only to a trusted CRM.',
     scope_estimates_read: 'Read hours and prices (with task read access)',
     event_project_created: 'Project created',
     event_project_updated: 'Project updated',

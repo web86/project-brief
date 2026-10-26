@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\IntegrationApiController;
+use App\Http\Controllers\IntegrationReadController;
 use App\Http\Middleware\AuthenticateIntegration;
 use Illuminate\Support\Facades\Route;
 
@@ -10,5 +11,10 @@ Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(functio
     Route::get('/projects/{uuid}', [IntegrationApiController::class, 'show']);
     Route::get('/projects/{uuid}/tasks', [IntegrationApiController::class, 'tasks']);
     Route::post('/projects/{uuid}/tasks', [IntegrationApiController::class, 'storeTask']);
+    Route::get('/projects/{projectUuid}/comments', [IntegrationReadController::class, 'comments']);
+    Route::get('/projects/{projectUuid}/comments/{commentUuid}', [IntegrationReadController::class, 'comment']);
+    Route::get('/projects/{projectUuid}/tasks/{taskUuid}/attachments', [IntegrationReadController::class, 'taskAttachments']);
+    Route::get('/projects/{projectUuid}/comments/{commentUuid}/attachments', [IntegrationReadController::class, 'commentAttachments']);
+    Route::get('/attachments/{attachmentUuid}/download', [IntegrationReadController::class, 'download']);
     Route::any('/{path}', fn () => response()->json(['code' => 'not_found', 'message' => 'Endpoint not found.'], 404))->where('path', '.*');
 });

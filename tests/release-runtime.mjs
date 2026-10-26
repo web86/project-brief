@@ -702,7 +702,18 @@ echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspa
   assert.equal(integrationTasks.data[0].id, integrationTask.id)
   assert.equal(integrationTasks.data[0].price, undefined)
   assert.equal(integrationTasks.data[0].developerNotes, undefined)
-  assert.match(command(['artisan', 'integrations:webhooks']), /Processed deliveries: 0/)
+  const idleCron = spawnSync(php, ['artisan', 'integrations:webhooks'], {
+    cwd: application,
+    env,
+    encoding: 'utf8',
+  })
+  assert.equal(idleCron.status, 0)
+  assert.equal(idleCron.stdout, '')
+  assert.equal(idleCron.stderr, '')
+  assert.match(
+    command(['artisan', 'integrations:webhooks', '--verbose']),
+    /Processed deliveries: 0/,
+  )
   assert.ok(
     (await readFile(path.join(packageRoot, 'INTEGRATIONS/openapi.json'), 'utf8')).includes(
       'bearerAuth',
@@ -720,9 +731,14 @@ $task = $project->tasks()->firstOrFail();
 $secret = 'whsec_'.bin2hex(random_bytes(32));
 $endpoint = \\Illuminate\\Support\\Facades\\DB::table('webhook_endpoints')->insertGetId(['uuid'=>(string) \\Illuminate\\Support\\Str::uuid(), 'workspace_id'=>$project->workspace_id, 'name'=>'Packaged selected webhook', 'url'=>'https://example.com/events', 'project_filter'=>'selected', 'events'=>json_encode(['task.client_comment_created','project.client_comment_created','project.updated']), 'enabled'=>true, 'secret'=>\\Illuminate\\Support\\Facades\\Crypt::encryptString($secret), 'secret_version'=>1, 'created_at'=>now(), 'updated_at'=>now()]);
 \\Illuminate\\Support\\Facades\\DB::table('webhook_endpoint_projects')->insert(['webhook_endpoint_id'=>$endpoint,'workspace_id'=>$project->workspace_id,'project_id'=>$project->id]);
+$comments = [];
 foreach ([$task,null] as $target) {
     $comment = \\App\\Models\\Comment::create(['project_id'=>$project->id,'task_id'=>$target?->id,'project_client_id'=>$project->clients()->first()->id,'author_type'=>'client','text'=>'PRIVATE_PACKAGED_COMMENT']);
     app(\\App\\Services\\WebhookEvents::class)->clientComment($comment,$project,$target);
+    $path = 'attachments/packaged/'.(string) \\Illuminate\\Support\\Str::uuid().'.txt';
+    \\Illuminate\\Support\\Facades\\Storage::disk('local')->put($path,'SYNTHETIC_FILE');
+    $file = \\App\\Models\\Attachment::create(['comment_id'=>$comment->id,'task_id'=>$target?->id,'original_name'=>'report.txt','stored_name'=>basename($path),'mime_type'=>'text/plain','size'=>14,'disk'=>'local','path'=>$path,'uploaded_by_type'=>'client']);
+    $comments[] = ['id'=>$comment->uuid,'file'=>$file->uuid];
 }
 $other = \\App\\Models\\Project::where('uuid',$argv[3])->firstOrFail();
 app(\\App\\Services\\WebhookEvents::class)->project($other,'project.updated',['title'=>'Excluded']);
@@ -732,7 +748,11 @@ foreach ($rows as $row) {
     $body = json_decode($row->body,true);
     if (!isset($body['commentId']) || str_contains($row->body,'PRIVATE_PACKAGED_COMMENT')) { throw new RuntimeException('Packaged comment metadata failed'); }
 }
-echo json_encode(['events'=>$rows->count(),'selection'=>app(\\App\\Services\\WebhookProjectFilter::class)->ids(\\Illuminate\\Support\\Facades\\DB::table('webhook_endpoints')->find($endpoint))]);
+$taskPath = 'attachments/packaged/task.txt';
+\\Illuminate\\Support\\Facades\\Storage::disk('local')->put($taskPath,'SYNTHETIC_FILE');
+$taskFile = \\App\\Models\\Attachment::create(['task_id'=>$task->id,'original_name'=>'task.txt','stored_name'=>'task.txt','mime_type'=>'text/plain','size'=>14,'disk'=>'local','path'=>$taskPath,'uploaded_by_type'=>'client']);
+$readToken = app(\\App\\Services\\IntegrationTokens::class)->create($project->workspace_id,['name'=>'Packaged Read','scopes'=>['comments:read','attachments:read','tasks:read']]);
+echo json_encode(['readToken'=>$readToken,'comments'=>$comments,'task'=>$task->uuid,'taskFile'=>$taskFile->uuid,'events'=>$rows->count(),'selection'=>app(\\App\\Services\\WebhookProjectFilter::class)->ids(\\Illuminate\\Support\\Facades\\DB::table('webhook_endpoints')->find($endpoint))]);
 `,
   )
   const packagedWebhooks = JSON.parse(
@@ -745,6 +765,99 @@ echo json_encode(['events'=>$rows->count(),'selection'=>app(\\App\\Services\\Web
       'project.client_comment_created',
     ),
   )
+  assert.equal(
+    (await callIntegration('/api/v1/projects/' + fixture.project + '/comments')).status,
+    403,
+  )
+  const readHeaders = { Authorization: 'Bearer ' + packagedWebhooks.readToken.secret }
+  for (const comment of packagedWebhooks.comments) {
+    const url = origin + '/api/v1/projects/' + fixture.project + '/comments/' + comment.id
+    const response = await fetch(url, { headers: readHeaders })
+    assert.equal(response.status, 200)
+    const data = (await response.json()).data
+    assert.equal(data.text, 'PRIVATE_PACKAGED_COMMENT')
+    assert.deepEqual(Object.keys(data.attachments[0]).sort(), ['id', 'mimeType', 'name', 'size'])
+    assert.equal(data.attachments[0].id, comment.file)
+    assert.equal((await fetch(url + '/attachments', { headers: readHeaders })).status, 200)
+    const downloaded = await fetch(origin + '/api/v1/attachments/' + comment.file + '/download', {
+      headers: readHeaders,
+    })
+    assert.equal(downloaded.status, 200)
+    assert.match(downloaded.headers.get('content-disposition'), /^attachment;/)
+    assert.match(downloaded.headers.get('cache-control'), /no-store/)
+    assert.equal(await downloaded.text(), 'SYNTHETIC_FILE')
+    assert.equal(
+      (await fetch(origin + '/api/v1/attachments/' + comment.file + '/download')).status,
+      401,
+    )
+  }
+  const taskFiles = await fetch(
+    origin +
+      '/api/v1/projects/' +
+      fixture.project +
+      '/tasks/' +
+      packagedWebhooks.task +
+      '/attachments',
+    { headers: readHeaders },
+  )
+  assert.equal(taskFiles.status, 200)
+  const taskFileData = (await taskFiles.json()).data
+  assert.ok(taskFileData.some((file) => file.id === packagedWebhooks.taskFile))
+  assert.ok(
+    !taskFileData.some((file) =>
+      packagedWebhooks.comments.some((comment) => comment.file === file.id),
+    ),
+  )
+  const taskDownload = await fetch(
+    origin + '/api/v1/attachments/' + packagedWebhooks.taskFile + '/download',
+    { headers: readHeaders },
+  )
+  assert.equal(taskDownload.status, 200)
+  assert.equal(await taskDownload.text(), 'SYNTHETIC_FILE')
+  const readList = await fetch(
+    origin + '/api/v1/projects/' + fixture.project + '/comments?kind=all&perPage=1',
+    { headers: readHeaders },
+  )
+  assert.equal(readList.status, 200)
+  assert.equal((await readList.json()).meta.hasMore, true)
+  const quietFixture = path.join(fixtureRoot, 'quiet-cron-fixture.php')
+  await writeFile(
+    quietFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$kernel = $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class);
+$kernel->bootstrap();
+$app->instance(\\App\\Services\\WebhookDestination::class,new class extends \\App\\Services\\WebhookDestination {
+    public function resolve(string $url): array { return ['host'=>'example.com','ip'=>'93.184.216.34']; }
+});
+\\Illuminate\\Support\\Facades\\Http::preventStrayRequests();
+\\Illuminate\\Support\\Facades\\Http::fake(['*'=>\\Illuminate\\Support\\Facades\\Http::response('PRIVATE_RESPONSE',$argv[2]==='error' ? 503 : 204)]);
+if ($argv[2]==='success') { \\Illuminate\\Support\\Facades\\DB::table('webhook_deliveries')->where('status','pending')->update(['available_at'=>now()]); }
+$input = new \\Symfony\\Component\\Console\\Input\\ArgvInput(['artisan','integrations:webhooks']);
+$output = new \\Symfony\\Component\\Console\\Output\\ConsoleOutput;
+$status = $kernel->handle($input,$output);
+$kernel->terminate($input,$status);
+exit($status);
+`,
+  )
+  const errorCron = spawnSync(php, [quietFixture, application, 'error'], {
+    cwd: application,
+    env,
+    encoding: 'utf8',
+  })
+  assert.equal(errorCron.status, 1)
+  assert.equal(errorCron.stdout, '')
+  assert.match(errorCron.stderr, /status=retry attempt=1 code=remote_transient http=503/)
+  assert.doesNotMatch(errorCron.stderr, /PRIVATE|https?:\/\//)
+  const successCron = spawnSync(php, [quietFixture, application, 'success'], {
+    cwd: application,
+    env,
+    encoding: 'utf8',
+  })
+  assert.equal(successCron.status, 0)
+  assert.equal(successCron.stdout, '')
+  assert.equal(successCron.stderr, '')
   const cleanupFixture = path.join(fixtureRoot, 'integration-cleanup-fixture.php')
   await writeFile(
     cleanupFixture,
@@ -780,7 +893,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.5.0.2',
+    '0.5.0.3',
   )
   assert.match(
     await readFile(path.join(packageRoot, 'GUIDES/milestone-5-0-2/README.md'), 'utf8'),
@@ -792,7 +905,7 @@ echo json_encode(['ok'=>true]);
   assert.equal((await request('/admin/login')).status, 200)
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
-    'PASS: Packaged token revocation/audit and webhook history cascade; project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
+    'PASS: Packaged comments/files Read API and quiet cron stdout/stderr; token revocation/audit and webhook history cascade; project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
   )
 } finally {
   if (server && server.exitCode === null) {

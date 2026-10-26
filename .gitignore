@@ -33,6 +33,7 @@ artifacts/milestone-4-9-1/
 artifacts/milestone-5-0/
 artifacts/milestone-5-0-1/
 artifacts/milestone-5-0-2/
+artifacts/milestone-5-0-3/
 *.zip
 *.tsbuildinfo
 /api/public/hot

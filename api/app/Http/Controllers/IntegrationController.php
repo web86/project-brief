@@ -40,7 +40,7 @@ class IntegrationController extends Controller
     public function token(Request $request): JsonResponse
     {
         $workspace = $this->workspace($request);
-        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'scopes' => ['required', 'array', 'min:1', 'max:5'], 'scopes.*' => ['required', Rule::in(IntegrationTokens::SCOPES), 'distinct'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()]]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'scopes' => ['required', 'array', 'min:1', 'max:'.count(IntegrationTokens::SCOPES)], 'scopes.*' => ['required', Rule::in(IntegrationTokens::SCOPES), 'distinct'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()]]);
         if (! empty($data['expiresAt'])) {
             $data['expiresAt'] = Carbon::parse($data['expiresAt'])->utc();
         }
