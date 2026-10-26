@@ -72,7 +72,7 @@ class MultilingualTest extends TestCase
             $this->actingAs($user)->patchJson('/api/admin/me/locale', ['locale' => $locale])->assertOk()->assertJsonPath('preferredLocale', $locale);
             $this->getJson('/api/admin/account')->assertOk()->assertJsonPath('user.preferredLocale', $locale);
             $this->patchJson('/api/admin/account', ['name' => 'İpek Işık', 'preferredLocale' => $locale])->assertOk()->assertJsonPath('user.preferredLocale', $locale);
-            $this->assertSame($locale, $user->fresh()->preferred_locale);
+            $this->assertSame(SupportedLocales::storage($locale), $user->fresh()->preferred_locale);
         }
         $this->patchJson('/api/admin/account', ['name' => 'İpek', 'preferredLocale' => 'de'])->assertUnprocessable();
         $this->patchJson('/api/admin/me/locale', ['locale' => 'tr', 'user_id' => $other->id])->assertUnprocessable();
@@ -86,8 +86,8 @@ class MultilingualTest extends TestCase
         $project->clients()->delete();
         $pushLanguages = $telegramLanguages = [];
         foreach (SupportedLocales::codes() as $locale) {
-            $admin = $this->ownerFor($project, ['preferred_locale' => $locale, 'notification_preferences' => ['email' => true, 'push' => true, 'telegram' => true]]);
-            $client = ProjectClient::factory()->for($project)->create(['preferred_locale' => $locale, 'notification_preferences' => ['email' => true, 'push' => true, 'telegram' => true]]);
+            $admin = $this->ownerFor($project, ['preferred_locale' => SupportedLocales::storage($locale), 'notification_preferences' => ['email' => true, 'push' => true, 'telegram' => true]]);
+            $client = ProjectClient::factory()->for($project)->create(['preferred_locale' => SupportedLocales::storage($locale), 'notification_preferences' => ['email' => true, 'push' => true, 'telegram' => true]]);
             $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', random_bytes(32))]);
             foreach ([$admin, $client] as $recipient) {
                 $owner = $recipient instanceof User ? ['user_id' => $recipient->id, 'project_client_id' => null] : ['user_id' => null, 'project_client_id' => $recipient->id];
@@ -98,7 +98,7 @@ class MultilingualTest extends TestCase
         }
         $push = Mockery::mock(WebPushTransport::class);
         $push->shouldReceive('available')->andReturnTrue();
-        $push->shouldReceive('send')->times(count(NotificationEvents::CODES) * 3)->andReturnUsing(function ($subscription, $payload) use ($pushLanguages): array {
+        $push->shouldReceive('send')->times(count(NotificationEvents::CODES) * count(SupportedLocales::codes()))->andReturnUsing(function ($subscription, $payload) use ($pushLanguages): array {
             $locale = $pushLanguages[$subscription->id];
             $heading = str_contains($payload['event'], 'project_comment') ? trans('notifications.discussion_heading', [], $locale) : trans('notifications.events.'.$payload['event'], [], $locale);
             $this->assertStringStartsWith($heading, $payload['title']);
@@ -106,7 +106,7 @@ class MultilingualTest extends TestCase
             return ['status' => 'sent', 'error_code' => null];
         });
         $telegram = Mockery::mock(TelegramTransport::class);
-        $telegram->shouldReceive('send')->times(count(NotificationEvents::CODES) * 3)->andReturnUsing(function ($connection, $payload) use ($telegramLanguages): array {
+        $telegram->shouldReceive('send')->times(count(NotificationEvents::CODES) * count(SupportedLocales::codes()))->andReturnUsing(function ($connection, $payload) use ($telegramLanguages): array {
             $this->assertStringContainsString(trans('notifications.project', [], $telegramLanguages[$connection->id]), $payload['text']);
             $this->assertStringContainsString('Original title', $payload['text']);
 
@@ -121,7 +121,7 @@ class MultilingualTest extends TestCase
             $comment = Comment::create(['task_id' => $discussion ? null : $task->id, 'project_id' => $discussion ? $project->id : null, 'author_type' => $actor, 'text' => 'Original title — пользовательский комментарий çğışİöü']);
             $history = $task->history()->create(['actor_type' => $actor, 'event_type' => str_contains($event, 'comment') ? 'comment' : 'status', 'meta' => ['commentId' => $comment->id]]);
             $service->notify(new ProjectNotificationRequested($history->id, $event, $discussion ? null : $task->id, $actor, null, 'Русский администратор', $discussion ? $comment->id : null));
-            Mail::assertSentCount(3);
+            Mail::assertSentCount(count(SupportedLocales::codes()));
             foreach (SupportedLocales::codes() as $locale) {
                 Mail::assertSent(ProjectActivityMail::class, function ($mail) use ($locale): bool {
                     if ($mail->payload['locale'] !== $locale) {
@@ -140,7 +140,7 @@ class MultilingualTest extends TestCase
     {
         foreach (SupportedLocales::codes() as $locale) {
             Mail::fake();
-            $user = User::factory()->owner()->create(['preferred_locale' => $locale, 'password' => 'Current-password']);
+            $user = User::factory()->owner()->create(['preferred_locale' => SupportedLocales::storage($locale), 'password' => 'Current-password']);
             $this->postJson('/api/admin/password/forgot', ['email' => $user->email])->assertOk();
             Mail::assertSent(AccountActionMail::class, function ($mail) use ($locale): bool {
                 $this->assertSame($locale, $mail->language);

@@ -119,7 +119,7 @@ class ProjectExportData
         return [
             'title' => $title,
             'project' => ['name' => $project->title, 'website' => $project->website_url],
-            'generated' => ['date' => $generatedAt->isoFormat('D MMMM YYYY'), 'isoDate' => $generatedAt->toDateString(), 'locale' => $locale],
+            'generated' => ['date' => $generatedAt->isoFormat(SupportedLocales::settings($locale)['generated_date'] ?? 'D MMMM YYYY'), 'isoDate' => $generatedAt->toDateString(), 'locale' => $locale],
             'labels' => array_intersect_key($labels, array_flip(['title', 'project', 'website', 'generated', 'footer', 'attachments', 'summary'])),
             'sections' => $sections,
             'totals' => $totals,

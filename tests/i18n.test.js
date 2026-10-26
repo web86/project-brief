@@ -61,7 +61,7 @@ test('browser detection maps RU, EN and TR and falls back to English', () => {
   assert.equal(resolveLocale({ languages: ['ru-RU', 'en'] }), 'ru')
   assert.equal(resolveLocale({ languages: ['en-GB', 'ru'] }), 'en')
   assert.equal(resolveLocale({ languages: ['tr-TR', 'en'] }), 'tr')
-  for (const language of ['de-DE', 'fr', 'zh-CN'])
+  for (const language of ['de-DE', 'fr', 'zh-TW', 'zh-Hant', 'zh-HK'])
     assert.equal(resolveLocale({ languages: [language] }), 'en')
   assert.equal(resolveLocale({ languages: [], language: 'ru' }), 'ru')
   assert.equal(resolveLocale({}), 'en')
@@ -91,6 +91,7 @@ test('language catalog supplies native names, complete messages and Intl locales
       ['ru', 'Русский'],
       ['en', 'English'],
       ['tr', 'Türkçe'],
+      ['zh-CN', '简体中文'],
     ],
   )
   for (const language of LANGUAGE_CATALOG) {
@@ -108,7 +109,10 @@ test('language catalog supplies native names, complete messages and Intl locales
   assert.equal(result.status, 0, result.stderr)
   const backend = JSON.parse(result.stdout)
   assert.deepEqual(Object.keys(backend).sort(), [...SUPPORTED_LOCALES].sort())
-  for (const { code, intl } of LANGUAGE_CATALOG) assert.equal(backend[code].intl, intl)
+  for (const { code, intl, browserAliases = [] } of LANGUAGE_CATALOG) {
+    assert.equal(backend[code].intl, intl)
+    assert.deepEqual(backend[code].browser_aliases || [], browserAliases)
+  }
 })
 test('unknown and corrupt locale choices fall back; blocked storage still allows live selection', () => {
   for (const value of ['de', '{broken', 'null', '__proto__']) {
@@ -200,4 +204,24 @@ test('Turkish formatting, plurals and casing preserve the project currency and u
   )
   locale.value = 'unsupported'
   assert.equal(t('account.title'), en.account.title)
+})
+
+test('Simplified Chinese browser aliases stay distinct from Traditional Chinese and manual preferences', () => {
+  for (const tag of ['zh-CN', 'zh-cn', 'zh-Hans', 'zh-Hans-CN', 'zh-SG', 'zh_Hans_SG']) {
+    assert.equal(resolveLocale({ languages: [tag] }), 'zh-CN', tag)
+  }
+  for (const tag of ['zh', 'zh-TW', 'zh-HK', 'zh-MO', 'zh-Hant', 'zh-Hant-CN', 'zh-Hant-TW']) {
+    assert.equal(resolveLocale({ languages: [tag, 'zh-CN'] }), 'en', tag)
+  }
+  assert.equal(resolveLocale({ manual: 'zh-CN', preferred: 'ru', language: 'zh-Hant' }), 'zh-CN')
+  assert.equal(initializeLocale({ preferred: 'zh-CN', browser: { language: 'zh-Hant' } }), 'zh-CN')
+  assert.equal(setManualLocale('zh-CN'), true)
+  assert.equal(values.get(LOCALE_KEY), 'zh-CN')
+  assert.equal(initializeLocale({ preferred: 'en', browser: { language: 'en' } }), 'zh-CN')
+  for (const count of [0, 1, 2, 5, 21]) assert.equal(t('counts.ideas', count), '条创意')
+  assert.match(formatDate('2026-10-05T12:00:00Z'), /10月/)
+  assert.equal(
+    formatCurrency(1234.5, { currency: 'USD' }),
+    new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'USD' }).format(1234.5),
+  )
 })

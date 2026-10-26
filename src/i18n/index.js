@@ -1,5 +1,6 @@
 import { createI18n } from 'vue-i18n'
 import { watch } from 'vue'
+import { resolveBrowserLocale } from './browserLocale.js'
 import { LANGUAGE_CATALOG, SUPPORTED_LOCALES, INTL_LOCALES } from './catalog.js'
 export { LANGUAGE_CATALOG, SUPPORTED_LOCALES, INTL_LOCALES } from './catalog.js'
 export const LOCALE_KEY = 'projectbrief.locale'
@@ -9,8 +10,7 @@ export function resolveLocale({ manual, preferred, languages, language } = {}) {
   if (SUPPORTED_LOCALES.includes(preferred)) return preferred
   const browserLanguage =
     languages?.find((value) => typeof value === 'string' && value.trim()) || language || 'en'
-  const code = browserLanguage.trim().toLowerCase().split('-')[0]
-  return SUPPORTED_LOCALES.includes(code) ? code : 'en'
+  return resolveBrowserLocale(browserLanguage, LANGUAGE_CATALOG)
 }
 function storedChoice() {
   try {

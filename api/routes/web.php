@@ -31,6 +31,7 @@ use App\Http\Controllers\WorkspaceController;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\ProjectStructure;
+use App\Services\SupportedLocales;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
@@ -126,7 +127,7 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/project/{project}/discussions', [ProjectDiscussionController::class, 'index']);
     Route::post('/project/{project}/discussions', [ProjectDiscussionController::class, 'store'])->middleware('throttle:comments');
     Route::post('/project/{project}/discussions/read', [ProjectDiscussionController::class, 'read']);
-    Route::get('/me', fn (Request $r) => response()->json(['id' => $r->attributes->get('project_client')->uuid, 'name' => $r->attributes->get('project_client')->name, 'email' => $r->attributes->get('project_client')->email, 'preferredLocale' => $r->attributes->get('project_client')->preferred_locale, 'project' => new ProjectResource($r->attributes->get('client_project'))]));
+    Route::get('/me', fn (Request $r) => response()->json(['id' => $r->attributes->get('project_client')->uuid, 'name' => $r->attributes->get('project_client')->name, 'email' => $r->attributes->get('project_client')->email, 'preferredLocale' => SupportedLocales::preference($r->attributes->get('project_client')->preferred_locale), 'project' => new ProjectResource($r->attributes->get('client_project'))]));
     Route::patch('/me/locale', [ClientLocaleController::class, 'update']);
     Route::get('/project', fn (Request $r) => new ProjectResource($r->attributes->get('client_project')));
     Route::get('/project/{project}', fn (Project $project) => new ProjectResource($project));

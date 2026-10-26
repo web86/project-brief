@@ -1,0 +1,24 @@
+StartFontMetrics 4.1
+Notice Converted by PHP-font-lib
+Comment https://github.com/dompdf/php-font-lib
+EncodingScheme FontSpecific
+Copyright (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
+FontName ProjectBrief CJK 30
+FontSubfamily Regular
+UniqueID 2.004;ADBO;NotoSansSC-Thin;ADOBE
+FullName ProjectBrief CJK 30 Bold
+Version Version 2.004-H2;hotconv 1.0.118;makeotfexe 2.5.65603
+PostScriptName NotoSansSC-Pdf30-Bold
+Weight Bold
+ItalicAngle 0
+IsFixedPitch false
+UnderlineThickness 50
+UnderlinePosition -125
+FontHeightOffset 0
+Ascender 1160
+Descender -288
+FontBBox 5 -102 994 862
+StartCharMetrics 172
+U 32 ; WX 227 ; N uni0020 ; G 1
+EndCharMetrics
+EndFontMetrics

@@ -110,6 +110,12 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/lang/en/exports.php',
     'private/project-brief-app/resources/views/exports/specification.blade.php',
     'private/project-brief-app/resources/fonts/DejaVu-LICENSE.txt',
+    'private/project-brief-app/app/Services/ExportFonts.php',
+    'private/project-brief-app/resources/fonts/NotoSansSC-Regular.ttf',
+    'private/project-brief-app/resources/fonts/NotoSansSC-Bold.ttf',
+    'private/project-brief-app/resources/fonts/NotoSansSC-Pdf.json',
+    'private/project-brief-app/resources/fonts/NotoSansSC-OFL.txt',
+    'private/project-brief-app/resources/fonts/SOURCE.md',
     'private/project-brief-app/vendor/dompdf/dompdf/src/Dompdf.php',
     'private/project-brief-app/vendor/dompdf/dompdf/LICENSE.LGPL',
     'private/project-brief-app/vendor/dompdf/dompdf/lib/fonts/installed-fonts.dist.json',
@@ -178,6 +184,21 @@ export async function validateRelease(root, localSecrets = []) {
     'GUIDES/milestone-6-0/README.md',
     'release.json',
   ]
+  const cjkShards = JSON.parse(
+    await readFile(
+      path.join(root, 'private/project-brief-app/resources/fonts/NotoSansSC-Pdf.json'),
+      'utf8',
+    ),
+  )
+  for (const { id } of cjkShards) {
+    for (const weight of ['Regular', 'Bold']) {
+      for (const extension of ['ttf', 'ufm']) {
+        required.push(
+          `private/project-brief-app/resources/fonts/NotoSansSC-Pdf${id}-${weight}.${extension}`,
+        )
+      }
+    }
+  }
   for (const file of required) {
     if (!(await lstat(path.join(root, file))).isFile())
       throw new Error(`Required release file missing: ${file}`)

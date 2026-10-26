@@ -17,7 +17,7 @@ class SetRequestLocale
             $preferred = ProjectClient::whereKey($request->session()->get('project_client_id'))->value('preferred_locale');
         }
         $manual = $request->header('Accept-Language');
-        $browser = strtolower(preg_split('/[-_]/', $request->getLanguages()[0] ?? 'en')[0]);
+        $browser = SupportedLocales::browser($request->getLanguages()[0] ?? null);
         app()->setLocale(SupportedLocales::resolve(in_array($manual, SupportedLocales::codes(), true) ? $manual : ($preferred ?? $browser)));
 
         return $next($request);

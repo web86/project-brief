@@ -1,8 +1,10 @@
 {
-  "tests": 242,
-  "passed": 242,
+  "tests": 243,
+  "passed": 243,
   "failed": 0,
   "build": "passed",
+  "mainJsKb": 426.13,
+  "mainJsGzipKb": 145.89,
   "keyCountPerLanguage": 782,
-  "languages": ["ru", "en", "tr"]
+  "languages": ["ru", "en", "tr", "zh-CN"]
 }

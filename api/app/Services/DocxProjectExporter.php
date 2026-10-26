@@ -5,6 +5,7 @@ namespace App\Services;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\Style\Language;
 use PhpOffice\PhpWord\Style\ListItem;
 use RuntimeException;
 
@@ -12,10 +13,25 @@ class DocxProjectExporter
 {
     public function render(array $document): string
     {
+        $previousAsianFont = Settings::getDefaultAsianFontName();
+        try {
+            return $this->renderDocument($document);
+        } finally {
+            Settings::setDefaultAsianFontName($previousAsianFont);
+        }
+    }
+
+    private function renderDocument(array $document): string
+    {
         Settings::setOutputEscapingEnabled(true);
         $word = new PhpWord;
         $word->setDefaultFontName('Calibri');
         $word->setDefaultFontSize(11);
+        $cjk = ExportFonts::needsCjk($document);
+        if ($cjk) {
+            $word->setDefaultAsianFontName(ExportFonts::CJK_FAMILY);
+            $word->getSettings()->setThemeFontLang(new Language('en-GB', 'zh-CN'));
+        }
         $word->setDefaultParagraphStyle(['spaceAfter' => 80, 'lineHeight' => 1.15]);
         $word->addTitleStyle(0, ['size' => 22, 'bold' => true], ['spaceAfter' => 200]);
         $word->addTitleStyle(1, ['size' => 14, 'bold' => true], ['spaceBefore' => 200, 'spaceAfter' => 100, 'keepNext' => true]);
@@ -72,6 +88,9 @@ class DocxProjectExporter
         }
         try {
             IOFactory::createWriter($word, 'Word2007')->save($temporary);
+            if ($cjk) {
+                ExportFonts::embedDocx($temporary);
+            }
             $bytes = file_get_contents($temporary);
             if ($bytes === false) {
                 throw new RuntimeException('Cannot read generated document.');

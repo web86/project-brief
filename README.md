@@ -2,7 +2,7 @@
 
 Клиент описывает изменение сайта своими словами, разработчик получает структурированную идею, обсуждение и историю. Vue 3 / Vite / Pinia / Vue Router / vanilla CSS остаются основой интерфейса. Backend — Laravel 13.34, Eloquent и MariaDB, без JWT и публичной регистрации.
 
-Основные возможности: проекты и рабочие пространства с разграничением доступа, персональные клиентские ссылки, разделы и нумерация задач, обсуждения и вложения, согласование ТЗ, оценка часов и стоимости, уведомления, PWA и интерфейс RU/EN/TR. Экспорт в PDF и DOCX позволяет подготовить ТЗ или прайс-лист с выбранными полями и итогами.
+Основные возможности: проекты и рабочие пространства с разграничением доступа, персональные клиентские ссылки, разделы и нумерация задач, обсуждения и вложения, согласование ТЗ, оценка часов и стоимости, уведомления, PWA и интерфейс RU/EN/TR/ZH-CN. Экспорт в PDF и DOCX позволяет подготовить ТЗ или прайс-лист с выбранными полями и итогами.
 
 ## Требования
 
@@ -133,7 +133,7 @@ Migration review: удалений таблиц/колонок/данных в `
 
 `vue-i18n` 11, Composition API; dictionaries `src/locales/ru.js` и `en.js`, одинаковые 353 keys. Переводятся UI constants, включая statuses, priorities, ошибки, history summaries и dialogs. Project/section/task content, comments, notes, URLs и filenames не переводятся. `Intl.DateTimeFormat`: ru-RU / en-GB; `Intl.NumberFormat` использует locale и валюту проекта. Counts используют pluralization vue-i18n с русским правилом.
 
-Приоритет: ручной выбор `projectbrief.locale` в localStorage → `preferred_locale` профиля администратора или клиента → первый язык браузера → английский. Поддерживаются Русский (`ru-RU`), English (`en-GB`) и Türkçe (`tr-TR`). Переключатели интерфейса, профиля и документа используют `src/i18n/catalog.js`; серверные правила — `api/config/localization.php`. Язык меняется без reload и сохраняется через существующие `/me/locale` endpoints; язык документа независим от интерфейса. Полнота переводов, подстановки и согласованность каталогов проверяются тестами. Отчёт, скриншоты и инструкция добавления языка: [Milestone 6.0](docs/milestone-6-0/README.md).
+Приоритет: ручной выбор `projectbrief.locale` в localStorage → `preferred_locale` профиля администратора или клиента → первый язык браузера → английский. Поддерживаются Русский (`ru-RU`), English (`en-GB`) Türkçe (`tr-TR`) и 简体中文 (`zh-CN`). Переключатели интерфейса, профиля и документа используют `src/i18n/catalog.js`; серверные правила — `api/config/localization.php`. Язык меняется без reload и сохраняется через существующие `/me/locale` endpoints; язык документа независим от интерфейса. Полнота переводов, подстановки и согласованность каталогов проверяются тестами. Отчёт, скриншоты и инструкция добавления языка: [Milestone 6.0](docs/milestone-6-0/README.md).
 
 Page loaders — fixed overlay; button loaders сохраняют label footprint и размеры; developer save status — fixed toast. JSON requests имеют timeout 20 s, uploads с реальными файлами — минимум 120 s. Timeout не вызывает automatic replay mutation; loading заканчивается с переводимым сообщением.
 
@@ -163,7 +163,7 @@ Client TaskResource вообще не содержит `developerNotes`, `estima
 | Admin clients        | `GET/POST /api/admin/projects/{uuid}/clients`, `PATCH /api/admin/projects/{uuid}/clients/{client}`                                                                            |
 | Admin sections       | `GET/POST /api/admin/projects/{uuid}/sections`, `PATCH/DELETE /api/admin/projects/{uuid}/sections/{section}`                                                                  |
 | Task structure       | `POST /api/admin/tasks/{uuid}/move` (`sectionId`), `POST /api/admin/tasks/{uuid}/reorder` (`direction: up/down`)                                                              |
-| Current client       | `PATCH /api/client/me/locale` (`locale: ru/en/tr`); `GET /api/client/me` — имя/email только текущего клиента                                                                     |
+| Current client       | `PATCH /api/client/me/locale` (`locale: ru/en/tr`); `GET /api/client/me` — имя/email только текущего клиента                                                                  |
 | Admin tasks          | `GET/POST /api/admin/projects/{uuid}/tasks`, `GET/PATCH /api/admin/tasks/{uuid}`                                                                                              |
 | Client project/tasks | `GET /api/client/project`, `GET /api/client/project/{uuid}`, `GET/POST /api/client/tasks`, `GET/PATCH /api/client/tasks/{uuid}`, `POST /api/client/tasks/{uuid}/approve`      |
 | Comments             | `POST /api/{admin,client}/tasks/{uuid}/comments`                                                                                                                              |

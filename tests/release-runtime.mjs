@@ -348,7 +348,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     workspace: { id: fixture.workspace, name: 'Release QA' },
   })
   assert.equal((await request('/api/admin/me')).status, 200)
-  for (const language of ['ru', 'en', 'tr']) {
+  for (const language of ['ru', 'en', 'tr', 'zh-CN']) {
     const savedLocale = await request('/api/admin/me/locale', {
       method: 'PATCH',
       headers: {
@@ -460,6 +460,36 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       ).status,
       404,
     )
+  }
+  // Exercise bundled CJK faces from the production package, without host fonts or downloads.
+  for (const format of ['pdf', 'docx']) {
+    const response = await request('/api/admin/projects/' + fixture.project + '/export', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': workspaceCsrf.token,
+      },
+      body: JSON.stringify({ format, scope: 'approved', locale: 'zh-CN' }),
+    })
+    assert.equal(response.status, 200)
+    const bytes = Buffer.from(await response.arrayBuffer())
+    if (format === 'pdf') {
+      assert.equal(bytes.subarray(0, 5).toString(), '%PDF-')
+      assert.ok(bytes.includes(Buffer.from('NotoSansSC')))
+      assert.ok(bytes.includes(Buffer.from('/FontFile2')))
+    } else {
+      const file = path.join(fixtureRoot, 'runtime-chinese.docx')
+      await writeFile(file, bytes)
+      const metadata = command([
+        '-r',
+        '$zip = new ZipArchive; $zip->open($argv[1]); echo $zip->getFromName("word/document.xml"); echo $zip->getFromName("word/fontTable.xml"); if (!$zip->locateName("word/fonts/NotoSansSC-Regular.odttf")) exit(2);',
+        file,
+      ])
+      assert.match(metadata, /技术需求说明书/)
+      assert.match(metadata, /w:fontKey/)
+      assert.match(metadata, /Кириллица: задача/)
+    }
   }
   const completedExport = await request('/api/admin/projects/' + fixture.project + '/export', {
     method: 'POST',

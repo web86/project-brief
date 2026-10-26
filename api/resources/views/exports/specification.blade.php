@@ -4,12 +4,15 @@
 <meta charset="utf-8">
 <style>
 @page { margin: 20mm 20mm 22mm; }
-body { font-family: "DejaVu Sans", sans-serif; font-size: 10pt; line-height: 1.35; color: #243044; }
+body { font-family: "DejaVu Sans"@foreach ($cjkFontFamilies ?? [] as $family), "{{ $family }}"@endforeach, sans-serif; font-size: 10pt; line-height: 1.35; color: #243044; }
 h1 { font-size: 20pt; line-height: 1.2; margin: 0 0 14pt; }
 h2 { font-size: 14pt; margin: 16pt 0 7pt; page-break-after: avoid; }
 h3 { font-size: 11.5pt; margin: 11pt 0 5pt; page-break-after: avoid; }
 h4 { font-size: 9.5pt; margin: 5pt 0 2pt; page-break-after: avoid; }
 p { margin: 0 0 5pt; overflow-wrap: break-word; }
+@if ($cjk ?? false)
+h1, h2, h3, h4, li, p { overflow-wrap: anywhere; }
+@endif
 .content { white-space: pre-wrap; }
 .project-meta { font-size: 9pt; margin-bottom: 3pt; }
 .task-metadata { font-size: 8.5pt; color: #586174; line-height: 1.3; margin: 5pt 0 8pt; page-break-before: avoid; page-break-inside: avoid; }

@@ -2,19 +2,467 @@
   {
     "language": "ru",
     "pages": 1,
-    "unicode": true,
-    "turkishAmounts": false
+    "originalChinese": true,
+    "originalTurkishCyrillic": true,
+    "docxFontsEmbedded": true,
+    "fonts": [
+      {
+        "font": "/'SUBAAB+DejaVuSans-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAC+DejaVuSans'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAD+NotoSansSC-Pdf25-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAE+NotoSansSC-Pdf14-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAF+NotoSansSC-Pdf12-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAG+NotoSansSC-Pdf13-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAH+NotoSansSC-Pdf9-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAI+NotoSansSC-Pdf18-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAJ+NotoSansSC-Pdf10-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAK+NotoSansSC-Pdf11-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAL+NotoSansSC-Pdf27-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAM+NotoSansSC-Pdf16-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAN+NotoSansSC-Pdf29-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAO+NotoSansSC-Pdf24-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAP+NotoSansSC-Pdf8-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAQ+NotoSansSC-Pdf23-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAR+NotoSansSC-Pdf21-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAS+NotoSansSC-Pdf1-Regular'",
+        "embedded": true,
+        "unicode": true
+      }
+    ]
   },
   {
     "language": "en",
     "pages": 1,
-    "unicode": true,
-    "turkishAmounts": false
+    "originalChinese": true,
+    "originalTurkishCyrillic": true,
+    "docxFontsEmbedded": true,
+    "fonts": [
+      {
+        "font": "/'SUBAAB+DejaVuSans-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAC+DejaVuSans'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAD+NotoSansSC-Pdf25-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAE+NotoSansSC-Pdf14-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAF+NotoSansSC-Pdf12-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAG+NotoSansSC-Pdf13-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAH+NotoSansSC-Pdf9-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAI+NotoSansSC-Pdf18-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAJ+NotoSansSC-Pdf10-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAK+NotoSansSC-Pdf11-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAL+NotoSansSC-Pdf27-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAM+NotoSansSC-Pdf16-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAN+NotoSansSC-Pdf29-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAO+NotoSansSC-Pdf24-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAP+NotoSansSC-Pdf8-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAQ+NotoSansSC-Pdf23-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAR+NotoSansSC-Pdf21-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAS+NotoSansSC-Pdf1-Regular'",
+        "embedded": true,
+        "unicode": true
+      }
+    ]
   },
   {
     "language": "tr",
     "pages": 1,
-    "unicode": true,
-    "turkishAmounts": true
+    "originalChinese": true,
+    "originalTurkishCyrillic": true,
+    "docxFontsEmbedded": true,
+    "fonts": [
+      {
+        "font": "/'SUBAAB+DejaVuSans-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAC+DejaVuSans'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAD+NotoSansSC-Pdf25-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAE+NotoSansSC-Pdf14-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAF+NotoSansSC-Pdf12-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAG+NotoSansSC-Pdf13-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAH+NotoSansSC-Pdf9-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAI+NotoSansSC-Pdf18-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAJ+NotoSansSC-Pdf10-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAK+NotoSansSC-Pdf11-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAL+NotoSansSC-Pdf27-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAM+NotoSansSC-Pdf16-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAN+NotoSansSC-Pdf29-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAO+NotoSansSC-Pdf24-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAP+NotoSansSC-Pdf8-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAQ+NotoSansSC-Pdf23-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAR+NotoSansSC-Pdf21-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAS+NotoSansSC-Pdf1-Regular'",
+        "embedded": true,
+        "unicode": true
+      }
+    ]
+  },
+  {
+    "language": "zh-CN",
+    "pages": 1,
+    "originalChinese": true,
+    "originalTurkishCyrillic": true,
+    "docxFontsEmbedded": true,
+    "fonts": [
+      {
+        "font": "/'SUBAAB+NotoSansSC-Pdf13-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAC+NotoSansSC-Pdf15-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAD+NotoSansSC-Pdf27-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAE+NotoSansSC-Pdf16-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAF+NotoSansSC-Pdf24-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAG+NotoSansSC-Pdf14-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAH+NotoSansSC-Pdf8-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAI+NotoSansSC-Pdf19-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAJ+DejaVuSans-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAK+DejaVuSans'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAL+NotoSansSC-Pdf18-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAM+NotoSansSC-Pdf13-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAN+NotoSansSC-Pdf14-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAO+NotoSansSC-Pdf15-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAP+NotoSansSC-Pdf12-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAQ+NotoSansSC-Pdf25-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAR+NotoSansSC-Pdf25-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAS+NotoSansSC-Pdf9-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAT+NotoSansSC-Pdf10-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAU+NotoSansSC-Pdf11-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAV+NotoSansSC-Pdf27-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAW+NotoSansSC-Pdf16-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAX+NotoSansSC-Pdf29-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAY+NotoSansSC-Pdf24-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBAAZ+NotoSansSC-Pdf8-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBABA+NotoSansSC-Pdf23-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBABB+NotoSansSC-Pdf21-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBABC+NotoSansSC-Pdf1-Regular'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBABD+NotoSansSC-Pdf21-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBABE+NotoSansSC-Pdf9-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBABF+NotoSansSC-Pdf12-Bold'",
+        "embedded": true,
+        "unicode": true
+      },
+      {
+        "font": "/'SUBABG+NotoSansSC-Pdf18-Bold'",
+        "embedded": true,
+        "unicode": true
+      }
+    ]
   }
 ]

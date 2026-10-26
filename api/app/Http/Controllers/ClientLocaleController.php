@@ -14,9 +14,9 @@ class ClientLocaleController extends Controller
     {
         abort_if(array_diff(array_keys($request->all()), ['locale']), 422);
         $data = $request->validate(['locale' => ['required', 'string', Rule::in(SupportedLocales::codes())]]);
-        $request->user()->update(['preferred_locale' => $data['locale']]);
+        $request->user()->update(['preferred_locale' => SupportedLocales::storage($data['locale'])]);
 
-        return response()->json(['preferredLocale' => $request->user()->preferred_locale]);
+        return response()->json(['preferredLocale' => SupportedLocales::preference($request->user()->preferred_locale)]);
     }
 
     public function update(Request $request): JsonResponse
@@ -26,8 +26,8 @@ class ClientLocaleController extends Controller
         }
         $data = $request->validate(['locale' => ['required', 'string', Rule::in(SupportedLocales::codes())]]);
         $client = $request->attributes->get('project_client');
-        $client->update(['preferred_locale' => $data['locale']]);
+        $client->update(['preferred_locale' => SupportedLocales::storage($data['locale'])]);
 
-        return response()->json(['preferredLocale' => $client->preferred_locale]);
+        return response()->json(['preferredLocale' => SupportedLocales::preference($client->preferred_locale)]);
     }
 }

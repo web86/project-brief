@@ -6,6 +6,7 @@ use App\Http\Requests\ProjectClientRequest;
 use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Services\ProjectStructure;
+use App\Services\SupportedLocales;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +17,7 @@ class ProjectClientController extends Controller
         return response()->json(['data' => $project->clients()->with('accessTokens.project', 'accessTokens.projectClient')->get()->map(function ($client) {
             $tokens = $client->accessTokens;
 
-            return ['id' => $client->uuid, 'name' => $client->name, 'email' => $client->email, 'active' => $client->active, 'preferredLocale' => $client->preferred_locale,
+            return ['id' => $client->uuid, 'name' => $client->name, 'email' => $client->email, 'active' => $client->active, 'preferredLocale' => SupportedLocales::preference($client->preferred_locale),
                 'lastUsedAt' => $tokens->max('last_used_at')?->toISOString(),
                 'accessLinks' => $tokens->map(fn ($token) => ['id' => $token->id, 'expiresAt' => $token->expires_at?->toISOString(), 'revokedAt' => $token->revoked_at?->toISOString(), 'lastUsedAt' => $token->last_used_at?->toISOString(), 'active' => $token->isUsable(), 'createdAt' => $token->created_at->toISOString()])];
         })]);

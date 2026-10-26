@@ -310,6 +310,19 @@ try {
       })
       console.log(`Passed ${lang} ${width}`)
     }
+  for (const [browserLocale, expected] of [
+    ['zh-Hans', 'zh-CN'],
+    ['zh-SG', 'zh-CN'],
+    ['zh-TW', 'en'],
+    ['zh-Hant', 'en'],
+    ['zh-HK', 'en'],
+  ]) {
+    const aliasContext = await browser.newContext({ locale: browserLocale })
+    const aliasPage = await aliasContext.newPage()
+    await aliasPage.goto(origin + '/admin/login')
+    assert.equal(await aliasPage.locator('html').getAttribute('lang'), expected, browserLocale)
+    await aliasContext.close()
+  }
   const context = await browser.newContext({ locale: 'de-DE' }),
     page = await context.newPage()
   await page.goto(origin + '/admin/login')

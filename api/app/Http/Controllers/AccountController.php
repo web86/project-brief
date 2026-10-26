@@ -30,7 +30,7 @@ class AccountController extends Controller
     {
         abort_if(array_diff(array_keys($request->all()), ['name', 'preferredLocale']), 422);
         $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'preferredLocale' => ['required', Rule::in(SupportedLocales::codes())]]);
-        $request->user()->forceFill(['name' => $data['name'], 'preferred_locale' => $data['preferredLocale']])->save();
+        $request->user()->forceFill(['name' => $data['name'], 'preferred_locale' => SupportedLocales::storage($data['preferredLocale'])])->save();
 
         return $this->show($request, $profile);
     }
