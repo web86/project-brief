@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { intlLocale } from '../i18n/index.js'
 const props = defineProps({ user: { type: Object, required: true } })
 const failed = ref(false)
 watch(
@@ -15,7 +16,7 @@ const initials = computed(() => {
       .filter(Boolean)
       .map((word) => Array.from(word)[0])
       .join('')
-      .toLocaleUpperCase() || '?'
+      .toLocaleUpperCase(intlLocale()) || '?'
   )
 })
 </script>

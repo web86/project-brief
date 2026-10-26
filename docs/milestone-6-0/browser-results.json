@@ -1,0 +1,71 @@
+{
+  "results": [
+    {
+      "language": "ru",
+      "width": 1440,
+      "personas": ["owner", "client"],
+      "switchWithoutReload": true,
+      "profilePersistence": true,
+      "crossDevice": true,
+      "pwaEntry": true,
+      "exportsIndependent": true,
+      "overflow": false
+    },
+    {
+      "language": "en",
+      "width": 1440,
+      "personas": ["owner", "client"],
+      "switchWithoutReload": true,
+      "profilePersistence": true,
+      "crossDevice": true,
+      "pwaEntry": true,
+      "exportsIndependent": true,
+      "overflow": false
+    },
+    {
+      "language": "tr",
+      "width": 1440,
+      "personas": ["owner", "client"],
+      "switchWithoutReload": true,
+      "profilePersistence": true,
+      "crossDevice": true,
+      "pwaEntry": true,
+      "exportsIndependent": true,
+      "overflow": false
+    },
+    {
+      "language": "ru",
+      "width": 390,
+      "personas": ["owner", "client"],
+      "switchWithoutReload": true,
+      "profilePersistence": true,
+      "crossDevice": true,
+      "pwaEntry": true,
+      "exportsIndependent": true,
+      "overflow": false
+    },
+    {
+      "language": "en",
+      "width": 390,
+      "personas": ["owner", "client"],
+      "switchWithoutReload": true,
+      "profilePersistence": true,
+      "crossDevice": true,
+      "pwaEntry": true,
+      "exportsIndependent": true,
+      "overflow": false
+    },
+    {
+      "language": "tr",
+      "width": 390,
+      "personas": ["owner", "client"],
+      "switchWithoutReload": true,
+      "profilePersistence": true,
+      "crossDevice": true,
+      "pwaEntry": true,
+      "exportsIndependent": true,
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

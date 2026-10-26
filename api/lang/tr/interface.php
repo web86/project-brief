@@ -1,0 +1,14 @@
+<?php
+
+return [
+    'sections' => ['Ana sayfa', 'Katalog', 'Ürün sayfası', 'İletişim', 'Genel'],
+    'task_changed' => 'Görev güncellendi',
+    'client' => 'Müşteri',
+    'invalid_credentials' => 'E-posta veya şifre yanlış.',
+    'logged_out' => 'Oturumunuz kapatıldı.',
+    'access_revoked' => 'Erişim iptal edildi.',
+    'activate_access' => 'Önce projeyi ve müşteriyi etkinleştirin.',
+    'title' => 'ad',
+    'website' => 'web sitesi adresi',
+    'client_email' => 'müşteri e-postası',
+];

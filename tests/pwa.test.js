@@ -1,3 +1,4 @@
+import { localizeHtmlShell } from '../deployment/locale-bootstrap.mjs'
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -395,10 +396,14 @@ test('HTML shell immediately displays a branded accessible loader and provides f
   elements.get('bootstrap-fallback').hidden = true
   elements.get('bootstrap-splash').querySelector = () => elements.get('spinner')
   const window = { addEventListener() {}, removeEventListener() {} }
-  const source = html.match(/<body>[\s\S]*?<script>([\s\S]*?)<\/script>/)[1]
+  const source = localizeHtmlShell(html).match(/<body>[\s\S]*?<script>([\s\S]*?)<\/script>/)[1]
   vm.runInNewContext(source, {
     window,
-    document: { getElementById: (id) => elements.get(id) },
+    document: {
+      documentElement: {},
+      querySelector: () => ({}),
+      getElementById: (id) => elements.get(id),
+    },
     navigator: { language: 'en' },
     localStorage: { getItem: () => null },
     matchMedia: () => ({ matches: true }),

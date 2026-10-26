@@ -2,7 +2,7 @@
 
 Клиент описывает изменение сайта своими словами, разработчик получает структурированную идею, обсуждение и историю. Vue 3 / Vite / Pinia / Vue Router / vanilla CSS остаются основой интерфейса. Backend — Laravel 13.34, Eloquent и MariaDB, без JWT и публичной регистрации.
 
-Основные возможности: проекты и рабочие пространства с разграничением доступа, персональные клиентские ссылки, разделы и нумерация задач, обсуждения и вложения, согласование ТЗ, оценка часов и стоимости, уведомления, PWA и интерфейс RU/EN. Экспорт в PDF и DOCX позволяет подготовить ТЗ или прайс-лист с выбранными полями и итогами.
+Основные возможности: проекты и рабочие пространства с разграничением доступа, персональные клиентские ссылки, разделы и нумерация задач, обсуждения и вложения, согласование ТЗ, оценка часов и стоимости, уведомления, PWA и интерфейс RU/EN/TR. Экспорт в PDF и DOCX позволяет подготовить ТЗ или прайс-лист с выбранными полями и итогами.
 
 ## Требования
 
@@ -81,7 +81,7 @@ php artisan db:seed
 
 ## Экспорт ТЗ и прайс-листов
 
-В разделе проекта «Экспорт» владелец рабочего пространства или назначенный администратор может скачать PDF или DOCX на русском либо английском языке. Доступны три варианта задач: «Все задачи», «Только согласованные клиентом» и «Только готовые». Готовность определяется статусом `done`, независимо от клиентского согласования.
+В разделе проекта «Экспорт» владелец рабочего пространства или назначенный администратор может скачать PDF или DOCX на русском, английском или турецком языке. Доступны три варианта задач: «Все задачи», «Только согласованные клиентом» и «Только готовые». Готовность определяется статусом `done`, независимо от клиентского согласования.
 
 Можно задать заголовок документа, выбрать описание, ожидаемый результат, приоритет, статус, часы, стоимость, названия вложений и дату согласования, а также начинать каждый раздел с новой страницы. Для прайс-листа включите стоимость и при необходимости часы. Итоги и количество задач рассчитываются только по выбранным задачам; валюта берётся из настроек проекта. Экспорт использует сохранённые серверные данные, поэтому перед скачиванием сохраните изменения в редакторе задачи.
 
@@ -129,11 +129,11 @@ Backfill проходит проекты по ID; legacy `tasks.section` опр�
 
 Migration review: удалений таблиц/колонок/данных в `up()` нет. DDL MariaDB может ожидать metadata locks или перестраивать таблицы при добавлении FK/index; backfill блокирует один проект до завершения его transaction. Время зависит от объёма реальной базы. Применять в штатном maintenance update с проверенной резервной копией; ручной SQL не нужен. DDL MySQL не является общей transaction: проверки существования новых колонок/индекса поддерживают повторный запуск после прерывания. Schema migration намеренно forward-only: `down()` отказывается удалять новые production associations; откат через проверенную резервную копию. Backfill `down()` ничего не удаляет. Production база в этой задаче не изменяется.
 
-## RU / EN и loading
+## RU / EN / TR и loading
 
 `vue-i18n` 11, Composition API; dictionaries `src/locales/ru.js` и `en.js`, одинаковые 353 keys. Переводятся UI constants, включая statuses, priorities, ошибки, history summaries и dialogs. Project/section/task content, comments, notes, URLs и filenames не переводятся. `Intl.DateTimeFormat`: ru-RU / en-GB; `Intl.NumberFormat` использует locale и валюту проекта. Counts используют pluralization vue-i18n с русским правилом.
 
-Приоритет: ручной `projectbrief.locale` в localStorage → session client's `preferred_locale` → первый browser language из navigator.languages (fallback navigator.language) → en. ru* → ru, остальные → en. RU | EN в header меняет UI и `<html lang>` без reload. Только ручной client switch вызывает `PATCH /api/client/me/locale`; ID берётся из сессии, body принимает только ru/en. Browser detection не записывается в DB. Admin preference хранится только в localStorage; TR/DE dictionaries пока отсутствуют.
+Приоритет: ручной выбор `projectbrief.locale` в localStorage → `preferred_locale` профиля администратора или клиента → первый язык браузера → английский. Поддерживаются Русский (`ru-RU`), English (`en-GB`) и Türkçe (`tr-TR`). Переключатели интерфейса, профиля и документа используют `src/i18n/catalog.js`; серверные правила — `api/config/localization.php`. Язык меняется без reload и сохраняется через существующие `/me/locale` endpoints; язык документа независим от интерфейса. Полнота переводов, подстановки и согласованность каталогов проверяются тестами. Отчёт, скриншоты и инструкция добавления языка: [Milestone 6.0](docs/milestone-6-0/README.md).
 
 Page loaders — fixed overlay; button loaders сохраняют label footprint и размеры; developer save status — fixed toast. JSON requests имеют timeout 20 s, uploads с реальными файлами — минимум 120 s. Timeout не вызывает automatic replay mutation; loading заканчивается с переводимым сообщением.
 
@@ -163,7 +163,7 @@ Client TaskResource вообще не содержит `developerNotes`, `estima
 | Admin clients        | `GET/POST /api/admin/projects/{uuid}/clients`, `PATCH /api/admin/projects/{uuid}/clients/{client}`                                                                            |
 | Admin sections       | `GET/POST /api/admin/projects/{uuid}/sections`, `PATCH/DELETE /api/admin/projects/{uuid}/sections/{section}`                                                                  |
 | Task structure       | `POST /api/admin/tasks/{uuid}/move` (`sectionId`), `POST /api/admin/tasks/{uuid}/reorder` (`direction: up/down`)                                                              |
-| Current client       | `PATCH /api/client/me/locale` (`locale: ru/en`); `GET /api/client/me` — имя/email только текущего клиента                                                                     |
+| Current client       | `PATCH /api/client/me/locale` (`locale: ru/en/tr`); `GET /api/client/me` — имя/email только текущего клиента                                                                     |
 | Admin tasks          | `GET/POST /api/admin/projects/{uuid}/tasks`, `GET/PATCH /api/admin/tasks/{uuid}`                                                                                              |
 | Client project/tasks | `GET /api/client/project`, `GET /api/client/project/{uuid}`, `GET/POST /api/client/tasks`, `GET/PATCH /api/client/tasks/{uuid}`, `POST /api/client/tasks/{uuid}/approve`      |
 | Comments             | `POST /api/{admin,client}/tasks/{uuid}/comments`                                                                                                                              |

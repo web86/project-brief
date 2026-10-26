@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Services\ProjectExportData;
+use App\Services\SupportedLocales;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -19,7 +20,7 @@ class ProjectExportRequest extends FormRequest
         $rules = [
             'format' => ['required', Rule::in(['pdf', 'docx'])],
             'scope' => ['required', Rule::in(['all', 'approved', 'done'])],
-            'locale' => ['required', Rule::in(['ru', 'en'])],
+            'locale' => ['required', Rule::in(SupportedLocales::codes())],
             'documentTitle' => ['sometimes', 'nullable', 'string', 'max:160', 'regex:/\A[^\p{Cc}\p{Cf}]*\z/u'],
             'pageBreakBySection' => ['sometimes', $this->booleanOption()],
             'fields' => ['sometimes', 'array:'.implode(',', array_keys(ProjectExportData::DEFAULT_FIELDS))],

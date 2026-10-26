@@ -23,7 +23,7 @@ class AdminAuthController extends Controller
         if (! Auth::attemptWhen($credentials, function (User $user) use ($request): bool {
             return $user->workspaceMembers()->active()->exists() || DeveloperInvitation::where('token_hash', hash('sha256', (string) $request->input('invitation_token')))->whereRaw('LOWER(email) = ?', [DeveloperInvitations::normalizeEmail($user->email)])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->exists();
         })) {
-            return response()->json(['code' => 'invalid_credentials', 'errors' => ['email' => ['Неверный email или пароль.']]], 422);
+            return response()->json(['code' => 'invalid_credentials', 'errors' => ['email' => [trans('interface.invalid_credentials')]]], 422);
         }
         $request->session()->forget(['client_project_id', 'project_client_id', 'client_access_token_id', CurrentWorkspace::SESSION_KEY]);
         $request->session()->put('auth_session_version', (int) $request->user()->auth_session_version);
@@ -46,6 +46,6 @@ class AdminAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json(['message' => 'Вы вышли из аккаунта.']);
+        return response()->json(['message' => trans('interface.logged_out')]);
     }
 }

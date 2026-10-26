@@ -10,7 +10,7 @@ class ClientLocaleTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    public function test_locale_is_session_scoped_and_only_ru_en_are_accepted(): void
+    public function test_locale_is_session_scoped_and_supported_locales_are_accepted(): void
     {
         $project = Project::factory()->create();
         $client = $project->clients()->first();
@@ -21,11 +21,12 @@ class ClientLocaleTest extends TestCase
         $this->patchJson('/api/client/me/locale', ['locale' => 'en'])->assertOk()->assertJsonPath('preferredLocale', 'en');
         $this->assertSame('en', $client->fresh()->preferred_locale);
         $this->assertNull($other->fresh()->preferred_locale);
-        foreach (['tr', 'de', null, ''] as $locale) {
+        $this->patchJson('/api/client/me/locale', ['locale' => 'tr'])->assertOk()->assertJsonPath('preferredLocale', 'tr');
+        foreach (['de', null, ''] as $locale) {
             $this->patchJson('/api/client/me/locale', ['locale' => $locale])->assertUnprocessable();
         }
         $this->patchJson('/api/client/me/locale', ['locale' => 'ru', 'project_client_id' => $other->id])->assertUnprocessable();
-        $this->assertSame('en', $client->fresh()->preferred_locale);
+        $this->assertSame('tr', $client->fresh()->preferred_locale);
         $this->assertNull($other->fresh()->preferred_locale);
     }
 

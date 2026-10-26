@@ -83,7 +83,7 @@ class MultipleClientsTest extends TestCase
         $created = $this->postJson('/api/client/tasks', ['title' => 'Anna idea', 'location' => 'Mobile menu', 'description' => 'Describe', 'priority' => 'normal'])->assertCreated()->json('data.id');
         $this->assertDatabaseHas('task_history', ['task_id' => Task::where('uuid', $created)->first()->id, 'event_type' => 'created', 'project_client_id' => $anna->id]);
         $task->comments()->create(['author_type' => 'client', 'text' => 'Legacy']);
-        $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.comments.2.authorName', 'Клиент');
+        $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.comments.2.authorName', trans('notifications.client'));
         $this->assertStringNotContainsString('@example.com', $response->getContent());
         $this->getJson('/api/client/me')->assertOk()->assertJsonPath('email', 'anna@example.com');
         $this->getJson('/api/client/project')->assertOk()->assertJsonMissingPath('data.clients')->assertJsonMissingPath('data.clientEmail')->assertJsonMissingPath('data.accessLinks');

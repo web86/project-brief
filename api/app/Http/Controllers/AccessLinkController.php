@@ -17,7 +17,7 @@ class AccessLinkController extends Controller
     {
         $data = $request->validate(['expiresAt' => ['nullable', 'date', 'after:now']]);
         abort_unless($client->project_id === $project->id, 404);
-        abort_unless($project->status === 'active' && $client->active, 422, 'Сначала активируйте проект и клиента.');
+        abort_unless($project->status === 'active' && $client->active, 422, trans('interface.activate_access'));
         $plaintext = bin2hex(random_bytes(32));
         $token = DB::transaction(function () use ($project, $client, $plaintext, $data) {
             Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
@@ -38,7 +38,7 @@ class AccessLinkController extends Controller
             $token->refresh()->update(['revoked_at' => $token->revoked_at ?? now()]);
         }, 3);
 
-        return response()->json(['message' => 'Доступ отозван.']);
+        return response()->json(['message' => trans('interface.access_revoked')]);
     }
 
     public function enter(Request $request, #[\SensitiveParameter] string $token): RedirectResponse

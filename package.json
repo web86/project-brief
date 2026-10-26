@@ -18,7 +18,8 @@
     "brand:check": "python3 bin/generate-pwa-icons.py --check",
     "preview:public": "vite --config preview/milestone-4-3/vite.config.js",
     "build:public-preview": "vite build --config preview/milestone-4-3/vite.config.js",
-    "test:public-preview": "node preview/milestone-4-3/verify.mjs"
+    "test:public-preview": "node preview/milestone-4-3/verify.mjs",
+    "test:multilingual": "node tests/multilingual.browser.mjs"
   },
   "dependencies": {
     "pinia": "^3.0.3",

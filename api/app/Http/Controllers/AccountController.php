@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\AccountMail;
 use App\Services\AccountProfile;
+use App\Services\SupportedLocales;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -27,7 +29,7 @@ class AccountController extends Controller
     public function update(Request $request, AccountProfile $profile): JsonResponse
     {
         abort_if(array_diff(array_keys($request->all()), ['name', 'preferredLocale']), 422);
-        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'preferredLocale' => ['required', 'in:ru,en']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'preferredLocale' => ['required', Rule::in(SupportedLocales::codes())]]);
         $request->user()->forceFill(['name' => $data['name'], 'preferred_locale' => $data['preferredLocale']])->save();
 
         return $this->show($request, $profile);
@@ -48,8 +50,7 @@ class AccountController extends Controller
             $token = bin2hex(random_bytes(32));
             $user->forceFill(['pending_email' => $email, 'email_change_token_hash' => hash('sha256', $token), 'email_change_expires_at' => now()->addMinutes(60)])->save();
 
-            return $mail->send($email, $user->preferred_locale === 'en' ? 'Confirm account email' : 'Подтвердите Email аккаунта',
-                'Подтвердите новый адрес. Ссылка действует 60 минут. / Confirm your new email. This link expires in 60 minutes.', rtrim(config('app.url'), '/').'/admin/account#email='.$token);
+            return $mail->localized($email, $user->preferred_locale, 'confirm', rtrim(config('app.url'), '/').'/admin/account#email='.$token);
         });
 
         return response()->json(['sent' => $sent, 'code' => $sent ? null : 'account_mail_failed'], $sent ? 200 : 503);
@@ -83,7 +84,7 @@ class AccountController extends Controller
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages(['email' => ['Email is already in use.']]);
         }
-        $mail->send($old, 'Email аккаунта изменён / Account email changed', 'Основной Email вашего аккаунта изменён. Если это были не вы, восстановите доступ и свяжитесь с владельцем. / Your account email has changed. If this was not you, recover your account and contact the owner.');
+        $mail->localized($old, $request->user()->fresh()->preferred_locale, 'changed');
 
         return $this->show($request, $profile);
     }

@@ -9,14 +9,21 @@ use Throwable;
 
 class AccountMail
 {
-    public function send(string $email, string $heading, string $message, ?string $url = null): bool
+    public function localized(string $email, ?string $locale, string $event, ?string $url = null, array $params = []): bool
+    {
+        $locale = SupportedLocales::resolve($locale);
+
+        return $this->send($email, trans('account.'.$event.'_heading', [], $locale), trans('account.'.$event.'_message', $params, $locale), $url, $locale);
+    }
+
+    public function send(string $email, string $heading, string $message, ?string $url = null, string $locale = 'en'): bool
     {
         // Never send secrets to Laravel's log mail transport.
         if (! app(ProjectNotificationService::class)->mailAvailable()) {
             return false;
         }
         try {
-            Mail::to($email)->send(new AccountActionMail($heading, $message, $url));
+            Mail::to($email)->send(new AccountActionMail($heading, $message, $url, $locale));
 
             return true;
         } catch (Throwable $exception) {

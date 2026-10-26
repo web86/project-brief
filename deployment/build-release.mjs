@@ -145,11 +145,11 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0-3/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-6-0/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0-3/RELEASE.md'),
+    path.join(root, 'docs/milestone-6-0/RELEASE.md'),
     path.join(staging, 'RELEASE-NOTES.md'),
   )
   for (const entry of ['README.md', 'openapi.json', 'verify-webhook.php']) {
@@ -227,6 +227,11 @@ try {
     path.join(root, 'docs/milestone-5-0-3/README.md'),
     path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'),
   )
+  await copyRelease(
+    path.join(root, 'docs/milestone-6-0'),
+    path.join(staging, 'GUIDES/milestone-6-0'),
+    { recursive: true },
+  )
   const readApiGuide = await readFile(path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'), 'utf8')
   await writeFile(
     path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'),
@@ -257,7 +262,7 @@ try {
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.5.0.3', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.6.0', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }
@@ -290,8 +295,7 @@ try {
   await validateRelease(staging, secrets)
   cleanTree()
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
-  const archive = path.join(releaseRoot, `project-brief-${stamp}-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(releaseRoot, `project-brief-v0.6.0-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
   await rm(path.join(releaseRoot, 'project-brief'), { recursive: true, force: true })

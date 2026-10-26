@@ -21,8 +21,7 @@ class PasswordRecoveryController extends Controller
         $user = User::whereRaw('LOWER(email) = ?', [mb_strtolower(trim($data['email']))])->first();
         if ($user) {
             Password::broker('users')->sendResetLink(['email' => $user->email], function (User $user, string $token) use ($mail): void {
-                $mail->send($user->email, $user->preferred_locale === 'en' ? 'Reset password' : 'Восстановление пароля',
-                    'Ссылка действует 60 минут. Если вы не запрашивали сброс, проигнорируйте это письмо. / This link expires in 60 minutes. If you did not request a reset, ignore this email.',
+                $mail->localized($user->email, $user->preferred_locale, 'reset',
                     rtrim(config('app.url'), '/').'/admin/reset-password#token='.$token.'&email='.rawurlencode($user->email));
             });
         }

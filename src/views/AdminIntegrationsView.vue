@@ -27,7 +27,9 @@ const projectFilter = ref('all'),
   projectSearch = ref('')
 const visibleProjects = computed(() =>
   (state.value?.projects || []).filter((project) =>
-    project.name.toLowerCase().includes(projectSearch.value.trim().toLowerCase()),
+    project.name
+      .toLocaleLowerCase(intlLocale())
+      .includes(projectSearch.value.trim().toLocaleLowerCase(intlLocale())),
   ),
 )
 const validProjectIds = computed(() =>
@@ -550,7 +552,7 @@ async function confirmAction(key, path, method = 'POST') {
             </div>
           </form>
           <section class="surface integration-list">
-            <h2>Webhooks</h2>
+            <h2>{{ t('integrations.webhooks') }}</h2>
             <p v-if="!state.webhooks.length" class="muted">{{ t('integrations.empty') }}</p>
             <article
               v-for="hook in state.webhooks"

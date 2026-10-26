@@ -47,9 +47,10 @@ class DeveloperInvitations
         $token = bin2hex(random_bytes(32));
         $invitation->forceFill(['token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7), 'revoked_at' => null])->save();
 
-        return app(AccountMail::class)->send($invitation->email, 'Приглашение в команду / Team invitation',
-            'Вас пригласили в '.$invitation->workspace->name.'. Войдите или создайте аккаунт. Ссылка действует 7 дней. / You are invited to '.$invitation->workspace->name.'. Sign in or create an account. This link expires in 7 days.',
-            rtrim(config('app.url'), '/').'/invitation#token='.$token);
+        $recipient = User::whereRaw('LOWER(TRIM(email)) = ?', [self::normalizeEmail($invitation->email)])->first();
+
+        return app(AccountMail::class)->localized($invitation->email, $recipient?->preferred_locale ?? $invitation->locale, 'invitation',
+            rtrim(config('app.url'), '/').'/invitation#token='.$token, ['workspace' => $invitation->workspace->name]);
     }
 
     public function resolve(string $token, bool $lock = false): DeveloperInvitation

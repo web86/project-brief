@@ -1,0 +1,8 @@
+{
+  "tool": "phpunit",
+  "result": "passed",
+  "tests": 672,
+  "passed": 672,
+  "assertions": 7897,
+  "duration_ms": 38330
+}

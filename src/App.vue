@@ -96,6 +96,8 @@ watch(
   () => [route.fullPath, locale.value],
   () => {
     document.title = `${route.meta.title || t('ui.yourProject')} — Project Brief`
+    const description = document.querySelector?.('meta[name="description"]')
+    if (description) description.content = t('bootstrap.description')
   },
   { immediate: true },
 )

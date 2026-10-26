@@ -59,7 +59,7 @@ class TelegramWebhook
             $recipient = $known ? ($known->user_id ? User::find($known->user_id) : ProjectClient::find($known->project_client_id)) : null;
             $locale = $recipient?->preferred_locale ?? config('telegram.default_locale');
 
-            return ['outcome' => $plain ? 'welcome' : ($connection ? 'connected' : 'rejected'), 'locale' => $locale === 'en' ? 'en' : 'ru', 'connection' => $connection];
+            return ['outcome' => $plain ? 'welcome' : ($connection ? 'connected' : 'rejected'), 'locale' => SupportedLocales::resolve($locale), 'connection' => $connection];
         });
         if (! $reply) {
             Log::info('telegram.update_duplicate');
@@ -93,16 +93,6 @@ class TelegramWebhook
 
     private static function replyText(string $outcome, string $locale): string
     {
-        return match ($outcome) {
-            'connected' => $locale === 'ru'
-                ? "✅ Telegram успешно подключён к Project Brief!\n\nТеперь уведомления о событиях твоего проекта будут приходить сюда."
-                : "✅ Telegram successfully connected to Project Brief!\n\nNotifications about your project will now arrive here.",
-            'rejected' => $locale === 'ru'
-                ? "❌ Не удалось подключить Telegram.\n\nВозможно, ссылка устарела или уже использована.\n\nВернись в Project Brief → Уведомления и создай новую ссылку подключения."
-                : "❌ Could not connect Telegram.\n\nThe link may have expired or already been used.\n\nGo back to Project Brief → Notifications and create a new connection link.",
-            default => $locale === 'ru'
-                ? "👋 Привет! Я BriefWeb86Bot — бот уведомлений Project Brief.\n\nЧтобы получать уведомления, открой свой проект, перейди в раздел „Уведомления“ и нажми „Подключить Telegram“."
-                : "👋 Hi! I'm BriefWeb86Bot, the Project Brief notification bot.\n\nTo receive notifications, open your project, go to Notifications and select Connect Telegram.",
-        };
+        return trans('notifications.telegram.'.$outcome, [], $locale);
     }
 }

@@ -48,7 +48,7 @@ class PersonalNotifications
         $user->forceFill(['pending_notification_email' => $email, 'notification_email_token_hash' => hash('sha256', $token), 'notification_email_expires_at' => now()->addMinutes(30)])->save();
         $url = rtrim(config('app.url'), '/').'/admin/settings/notifications#verify='.$token;
         try {
-            Mail::to($email)->send(new VerifyNotificationEmail($url, $user->preferred_locale === 'en' ? 'en' : 'ru'));
+            Mail::to($email)->send(new VerifyNotificationEmail($url, SupportedLocales::resolve($user->preferred_locale)));
 
             return ['status' => 'verification_sent', 'error_code' => null];
         } catch (Throwable) {

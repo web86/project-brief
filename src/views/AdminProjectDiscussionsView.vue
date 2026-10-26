@@ -155,7 +155,9 @@ async function send(text, files, submissionId) {
           :class="{ 'is-unread': comment.unread }"
         >
           <div class="comment-heading">
-            <strong>{{ comment.authorName }}</strong
+            <strong>{{
+              comment.authorName || t(comment.author === 'developer' ? 'ui.developer' : 'ui.client')
+            }}</strong
             ><time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
           </div>
           <strong v-if="comment.task" class="discussion-task-title"

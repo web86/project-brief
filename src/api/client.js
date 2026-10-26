@@ -1,4 +1,4 @@
-import { t } from '../i18n/index.js'
+import { t, locale } from '../i18n/index.js'
 export class ApiError extends Error {
   constructor(status, message, errors = {}, code = null) {
     super(message)
@@ -43,6 +43,7 @@ export function createApiClient({
         signal: controller.signal,
         headers: {
           Accept: 'application/json',
+          'Accept-Language': locale.value,
           ...(body && !multipart ? { 'Content-Type': 'application/json' } : {}),
           ...(method !== 'GET' ? { 'X-CSRF-TOKEN': csrf } : {}),
         },

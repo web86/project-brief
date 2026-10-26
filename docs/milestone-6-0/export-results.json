@@ -1,0 +1,20 @@
+[
+  {
+    "language": "ru",
+    "pages": 1,
+    "unicode": true,
+    "turkishAmounts": false
+  },
+  {
+    "language": "en",
+    "pages": 1,
+    "unicode": true,
+    "turkishAmounts": false
+  },
+  {
+    "language": "tr",
+    "pages": 1,
+    "unicode": true,
+    "turkishAmounts": true
+  }
+]

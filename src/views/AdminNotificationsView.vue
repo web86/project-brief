@@ -185,7 +185,7 @@ onMounted(async () => {
       >
       <NotificationChannel
         class="personal-email"
-        title="Email"
+        :title="t('common.email')"
         icon="mail"
         :description="t('notificationUi.emailDescription')"
         :status="

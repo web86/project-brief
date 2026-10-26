@@ -1,0 +1,8 @@
+{
+  "tests": 242,
+  "passed": 242,
+  "failed": 0,
+  "build": "passed",
+  "keyCountPerLanguage": 782,
+  "languages": ["ru", "en", "tr"]
+}

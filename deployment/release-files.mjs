@@ -1,3 +1,4 @@
+import { SUPPORTED_LOCALES } from '../src/i18n/catalog.js'
 import { readdir, readFile, rm, lstat, chmod } from 'node:fs/promises'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
@@ -166,6 +167,15 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/database/migrations/2026_10_25_194153_add_comment_attachments.php',
     'PRODUCTION.md',
     'RELEASE-NOTES.md',
+    'private/project-brief-app/config/localization.php',
+    'private/project-brief-app/app/Services/SupportedLocales.php',
+    'private/project-brief-app/app/Http/Middleware/SetRequestLocale.php',
+    ...SUPPORTED_LOCALES.flatMap((locale) =>
+      ['account', 'exports', 'interface', 'notifications'].map(
+        (group) => `private/project-brief-app/lang/${locale}/${group}.php`,
+      ),
+    ),
+    'GUIDES/milestone-6-0/README.md',
     'release.json',
   ]
   for (const file of required) {

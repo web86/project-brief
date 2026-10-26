@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { api } from '../api/client.js'
-import { locale, t, formatApiError } from '../i18n/index.js'
+import { locale, t, formatApiError, LANGUAGE_CATALOG } from '../i18n/index.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { saveProjectExport } from '../utils/projectExport.js'
 import { toast } from '../services/toast.js'
@@ -90,8 +90,10 @@ async function download() {
     </fieldset>
     <fieldset :disabled="pending">
       <legend>{{ t('export.language') }}</legend>
-      <label><input v-model="language" type="radio" value="ru" name="language" /> Русский</label>
-      <label><input v-model="language" type="radio" value="en" name="language" /> English</label>
+      <label v-for="item in LANGUAGE_CATALOG" :key="item.code" :lang="item.code"
+        ><input v-model="language" type="radio" :value="item.code" name="language" />
+        {{ item.name }}</label
+      >
     </fieldset>
     <div class="field">
       <label for="export-document-title">{{ t('export.documentTitle') }}</label>

@@ -29,7 +29,7 @@ class ProjectRequest extends FormRequest
 
     public function attributes(): array
     {
-        return ['title' => 'название', 'website' => 'адрес сайта', 'clientEmail' => 'email клиента'];
+        return ['title' => trans('interface.title'), 'website' => trans('interface.website'), 'clientEmail' => trans('interface.client_email')];
     }
 
     public function projectData(): array

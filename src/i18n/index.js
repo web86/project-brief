@@ -1,26 +1,15 @@
 import { createI18n } from 'vue-i18n'
 import { watch } from 'vue'
-import ru from '../locales/ru.js'
-import en from '../locales/en.js'
-
+import { LANGUAGE_CATALOG, SUPPORTED_LOCALES, INTL_LOCALES } from './catalog.js'
+export { LANGUAGE_CATALOG, SUPPORTED_LOCALES, INTL_LOCALES } from './catalog.js'
 export const LOCALE_KEY = 'projectbrief.locale'
-// Add only complete translations here and extend ClientLocaleController's allowlist together.
-// tests/i18n.test.js verifies that the frontend and server accept the same locale codes.
-export const LANGUAGE_CATALOG = [
-  { code: 'ru', name: 'Русский', intl: 'ru-RU', messages: ru },
-  { code: 'en', name: 'English', intl: 'en-GB', messages: en },
-]
-export const SUPPORTED_LOCALES = LANGUAGE_CATALOG.map(({ code }) => code)
-export const INTL_LOCALES = Object.fromEntries(
-  LANGUAGE_CATALOG.map(({ code, intl }) => [code, intl]),
-)
 export const intlLocale = () => INTL_LOCALES[i18n.global.locale.value] || INTL_LOCALES.en
 export function resolveLocale({ manual, preferred, languages, language } = {}) {
   if (SUPPORTED_LOCALES.includes(manual)) return manual
   if (SUPPORTED_LOCALES.includes(preferred)) return preferred
   const browserLanguage =
     languages?.find((value) => typeof value === 'string' && value.trim()) || language || 'en'
-  const code = browserLanguage.toLowerCase().split('-')[0]
+  const code = browserLanguage.trim().toLowerCase().split('-')[0]
   return SUPPORTED_LOCALES.includes(code) ? code : 'en'
 }
 function storedChoice() {
@@ -118,7 +107,8 @@ export function formatApiError(error) {
   if (error.code === 'project_permission_denied') return t('permissions.deniedBody')
   if (error.code === 'timeout') return t('flow.requestTimeout')
   if (error.code === 'invalid_credentials') return t('flow.invalidCredentials')
-  if (error.messageKey) return t(error.messageKey, error.params || {})
+  if (error.messageKey && i18n.global.te(error.messageKey, 'en'))
+    return t(error.messageKey, error.params || {})
   const messages = {
     0: 'ui.weCouldNotConnectToTheServerCheck',
     401: 'ui.yourSessionHasEndedSignInAgainOr',

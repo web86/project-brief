@@ -1,4 +1,12 @@
 export default {
+  bootstrap: {
+    loading: 'Loading…',
+    error: 'Could not open the app. Check your connection and try again.',
+    retry: 'Try again',
+    title: 'Project Brief — ideas for your website',
+    description:
+      'Describe what you want to change on your website. Ideas, discussions and approvals in one place.',
+  },
   integrations: {
     tokenRevoked: 'API token revoked. Create a new one to continue.',
     webhookDeleted: 'Webhook and its delivery and attempt history deleted.',

@@ -22,6 +22,7 @@ class ProjectExportData
      */
     public function build(Project $project, string $scope, string $locale, array $fields = [], array $options = [], bool $client = false): array
     {
+        $locale = SupportedLocales::resolve($locale);
         $fields = array_replace(self::DEFAULT_FIELDS, $fields);
         if ($client) {
             $fields = array_intersect_key($fields, array_flip(self::CLIENT_FIELDS)) + array_fill_keys(array_keys(self::DEFAULT_FIELDS), false);
@@ -77,7 +78,7 @@ class ProjectExportData
                     $content[] = ['label' => $labels[$key], 'value' => $value, 'block' => in_array($key, ['description', 'expectedResult', 'developerNotes'], true)];
                 }
                 if ($fields['approvalDate'] && $task->client_approved && $task->client_approved_at) {
-                    $content[] = ['label' => $labels['approvedOn'], 'value' => $task->client_approved_at->locale($locale)->isoFormat($locale === 'ru' ? 'DD.MM.YYYY' : 'D MMM YYYY'), 'block' => false];
+                    $content[] = ['label' => $labels['approvedOn'], 'value' => $task->client_approved_at->locale($locale)->isoFormat(SupportedLocales::settings($locale)['approval_date']), 'block' => false];
                 }
                 $filenames = [];
                 if ($fields['attachments']) {
@@ -157,9 +158,9 @@ class ProjectExportData
     {
         $digits = str_pad($minorUnits, 3, '0', STR_PAD_LEFT);
         $fraction = rtrim(substr($digits, -2), '0');
-        $integer = preg_replace('/\B(?=(\d{3})+(?!\d))/', $locale === 'ru' ? "\u{00A0}" : ',', substr($digits, 0, -2));
+        $integer = preg_replace('/\B(?=(\d{3})+(?!\d))/', SupportedLocales::settings($locale)['group'], substr($digits, 0, -2));
 
-        return $integer.($fraction !== '' ? ($locale === 'ru' ? ',' : '.').$fraction : '');
+        return $integer.($fraction !== '' ? SupportedLocales::settings($locale)['decimal'].$fraction : '');
     }
 
     private function money(string $minorUnits, string $currency, string $locale): string

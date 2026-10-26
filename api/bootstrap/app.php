@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
 use App\Http\Middleware\EnsureProjectPermission;
+use App\Http\Middleware\SetRequestLocale;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,7 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureProjectPermission::class);
-        $middleware->web(append: [EnsureAccountSession::class]);
+        $middleware->web(append: [EnsureAccountSession::class, SetRequestLocale::class]);
         $middleware->alias(['admin' => EnsureAdmin::class, 'client' => EnsureClientProjectAccess::class, 'project.permission' => EnsureProjectPermission::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

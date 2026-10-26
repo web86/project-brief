@@ -103,7 +103,7 @@ class ProjectNotificationService
                 continue;
             }
             $locale = $recipient->preferred_locale ?? ($toAdmin ? config('project_notifications.admin_locale') : 'en');
-            $locale = in_array($locale, ['ru', 'en'], true) ? $locale : ($toAdmin ? 'ru' : 'en');
+            $locale = SupportedLocales::resolve($locale);
             $payload = $comment ? NotificationPayload::discussion($event->event, $comment, $event->actorName, $locale, $toAdmin) : NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
             $personal = $recipient->notificationPreferences();
             $email = $toAdmin ? $this->emailFor($project, $recipient) : $recipient->email;
@@ -159,7 +159,7 @@ class ProjectNotificationService
         if (! ($user->notificationPreferences()[$channel] ?? false)) {
             return ['status' => 'skipped', 'error_code' => 'channel_disabled'];
         }
-        $payload = NotificationPayload::test($user->preferred_locale === 'en' ? 'en' : 'ru', rtrim(config('app.url'), '/').'/admin/settings/notifications');
+        $payload = NotificationPayload::test(SupportedLocales::resolve($user->preferred_locale), rtrim(config('app.url'), '/').'/admin/settings/notifications');
         try {
             if ($channel === 'email') {
                 return $this->sendMail($user->notificationEmail(), $payload);
@@ -182,7 +182,7 @@ class ProjectNotificationService
         if (! ($admin->notificationPreferences()[$channel] ?? false)) {
             return ['status' => 'skipped', 'error_code' => 'channel_disabled'];
         }
-        $payload = NotificationPayload::test(($admin->preferred_locale ?? config('project_notifications.admin_locale')) === 'en' ? 'en' : 'ru', rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid);
+        $payload = NotificationPayload::test(SupportedLocales::resolve($admin->preferred_locale ?? config('project_notifications.admin_locale')), rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid);
         try {
             if ($channel === 'email') {
                 $email = $this->emailFor($project, $admin);

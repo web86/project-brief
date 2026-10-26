@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
-import { t, setManualLocale } from '../i18n/index.js'
+import { t, setManualLocale, locale, LANGUAGE_CATALOG } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import AccountTabs from '../components/AccountTabs.vue'
 import UserAvatar from '../components/UserAvatar.vue'
@@ -13,7 +13,7 @@ const route = useRoute(),
 const security = computed(() => route.path.endsWith('/security'))
 const state = ref(null),
   name = ref(''),
-  language = ref('ru'),
+  language = ref(locale.value),
   source = ref('initials'),
   file = ref(null)
 const current = ref(''),
@@ -29,7 +29,7 @@ if (emailToken) router.replace({ path: route.path, hash: '' })
 function apply(result) {
   state.value = result
   name.value = result.user.name
-  language.value = result.user.preferredLocale || 'ru'
+  language.value = result.user.preferredLocale || locale.value
   source.value = result.user.avatarSource || 'initials'
   nav.user = { ...nav.user, ...result.user }
 }
@@ -148,8 +148,14 @@ function changePassword() {
           <div class="field">
             <label for="account-language">{{ t('account.language') }}</label
             ><select id="account-language" v-model="language">
-              <option value="ru">Русский</option>
-              <option value="en">English</option>
+              <option
+                v-for="item in LANGUAGE_CATALOG"
+                :key="item.code"
+                :value="item.code"
+                :lang="item.code"
+              >
+                {{ item.name }}
+              </option>
             </select>
           </div>
           <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
@@ -162,7 +168,7 @@ function changePassword() {
             <label for="avatar-source">{{ t('account.avatar') }}</label
             ><select id="avatar-source" v-model="source">
               <option value="initials">{{ t('account.initials') }}</option>
-              <option value="gravatar">Gravatar</option>
+              <option value="gravatar">{{ t('account.gravatar') }}</option>
               <option value="upload">{{ t('account.upload') }}</option>
             </select>
           </div>

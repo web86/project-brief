@@ -72,7 +72,7 @@ $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFai
 $owner->forceFill(['pending_notification_email'=>'verified-release@example.test', 'notification_email_token_hash'=>hash('sha256', str_repeat('a', 64)), 'notification_email_expires_at'=>now()->addMinutes(30)])->save();
 // Render templates with an in-memory transport; the isolated package has no SMTP credentials.
 config(['mail.default'=>'array']);
-foreach (['ru', 'en'] as $language) {
+foreach (\\App\\Services\\SupportedLocales::codes() as $language) {
     $verification = new \\App\\Mail\\VerifyNotificationEmail('https://brief.example.test/admin/settings/notifications#verify='.str_repeat('a', 64), $language);
     if (!str_contains($verification->render(), '#verify=') || !str_contains(view('mail.verify-notification-email-text', ['verificationUrl'=>$verification->verificationUrl, 'language'=>$language])->render(), '#verify=')) {
         throw new \\RuntimeException('Packaged verification email template is missing its link.');
@@ -348,6 +348,20 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     workspace: { id: fixture.workspace, name: 'Release QA' },
   })
   assert.equal((await request('/api/admin/me')).status, 200)
+  for (const language of ['ru', 'en', 'tr']) {
+    const savedLocale = await request('/api/admin/me/locale', {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': workspaceCsrf.token,
+      },
+      body: JSON.stringify({ locale: language }),
+    })
+    assert.equal(savedLocale.status, 200)
+    assert.equal((await savedLocale.json()).preferredLocale, language)
+  }
+
   const activity = await (
     await request('/api/admin/projects/' + fixture.project + '/activity')
   ).json()
@@ -893,7 +907,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.5.0.3',
+    '0.6.0',
   )
   assert.match(
     await readFile(path.join(packageRoot, 'GUIDES/milestone-5-0-2/README.md'), 'utf8'),

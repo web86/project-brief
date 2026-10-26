@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProjectClient;
 use App\Services\NotificationPayload;
+use App\Services\SupportedLocales;
 use App\Services\TaskAccess;
 use App\Services\TelegramLinking;
 use App\Services\TelegramTransport;
@@ -51,7 +52,7 @@ class TelegramController extends Controller
             return response()->json(['status' => 'skipped', 'code' => 'channel_disabled'], 422);
         }
         $connection = TelegramLinking::query($recipient)->first();
-        $locale = $recipient->preferred_locale === 'ru' ? 'ru' : 'en';
+        $locale = SupportedLocales::resolve($recipient->preferred_locale);
         $path = $recipient instanceof ProjectClient ? '/project/'.$recipient->project->uuid.'/notifications' : '/admin';
         $payload = NotificationPayload::test($locale, rtrim(config('app.url'), '/').$path);
         $result = $connection ? $transport->send($connection, TelegramTransport::message($payload)) : ['status' => 'skipped', 'error_code' => 'telegram_not_connected'];

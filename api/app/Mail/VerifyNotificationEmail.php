@@ -15,7 +15,7 @@ class VerifyNotificationEmail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->language === 'ru' ? 'Подтвердите Email уведомлений — Project Brief' : 'Verify notification email — Project Brief');
+        return new Envelope(subject: trans('notifications.verify_heading', [], $this->language).' — Project Brief');
     }
 
     public function content(): Content

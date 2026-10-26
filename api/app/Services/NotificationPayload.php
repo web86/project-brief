@@ -42,13 +42,10 @@ class NotificationPayload
         }
         $files = $comment->attachments;
         $image = $files->count() === 1 && str_starts_with($files->first()->mime_type, 'image/');
-        if ($locale === 'en') {
-            return ($comment->author_type === 'admin' ? 'Developer' : 'Client').' attached '.($image ? 'an image' : $files->count().' file'.($files->count() === 1 ? '' : 's'));
-        }
-        $count = $files->count();
-        $noun = $count === 1 ? 'файл' : ($count < 5 ? 'файла' : 'файлов');
+        $actor = trans('notifications.'.($comment->author_type === 'admin' ? 'developer' : 'client'), [], $locale);
 
-        return ($comment->author_type === 'admin' ? 'Разработчик' : 'Клиент').' прикрепил '.($image ? 'изображение' : $count.' '.$noun);
+        return $image ? trans('notifications.attached_image', ['actor' => $actor], $locale)
+            : trans_choice('notifications.attached_files', $files->count(), ['actor' => $actor, 'count' => $files->count()], $locale);
     }
 
     public static function make(string $event, Task $task, string $actor, string $locale, bool $admin, string $eventId): array
@@ -89,15 +86,15 @@ class NotificationPayload
         $project = $comment->project_id ? Project::findOrFail($comment->project_id) : null;
         $url = rtrim(config('app.url'), '/').($admin ? '/admin/projects/' : '/project/').$project->uuid.'/discussions#comment-'.$comment->uuid;
         $payload = self::test($locale, $url);
-        $heading = $locale === 'ru' ? 'Комментарий в обсуждении проекта' : 'New project discussion comment';
+        $heading = trans('notifications.discussion_heading', [], $locale);
 
         return array_replace($payload, ['title' => self::excerpt($heading.' · '.$project->title, 120), 'heading' => $heading,
             'subject' => '[ProjectBrief] '.$heading.' — '.self::excerpt($project->title, 80), 'project' => $project->title,
             'actor' => $actor, 'event' => $event, 'tag' => 'projectbrief-comment-'.$comment->id,
             'project_uuid' => $project->uuid, 'body' => self::excerpt($actor.': '.self::commentText($comment, $locale), self::PUSH_LIMIT),
             'message' => self::excerpt(self::commentText($comment, $locale), self::COMMENT_LIMIT), 'message_label' => trans('notifications.comment', [], $locale),
-            'explanation' => $locale === 'ru' ? $actor.' оставил(а) комментарий к проекту.' : $actor.' commented on the project.',
-            'open' => $locale === 'ru' ? 'Открыть обсуждение' : 'Open discussion']);
+            'explanation' => trans('notifications.discussion_explanation', ['name' => $actor], $locale),
+            'open' => trans('notifications.open_discussion', [], $locale)]);
     }
 
     public static function push(array $payload): array

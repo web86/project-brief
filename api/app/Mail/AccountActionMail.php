@@ -8,7 +8,10 @@ use Illuminate\Mail\Mailables\Envelope;
 
 class AccountActionMail extends Mailable
 {
-    public function __construct(public string $heading, public string $messageText, public ?string $actionUrl = null) {}
+    public function __construct(public string $heading, public string $messageText, public ?string $actionUrl = null, public string $language = 'en')
+    {
+        $this->locale($language);
+    }
 
     public function envelope(): Envelope
     {

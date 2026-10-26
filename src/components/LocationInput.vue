@@ -1,5 +1,5 @@
 <script setup>
-import { t } from '../i18n/index.js'
+import { t, intlLocale } from '../i18n/index.js'
 
 import { computed, nextTick, ref, watch } from 'vue'
 
@@ -15,9 +15,9 @@ const popup = ref(null)
 const open = ref(false)
 const activeIndex = ref(-1)
 const options = computed(() => {
-  const query = props.modelValue.trim().toLocaleLowerCase('ru')
+  const query = props.modelValue.trim().toLocaleLowerCase(intlLocale())
   return [...new Set(props.suggestions)]
-    .filter((item) => item.toLocaleLowerCase('ru').includes(query))
+    .filter((item) => item.toLocaleLowerCase(intlLocale()).includes(query))
     .slice(0, 8)
 })
 const expanded = computed(() => open.value && options.value.length > 0)
