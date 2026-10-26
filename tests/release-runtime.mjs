@@ -784,11 +784,7 @@ echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspa
     command(['artisan', 'integrations:webhooks', '--verbose']),
     /Processed deliveries: 0/,
   )
-  assert.ok(
-    (await readFile(path.join(packageRoot, 'INTEGRATIONS/openapi.json'), 'utf8')).includes(
-      'bearerAuth',
-    ),
-  )
+
   const webhookFixture = path.join(fixtureRoot, 'webhook-filter-fixture.php')
   await writeFile(
     webhookFixture,
@@ -830,11 +826,7 @@ echo json_encode(['readToken'=>$readToken,'comments'=>$comments,'task'=>$task->u
   )
   assert.equal(packagedWebhooks.events, 2)
   assert.deepEqual(packagedWebhooks.selection, [fixture.project])
-  assert.ok(
-    (await readFile(path.join(packageRoot, 'INTEGRATIONS/MILESTONE-5-0-1.md'), 'utf8')).includes(
-      'project.client_comment_created',
-    ),
-  )
+
   assert.equal(
     (await callIntegration('/api/v1/projects/' + fixture.project + '/comments')).status,
     403,
@@ -965,14 +957,23 @@ echo json_encode(['ok'=>true]);
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
     '0.6.2',
   )
-  assert.match(
-    await readFile(path.join(packageRoot, 'GUIDES/milestone-5-0-2/README.md'), 'utf8'),
-    /active-only/,
-  )
+  assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
+  assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
+
   command(['artisan', 'down'])
   assert.equal((await request('/admin/login')).status, 503)
   command(['artisan', 'up'])
   assert.equal((await request('/admin/login')).status, 200)
+  if (process.env.RELEASE_BROWSER_QA_DIRECTORY) {
+    // Add multilingual user content only to this disposable database.
+    command([
+      '-r',
+      'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["title" => "Кириллица: задача / 中文需求 / Çığ İpek"]);',
+      fixture.exportTask,
+    ])
+    const { verifyPackagedExports } = await import('./release-export.browser.mjs')
+    await verifyPackagedExports(origin, fixture.project, process.env.RELEASE_BROWSER_QA_DIRECTORY)
+  }
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
     'PASS: Packaged comments/files Read API and quiet cron stdout/stderr; token revocation/audit and webhook history cascade; project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',

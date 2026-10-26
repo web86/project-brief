@@ -40,6 +40,34 @@ export function forbiddenPath(relative) {
   )
 }
 
+// Only installation/rollback instructions and runtime files belong in the upload ZIP.
+// Keep verification evidence in the repository, even when a new milestone adds it.
+export function forbiddenProductionPath(relative) {
+  const parts = relative.split('/')
+  const name = parts.at(-1).toLowerCase()
+  const permitted =
+    ['DEPLOY-JINO.md', 'PRODUCTION.md', 'release.json', 'checksums.txt'].includes(relative) ||
+    parts[0] === 'public' ||
+    relative === 'private' ||
+    relative === 'private/project-brief-app' ||
+    relative.startsWith('private/project-brief-app/') ||
+    relative === 'deployment' ||
+    relative === 'deployment/telegram-bridge.mjs'
+  return (
+    !permitted ||
+    forbiddenPath(relative) ||
+    parts.some((part) =>
+      /^(?:guides|integrations|artifacts|screenshots|reports|fixtures|milestone(?:s|[-_].*)?)$/i.test(
+        part,
+      ),
+    ) ||
+    /\.(?:pdf|docx?|zip)$/.test(name) ||
+    /(?:^|[-_.])(?:sample|screenshot|browser-results|test-results|benchmark-results|verification-results)(?:[-_.]|$)/.test(
+      name,
+    )
+  )
+}
+
 export async function entries(root, prefix = '') {
   const result = []
   for (const entry of await readdir(path.join(root, prefix), { withFileTypes: true })) {
@@ -168,7 +196,6 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/app/Services/AttachmentStorage.php',
     'private/project-brief-app/database/migrations/2026_10_25_194153_add_comment_attachments.php',
     'PRODUCTION.md',
-    'RELEASE-NOTES.md',
     'private/project-brief-app/config/localization.php',
     'private/project-brief-app/app/Services/SupportedLocales.php',
     'private/project-brief-app/app/Http/Middleware/SetRequestLocale.php',
@@ -177,7 +204,6 @@ export async function validateRelease(root, localSecrets = []) {
         (group) => `private/project-brief-app/lang/${locale}/${group}.php`,
       ),
     ),
-    'GUIDES/milestone-6-0/README.md',
     'release.json',
   ]
   for (const file of required) {
@@ -212,7 +238,8 @@ export async function validateRelease(root, localSecrets = []) {
   if (!files.some((file) => /^public\/assets\/.+\.css$/.test(file.relative)))
     throw new Error('Frontend CSS missing')
   for (const file of files) {
-    if (forbiddenPath(file.relative)) throw new Error(`Forbidden release entry: ${file.relative}`)
+    if (forbiddenProductionPath(file.relative))
+      throw new Error(`Forbidden release entry: ${file.relative}`)
     if (file.directory) continue
     const content = await readFile(path.join(root, file.relative))
     if (

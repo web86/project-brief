@@ -1,5 +1,7 @@
 # Milestone 6.2 — браузерный PDF и компактный экспорт
 
+Исправление комплектации production ZIP: [PACKAGING.md](PACKAGING.md). Исторические отчёты, тестовые документы и скриншоты сохраняются в репозитории, но исключены из установочного архива. Актуальный архив и SHA-256 указаны в RELEASE-ARTIFACT.json.
+
 Реализован переход **PDF: Laravel JSON API → Web Worker → pdfmake → Browser Download**. **DOCX: Laravel → PHPWord → Download**. Серверный PDF, Dompdf и fallback удалены. Новые проекты в admin и REST создаются с пустой структурой; разделы добавляются вручную. Production и push не выполнялись.
 
 Ветка `codex/milestone-6-2-browser-pdf-integration`, основа — прототип 6.1 `cd008cd`. Результаты его масштабных измерений приняты согласно ТЗ; новое исследование производительности не проводилось. Исторические отчёты 6.0/6.1 сохранены без изменений. Финальный ZIP/source commit/SHA-256 публикуются после сборки в RELEASE-ARTIFACT.json.
@@ -37,22 +39,22 @@ DejaVu Sans regular/bold скопированы без изменения из �
 
 ## Проверки
 
-| Проверка | Результат |
-| --- | --- |
-| Frontend unit | **251 / 251**, без пропусков |
-| Laravel | **682 / 682**, **8 057 assertions** |
-| Production Vue build | успешно |
-| Pint / форматирование / diff check | успешно |
-| Chromium 151.0.7922.34: RU/EN/TR/ZH-CN, desktop/mobile | **8 / 8** |
-| Firefox 153.0: RU/EN/TR/ZH-CN, desktop/mobile | **8 / 8** |
-| Планшет 768 px, TR/dark | одна колонка, без overflow |
-| Client UI/подделка полей | 8 UI случаев, только 6 разрешённых полей, без часов/цен/заметок |
-| Отмена, ошибка шрифта, повтор | успешно, без server fallback |
-| Новый проект через UI и REST, пустой экспорт/обсуждения | успешно |
-| Первый раздел вручную / сохранность старой структуры | успешно |
-| PDF | **30 файлов / 300 экземпляров задач**, порядок, Unicode, суммы, A4, embedded fonts/ToUnicode, без страниц-картинок |
-| DOCX | полный Laravel regression suite + admin EN/client ZH-CN browser downloads |
-| Safari / физические смартфоны | **не проверялись**, совместимость не заявляется |
+| Проверка                                                | Результат                                                                                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Frontend unit                                           | **251 / 251**, без пропусков                                                                                       |
+| Laravel                                                 | **682 / 682**, **8 057 assertions**                                                                                |
+| Production Vue build                                    | успешно                                                                                                            |
+| Pint / форматирование / diff check                      | успешно                                                                                                            |
+| Chromium 151.0.7922.34: RU/EN/TR/ZH-CN, desktop/mobile  | **8 / 8**                                                                                                          |
+| Firefox 153.0: RU/EN/TR/ZH-CN, desktop/mobile           | **8 / 8**                                                                                                          |
+| Планшет 768 px, TR/dark                                 | одна колонка, без overflow                                                                                         |
+| Client UI/подделка полей                                | 8 UI случаев, только 6 разрешённых полей, без часов/цен/заметок                                                    |
+| Отмена, ошибка шрифта, повтор                           | успешно, без server fallback                                                                                       |
+| Новый проект через UI и REST, пустой экспорт/обсуждения | успешно                                                                                                            |
+| Первый раздел вручную / сохранность старой структуры    | успешно                                                                                                            |
+| PDF                                                     | **30 файлов / 300 экземпляров задач**, порядок, Unicode, суммы, A4, embedded fonts/ToUnicode, без страниц-картинок |
+| DOCX                                                    | полный Laravel regression suite + admin EN/client ZH-CN browser downloads                                          |
+| Safari / физические смартфоны                           | **не проверялись**, совместимость не заявляется                                                                    |
 
 Данные: [checks.json](checks.json), [browser-results.json](browser-results.json), [pdf-results.json](pdf-results.json). Все образцы синтетические, без production-данных. Стенд — отдельная копия backend, пустой env, свежая SQLite, mail array, PHP 128M / 30 секунд. Browser smoke запускается против **production build** через localhost preview/proxy, а не старой точки входа. После теста копия/БД/серверы удаляются. Повторное создание проекта проверяет секции исходного проекта и сохранение ранее существовавшей задачи; REST tests проверяют пустоту, идемпотентность и external identity.
 

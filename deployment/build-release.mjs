@@ -16,6 +16,7 @@ const php = process.env.PHP_BIN || 'php'
 const releaseRoot = path.join(root, 'release')
 let staging
 let archiveTemporary
+let verification
 
 function run(command, args, cwd = root, extraEnv = {}, capture = false) {
   const result = spawnSync(command, args, {
@@ -148,110 +149,6 @@ try {
     path.join(root, 'docs/milestone-6-2/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
-  await copyRelease(
-    path.join(root, 'docs/milestone-6-2/RELEASE.md'),
-    path.join(staging, 'RELEASE-NOTES.md'),
-  )
-  for (const entry of ['README.md', 'openapi.json', 'verify-webhook.php']) {
-    await copyRelease(
-      path.join(root, 'docs/milestone-5-0', entry),
-      path.join(staging, 'INTEGRATIONS', entry),
-    )
-  }
-  await copyRelease(
-    path.join(root, 'docs/milestone-5-0-1/README.md'),
-    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
-  )
-  for (const entry of ['README.md', 'PRODUCTION.md', 'openapi.json', 'verify-webhook.php']) {
-    await copyRelease(
-      path.join(root, 'docs/milestone-5-0', entry),
-      path.join(staging, 'GUIDES/milestone-5-0', entry),
-    )
-  }
-
-  for (const entry of [
-    'README.md',
-    'PRODUCTION.md',
-    'RELEASE.md',
-    'VERIFICATION.md',
-    'browser-results.json',
-    'desktop-create-filter-ru-light.png',
-    'desktop-comment-deliveries-en-dark.png',
-    'mobile-edit-filter-en-dark.png',
-    'mobile-selected-summary-ru-light.png',
-    'mobile-owner-navigation-ru-light.png',
-  ]) {
-    await copyRelease(
-      path.join(root, 'docs/milestone-5-0-1', entry),
-      path.join(staging, 'GUIDES/milestone-5-0-1', entry),
-    )
-  }
-  for (const entry of [
-    'README.md',
-    'PRODUCTION.md',
-    'RELEASE.md',
-    'VERIFICATION.md',
-    'browser-results.json',
-    'desktop-revoked-toast-ru-light.png',
-    'mobile-owner-navigation-ru-light.png',
-    'mobile-project-navigation-ru-light.png',
-    ...['ru', 'en'].flatMap((locale) =>
-      ['light', 'dark', 'system'].flatMap((mode) =>
-        ['mobile', 'desktop'].map((size) => `${size}-toast-${locale}-${mode}.png`),
-      ),
-    ),
-  ]) {
-    await copyRelease(
-      path.join(root, 'docs/milestone-5-0-2', entry),
-      path.join(staging, 'GUIDES/milestone-5-0-2', entry),
-    )
-  }
-  for (const entry of [
-    'README.md',
-    'PRODUCTION.md',
-    'RELEASE.md',
-    'VERIFICATION.md',
-    'browser-results.json',
-    ...['ru', 'en'].flatMap((locale) =>
-      ['light', 'dark', 'system'].flatMap((mode) =>
-        ['mobile', 'desktop'].map((size) => `${size}-scopes-${locale}-${mode}.png`),
-      ),
-    ),
-  ]) {
-    await copyRelease(
-      path.join(root, 'docs/milestone-5-0-3', entry),
-      path.join(staging, 'GUIDES/milestone-5-0-3', entry),
-    )
-  }
-  await copyRelease(
-    path.join(root, 'docs/milestone-5-0-3/README.md'),
-    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'),
-  )
-  await copyRelease(
-    path.join(root, 'docs/milestone-6-0'),
-    path.join(staging, 'GUIDES/milestone-6-0'),
-    { recursive: true },
-  )
-  await copyRelease(
-    path.join(root, 'docs/milestone-6-2'),
-    path.join(staging, 'GUIDES/milestone-6-2'),
-    { recursive: true },
-  )
-  for (const file of ['RELEASE-ARTIFACT.json', 'SHA256SUMS.txt'])
-    await rm(path.join(staging, 'GUIDES/milestone-6-2', file), { force: true })
-  await copyRelease(path.join(root, 'docs/EXPORT.md'), path.join(staging, 'EXPORT.md'))
-  await copyRelease(path.join(root, 'docs/API-EXPORT.md'), path.join(staging, 'API-EXPORT.md'))
-  const currentGuide = path.join(staging, 'GUIDES/milestone-6-2/README.md')
-  await writeFile(
-    currentGuide,
-    (await readFile(currentGuide, 'utf8'))
-      .replaceAll('(../EXPORT.md)', '(../../EXPORT.md)')
-      .replaceAll('(../API-EXPORT.md)', '(../../API-EXPORT.md)')
-      .replaceAll(
-        '(../../api/resources/fonts/SOURCE.md)',
-        '(../../private/project-brief-app/resources/fonts/SOURCE.md)',
-      ),
-  )
   const deploymentGuide = path.join(staging, 'DEPLOY-JINO.md')
   await writeFile(
     deploymentGuide,
@@ -259,51 +156,6 @@ try {
       '(docs/milestone-6-2/PRODUCTION.md)',
       '(PRODUCTION.md)',
     ),
-  )
-  // Archive hashes are published after the ZIP exists; never bundle a previous build's hash.
-  for (const file of ['RELEASE-ARTIFACT.json', 'SHA256SUMS.txt']) {
-    await rm(path.join(staging, 'GUIDES/milestone-6-0', file), { force: true })
-  }
-  const milestoneGuide = path.join(staging, 'GUIDES/milestone-6-0/README.md')
-  await writeFile(
-    milestoneGuide,
-    (await readFile(milestoneGuide, 'utf8'))
-      .replace(
-        'Готовый ZIP и source commit описаны в [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json); контрольная сумма — [SHA256SUMS.txt](SHA256SUMS.txt).',
-        'Source commit находится в [release.json](../../release.json); SHA-256 файлов — в [checksums.txt](../../checksums.txt). Контрольная сумма самого ZIP публикуется отдельно после сборки.',
-      )
-      .replace(
-        '(../../api/resources/fonts/SOURCE.md)',
-        '(../../private/project-brief-app/resources/fonts/SOURCE.md)',
-      ),
-  )
-  const readApiGuide = await readFile(path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'), 'utf8')
-  await writeFile(
-    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'),
-    readApiGuide
-      .replaceAll('../milestone-5-0/openapi.json', 'openapi.json')
-      .replaceAll('(PRODUCTION.md)', '(../PRODUCTION.md)')
-      .replaceAll('(VERIFICATION.md)', '(../GUIDES/milestone-5-0-3/VERIFICATION.md)')
-      .replaceAll('(RELEASE.md)', '(../RELEASE-NOTES.md)'),
-  )
-  const integrationReadme = await readFile(path.join(staging, 'INTEGRATIONS/README.md'), 'utf8')
-  await writeFile(
-    path.join(staging, 'INTEGRATIONS/README.md'),
-    integrationReadme
-      .replaceAll('../milestone-5-0-1/', '../GUIDES/milestone-5-0-1/')
-      .replaceAll('../milestone-5-0-3/', '../GUIDES/milestone-5-0-3/'),
-  )
-  const extensionReadme = await readFile(
-    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
-    'utf8',
-  )
-  await writeFile(
-    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
-    extensionReadme
-      .replaceAll('../milestone-5-0/README.md', 'README.md')
-      .replaceAll('../milestone-5-0/openapi.json', 'openapi.json')
-      .replaceAll('(VERIFICATION.md)', '(../GUIDES/milestone-5-0-1/VERIFICATION.md)')
-      .replaceAll('(PRODUCTION.md)', '(../PRODUCTION.md)'),
   )
   await writeFile(
     path.join(staging, 'release.json'),
@@ -335,14 +187,29 @@ try {
   await normalizePermissions(staging)
   const secrets = await knownLocalSecrets()
   const fileCount = await validateRelease(staging, secrets)
-  run(process.execPath, ['tests/release-runtime.mjs', staging], root, { PHP_BIN: php })
-  // Runtime tests use a disposable copy and must not leave anything in the upload package.
-  await validateRelease(staging, secrets)
-  cleanTree()
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
   const archive = path.join(releaseRoot, `project-brief-v0.6.2-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
+  // Test the actual ZIP in a fresh directory, never an existing installation.
+  verification = await mkdtemp(path.join(releaseRoot, '.verifying-'))
+  run(php, [
+    '-r',
+    '$zip = new ZipArchive; if ($zip->open($argv[1], ZipArchive::CHECKCONS) !== true || !$zip->extractTo($argv[2])) { throw new RuntimeException("Cannot unpack release"); } $zip->close();',
+    archiveTemporary,
+    verification,
+  ])
+  await validateRelease(verification, secrets)
+  if (
+    (await checksums(verification)) !==
+    (await readFile(path.join(verification, 'checksums.txt'), 'utf8'))
+  )
+    throw new Error('Unpacked ZIP does not match its checksum manifest')
+  run(process.execPath, ['tests/release-runtime.mjs', verification], root, { PHP_BIN: php })
+  await validateRelease(verification, secrets)
+  await rm(verification, { recursive: true, force: true })
+  verification = undefined
+  cleanTree()
   await rm(path.join(releaseRoot, 'project-brief'), { recursive: true, force: true })
   await rename(staging, path.join(releaseRoot, 'project-brief'))
   staging = undefined
@@ -352,6 +219,7 @@ try {
     `PASS: Release validation (${fileCount} files), checksums and runtime tests.\nArchive: ${archive}`,
   )
 } catch (error) {
+  if (verification) await rm(verification, { recursive: true, force: true })
   if (staging) await rm(staging, { recursive: true, force: true })
   if (archiveTemporary) await rm(archiveTemporary, { force: true })
   console.error(`Release failed: ${error.message}. No final archive created.`)

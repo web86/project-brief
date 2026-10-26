@@ -5,11 +5,51 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import {
   forbiddenPath,
+  forbiddenProductionPath,
   pruneVendor,
   checksums,
   containsPrivateKey,
   environmentSecrets,
 } from '../deployment/release-files.mjs'
+
+test('production package rejects historical guides and verification artifacts at any depth', () => {
+  for (const file of [
+    'GUIDES/milestone-6-2/README.md',
+    'INTEGRATIONS/openapi.json',
+    'docs/milestone-6-0/sample-ru.docx',
+    'RELEASE-NOTES.md',
+    'browser-results.json',
+    'deployment/browser-results.json',
+    'private/project-brief-app/sample-zh-CN.docx',
+    'private/project-brief-app/storage/export.pdf',
+    'public/assets/sample-en.docx',
+    'public/assets/screenshots/desktop.png',
+    'public/assets/desktop-screenshot.png',
+    'private/project-brief-app/reports/checks.json',
+    'private/project-brief-app/milestone-7-0/README.md',
+    'private/other-app/index.php',
+    'public/assets/frontend.js.map',
+  ])
+    assert.equal(forbiddenProductionPath(file), true, file)
+  for (const file of [
+    'DEPLOY-JINO.md',
+    'PRODUCTION.md',
+    'release.json',
+    'checksums.txt',
+    'deployment/telegram-bridge.mjs',
+    'public/index.php',
+    'public/icon-192.png',
+    'public/assets/pdf.worker-abc.js',
+    'public/assets/NotoSansSC-Regular-abc.ttf',
+    'public/font-licenses/NotoSansSC-OFL.txt',
+    'private/project-brief-app/resources/fonts/NotoSansSC-Regular.ttf',
+    'private/project-brief-app/resources/fonts/SOURCE.md',
+    'private/project-brief-app/.env.production.example',
+    'private/project-brief-app/vendor/phpoffice/phpword/src/PhpWord/resources/doc.png',
+    'private/project-brief-app/vendor/phpoffice/phpword/LICENSE',
+  ])
+    assert.equal(forbiddenProductionPath(file), false, file)
+})
 
 test('release scans API keys and bridge secrets without treating AI settings as secrets', () => {
   assert.deepEqual(
