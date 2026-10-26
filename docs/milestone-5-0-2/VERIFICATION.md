@@ -95,3 +95,14 @@ Evidence uses GUIDES rather than a forbidden docs directory inside the archive.
 Final source commit, archive bytes and SHA-256 are recorded after verification in
 RELEASE-ARTIFACT.json and SHA256SUMS.txt; the later metadata-only commit is distinct
 from the source commit contained in the ZIP.
+
+## Final archive
+
+Packaged source: `728b1f124cdb2344c1afbf473a2bf5eee05d3cc4`. Archive: `release/project-brief-20261026-090942-728b1f1.zip`
+(16349020 bytes). ZIP CRC, all 7885 file SHA-256 checksums,
+197 matching tracked source files plus built frontend assets, production-only
+vendor (91 packages), packaged runtime and secret/file validation pass.
+
+SHA-256: `6e6762a738783d4c0860ac39292732b60750461126d7689699979b7f104d42c9`. See [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json)
+and [SHA256SUMS.txt](SHA256SUMS.txt). The following documentation-only commit records
+archive evidence; the ZIP deliberately identifies the clean source commit above.

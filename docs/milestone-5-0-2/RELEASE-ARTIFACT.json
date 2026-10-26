@@ -1,0 +1,48 @@
+{
+  "version": "0.5.0.2",
+  "commit": "728b1f124cdb2344c1afbf473a2bf5eee05d3cc4",
+  "builtAt": "2026-10-26T09:09:17.862Z",
+  "phpTarget": "8.4",
+  "domain": "brief.web86.site",
+  "archive": "release/project-brief-20261026-090942-728b1f1.zip",
+  "bytes": 16349020,
+  "sha256": "6e6762a738783d4c0860ac39292732b60750461126d7689699979b7f104d42c9",
+  "checksummedFiles": 7885,
+  "matchedSourceFiles": 197,
+  "vendorPackages": 91,
+  "baseline": "1116f41",
+  "checks": {
+    "zipCRC": "passed",
+    "allFileSHA256": "passed",
+    "packagedSourceMatch": "passed",
+    "productionVendor": "passed",
+    "releaseRuntime": "passed",
+    "secretAndFileValidation": "passed",
+    "frontend": {
+      "passed": 240
+    },
+    "laravel": {
+      "passed": 646,
+      "assertions": 6813
+    },
+    "newBackend": {
+      "passed": 4,
+      "assertions": 54
+    },
+    "integrationPolishBrowser": "passed",
+    "previousIntegrationBrowsers": "passed",
+    "separateProcessSQLiteConcurrency": "passed",
+    "appearanceRegression": {
+      "passedGroups": 11
+    },
+    "productionBuild": "passed",
+    "format": "passed",
+    "pint": "passed",
+    "brandMaster": "passed"
+  },
+  "limitations": [
+    "No live Jino/MariaDB deployment or CRM/n8n E2E.",
+    "Concurrency verification uses SQLite IMMEDIATE transactions and HTTP fakes.",
+    "No push or deployment performed."
+  ]
+}
