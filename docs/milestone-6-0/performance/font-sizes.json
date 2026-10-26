@@ -1,0 +1,146 @@
+[
+  {
+    "file": "cjk-en.docx",
+    "output_bytes": 12690882,
+    "cjk_font_compressed_bytes": 12678147,
+    "all_font_compressed_bytes": 12678147,
+    "cjk_font_uncompressed_bytes": 21181416,
+    "cjk_font_faces": 2,
+    "pages": null
+  },
+  {
+    "file": "cjk-en.pdf",
+    "output_bytes": 84055,
+    "cjk_font_compressed_bytes": 19996,
+    "all_font_compressed_bytes": 40678,
+    "cjk_font_uncompressed_bytes": 29552,
+    "cjk_font_faces": 19,
+    "pages": 5
+  },
+  {
+    "file": "cjk-ru.docx",
+    "output_bytes": 12691016,
+    "cjk_font_compressed_bytes": 12678143,
+    "all_font_compressed_bytes": 12678143,
+    "cjk_font_uncompressed_bytes": 21181416,
+    "cjk_font_faces": 2,
+    "pages": null
+  },
+  {
+    "file": "cjk-ru.pdf",
+    "output_bytes": 86571,
+    "cjk_font_compressed_bytes": 19996,
+    "all_font_compressed_bytes": 42382,
+    "cjk_font_uncompressed_bytes": 29552,
+    "cjk_font_faces": 19,
+    "pages": 5
+  },
+  {
+    "file": "cjk-tr.docx",
+    "output_bytes": 12690923,
+    "cjk_font_compressed_bytes": 12678148,
+    "all_font_compressed_bytes": 12678148,
+    "cjk_font_uncompressed_bytes": 21181416,
+    "cjk_font_faces": 2,
+    "pages": null
+  },
+  {
+    "file": "cjk-tr.pdf",
+    "output_bytes": 84248,
+    "cjk_font_compressed_bytes": 19996,
+    "all_font_compressed_bytes": 40653,
+    "cjk_font_uncompressed_bytes": 29552,
+    "cjk_font_faces": 19,
+    "pages": 5
+  },
+  {
+    "file": "cjk-zh-CN.docx",
+    "output_bytes": 12690944,
+    "cjk_font_compressed_bytes": 12678146,
+    "all_font_compressed_bytes": 12678146,
+    "cjk_font_uncompressed_bytes": 21181416,
+    "cjk_font_faces": 2,
+    "pages": null
+  },
+  {
+    "file": "cjk-zh-CN.pdf",
+    "output_bytes": 129576,
+    "cjk_font_compressed_bytes": 41116,
+    "all_font_compressed_bytes": 59340,
+    "cjk_font_uncompressed_bytes": 59536,
+    "cjk_font_faces": 35,
+    "pages": 6
+  },
+  {
+    "file": "mixed-en.docx",
+    "output_bytes": 9680,
+    "cjk_font_compressed_bytes": 0,
+    "all_font_compressed_bytes": 0,
+    "cjk_font_uncompressed_bytes": 0,
+    "cjk_font_faces": 0,
+    "pages": null
+  },
+  {
+    "file": "mixed-en.pdf",
+    "output_bytes": 33219,
+    "cjk_font_compressed_bytes": 0,
+    "all_font_compressed_bytes": 20682,
+    "cjk_font_uncompressed_bytes": 0,
+    "cjk_font_faces": 0,
+    "pages": 5
+  },
+  {
+    "file": "mixed-ru.docx",
+    "output_bytes": 9823,
+    "cjk_font_compressed_bytes": 0,
+    "all_font_compressed_bytes": 0,
+    "cjk_font_uncompressed_bytes": 0,
+    "cjk_font_faces": 0,
+    "pages": null
+  },
+  {
+    "file": "mixed-ru.pdf",
+    "output_bytes": 35755,
+    "cjk_font_compressed_bytes": 0,
+    "all_font_compressed_bytes": 22386,
+    "cjk_font_uncompressed_bytes": 0,
+    "cjk_font_faces": 0,
+    "pages": 5
+  },
+  {
+    "file": "mixed-tr.docx",
+    "output_bytes": 9721,
+    "cjk_font_compressed_bytes": 0,
+    "all_font_compressed_bytes": 0,
+    "cjk_font_uncompressed_bytes": 0,
+    "cjk_font_faces": 0,
+    "pages": null
+  },
+  {
+    "file": "mixed-tr.pdf",
+    "output_bytes": 33441,
+    "cjk_font_compressed_bytes": 0,
+    "all_font_compressed_bytes": 20657,
+    "cjk_font_uncompressed_bytes": 0,
+    "cjk_font_faces": 0,
+    "pages": 5
+  },
+  {
+    "file": "mixed-zh-CN.docx",
+    "output_bytes": 12690812,
+    "cjk_font_compressed_bytes": 12678145,
+    "all_font_compressed_bytes": 12678145,
+    "cjk_font_uncompressed_bytes": 21181416,
+    "cjk_font_faces": 2,
+    "pages": null
+  },
+  {
+    "file": "mixed-zh-CN.pdf",
+    "output_bytes": 99574,
+    "cjk_font_compressed_bytes": 27991,
+    "all_font_compressed_bytes": 46215,
+    "cjk_font_uncompressed_bytes": 40836,
+    "cjk_font_faces": 26,
+    "pages": 5
+  }
+]

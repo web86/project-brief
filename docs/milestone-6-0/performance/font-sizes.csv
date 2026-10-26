@@ -1,0 +1,17 @@
+file,output_bytes,cjk_font_compressed_bytes,all_font_compressed_bytes,cjk_font_uncompressed_bytes,cjk_font_faces,pages
+cjk-en.docx,12690882,12678147,12678147,21181416,2,
+cjk-en.pdf,84055,19996,40678,29552,19,5
+cjk-ru.docx,12691016,12678143,12678143,21181416,2,
+cjk-ru.pdf,86571,19996,42382,29552,19,5
+cjk-tr.docx,12690923,12678148,12678148,21181416,2,
+cjk-tr.pdf,84248,19996,40653,29552,19,5
+cjk-zh-CN.docx,12690944,12678146,12678146,21181416,2,
+cjk-zh-CN.pdf,129576,41116,59340,59536,35,6
+mixed-en.docx,9680,0,0,0,0,
+mixed-en.pdf,33219,0,20682,0,0,5
+mixed-ru.docx,9823,0,0,0,0,
+mixed-ru.pdf,35755,0,22386,0,0,5
+mixed-tr.docx,9721,0,0,0,0,
+mixed-tr.pdf,33441,0,20657,0,0,5
+mixed-zh-CN.docx,12690812,12678145,12678145,21181416,2,
+mixed-zh-CN.pdf,99574,27991,46215,40836,26,5
