@@ -89,3 +89,16 @@ files/local secrets, production vendor and split runtime, checksums files and wr
 a ZIP. Final archive metadata/SHA256 are recorded in a later documentation-only
 commit, separate from the exact source commit in release.json. See PRODUCTION.md
 for actual Jino smoke/rotation/rollback instructions; production remains unmodified.
+
+## Final archive
+
+Packaged source: `be94a0f81e2ebeb9955aeede958ffc1c65747f2b` (ancestor `728b1f1` preserved).
+Archive: `release/project-brief-20261026-094241-be94a0f.zip` (17396803 bytes). ZIP CRC, all 7905
+file SHA-256 checksums, 196 matching tracked source files plus compiled frontend
+assets, production-only vendor (91 packages), packaged runtime and secret/file
+validation passed. The packaged runtime verifies new read routes and actual quiet
+cron stdout/stderr with fake error/success receivers.
+
+SHA-256: `99aea589d06852a8185a8f279290212f8a74ccc82509ab23767d325c8bb5b56b`. See [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json)
+and [SHA256SUMS.txt](SHA256SUMS.txt). A later documentation-only commit records this
+archive evidence; the ZIP identifies the clean implementation commit above.
