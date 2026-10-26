@@ -165,7 +165,7 @@ try {
   for (const entry of ['README.md', 'PRODUCTION.md', 'openapi.json', 'verify-webhook.php']) {
     await copyRelease(
       path.join(root, 'docs/milestone-5-0', entry),
-      path.join(staging, 'docs/milestone-5-0', entry),
+      path.join(staging, 'GUIDES/milestone-5-0', entry),
     )
   }
 
@@ -183,13 +183,13 @@ try {
   ]) {
     await copyRelease(
       path.join(root, 'docs/milestone-5-0-1', entry),
-      path.join(staging, 'docs/milestone-5-0-1', entry),
+      path.join(staging, 'GUIDES/milestone-5-0-1', entry),
     )
   }
   const integrationReadme = await readFile(path.join(staging, 'INTEGRATIONS/README.md'), 'utf8')
   await writeFile(
     path.join(staging, 'INTEGRATIONS/README.md'),
-    integrationReadme.replaceAll('../milestone-5-0-1/', '../docs/milestone-5-0-1/'),
+    integrationReadme.replaceAll('../milestone-5-0-1/', '../GUIDES/milestone-5-0-1/'),
   )
   const extensionReadme = await readFile(
     path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
@@ -200,7 +200,7 @@ try {
     extensionReadme
       .replaceAll('../milestone-5-0/README.md', 'README.md')
       .replaceAll('../milestone-5-0/openapi.json', 'openapi.json')
-      .replaceAll('(VERIFICATION.md)', '(../docs/milestone-5-0-1/VERIFICATION.md)')
+      .replaceAll('(VERIFICATION.md)', '(../GUIDES/milestone-5-0-1/VERIFICATION.md)')
       .replaceAll('(PRODUCTION.md)', '(../PRODUCTION.md)'),
   )
   await writeFile(
