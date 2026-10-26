@@ -1,0 +1,38 @@
+{
+  "version": "0.5.0",
+  "commit": "5042b23abb421cc61ee832d9d4143770192cdbc5",
+  "builtAt": "2026-10-26T07:27:33.813Z",
+  "phpTarget": "8.4",
+  "domain": "brief.web86.site",
+  "archive": "release/project-brief-20261026-072756-5042b23.zip",
+  "bytes": 14649788,
+  "sha256": "fca275c0f523c2b353bb39b0e6103cc60e1761808ce2f98a41722ab9bd39706e",
+  "checksummedFiles": 7848,
+  "vendorPackages": 91,
+  "checks": {
+    "zipCRC": "passed",
+    "allFileSHA256": "passed",
+    "productionVendor": "passed",
+    "releaseRuntime": "passed",
+    "secretAndFileValidation": "passed",
+    "frontend": {
+      "passed": 238
+    },
+    "laravel": {
+      "passed": 630,
+      "assertions": 6551
+    },
+    "integrationBackend": {
+      "passed": 25,
+      "assertions": 325
+    },
+    "integrationBrowser": "passed",
+    "appearanceRegression": {
+      "passedGroups": 11
+    },
+    "format": "passed",
+    "pint": "passed",
+    "brandMaster": "passed",
+    "productionBuild": "passed"
+  }
+}

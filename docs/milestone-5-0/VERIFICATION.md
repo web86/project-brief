@@ -107,3 +107,9 @@ an atomic ZIP. Exact archive path, packaged commit and SHA-256 are recorded in
   are namespaced per token; external project identity survives token rotation.
 - No update endpoint, task external identity, attachments, CRM-specific connector,
   marketplace OAuth or two-way synchronization is included.
+
+## Final production archive
+
+Packaged source commit: `5042b23abb421cc61ee832d9d4143770192cdbc5`. Production ZIP: `release/project-brief-20261026-072756-5042b23.zip` (14649788 bytes). ZIP CRC, all 7848 file SHA-256 checksums, production vendor and packaged runtime checks passed.
+
+Archive SHA-256: `fca275c0f523c2b353bb39b0e6103cc60e1761808ce2f98a41722ab9bd39706e`. Full metadata: [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json); checksum file: [SHA256SUMS.txt](SHA256SUMS.txt).
