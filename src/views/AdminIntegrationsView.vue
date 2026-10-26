@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '../api/client.js'
+import { toast } from '../services/toast.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import LoadingButton from '../components/LoadingButton.vue'
@@ -10,8 +11,10 @@ const state = ref(null),
   tab = ref('tokens'),
   busy = ref(false),
   loading = ref(true),
-  error = ref(''),
-  message = ref('')
+  validation = ref(null),
+  loadFailed = ref(false),
+  historyBusy = ref(false),
+  copying = ref(false)
 const name = ref(''),
   scopes = ref(['projects:read', 'tasks:read']),
   expires = ref('')
@@ -40,19 +43,23 @@ const secret = ref(''),
 const deliveries = ref(null),
   selected = ref(null),
   page = ref(1)
-let revision = 0
+let revision = 0,
+  listRevision = 0,
+  dataRevision = 0,
+  historyRevision = 0
+const revokedIds = new Set(),
+  deletedIds = new Set()
 const root = '/api/admin/integrations'
-const errorMessage = computed(() =>
-  error.value?.errors?.projectIds || error.value?.errors?.['projectIds.0']
+const validationMessage = computed(() =>
+  validation.value?.errors?.projectIds || validation.value?.errors?.['projectIds.0']
     ? t('integrations.selectProjectRequired')
-    : error.value?.errors?.url
+    : validation.value?.errors?.url
       ? t('integrations.urlError')
-      : formatApiError(error.value),
+      : formatApiError(validation.value),
 )
 function selectTab(value) {
   tab.value = value
-  message.value = ''
-  error.value = ''
+  validation.value = null
 }
 const scopeLabel = (s) => t('integrations.scope_' + s.replace(':', '_'))
 const eventLabel = (s) => t('integrations.event_' + s.replaceAll('.', '_'))
@@ -72,18 +79,40 @@ function tokenStatus(token) {
       ? 'expired'
       : 'active'
 }
+const activeTokens = computed(() =>
+  (state.value?.tokens || []).filter(
+    (token) => !revokedIds.has(token.id) && tokenStatus(token) === 'active',
+  ),
+)
+function reportError(cause, current = revision) {
+  if (current !== revision) return
+  validation.value =
+    cause.status === 422 || cause.messageKey === 'integrations.selectProjectRequired' ? cause : null
+  toast.error(() => formatApiError(cause))
+}
 async function load(current = revision) {
+  const attempt = ++listRevision,
+    version = dataRevision
   const result = await api.request(root)
-  if (current === revision) state.value = result
+  if (current !== revision || attempt !== listRevision || version !== dataRevision) return false
+  state.value = {
+    ...result,
+    tokens: result.tokens.filter((token) => !revokedIds.has(token.id)),
+    webhooks: result.webhooks.filter((hook) => !deletedIds.has(hook.id)),
+  }
+  loadFailed.value = false
+  return true
 }
 async function retryLoad() {
+  if (loading.value || busy.value) return
   const current = revision
-  error.value = ''
+  validation.value = null
   loading.value = true
   try {
     await load(current)
   } catch (cause) {
-    if (current === revision) error.value = cause
+    if (current === revision) loadFailed.value = true
+    reportError(cause, current)
   } finally {
     if (current === revision) loading.value = false
   }
@@ -100,11 +129,19 @@ async function showSecret(value) {
   secretDialog.value?.showModal()
 }
 async function copy() {
+  if (copying.value || !secret.value) return
+  const current = revision,
+    value = secret.value
+  copying.value = true
   try {
-    await navigator.clipboard.writeText(secret.value)
+    await navigator.clipboard.writeText(value)
+    if (current !== revision || value !== secret.value) return
+    if (!copied.value) toast.success(() => t('integrations.copied'))
     copied.value = true
   } catch {
-    error.value = { messageKey: 'ui.weCouldNotCompleteThisActionPleaseTry' }
+    reportError({ messageKey: 'ui.weCouldNotCompleteThisActionPleaseTry' }, current)
+  } finally {
+    if (current === revision) copying.value = false
   }
 }
 watch(
@@ -116,13 +153,22 @@ watch(
     deliveries.value = null
     selected.value = null
     resetHook()
-    error.value = ''
-    message.value = ''
+    validation.value = null
+    loadFailed.value = false
+    busy.value = false
+    historyBusy.value = false
+    copying.value = false
+    revokedIds.clear()
+    deletedIds.clear()
+    dataRevision++
+    listRevision++
+    historyRevision++
     loading.value = true
     try {
       if (allowed.value) await load(current)
     } catch (cause) {
-      if (current === revision) error.value = cause
+      if (current === revision) loadFailed.value = true
+      reportError(cause, current)
     } finally {
       if (current === revision) loading.value = false
     }
@@ -133,25 +179,84 @@ onBeforeUnmount(() => {
   revision++
   hideSecret()
 })
-async function action(path, method, body, queued = false) {
+async function action(
+  path,
+  method,
+  body,
+  { queued = false, successKey = 'integrations.saved', apply, refresh = true } = {},
+) {
   if (busy.value || !allowed.value) return
   const current = revision
   busy.value = true
-  error.value = ''
-  message.value = ''
+  validation.value = null
+  let result
   try {
-    const result = await api.request(root + path, { method, body })
+    result = await api.request(root + path, { method, body })
     if (current !== revision) return
+    dataRevision++
+    listRevision++
+    apply?.(result)
     if (result.secret) await showSecret(result.secret)
-    await load(current)
-    if (selected.value) await history(selected.value, page.value)
-    message.value = queued ? 'integrations.queued' : 'integrations.saved'
-    return result
+    if (refresh) {
+      await load(current)
+      if (current !== revision) return
+      if (selected.value && !deletedIds.has(selected.value.id))
+        await loadHistory(selected.value, page.value, current)
+    }
+    if (current === revision) {
+      if (queued) toast.info(() => t('integrations.queued'))
+      else toast.success(() => t(successKey))
+      return result
+    }
   } catch (cause) {
-    if (current === revision) error.value = cause
+    reportError(cause, current)
+    if (result && current === revision) loadFailed.value = true
+    return current === revision ? result : undefined
   } finally {
     if (current === revision) busy.value = false
   }
+}
+async function revoke(token) {
+  if (busy.value || !window.confirm(t('integrations.confirmRevoke'))) return
+  return action('/tokens/' + token.id, 'DELETE', undefined, {
+    refresh: false,
+    successKey: 'integrations.tokenRevoked',
+    apply() {
+      revokedIds.add(token.id)
+      state.value.tokens = state.value.tokens.filter((item) => item.id !== token.id)
+    },
+  })
+}
+async function deleteHook(hook) {
+  if (busy.value || !window.confirm(t('integrations.confirmDelete', { name: hook.name }))) return
+  return action('/webhooks/' + hook.id, 'DELETE', undefined, {
+    refresh: false,
+    successKey: 'integrations.webhookDeleted',
+    apply() {
+      deletedIds.add(hook.id)
+      state.value.webhooks = state.value.webhooks.filter((item) => item.id !== hook.id)
+      if (selected.value?.id === hook.id) {
+        historyRevision++
+        selected.value = null
+        deliveries.value = null
+      }
+      if (editing.value === hook.id) resetHook()
+    },
+  })
+}
+function toggleHook(hook, event) {
+  const enabled = event.target.checked
+  event.target.checked = hook.enabled
+  return action(
+    '/webhooks/' + hook.id,
+    'PATCH',
+    { enabled },
+    {
+      apply() {
+        hook.enabled = enabled
+      },
+    },
+  )
 }
 async function createToken() {
   const result = await action('/tokens', 'POST', {
@@ -184,7 +289,7 @@ function resetHook() {
 }
 async function saveHook() {
   if (projectFilter.value === 'selected' && !validProjectIds.value.length) {
-    error.value = { messageKey: 'integrations.selectProjectRequired' }
+    reportError({ messageKey: 'integrations.selectProjectRequired' })
     return
   }
   const result = await action(
@@ -200,21 +305,28 @@ async function saveHook() {
   )
   if (result) resetHook()
 }
+async function loadHistory(hook, targetPage = 1, current = revision) {
+  const attempt = ++historyRevision
+  const result = await api.request(`${root}/webhooks/${hook.id}/deliveries?page=${targetPage}`)
+  if (current !== revision || attempt !== historyRevision || deletedIds.has(hook.id)) return
+  selected.value = hook
+  deliveries.value = result
+  page.value = targetPage
+}
 async function history(hook, targetPage = 1) {
+  if (historyBusy.value) return
   const current = revision
+  historyBusy.value = true
   try {
-    const result = await api.request(`${root}/webhooks/${hook.id}/deliveries?page=${targetPage}`)
-    if (current === revision) {
-      selected.value = hook
-      deliveries.value = result
-      page.value = targetPage
-    }
+    await loadHistory(hook, targetPage, current)
   } catch (cause) {
-    if (current === revision) error.value = cause
+    if (!deletedIds.has(hook.id)) reportError(cause, current)
+  } finally {
+    if (current === revision) historyBusy.value = false
   }
 }
 async function confirmAction(key, path, method = 'POST') {
-  if (window.confirm(t('integrations.' + key))) return action(path, method)
+  if (!busy.value && window.confirm(t('integrations.' + key))) return action(path, method)
 }
 </script>
 <template>
@@ -227,8 +339,14 @@ async function confirmAction(key, path, method = 'POST') {
     </div>
     <p v-if="!allowed" role="alert">{{ t('integrations.readOnly') }}</p>
     <template v-else>
-      <p v-if="error" class="field-error" role="alert">{{ errorMessage }}</p>
-      <p v-if="message" role="status" class="account-success">{{ t(message) }}</p>
+      <button
+        v-if="loadFailed && state"
+        class="button secondary"
+        :disabled="busy || loading"
+        @click="retryLoad"
+      >
+        {{ t('ui.tryAgain') }}
+      </button>
       <div class="integration-tabs" role="tablist" :aria-label="t('integrations.title')">
         <button
           v-for="item in ['tokens', 'webhooks']"
@@ -257,6 +375,9 @@ async function confirmAction(key, path, method = 'POST') {
         >
           <form class="surface integration-form" @submit.prevent="createToken">
             <h2>{{ t('integrations.create') }} · {{ t('integrations.tokens') }}</h2>
+            <p v-if="validation && tab === 'tokens'" class="field-error" role="alert">
+              {{ validationMessage }}
+            </p>
             <label class="field" for="token-name"
               >{{ t('integrations.name')
               }}<input id="token-name" v-model="name" maxlength="100" required :disabled="busy"
@@ -284,8 +405,8 @@ async function confirmAction(key, path, method = 'POST') {
           </form>
           <section class="surface integration-list">
             <h2>{{ t('integrations.tokens') }}</h2>
-            <p v-if="!state.tokens.length" class="muted">{{ t('integrations.empty') }}</p>
-            <article v-for="token in state.tokens" :key="token.id" class="integration-item">
+            <p v-if="!activeTokens.length" class="muted">{{ t('integrations.empty') }}</p>
+            <article v-for="token in activeTokens" :key="token.id" class="integration-item">
               <div>
                 <h3>{{ token.name }}</h3>
                 <p class="small">{{ token.scopes.map(scopeLabel).join(' · ') }}</p>
@@ -302,7 +423,7 @@ async function confirmAction(key, path, method = 'POST') {
                 v-if="!token.revokedAt"
                 class="button secondary"
                 :disabled="busy"
-                @click="confirmAction('confirmRevoke', '/tokens/' + token.id, 'DELETE')"
+                @click="revoke(token)"
               >
                 {{ t('integrations.revoke') }}
               </button>
@@ -318,6 +439,9 @@ async function confirmAction(key, path, method = 'POST') {
           <p class="muted small">{{ t('integrations.queueHint') }}</p>
           <form class="surface integration-form" @submit.prevent="saveHook">
             <h2>{{ t(editing ? 'integrations.edit' : 'integrations.create') }} · Webhook</h2>
+            <p v-if="validation && tab === 'webhooks'" class="field-error" role="alert">
+              {{ validationMessage }}
+            </p>
             <label class="field" for="hook-name"
               >{{ t('integrations.name')
               }}<input id="hook-name" v-model="hookName" maxlength="100" required :disabled="busy"
@@ -443,9 +567,7 @@ async function confirmAction(key, path, method = 'POST') {
                   type="checkbox"
                   :checked="hook.enabled"
                   :disabled="busy"
-                  @change="
-                    action('/webhooks/' + hook.id, 'PATCH', { enabled: $event.target.checked })
-                  "
+                  @change="toggleHook(hook, $event)"
                 />{{ t('integrations.enabled') }}</label
               >
               <div class="integration-actions">
@@ -454,10 +576,16 @@ async function confirmAction(key, path, method = 'POST') {
                 ><button
                   class="button secondary"
                   :disabled="busy || !hook.enabled"
-                  @click="action('/webhooks/' + hook.id + '/test', 'POST', undefined, true)"
+                  @click="
+                    action('/webhooks/' + hook.id + '/test', 'POST', undefined, { queued: true })
+                  "
                 >
                   {{ t('integrations.test') }}</button
-                ><button class="button secondary" :disabled="busy" @click="history(hook)">
+                ><button
+                  class="button secondary"
+                  :disabled="busy || historyBusy"
+                  @click="history(hook)"
+                >
                   {{ t('integrations.history') }}</button
                 ><button
                   class="text-button"
@@ -465,18 +593,7 @@ async function confirmAction(key, path, method = 'POST') {
                   @click="confirmAction('confirmRotate', '/webhooks/' + hook.id + '/rotate')"
                 >
                   {{ t('integrations.rotate') }}</button
-                ><button
-                  class="text-button danger"
-                  :disabled="busy"
-                  @click="
-                    confirmAction('confirmDelete', '/webhooks/' + hook.id, 'DELETE')
-                      .then(() => {
-                        selected = null
-                        deliveries = null
-                      })
-                      .catch(() => {})
-                  "
-                >
+                ><button class="text-button danger" :disabled="busy" @click="deleteHook(hook)">
                   {{ t('integrations.delete') }}
                 </button>
               </div>
@@ -485,7 +602,11 @@ async function confirmAction(key, path, method = 'POST') {
           <section v-if="deliveries && selected" class="surface integration-list">
             <div class="integration-actions">
               <h2>{{ t('integrations.history') }} · {{ selected.name }}</h2>
-              <button class="button secondary" :disabled="busy" @click="history(selected, page)">
+              <button
+                class="button secondary"
+                :disabled="busy || historyBusy"
+                @click="history(selected, page)"
+              >
                 {{ t('integrations.refresh') }}
               </button>
             </div>
@@ -522,7 +643,7 @@ async function confirmAction(key, path, method = 'POST') {
                     '/webhooks/' + selected.id + '/deliveries/' + delivery.id + '/retry',
                     'POST',
                     undefined,
-                    true,
+                    { queued: true },
                   )
                 "
               >
@@ -532,14 +653,14 @@ async function confirmAction(key, path, method = 'POST') {
             <div class="integration-actions">
               <button
                 class="button secondary"
-                :disabled="page <= 1 || busy"
+                :disabled="page <= 1 || busy || historyBusy"
                 @click="history(selected, page - 1)"
               >
                 {{ t('integrations.previous') }}</button
               ><span>{{ page }} / {{ deliveries.meta.lastPage }}</span
               ><button
                 class="button secondary"
-                :disabled="page >= deliveries.meta.lastPage || busy"
+                :disabled="page >= deliveries.meta.lastPage || busy || historyBusy"
                 @click="history(selected, page + 1)"
               >
                 {{ t('integrations.next') }}
@@ -561,7 +682,7 @@ async function confirmAction(key, path, method = 'POST') {
       <p>{{ t('integrations.onceHint') }}</p>
       <code v-if="secret" class="integration-secret-value">{{ secret }}</code>
       <div class="integration-actions">
-        <button class="button primary" @click="copy">
+        <button class="button primary" :disabled="copying" @click="copy">
           {{ t(copied ? 'integrations.copied' : 'integrations.copy') }}</button
         ><button class="button secondary" @click="hideSecret">{{ t('integrations.close') }}</button>
       </div>

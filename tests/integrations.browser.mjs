@@ -12,7 +12,10 @@ await new Promise((resolve) => portProbe.close(resolve))
 import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
-const output = new URL('../docs/milestone-5-0/', import.meta.url)
+const output = new URL(
+  process.env.INTEGRATION_OUTPUT_DIR || '../docs/milestone-5-0/',
+  import.meta.url,
+)
 await mkdir(output, { recursive: true })
 const scratch = await mkdtemp(path.join(tmpdir(), 'milestone50-e2e-'))
 const database = path.join(scratch, 'test.sqlite')
@@ -202,7 +205,10 @@ try {
   await shot(page, 'mobile-tokens-ru-light')
   page.once('dialog', (d) => d.accept())
   await page.getByRole('button', { name: 'Отозвать', exact: true }).click()
-  await page.getByText('Отозван', { exact: false }).waitFor()
+  await page
+    .getByText('API-ключ отозван. Для дальнейшей работы создайте новый.', { exact: true })
+    .waitFor()
+  assert.equal(await page.locator('#integration-panel-tokens .integration-item').count(), 0)
   assert.equal(
     (
       await context.request.get(origin + '/api/v1/projects', {

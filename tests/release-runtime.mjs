@@ -745,13 +745,54 @@ echo json_encode(['events'=>$rows->count(),'selection'=>app(\\App\\Services\\Web
       'project.client_comment_created',
     ),
   )
+  const cleanupFixture = path.join(fixtureRoot, 'integration-cleanup-fixture.php')
+  await writeFile(
+    cleanupFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$user = \\App\\Models\\User::where('email','release@example.test')->firstOrFail();
+$request = \\Illuminate\\Http\\Request::create('/api/admin/integrations','DELETE');
+$request->setLaravelSession(app('session')->driver());
+$request->setUserResolver(fn () => $user);
+$controller = app(\\App\\Http\\Controllers\\IntegrationController::class);
+$requests = \\Illuminate\\Support\\Facades\\DB::table('integration_requests')->count();
+$controller->revoke($request,$argv[2]);
+$token = \\Illuminate\\Support\\Facades\\DB::table('integration_tokens')->where('uuid',$argv[2])->first();
+if (!$token->revoked_at || !$token->last_used_at || $requests < 1 || $requests !== \\Illuminate\\Support\\Facades\\DB::table('integration_requests')->count()) { throw new RuntimeException('Packaged token audit preservation failed'); }
+$endpoint = \\Illuminate\\Support\\Facades\\DB::table('webhook_endpoints')->first();
+$delivery = \\Illuminate\\Support\\Facades\\DB::table('webhook_deliveries')->first();
+\\Illuminate\\Support\\Facades\\DB::table('webhook_attempts')->insert(['webhook_delivery_id'=>$delivery->id,'attempt'=>1,'status'=>'failed','http_status'=>400,'error_code'=>'remote_rejected','duration_ms'=>1,'created_at'=>now()]);
+$controller->destroy($request,$endpoint->uuid);
+foreach (['webhook_endpoints','webhook_endpoint_projects','webhook_deliveries','webhook_attempts'] as $table) {
+    if (\\Illuminate\\Support\\Facades\\DB::table($table)->count() !== 0) { throw new RuntimeException('Packaged cascade failed: '.$table); }
+}
+if (\\Illuminate\\Support\\Facades\\DB::table('webhook_events')->count() !== 2) { throw new RuntimeException('Shared events were deleted'); }
+echo json_encode(['ok'=>true]);
+`,
+  )
+  assert.equal(JSON.parse(command([cleanupFixture, application, integration.id])).ok, true)
+  assert.equal((await callIntegration('/api/v1/projects')).status, 401)
+  assert.equal(
+    (await callIntegration('/api/v1/projects', { method: 'POST', body: projectPayload })).status,
+    401,
+  )
+  assert.equal(
+    JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
+    '0.5.0.2',
+  )
+  assert.match(
+    await readFile(path.join(packageRoot, 'GUIDES/milestone-5-0-2/README.md'), 'utf8'),
+    /active-only/,
+  )
   command(['artisan', 'down'])
   assert.equal((await request('/admin/login')).status, 503)
   command(['artisan', 'up'])
   assert.equal((await request('/admin/login')).status, 200)
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
-    'PASS: Packaged project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
+    'PASS: Packaged token revocation/audit and webhook history cascade; project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
   )
 } finally {
   if (server && server.exitCode === null) {

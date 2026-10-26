@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "screenshots": [
+    "desktop-revoked-toast-ru-light",
+    "desktop-toast-ru-light",
+    "mobile-toast-ru-light",
+    "desktop-toast-ru-dark",
+    "mobile-toast-ru-dark",
+    "desktop-toast-ru-system",
+    "mobile-toast-ru-system",
+    "desktop-toast-en-light",
+    "mobile-toast-en-light",
+    "desktop-toast-en-dark",
+    "mobile-toast-en-dark",
+    "desktop-toast-en-system",
+    "mobile-toast-en-system",
+    "mobile-owner-navigation-ru-light",
+    "mobile-project-navigation-ru-light"
+  ],
+  "checks": [
+    "global success/error/info without inline banners",
+    "422 inline validation retained",
+    "500/403/network failure never succeeds",
+    "post-mutation refresh failure reports only error and can retry read",
+    "active-only policy excludes revoked and expired metadata",
+    "pending duplicate mutation blocked",
+    "clipboard failure/success and repeat deduplication",
+    "revoke cancel/failure/delayed success/401/reload/stale list",
+    "webhook create/filter/edit/toggle/test/history/retry/rotate",
+    "named irreversible deletion warning",
+    "delete cancel/failure preserves selected history",
+    "delayed DELETE and stale history cannot resurrect",
+    "RU/EN light/dark/system desktop/320px toast bounds",
+    "single return link and personal-settings integration in desktop/mobile/project sidebars",
+    "workspace role switch/admin/guest denial"
+  ],
+  "errors": []
+}

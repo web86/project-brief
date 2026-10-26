@@ -8,7 +8,10 @@ import path from 'node:path'
 import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
-const output = new URL('../docs/milestone-5-0-1/', import.meta.url)
+const output = new URL(
+  process.env.INTEGRATION_OUTPUT_DIR || '../docs/milestone-5-0-1/',
+  import.meta.url,
+)
 await mkdir(output, { recursive: true })
 const scratch = await mkdtemp(path.join(tmpdir(), 'milestone501-e2e-'))
 const database = path.join(scratch, 'browser.sqlite')
@@ -151,10 +154,11 @@ try {
     } else await route.continue()
   })
   await page.locator('.admin-sidebar a[href="/admin/settings/integrations"]').click()
-  await page.locator('.integrations-page [role="alert"]').waitFor()
+  await page.locator('.app-toast.toast-error').waitFor()
   await page.locator('.integrations-page > button').click()
   await page.locator('#token-name').waitFor()
   assert.equal(await page.locator('.integrations-page [role=alert]').count(), 0)
+  await page.evaluate(async () => (await import('/src/services/toast.js')).toast.clear())
   await language(page, 'ru')
   await theme(page, 'light')
   await page.getByRole('tab', { name: 'Webhooks', exact: true }).click()

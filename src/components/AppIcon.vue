@@ -7,6 +7,7 @@ const paths = {
   mail: 'M3 5h18v14H3zM3 5l9 7 9-7',
   users:
     'M16 21v-2a6 6 0 0 0-12 0v2M10 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM17 4a4 4 0 0 1 0 8M20 21v-2a6 6 0 0 0-3-5',
+  'user-check': 'M12 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM2 21v-2a6 6 0 0 1 12 0v2M16 11l2 2 4-4',
   settings: 'M4 7h16M4 17h16M8 4v6M16 14v6',
   'list-tree': 'M4 3v14h5M4 7h5M12 4h8v6h-8zM12 14h8v6h-8z',
   grip: 'M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01',

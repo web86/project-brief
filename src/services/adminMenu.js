@@ -2,7 +2,7 @@ export const projectMenu = [
   { section: 'brief', icon: 'grid' },
   { section: 'discussions', icon: 'comment' },
   { section: 'clients', icon: 'users', permission: 'manage_clients' },
-  { section: 'team', icon: 'users', owner: true },
+  { section: 'team', icon: 'user-check', owner: true },
   { section: 'structure', permission: 'manage_structure', icon: 'list-tree' },
   { section: 'notifications', permission: 'manage_project_notifications', icon: 'bell' },
   { section: 'settings', permission: 'manage_project_settings', icon: 'settings' },

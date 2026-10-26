@@ -81,7 +81,15 @@ async function select(event) {
         :aria-label="t('nav.projects')"
         :aria-busy="nav.loading || nav.refreshing"
       >
-        <h2>{{ t('nav.projects') }}</h2>
+        <h2>
+          <RouterLink
+            to="/admin"
+            class="sidebar-project-heading"
+            :aria-current="route.path === '/admin' ? 'page' : undefined"
+            @click="emit('navigate')"
+            ><AppIcon name="arrow" :size="16" /><span>{{ t('nav.allProjects') }}</span></RouterLink
+          >
+        </h2>
         <div
           v-if="nav.loading && !nav.projects.length"
           class="sidebar-skeleton"
@@ -114,33 +122,19 @@ async function select(event) {
       </nav>
     </div>
     <nav
-      v-if="nav.workspace && nav.user?.membershipRole === 'owner'"
-      class="sidebar-general"
-      :aria-label="t('integrations.title')"
+      class="sidebar-general personal-settings-nav"
+      :aria-label="t('centralNotifications.mySettings')"
     >
+      <h2>{{ t('centralNotifications.mySettings') }}</h2>
       <RouterLink
         v-if="nav.workspace && nav.user?.membershipRole === 'owner'"
         to="/admin/settings/integrations"
-        :aria-current="$route.path === '/admin/settings/integrations' ? 'page' : undefined"
+        :aria-current="route.path === '/admin/settings/integrations' ? 'page' : undefined"
         @click="emit('navigate')"
         ><AppIcon name="settings" :size="20" /><span>{{
           t('integrations.title')
         }}</span></RouterLink
       >
-    </nav>
-    <nav class="sidebar-general" :aria-label="t('nav.general')">
-      <RouterLink
-        to="/admin"
-        :aria-current="route.path === '/admin' ? 'page' : undefined"
-        @click="emit('navigate')"
-        ><AppIcon name="arrow" :size="20" /><span>{{ t('nav.allProjects') }}</span></RouterLink
-      >
-    </nav>
-    <nav
-      class="sidebar-general personal-settings-nav"
-      :aria-label="t('centralNotifications.mySettings')"
-    >
-      <h2>{{ t('centralNotifications.mySettings') }}</h2>
       <RouterLink
         to="/admin/account"
         :aria-current="route.path.startsWith('/admin/account') ? 'page' : undefined"

@@ -89,3 +89,56 @@ test('documented PHP verifier accepts raw bytes and rejects tampering and stale 
   assert.equal(verify(body.trim()).status, 1)
   assert.equal(verify(body, '1000000000').status, 1)
 })
+
+test('general and project navigation keep one return link and integrations under personal settings', async () => {
+  const nav = useNav()
+  nav.ready = true
+  nav.workspace = { id: 'studio', name: 'Studio' }
+  nav.workspaces = [nav.workspace]
+  nav.user = { name: 'Alex', membershipRole: 'owner' }
+  const router = routerFactory({ history: createMemoryHistory(), apiMode: true })
+  await router.push('/admin')
+  const html = await renderToString(createSSRApp(Sidebar).use(router).use(i18n))
+  assert.equal((html.match(/sidebar-project-heading/g) || []).length, 1)
+  const heading = html.match(/<a[^>]*sidebar-project-heading[^>]*>/)[0]
+  assert.match(heading, /href="\/admin"/)
+  assert.match(heading, /aria-current="page"/)
+  assert.equal((html.match(/All projects|Все проекты/g) || []).length, 1)
+  assert.ok(
+    html.indexOf('personal-settings-nav') < html.indexOf('href="/admin/settings/integrations"'),
+  )
+  const ProjectSidebar = (await server.ssrLoadModule('/src/components/ProjectSidebar.vue')).default
+  for (const role of ['owner', 'admin']) {
+    nav.user.membershipRole = role
+    const projectHtml = await renderToString(
+      createSSRApp(ProjectSidebar, { project: { id: 'project', name: 'Project' } })
+        .use(router)
+        .use(i18n),
+    )
+    assert.equal((projectHtml.match(/project-all-projects/g) || []).length, 1)
+    assert.equal(projectHtml.includes('href="/admin/settings/integrations"'), role === 'owner')
+    if (role === 'owner')
+      assert.ok(
+        projectHtml.indexOf('project-personal-heading') <
+          projectHtml.indexOf('href="/admin/settings/integrations"'),
+      )
+  }
+  nav.workspace = null
+  nav.user.membershipRole = 'owner'
+  const noWorkspace = await renderToString(createSSRApp(Sidebar).use(router).use(i18n))
+  assert.equal(noWorkspace.includes('href="/admin/settings/integrations"'), false)
+})
+
+test('team and clients render different SVG icons in the shared menu', async () => {
+  const { projectMenu } = await server.ssrLoadModule('/src/services/adminMenu.js')
+  const Icon = (await server.ssrLoadModule('/src/components/AppIcon.vue')).default
+  const team = projectMenu.find((item) => item.section === 'team')
+  const clients = projectMenu.find((item) => item.section === 'clients')
+  assert.equal(team.icon, 'user-check')
+  assert.equal(clients.icon, 'users')
+  const teamSvg = await renderToString(createSSRApp(Icon, { name: team.icon }))
+  const clientsSvg = await renderToString(createSSRApp(Icon, { name: clients.icon }))
+  assert.notEqual(teamSvg, clientsSvg)
+  assert.match(teamSvg, /viewbox="0 0 24 24"/i)
+  assert.match(teamSvg, /M16 11l2 2 4-4/)
+})

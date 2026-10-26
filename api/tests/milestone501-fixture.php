@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\IntegrationController;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -9,6 +10,7 @@ use App\Services\WebhookEvents;
 use App\Services\WebhookProcessor;
 use App\Services\WebhookProjectFilter;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -21,7 +23,7 @@ if (! app()->environment('testing') || config('database.default') !== 'sqlite' |
     throw new RuntimeException('Disposable Milestone 5.0.1 SQLite fixture required.');
 }
 $mode = $argv[1] ?? 'seed';
-if ($mode === 'process' || $mode === 'inflight') {
+if ($mode === 'process' || $mode === 'inflight' || $mode === 'reject') {
     $app->instance(WebhookDestination::class, new class extends WebhookDestination
     {
         public function resolve(string $url): array
@@ -36,7 +38,7 @@ if ($mode === 'process' || $mode === 'inflight') {
             usleep(700000);
         }
 
-        return Http::response('', 204);
+        return Http::response('', $mode === 'reject' ? 400 : 204);
     });
     echo json_encode(['processed' => app(WebhookProcessor::class)->process($mode === 'inflight' ? 1 : 20)]);
     exit;
@@ -66,6 +68,20 @@ if ($mode === 'change-filter') {
         DB::table('webhook_deliveries')->where('webhook_endpoint_id', $old->id)->where('status', 'pending')->update(['status' => 'cancelled', 'error_code' => 'endpoint_changed']);
     });
     echo '{}';
+    exit;
+}
+if ($mode === 'delete-endpoint') {
+    config(['database.connections.sqlite.transaction_mode' => 'IMMEDIATE', 'database.connections.sqlite.busy_timeout' => 5000]);
+    DB::purge();
+    $request = Request::create('/api/admin/integrations/webhooks/'.$argv[2], 'DELETE');
+    $request->setLaravelSession(app('session')->driver());
+    $request->setUserResolver(fn () => User::where('email', 'owner501@example.test')->firstOrFail());
+    $response = app(IntegrationController::class)->destroy($request, $argv[2]);
+    echo $response->getContent();
+    exit;
+}
+if ($mode === 'cleanup-stats') {
+    echo json_encode(['endpoints' => DB::table('webhook_endpoints')->count(), 'deliveries' => DB::table('webhook_deliveries')->count(), 'attempts' => DB::table('webhook_attempts')->count(), 'selections' => DB::table('webhook_endpoint_projects')->count(), 'events' => DB::table('webhook_events')->count(), 'uuid' => DB::table('webhook_endpoints')->value('uuid')]);
     exit;
 }
 if ($mode === 'stats') {

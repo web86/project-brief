@@ -145,11 +145,11 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0-1/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-5-0-2/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0-1/RELEASE.md'),
+    path.join(root, 'docs/milestone-5-0-2/RELEASE.md'),
     path.join(staging, 'RELEASE-NOTES.md'),
   )
   for (const entry of ['README.md', 'openapi.json', 'verify-webhook.php']) {
@@ -186,6 +186,26 @@ try {
       path.join(staging, 'GUIDES/milestone-5-0-1', entry),
     )
   }
+  for (const entry of [
+    'README.md',
+    'PRODUCTION.md',
+    'RELEASE.md',
+    'VERIFICATION.md',
+    'browser-results.json',
+    'desktop-revoked-toast-ru-light.png',
+    'mobile-owner-navigation-ru-light.png',
+    'mobile-project-navigation-ru-light.png',
+    ...['ru', 'en'].flatMap((locale) =>
+      ['light', 'dark', 'system'].flatMap((mode) =>
+        ['mobile', 'desktop'].map((size) => `${size}-toast-${locale}-${mode}.png`),
+      ),
+    ),
+  ]) {
+    await copyRelease(
+      path.join(root, 'docs/milestone-5-0-2', entry),
+      path.join(staging, 'GUIDES/milestone-5-0-2', entry),
+    )
+  }
   const integrationReadme = await readFile(path.join(staging, 'INTEGRATIONS/README.md'), 'utf8')
   await writeFile(
     path.join(staging, 'INTEGRATIONS/README.md'),
@@ -205,7 +225,7 @@ try {
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.5.0.1', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.5.0.2', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }

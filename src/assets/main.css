@@ -5337,3 +5337,27 @@ button.attachment-item:hover {
   outline: 2px solid var(--action);
   outline-offset: 3px;
 }
+
+.sidebar-project-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: inherit;
+  border-radius: 6px;
+}
+.sidebar-project-heading:hover {
+  color: var(--text);
+  background: var(--control-hover);
+}
+.sidebar-project-heading svg {
+  flex: 0 0 16px;
+}
+.project-personal-heading {
+  margin: 12px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

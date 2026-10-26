@@ -1,5 +1,10 @@
 export default {
   integrations: {
+    tokenRevoked: 'API token revoked. Create a new one to continue.',
+    webhookDeleted: 'Webhook and its delivery and attempt history deleted.',
+    confirmDelete:
+      'Delete Webhook “{name}”? Its delivery and attempt history will be permanently deleted. Events already sent cannot be recalled.',
+
     projectFilter: 'Projects',
     allProjects: 'All projects (including new ones)',
     selectedProjects: 'Selected projects',
@@ -55,7 +60,7 @@ export default {
     next: 'Next',
     previous: 'Previous',
     confirmRevoke: 'Revoke this token? The integration will lose access immediately.',
-    confirmDelete: 'Delete this webhook and its delivery history?',
+
     confirmRotate:
       'Rotate this secret? Pending deliveries will be cancelled. Update the receiver secret.',
     queueHint:
