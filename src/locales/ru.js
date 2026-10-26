@@ -1,5 +1,20 @@
 export default {
   integrations: {
+    projectFilter: 'Проекты',
+    allProjects: 'Все проекты (включая новые)',
+    selectedProjects: 'Выбранные проекты',
+    searchProjects: 'Поиск проектов',
+    selectedCount: 'Выбрано: {count}',
+    noProjects: 'В этом рабочем пространстве пока нет проектов.',
+    noProjectMatches: 'По вашему запросу проекты не найдены.',
+    selectProjectRequired: 'Выберите хотя бы один доступный проект.',
+    filterEmpty: 'Нет доступных выбранных проектов. Ничего не будет доставлено.',
+    filterHint:
+      'Изменение фильтра проектов отменяет ожидающие доставки. Доставки с ошибкой нельзя повторить со старым фильтром.',
+    event_task_client_comment_created: 'Клиент прокомментировал задачу',
+    event_project_client_comment_created: 'Клиент написал в обсуждении проекта',
+    error_project_filtered: 'Проект исключён или больше недоступен',
+
     title: 'Интеграции',
     hint: 'Свяжите рабочее пространство с CRM, n8n или внутренними системами.',
     tokens: 'API-ключи',

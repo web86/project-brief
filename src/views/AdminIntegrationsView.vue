@@ -19,6 +19,21 @@ const hookName = ref(''),
   url = ref(''),
   events = ref(['task.approved']),
   editing = ref(null)
+const projectFilter = ref('all'),
+  projectIds = ref([]),
+  projectSearch = ref('')
+const visibleProjects = computed(() =>
+  (state.value?.projects || []).filter((project) =>
+    project.name.toLowerCase().includes(projectSearch.value.trim().toLowerCase()),
+  ),
+)
+const validProjectIds = computed(() =>
+  projectIds.value.filter((id) => state.value?.projects?.some((project) => project.id === id)),
+)
+const projectNames = (hook) =>
+  hook.projectIds
+    ?.map((id) => state.value?.projects?.find((project) => project.id === id)?.name)
+    .filter(Boolean) || []
 const secret = ref(''),
   secretDialog = ref(null),
   copied = ref(false)
@@ -28,7 +43,11 @@ const deliveries = ref(null),
 let revision = 0
 const root = '/api/admin/integrations'
 const errorMessage = computed(() =>
-  error.value?.errors?.url ? t('integrations.urlError') : formatApiError(error.value),
+  error.value?.errors?.projectIds || error.value?.errors?.['projectIds.0']
+    ? t('integrations.selectProjectRequired')
+    : error.value?.errors?.url
+      ? t('integrations.urlError')
+      : formatApiError(error.value),
 )
 function selectTab(value) {
   tab.value = value
@@ -57,6 +76,18 @@ async function load(current = revision) {
   const result = await api.request(root)
   if (current === revision) state.value = result
 }
+async function retryLoad() {
+  const current = revision
+  error.value = ''
+  loading.value = true
+  try {
+    await load(current)
+  } catch (cause) {
+    if (current === revision) error.value = cause
+  } finally {
+    if (current === revision) loading.value = false
+  }
+}
 function hideSecret() {
   secret.value = ''
   copied.value = false
@@ -84,7 +115,7 @@ watch(
     state.value = null
     deliveries.value = null
     selected.value = null
-    editing.value = null
+    resetHook()
     error.value = ''
     message.value = ''
     loading.value = true
@@ -138,18 +169,34 @@ function edit(hook) {
   hookName.value = hook.name
   url.value = hook.url
   events.value = [...hook.events]
+  projectFilter.value = hook.projectFilter || 'all'
+  projectIds.value = [...(hook.projectIds || [])]
+  projectSearch.value = ''
 }
 function resetHook() {
   editing.value = null
   hookName.value = ''
   url.value = ''
   events.value = ['task.approved']
+  projectFilter.value = 'all'
+  projectIds.value = []
+  projectSearch.value = ''
 }
 async function saveHook() {
+  if (projectFilter.value === 'selected' && !validProjectIds.value.length) {
+    error.value = { messageKey: 'integrations.selectProjectRequired' }
+    return
+  }
   const result = await action(
     '/webhooks' + (editing.value ? '/' + editing.value : ''),
     editing.value ? 'PATCH' : 'POST',
-    { name: hookName.value, url: url.value, events: events.value },
+    {
+      name: hookName.value,
+      url: url.value,
+      events: events.value,
+      projectFilter: projectFilter.value,
+      projectIds: projectFilter.value === 'selected' ? validProjectIds.value : [],
+    },
   )
   if (result) resetHook()
 }
@@ -198,11 +245,7 @@ async function confirmAction(key, path, method = 'POST') {
         </button>
       </div>
       <p v-if="loading" role="status">{{ t('nav.loading') }}</p>
-      <button
-        v-else-if="!state"
-        class="button secondary"
-        @click="load().catch((cause) => (error = cause))"
-      >
+      <button v-else-if="!state" class="button secondary" @click="retryLoad">
         {{ t('ui.tryAgain') }}
       </button>
       <template v-else>
@@ -290,6 +333,60 @@ async function confirmAction(key, path, method = 'POST') {
                 required
                 :disabled="busy"
             /></label>
+            <fieldset class="integration-choices integration-project-filter">
+              <legend>{{ t('integrations.projectFilter') }}</legend>
+              <label
+                ><input
+                  v-model="projectFilter"
+                  type="radio"
+                  name="project-filter"
+                  value="all"
+                  :disabled="busy"
+                />{{ t('integrations.allProjects') }}</label
+              >
+              <label
+                ><input
+                  v-model="projectFilter"
+                  type="radio"
+                  name="project-filter"
+                  value="selected"
+                  :disabled="busy"
+                />{{ t('integrations.selectedProjects') }}</label
+              >
+              <template v-if="projectFilter === 'selected'">
+                <label class="field" for="hook-project-search"
+                  >{{ t('integrations.searchProjects')
+                  }}<input
+                    id="hook-project-search"
+                    v-model="projectSearch"
+                    type="search"
+                    :disabled="busy"
+                /></label>
+                <p role="status" class="small muted">
+                  {{ t('integrations.selectedCount', { count: validProjectIds.length }) }}
+                </p>
+                <p v-if="!state.projects?.length" class="small muted">
+                  {{ t('integrations.noProjects') }}
+                </p>
+                <p v-else-if="!visibleProjects.length" class="small muted">
+                  {{ t('integrations.noProjectMatches') }}
+                </p>
+                <div class="integration-project-options">
+                  <label v-for="project in visibleProjects" :key="project.id"
+                    ><input
+                      v-model="projectIds"
+                      type="checkbox"
+                      :value="project.id"
+                      :disabled="busy"
+                    /><span>{{ project.name }}</span></label
+                  >
+                </div>
+                <p v-if="!validProjectIds.length" class="field-error">
+                  {{ t('integrations.selectProjectRequired') }}
+                </p>
+              </template>
+              <p class="small muted">{{ t('integrations.filterHint') }}</p>
+            </fieldset>
             <fieldset class="integration-choices">
               <legend>{{ t('integrations.events') }}</legend>
               <label v-for="event in state.events" :key="event"
@@ -304,7 +401,11 @@ async function confirmAction(key, path, method = 'POST') {
                 type="submit"
                 class="button primary"
                 :busy="busy"
-                :disabled="busy || !events.length"
+                :disabled="
+                  busy ||
+                  !events.length ||
+                  (projectFilter === 'selected' && !validProjectIds.length)
+                "
                 >{{ t(editing ? 'integrations.save' : 'integrations.create') }}</LoadingButton
               ><button
                 v-if="editing"
@@ -328,6 +429,15 @@ async function confirmAction(key, path, method = 'POST') {
               <h3>{{ hook.name }}</h3>
               <p class="integration-url">{{ hook.url }}</p>
               <p class="small muted">{{ hook.events.map(eventLabel).join(' · ') }}</p>
+              <p class="small integration-project-summary">
+                {{
+                  hook.projectFilter === 'selected'
+                    ? t('integrations.selectedProjects') +
+                      ': ' +
+                      (projectNames(hook).join(' · ') || t('integrations.filterEmpty'))
+                    : t('integrations.allProjects')
+                }}
+              </p>
               <label class="integration-toggle"
                 ><input
                   type="checkbox"
@@ -534,6 +644,27 @@ async function confirmAction(key, path, method = 'POST') {
 .integration-id {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+.integration-project-options {
+  max-height: 240px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+}
+.integration-project-options label {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+.integration-project-options span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.integration-project-filter .field {
+  display: grid;
+}
+.integration-project-filter input[type='search'] {
+  width: 100%;
+  min-width: 0;
 }
 .integration-toggle {
   display: flex;

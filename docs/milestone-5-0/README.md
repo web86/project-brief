@@ -299,3 +299,54 @@ workspace owner authorization. Root: `/api/admin/integrations`.
 Names are required nonblank strings up to 100 characters. Event and scope arrays
 must be unique, nonempty and drawn from their respective catalogs. Secrets, secret
 hashes, encrypted secrets and raw third-party responses are excluded from lists/history.
+
+## Milestone 5.0.1 — project filters and opt-in client comments
+
+Owner management remains at `/admin/settings/integrations`, within workspace
+settings. No project-level webhook settings or project-scoped API tokens were added.
+See [extension architecture and examples](../milestone-5-0-1/README.md) and
+[5.0.1 rollout/rollback](../milestone-5-0-1/PRODUCTION.md).
+
+Webhook POST/PATCH accept `projectFilter: "all" | "selected"` and `projectIds: UUID[]`.
+Create defaults to `all` with `[]`, preserving 5.0 request compatibility; existing
+endpoints migrate to all without altering events, keys, secrets, versions or history.
+PATCH without either field retains the current filter. For selected, at least one
+available workspace project is required; max 1000 unique UUIDs. For all, the array
+must be empty. When PATCH changes only projectIds, the existing mode is retained;
+changing to all without projectIds clears its list. Owner GET now also returns a
+`projects` catalog of `{id,name}` and each webhook's `projectFilter` and `projectIds`.
+The filter applies only to webhook deliveries, never to the endpoint owner's API token.
+
+`all` includes projects created later. `selected` uses explicit UUIDs validated in
+the same workspace, backed by composite endpoint/workspace and project/workspace
+foreign keys. Project deletion cascades its selection. A selected endpoint with no
+remaining projects delivers no business events; the UI requires a nonempty list
+before saving a filter. Project moves cannot create cross-workspace associations.
+`webhook.test` is still queued when enabled regardless of filter, with null projectId.
+
+A changed mode/set increments the existing endpoint version and cancels **all** its
+pending deliveries. Already failed deliveries retain history but cannot be retried
+under the old version. UUID order alone is a no-op. Immutable body/event/delivery IDs
+are preserved. Endpoint locks serialize mutations with in-flight HTTP: an already
+running authorized attempt may finish before the filter update acquires the lock.
+The cron processor and manual retry also recheck current project membership/filter,
+so deleted/excluded projects fail closed (`cancelled` / `project_filtered` at send).
+Events excluded before outbox creation have no delivery/history row; no confidential
+comment data is recorded in a filtering log. The existing lease, HMAC and retries
+remain unchanged.
+
+Two new event types require **explicit opt-in** on every endpoint, including new
+ones: `task.client_comment_created`, `project.client_comment_created`. They are
+emitted only on first successful client comment creation in `CommentSubmission::store`,
+inside its existing atomic transaction with attachments, audit and outbox. Rollback,
+failed attachments, submissionId conflict and replay create no duplicate event.
+Admin/developer comments do not emit them. Email/push/Telegram settings and personal
+preferences do not affect webhook subscriptions or project filtering.
+
+Both extend the unchanged v1 envelope with `commentId` (comment UUID); changes is
+`{}`, actor is `{type:"client",id:<client_uuid>}`, origin is `ui`. taskId is the task
+UUID for task comments and null for general discussions. Payload contains **no**
+comment text, filenames/attachments/private URLs, names, email, developer notes,
+prices or hours. No magic links or new comment-read endpoint is provided. Existing
+event types do not gain commentId or otherwise change their payload format. Receiver
+HMAC verification over raw bytes and event ID deduplication are the same as 5.0.

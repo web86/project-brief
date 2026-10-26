@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "screenshots": [
+    "desktop-create-filter-ru-light",
+    "desktop-comment-deliveries-en-dark",
+    "mobile-edit-filter-en-dark",
+    "mobile-selected-summary-ru-light",
+    "mobile-owner-navigation-ru-light"
+  ],
+  "checks": [
+    "selected empty blocked",
+    "search and multiple selection",
+    "initial load error and retry",
+    "empty workspace blocks selected save",
+    "explicit new event opt-in",
+    "edit and switch all/selected",
+    "client task/general submission replay",
+    "excluded third project has no event/delivery",
+    "signed fake deliveries displayed",
+    "test bypasses selected",
+    "RU/EN light/dark desktop/320px",
+    "owner/admin/client/guest and workspace switch"
+  ],
+  "errors": []
+}

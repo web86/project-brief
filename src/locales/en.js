@@ -1,5 +1,20 @@
 export default {
   integrations: {
+    projectFilter: 'Projects',
+    allProjects: 'All projects (including new ones)',
+    selectedProjects: 'Selected projects',
+    searchProjects: 'Search projects',
+    selectedCount: 'Selected: {count}',
+    noProjects: 'This workspace has no projects yet.',
+    noProjectMatches: 'No projects match your search.',
+    selectProjectRequired: 'Select at least one available project.',
+    filterEmpty: 'No available projects selected. Nothing will be delivered.',
+    filterHint:
+      'Changing the project filter cancels pending deliveries. Previously failed deliveries cannot be retried under the old filter.',
+    event_task_client_comment_created: 'Client commented on a task',
+    event_project_client_comment_created: 'Client commented in project discussions',
+    error_project_filtered: 'Project excluded or no longer available',
+
     title: 'Integrations',
     hint: 'Connect this workspace to your CRM, n8n or internal tools.',
     tokens: 'API tokens',

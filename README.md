@@ -629,3 +629,15 @@ Bearer tokens, scopes, пагинацию и Idempotency-Key; клиентски
 [проверки и screenshots](docs/milestone-5-0/VERIFICATION.md),
 [обновление и откат](docs/milestone-5-0/PRODUCTION.md).
 Нужны additive миграция и cron; реальный Jino/CRM E2E выполняется при внедрении.
+
+## Milestone 5.0.1 — фильтры Webhooks и комментарии клиентов
+
+Владелец workspace выбирает все проекты (включая новые) или явный список проектов
+для каждого webhook. Изменение фильтра отменяет ожидающие доставки, а cron и ручной
+retry перепроверяют актуальную выборку. Новые события комментариев клиента к задаче
+и в общем обсуждении включаются явно; в payload только UUID, без текста и вложений.
+Существующие endpoints мигрируют в `all`, подписки и секреты сохраняются.
+
+[Архитектура и примеры](docs/milestone-5-0-1/README.md),
+[проверки и screenshots](docs/milestone-5-0-1/VERIFICATION.md),
+[миграция production и откат](docs/milestone-5-0-1/PRODUCTION.md).

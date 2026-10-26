@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use Illuminate\Support\Facades\DB;
@@ -9,7 +10,7 @@ use Illuminate\Support\Str;
 
 class WebhookEvents
 {
-    public const TYPES = ['project.created', 'project.updated', 'task.created', 'task.updated', 'task.status_changed', 'task.approved'];
+    public const TYPES = ['project.created', 'project.updated', 'task.created', 'task.updated', 'task.status_changed', 'task.approved', 'task.client_comment_created', 'project.client_comment_created'];
 
     public function project(Project $project, string $type, array $changes): void
     {
@@ -34,6 +35,18 @@ class WebhookEvents
         $this->emit($task->project, $task, $type, $changes);
     }
 
+    public function clientComment(Comment $comment, Project $project, ?Task $task): void
+    {
+        if ($comment->author_type !== 'client') {
+            return;
+        }
+        $this->enqueue($project->workspace_id, $task ? 'task.client_comment_created' : 'project.client_comment_created', [
+            'workspaceId' => $project->workspace->uuid, 'projectId' => $project->uuid, 'taskId' => $task?->uuid,
+            'commentId' => $comment->uuid, 'actor' => ['type' => 'client', 'id' => $comment->projectClient->uuid],
+            'changes' => (object) [], 'origin' => 'ui',
+        ]);
+    }
+
     public function emit(Project $project, ?Task $task, string $type, array $changes): void
     {
         $request = request();
@@ -46,7 +59,7 @@ class WebhookEvents
     public function enqueue(int $workspaceId, string $type, array $payload, ?int $onlyEndpoint = null): ?string
     {
         return DB::transaction(function () use ($workspaceId, $type, $payload, $onlyEndpoint): ?string {
-            $endpoints = DB::table('webhook_endpoints')->where('workspace_id', $workspaceId)->where('enabled', true)->when($onlyEndpoint, fn ($q) => $q->where('id', $onlyEndpoint))->lockForUpdate()->get()->filter(fn ($e) => $onlyEndpoint || in_array($type, json_decode($e->events, true), true));
+            $endpoints = DB::table('webhook_endpoints')->where('workspace_id', $workspaceId)->where('enabled', true)->when($onlyEndpoint, fn ($q) => $q->where('id', $onlyEndpoint))->lockForUpdate()->get()->filter(fn ($e) => ($onlyEndpoint || in_array($type, json_decode($e->events, true), true)) && app(WebhookProjectFilter::class)->matches($e, $type, $payload['projectId'] ?? null));
             if ($endpoints->isEmpty()) {
                 return null;
             }

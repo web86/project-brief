@@ -708,13 +708,50 @@ echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspa
       'bearerAuth',
     ),
   )
+  const webhookFixture = path.join(fixtureRoot, 'webhook-filter-fixture.php')
+  await writeFile(
+    webhookFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$project = \\App\\Models\\Project::where('uuid', $argv[2])->firstOrFail();
+$task = $project->tasks()->firstOrFail();
+$secret = 'whsec_'.bin2hex(random_bytes(32));
+$endpoint = \\Illuminate\\Support\\Facades\\DB::table('webhook_endpoints')->insertGetId(['uuid'=>(string) \\Illuminate\\Support\\Str::uuid(), 'workspace_id'=>$project->workspace_id, 'name'=>'Packaged selected webhook', 'url'=>'https://example.com/events', 'project_filter'=>'selected', 'events'=>json_encode(['task.client_comment_created','project.client_comment_created','project.updated']), 'enabled'=>true, 'secret'=>\\Illuminate\\Support\\Facades\\Crypt::encryptString($secret), 'secret_version'=>1, 'created_at'=>now(), 'updated_at'=>now()]);
+\\Illuminate\\Support\\Facades\\DB::table('webhook_endpoint_projects')->insert(['webhook_endpoint_id'=>$endpoint,'workspace_id'=>$project->workspace_id,'project_id'=>$project->id]);
+foreach ([$task,null] as $target) {
+    $comment = \\App\\Models\\Comment::create(['project_id'=>$project->id,'task_id'=>$target?->id,'project_client_id'=>$project->clients()->first()->id,'author_type'=>'client','text'=>'PRIVATE_PACKAGED_COMMENT']);
+    app(\\App\\Services\\WebhookEvents::class)->clientComment($comment,$project,$target);
+}
+$other = \\App\\Models\\Project::where('uuid',$argv[3])->firstOrFail();
+app(\\App\\Services\\WebhookEvents::class)->project($other,'project.updated',['title'=>'Excluded']);
+$rows = \\Illuminate\\Support\\Facades\\DB::table('webhook_events')->get();
+if ($rows->count() !== 2) { throw new RuntimeException('Packaged project filtering failed'); }
+foreach ($rows as $row) {
+    $body = json_decode($row->body,true);
+    if (!isset($body['commentId']) || str_contains($row->body,'PRIVATE_PACKAGED_COMMENT')) { throw new RuntimeException('Packaged comment metadata failed'); }
+}
+echo json_encode(['events'=>$rows->count(),'selection'=>app(\\App\\Services\\WebhookProjectFilter::class)->ids(\\Illuminate\\Support\\Facades\\DB::table('webhook_endpoints')->find($endpoint))]);
+`,
+  )
+  const packagedWebhooks = JSON.parse(
+    command([webhookFixture, application, fixture.project, fixture.foreignProject]),
+  )
+  assert.equal(packagedWebhooks.events, 2)
+  assert.deepEqual(packagedWebhooks.selection, [fixture.project])
+  assert.ok(
+    (await readFile(path.join(packageRoot, 'INTEGRATIONS/MILESTONE-5-0-1.md'), 'utf8')).includes(
+      'project.client_comment_created',
+    ),
+  )
   command(['artisan', 'down'])
   assert.equal((await request('/admin/login')).status, 503)
   command(['artisan', 'up'])
   assert.equal((await request('/admin/login')).status, 200)
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
-    'PASS: Packaged stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
+    'PASS: Packaged project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
   )
 } finally {
   if (server && server.exitCode === null) {

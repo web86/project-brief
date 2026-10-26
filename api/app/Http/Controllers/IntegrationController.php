@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\Workspace;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
 use App\Services\WebhookDestination;
 use App\Services\WebhookEvents;
+use App\Services\WebhookProjectFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -29,9 +31,9 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
 
-        return response()->json(['scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
+        return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
             'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at'])->map(fn ($t) => ['id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at]),
-            'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'url', 'events', 'enabled', 'created_at'])->map(fn ($e) => ['id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
+            'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['id', 'workspace_id', 'uuid', 'name', 'url', 'events', 'enabled', 'created_at', 'project_filter'])->map(fn ($e) => ['id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'projectFilter' => $e->project_filter, 'projectIds' => app(WebhookProjectFilter::class)->ids($e), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
         ])->header('Cache-Control', 'no-store');
     }
 
@@ -64,20 +66,29 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
         $required = $uuid ? 'sometimes' : 'required';
-        $data = $request->validate(['name' => [$required, 'string', 'max:100', 'regex:/\S/u'], 'url' => [$required, 'string', 'max:2048'], 'events' => [$required, 'array', 'min:1', 'max:6'], 'events.*' => [Rule::in(WebhookEvents::TYPES), 'distinct'], 'enabled' => ['sometimes', 'boolean']]);
+        $data = $request->validate(['name' => [$required, 'string', 'max:100', 'regex:/\S/u'], 'url' => [$required, 'string', 'max:2048'], 'events' => [$required, 'array', 'min:1', 'max:'.count(WebhookEvents::TYPES)], 'events.*' => [Rule::in(WebhookEvents::TYPES), 'distinct'], 'enabled' => ['sometimes', 'boolean'], 'projectFilter' => ['sometimes', Rule::in(['all', 'selected'])], 'projectIds' => ['sometimes', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct']]);
         if (isset($data['url'])) {
             app(WebhookDestination::class)->resolve($data['url']);
         }
 
         return DB::transaction(function () use ($workspace, $uuid, $data): JsonResponse {
             Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $existing = $uuid ? DB::table('webhook_endpoints')->where('workspace_id', $workspace)->where('uuid', $uuid)->first() : null;
+            abort_if($uuid && ! $existing, 404);
+            $filters = app(WebhookProjectFilter::class);
+            $filter = $filters->input($workspace, $data, $existing);
+            unset($data['projectFilter'], $data['projectIds']);
             if ($uuid) {
                 $endpoint = $this->endpoint($workspace, $uuid);
                 $values = [...$data, 'updated_at' => now()];
                 if (isset($data['events'])) {
                     $values['events'] = json_encode($data['events'], JSON_THROW_ON_ERROR);
                 }
-                $changed = (isset($data['url']) && $data['url'] !== $endpoint->url) || (isset($data['events']) && $data['events'] !== json_decode($endpoint->events, true)) || (isset($data['enabled']) && ! $data['enabled']);
+                $filterChanged = $filter !== null && $filters->replace($endpoint, $filter);
+                if ($filter !== null) {
+                    $values['project_filter'] = $filter['mode'];
+                }
+                $changed = $filterChanged || (isset($data['url']) && $data['url'] !== $endpoint->url) || (isset($data['events']) && $data['events'] !== json_decode($endpoint->events, true)) || (isset($data['enabled']) && ! $data['enabled']);
                 if ($changed) {
                     $values['secret_version'] = $endpoint->secret_version + 1;
                     $this->cancel($endpoint->id);
@@ -89,7 +100,10 @@ class IntegrationController extends Controller
             abort_if(DB::table('webhook_endpoints')->where('workspace_id', $workspace)->count() >= 20, 422, 'Endpoint limit reached.');
             $secret = 'whsec_'.bin2hex(random_bytes(32));
             $id = (string) Str::uuid();
-            DB::table('webhook_endpoints')->insert(['uuid' => $id, 'workspace_id' => $workspace, 'name' => $data['name'], 'url' => $data['url'], 'events' => json_encode($data['events'], JSON_THROW_ON_ERROR), 'enabled' => $data['enabled'] ?? true, 'secret' => Crypt::encryptString($secret), 'secret_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('webhook_endpoints')->insert(['project_filter' => $filter['mode'], 'uuid' => $id, 'workspace_id' => $workspace, 'name' => $data['name'], 'url' => $data['url'], 'events' => json_encode($data['events'], JSON_THROW_ON_ERROR), 'enabled' => $data['enabled'] ?? true, 'secret' => Crypt::encryptString($secret), 'secret_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+
+            $created = DB::table('webhook_endpoints')->where('uuid', $id)->first();
+            $filters->replace($created, $filter);
 
             return response()->json(['id' => $id, 'secret' => $secret], 201)->header('Cache-Control', 'no-store');
         });
@@ -156,8 +170,9 @@ class IntegrationController extends Controller
 
         return response()->json(['data' => $page->getCollection()->map(function ($d) use ($endpoint): array {
             $event = DB::table('webhook_events')->find($d->webhook_event_id);
+            $payload = json_decode($event->body, true, 512, JSON_THROW_ON_ERROR);
 
-            return ['id' => $d->uuid, 'eventId' => $event->uuid, 'type' => $event->type, 'status' => $d->status, 'attempts' => $d->attempts, 'httpStatus' => $d->http_status, 'errorCode' => $d->error_code, 'availableAt' => $d->available_at, 'createdAt' => $d->created_at, 'canRetry' => $d->status === 'failed' && $endpoint->enabled && $d->secret_version === $endpoint->secret_version, 'history' => DB::table('webhook_attempts')->where('webhook_delivery_id', $d->id)->orderBy('id')->get(['attempt', 'status', 'http_status', 'error_code', 'duration_ms', 'created_at'])];
+            return ['id' => $d->uuid, 'eventId' => $event->uuid, 'type' => $event->type, 'status' => $d->status, 'attempts' => $d->attempts, 'httpStatus' => $d->http_status, 'errorCode' => $d->error_code, 'availableAt' => $d->available_at, 'createdAt' => $d->created_at, 'canRetry' => app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null) && $d->status === 'failed' && $endpoint->enabled && $d->secret_version === $endpoint->secret_version, 'history' => DB::table('webhook_attempts')->where('webhook_delivery_id', $d->id)->orderBy('id')->get(['attempt', 'status', 'http_status', 'error_code', 'duration_ms', 'created_at'])];
         }), 'meta' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()]])->header('Cache-Control', 'no-store');
     }
 
@@ -169,6 +184,9 @@ class IntegrationController extends Controller
             $endpoint = $this->endpoint($workspace, $uuid);
             $row = DB::table('webhook_deliveries')->where('webhook_endpoint_id', $endpoint->id)->where('uuid', $delivery)->first();
             abort_unless($row, 404);
+            $event = $row ? DB::table('webhook_events')->find($row->webhook_event_id) : null;
+            $payload = $event ? json_decode($event->body, true, 512, JSON_THROW_ON_ERROR) : [];
+            abort_unless($event && $event->workspace_id === $endpoint->workspace_id && app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null), 409);
             abort_unless($endpoint->enabled && $endpoint->secret_version === $row->secret_version && $row->status === 'failed', 409);
             DB::table('webhook_deliveries')->where('id', $row->id)->update(['status' => 'pending', 'attempts' => 0, 'available_at' => now(), 'http_status' => null, 'error_code' => null, 'updated_at' => now()]);
 

@@ -145,11 +145,11 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-5-0-1/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-5-0/RELEASE.md'),
+    path.join(root, 'docs/milestone-5-0-1/RELEASE.md'),
     path.join(staging, 'RELEASE-NOTES.md'),
   )
   for (const entry of ['README.md', 'openapi.json', 'verify-webhook.php']) {
@@ -158,9 +158,54 @@ try {
       path.join(staging, 'INTEGRATIONS', entry),
     )
   }
+  await copyRelease(
+    path.join(root, 'docs/milestone-5-0-1/README.md'),
+    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
+  )
+  for (const entry of ['README.md', 'PRODUCTION.md', 'openapi.json', 'verify-webhook.php']) {
+    await copyRelease(
+      path.join(root, 'docs/milestone-5-0', entry),
+      path.join(staging, 'docs/milestone-5-0', entry),
+    )
+  }
+
+  for (const entry of [
+    'README.md',
+    'PRODUCTION.md',
+    'RELEASE.md',
+    'VERIFICATION.md',
+    'browser-results.json',
+    'desktop-create-filter-ru-light.png',
+    'desktop-comment-deliveries-en-dark.png',
+    'mobile-edit-filter-en-dark.png',
+    'mobile-selected-summary-ru-light.png',
+    'mobile-owner-navigation-ru-light.png',
+  ]) {
+    await copyRelease(
+      path.join(root, 'docs/milestone-5-0-1', entry),
+      path.join(staging, 'docs/milestone-5-0-1', entry),
+    )
+  }
+  const integrationReadme = await readFile(path.join(staging, 'INTEGRATIONS/README.md'), 'utf8')
+  await writeFile(
+    path.join(staging, 'INTEGRATIONS/README.md'),
+    integrationReadme.replaceAll('../milestone-5-0-1/', '../docs/milestone-5-0-1/'),
+  )
+  const extensionReadme = await readFile(
+    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
+    'utf8',
+  )
+  await writeFile(
+    path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-1.md'),
+    extensionReadme
+      .replaceAll('../milestone-5-0/README.md', 'README.md')
+      .replaceAll('../milestone-5-0/openapi.json', 'openapi.json')
+      .replaceAll('(VERIFICATION.md)', '(../docs/milestone-5-0-1/VERIFICATION.md)')
+      .replaceAll('(PRODUCTION.md)', '(../PRODUCTION.md)'),
+  )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.5.0', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.5.0.1', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }

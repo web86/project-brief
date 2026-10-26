@@ -62,6 +62,12 @@ class WebhookProcessor
                 return true;
             }
             $event = DB::table('webhook_events')->find($delivery->webhook_event_id);
+            $payload = json_decode($event->body, true, 512, JSON_THROW_ON_ERROR);
+            if ($event->workspace_id !== $endpoint->workspace_id || ! app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null)) {
+                DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => 'cancelled', 'error_code' => 'project_filtered', 'updated_at' => now()]);
+
+                return true;
+            }
             $attempt = $delivery->attempts + 1;
             DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => 'processing', 'available_at' => now()->addSeconds(90), 'attempts' => $attempt]);
             $started = microtime(true);

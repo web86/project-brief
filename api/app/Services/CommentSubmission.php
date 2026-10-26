@@ -40,6 +40,8 @@ class CommentSubmission
                 event(new ProjectNotificationRequested($comment->id, $actor.'.project_comment_created', null, $actor, $recipient->id, $recipient->name, $comment->id));
             }
 
+            app(WebhookEvents::class)->clientComment($comment, $project, $task);
+
             return $comment;
         });
     }
