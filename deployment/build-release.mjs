@@ -82,6 +82,7 @@ try {
   run(php, ['-r', 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("zip") ? 0 : 1);'])
   run('npm', ['ci'])
   run('npm', ['test'])
+  run('npm', ['run', 'brand:check'])
   run('npm', ['run', 'build'], root, { VITE_DATA_SOURCE: 'api', VITE_API_BASE_URL: '' })
 
   // Keep development dependencies for tests; install production vendor in staging only.
@@ -144,16 +145,16 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-4-9/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-4-9-1/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-4-9/RELEASE.md'),
+    path.join(root, 'docs/milestone-4-9-1/RELEASE.md'),
     path.join(staging, 'RELEASE-NOTES.md'),
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.4.9', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.4.9.1', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }

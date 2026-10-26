@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from '../components/BrandLogo.vue'
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
@@ -179,7 +180,7 @@ async function logout() {
           class="brand mobile-toolbar-brand"
           :aria-label="t('ui.projectBriefOpenTheProject')"
         >
-          <span class="brand-mark">p<span class="brand-dot">.</span></span>
+          <BrandLogo compact />
         </RouterLink>
         <span v-if="!route.meta.taskDetail" class="admin-toolbar-workspace">{{
           nav.workspace?.name

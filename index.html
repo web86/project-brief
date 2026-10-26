@@ -2,9 +2,9 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=4.9.1" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#246c43" />
+    <meta name="theme-color" content="#f7f8fa" />
     <script id="theme-bootstrap">
       ;(() => {
         let mode = 'system'
@@ -12,20 +12,23 @@
           const stored = localStorage.getItem('projectbrief.theme')
           if (['light', 'dark', 'system'].includes(stored)) mode = stored
         } catch {}
-        const theme =
-          mode === 'system'
-            ? matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light'
-            : mode
-        document.documentElement.dataset.theme = theme
-        document.documentElement.style.colorScheme = theme
-        document
-          .querySelector('meta[name="theme-color"]')
-          .setAttribute('content', theme === 'dark' ? '#15191f' : '#246c43')
+        const media = matchMedia('(prefers-color-scheme: dark)')
+        function apply() {
+          const theme = mode === 'system' ? (media.matches ? 'dark' : 'light') : mode
+          document.documentElement.dataset.theme = theme
+          document.documentElement.style.colorScheme = theme
+          document
+            .querySelector('meta[name="theme-color"]')
+            .setAttribute('content', theme === 'dark' ? '#15191f' : '#f7f8fa')
+        }
+        apply()
+        media.addEventListener('change', apply)
+        globalThis.projectBriefThemeBootstrap = {
+          dispose: () => media.removeEventListener('change', apply),
+        }
       })()
     </script>
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4.9.1" />
     <meta
       name="description"
       content="Просто расскажите, что хотите изменить на сайте. Идеи, обсуждение и согласование в одном месте."
@@ -34,11 +37,19 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <style>
       :root {
-        --bootstrap-bg: #246c43;
+        --bootstrap-bg: #f7f8fa;
+        --bootstrap-text: #1f2937;
+        --bootstrap-accent: #243b62;
+        --bootstrap-muted: #667085;
+        --brand-detail: #5979a6;
         color-scheme: light;
       }
       :root[data-theme='dark'] {
         --bootstrap-bg: #15191f;
+        --bootstrap-text: #e4e9f0;
+        --bootstrap-accent: #9dbff4;
+        --bootstrap-muted: #a7b2c3;
+        --brand-detail: #bad2fa;
         color-scheme: dark;
       }
       html,
@@ -55,7 +66,7 @@
         justify-items: center;
         gap: 20px;
         padding: 24px;
-        color: white;
+        color: var(--bootstrap-text);
         background: var(--bootstrap-bg);
         font-family: system-ui, sans-serif;
         text-align: center;
@@ -65,30 +76,61 @@
         opacity: 0;
         pointer-events: none;
       }
-      .bootstrap-mark {
-        font-size: 104px;
-        font-weight: 750;
-        letter-spacing: -10px;
+      .bootstrap-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 28px;
+        font-weight: 650;
+        letter-spacing: -0.8px;
         line-height: 1;
-        padding-right: 10px;
       }
-      .bootstrap-name {
-        font-size: 24px;
-        margin: 0;
+      .bootstrap-brand svg {
+        width: 42px;
+        height: 42px;
+        color: var(--bootstrap-accent);
       }
-      .bootstrap-spinner {
-        width: 28px;
-        height: 28px;
-        border: 3px solid #ffffff50;
-        border-top-color: white;
+      .bootstrap-brand .brand-light {
+        font-weight: 450;
+      }
+      .bootstrap-dots {
+        display: flex;
+        gap: 6px;
+        padding-top: 8px;
+        color: var(--bootstrap-accent);
+      }
+      .bootstrap-dots span {
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
-        animation: bootstrap-spin 0.8s linear infinite;
+        background: currentColor;
+        animation: bootstrap-pulse 1.2s ease-in-out infinite;
+      }
+      .bootstrap-dots span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .bootstrap-dots span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      #bootstrap-label {
+        color: var(--bootstrap-muted);
+        font-size: 13px;
       }
       #bootstrap-fallback {
         max-width: 34em;
       }
-      #bootstrap-fallback a {
-        color: white;
+      #bootstrap-retry {
+        color: var(--bootstrap-bg);
+        background: var(--bootstrap-accent);
+        border: 0;
+        border-radius: 8px;
+        padding: 12px 18px;
+        font: inherit;
+        cursor: pointer;
+      }
+      #bootstrap-retry:focus-visible {
+        outline: 2px solid var(--bootstrap-accent);
+        outline-offset: 3px;
       }
       #bootstrap-fallback p {
         line-height: 1.5;
@@ -96,13 +138,18 @@
       [hidden] {
         display: none !important;
       }
-      @keyframes bootstrap-spin {
-        to {
-          transform: rotate(360deg);
+      @keyframes bootstrap-pulse {
+        0%,
+        80%,
+        100% {
+          opacity: 0.35;
+        }
+        40% {
+          opacity: 1;
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .bootstrap-spinner {
+        .bootstrap-dots span {
           animation: none;
         }
         #bootstrap-splash {
@@ -113,13 +160,24 @@
   </head>
   <body>
     <div id="bootstrap-splash" role="status" aria-live="polite">
-      <span class="bootstrap-mark" aria-hidden="true">p.</span>
-      <p class="bootstrap-name">ProjectBrief</p>
-      <div class="bootstrap-spinner" aria-hidden="true"></div>
+      <div class="bootstrap-brand" role="img" aria-label="projectbrief">
+        <!-- brand-mark:start -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="96 104 320 304" aria-hidden="true">
+          <path
+            fill="currentColor"
+            fill-rule="evenodd"
+            d="M128 136 H154 C161 136 166 141 166 148 V154 C183 138 204 130 228 130 C287 130 326 170 326 228 C326 284 287 324 230 324 C206 324 184 318 166 304 V376 C166 383 161 388 154 388 H128 C121 388 116 383 116 376 V148 C116 141 121 136 128 136 Z M166 228 C166 261 188 282 220 282 C253 282 276 261 276 228 C276 195 253 174 220 174 C188 174 166 195 166 228 Z"
+          />
+          <circle cx="366" cy="300" r="24" fill="var(--brand-detail, currentColor)" />
+        </svg>
+        <!-- brand-mark:end -->
+        <span aria-hidden="true">project<span class="brand-light">brief</span></span>
+      </div>
+      <div class="bootstrap-dots" aria-hidden="true"><span></span><span></span><span></span></div>
       <span id="bootstrap-label">Загрузка / Loading…</span>
       <div id="bootstrap-fallback" hidden>
         <p id="bootstrap-error">Не удалось открыть приложение. / Could not open the app.</p>
-        <a href="/app" id="bootstrap-retry">Попробовать снова / Try again</a>
+        <button type="button" id="bootstrap-retry">Попробовать снова / Try again</button>
       </div>
       <noscript
         >Включите JavaScript, чтобы открыть проект. / Enable JavaScript to open your
@@ -144,9 +202,10 @@
             : 'Could not open the app. Check your connection and try again.'
         document.getElementById('bootstrap-retry').textContent =
           language === 'ru' ? 'Попробовать снова' : 'Try again'
+        document.getElementById('bootstrap-retry').onclick = () => location.reload()
         function fail() {
           if (complete) return
-          splash.querySelector('.bootstrap-spinner').hidden = true
+          splash.querySelector('.bootstrap-dots').hidden = true
           document.getElementById('bootstrap-label').hidden = true
           document.getElementById('bootstrap-fallback').hidden = false
         }

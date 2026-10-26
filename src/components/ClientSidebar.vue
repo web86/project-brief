@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from './BrandLogo.vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { useClientNavigation } from '../services/clientNavigation.js'
@@ -15,9 +16,8 @@ const route = useRoute(),
       :to="store.projectPath"
       class="brand"
       :aria-label="t('ui.projectBriefOpenTheProject')"
-      ><span class="brand-mark">p<span class="brand-dot">.</span></span
-      ><span class="brand-wordmark">project<span class="brand-light">brief</span></span></RouterLink
-    >
+      ><BrandLogo
+    /></RouterLink>
     <p class="client-sidebar-project" :title="store.project.name">{{ store.project.name }}</p>
     <nav class="project-panel-nav" :aria-label="t('clientWorkspace.menu')">
       <RouterLink

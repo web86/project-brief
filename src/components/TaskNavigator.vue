@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from './BrandLogo.vue'
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
@@ -93,8 +94,7 @@ onUnmounted(() => {
           class="brand task-navigation-brand"
           :aria-label="t('ui.projectBriefOpenTheProject')"
         >
-          <span class="brand-mark">p<span class="brand-dot">.</span></span>
-          <span>project<span class="brand-light">brief</span></span>
+          <BrandLogo />
         </RouterLink>
         <div class="task-navigation-heading">
           <h2>{{ t('taskWorkspace.tasks') }}</h2>

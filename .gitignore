@@ -29,6 +29,7 @@ dist/
 build/
 release/
 artifacts/milestone-4-3-preview/
+artifacts/milestone-4-9-1/
 *.zip
 *.tsbuildinfo
 /api/public/hot

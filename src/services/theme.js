@@ -29,6 +29,7 @@ export function createThemePreferences(env = globalThis) {
   }
 
   function initialize() {
+    env.projectBriefThemeBootstrap?.dispose()
     dispose()
     let stored
     try {

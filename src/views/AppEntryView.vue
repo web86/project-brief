@@ -7,8 +7,7 @@ const store = useProjectStore()
 </script>
 <template>
   <section class="surface app-entry">
-    <div class="brand-mark" aria-hidden="true">p<span class="brand-dot">.</span></div>
-    <h1>ProjectBrief</h1>
+    <h1 class="sr-only">ProjectBrief</h1>
     <template v-if="store.apiError">
       <p role="alert">{{ formatApiError(store.apiError) }}</p>
       <button class="button primary" @click="router.replace(`/app?retry=${Date.now()}`)">

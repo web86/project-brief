@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { createServer, preview } from 'vite'
 import { createDemoData } from '../src/data/demo.js'
 import { notificationEvents } from '../src/services/notificationSettings.js'
+import { allProjectPermissions } from './helpers/projectPermissions.js'
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const server = await createServer({
@@ -24,6 +25,7 @@ const projectId = '11111111-1111-4111-8111-111111111111'
 const data = createDemoData()
 const project = {
   ...data.project,
+  permissions: { ...allProjectPermissions },
   id: projectId,
   sections: data.sections,
   status: 'active',
@@ -71,6 +73,7 @@ async function fixture(options = {}) {
       else if (path.endsWith('/activity/read') || path.endsWith('/discussions/read'))
         payload = { unreadCount: 0 }
       else if (path.endsWith('/push/status')) payload = { available: false }
+      else if (path.endsWith('/telegram')) payload = { available: false, connected: false }
       else if (path.endsWith('/notifications'))
         payload = {
           notificationEmail: 'studio@example.test',
@@ -149,7 +152,7 @@ async function checkContrast(page) {
       color
         .match(/[\d.]+/g)
         .slice(0, 3)
-        .map(Number)
+        .map((value) => Number(value) * (color.startsWith('color(srgb ') ? 255 : 1))
     const luminance = (color) =>
       rgb(color)
         .map((v) => {
@@ -450,7 +453,7 @@ try {
       await screenshot(page, `export-${size}-${mode}`)
       await open(page, `${adminPath}/notifications`)
       await page.locator('.notification-settings h2').waitFor()
-      await page.locator('.notification-checkbox').first().waitFor()
+      await page.locator('.notification-settings input[type="checkbox"]').first().waitFor()
       await checkContrast(page)
       await screenshot(page, `notifications-${size}-${mode}`)
       await page.evaluate(async () => {

@@ -21,7 +21,7 @@
   --tab-hover: #e9eef5;
   --card-hover: #7692b9;
   --progress: #44648d;
-  --brand-detail: #c9d7ed;
+  --brand-detail: #5979a6;
   --tone-gray: #536071;
   --tint-gray: #f0f2f5;
   --tone-orange: #8a5900;
@@ -107,7 +107,7 @@
   --tab-hover: #2b3646;
   --card-hover: #7b9dcc;
   --progress: #95b8e9;
-  --brand-detail: #344b70;
+  --brand-detail: #bad2fa;
   --tone-gray: #bbc6d5;
   --tint-gray: #303947;
   --tone-orange: #f2c879;
@@ -230,12 +230,6 @@
   margin: 32px auto;
   padding: 32px;
   text-align: center;
-}
-.app-entry .brand-mark {
-  width: 72px;
-  height: 72px;
-  font-size: 64px;
-  background: var(--success);
 }
 .app-entry h2 {
   font-size: 20px;
@@ -384,23 +378,45 @@ h2 {
   letter-spacing: -0.6px;
   white-space: nowrap;
 }
-.brand-mark {
-  width: 30px;
-  height: 30px;
+/* The geometry comes from brand-mark.svg, shared with the pre-Vue splash. */
+.brand-logo {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: var(--on-action);
-  background: var(--action);
-  border-radius: 8px;
-  font-size: 25px;
+  gap: 9px;
+  color: var(--action);
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.6px;
   line-height: 1;
-  padding-bottom: 5px;
-  letter-spacing: -4px;
-  padding-right: 4px;
+  white-space: nowrap;
 }
-.brand-dot {
-  color: var(--brand-detail);
+.brand-logo[data-brand-theme='light'] {
+  color: #243b62;
+  --brand-detail: #5979a6;
+}
+.brand-logo[data-brand-theme='dark'] {
+  color: #9dbff4;
+  --brand-detail: #bad2fa;
+}
+.brand-mark {
+  width: var(--brand-size, 30px);
+  height: var(--brand-size, 30px);
+  display: inline-flex;
+  flex: none;
+}
+.brand-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.brand-wordmark {
+  color: var(--text);
+}
+.brand-logo[data-brand-theme='light'] .brand-wordmark {
+  color: #1f2937;
+}
+.brand-logo[data-brand-theme='dark'] .brand-wordmark {
+  color: #e4e9f0;
 }
 .brand-light {
   font-weight: 450;

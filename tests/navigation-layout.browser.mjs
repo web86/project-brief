@@ -32,6 +32,7 @@ async function fixture(config) {
   const trash = []
   const requests = []
   const user = {
+    notificationPreferenceId: 'admin-fixture-id',
     name: config.language === 'ru' ? 'Алексей Морозов' : 'Alex Morgan',
     email: 'admin@example.test',
     preferredLocale: config.language,

@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from './BrandLogo.vue'
 import { canCreateProjects } from '../services/projectPermissions.js'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -40,8 +41,7 @@ async function select(event) {
       :aria-label="t('ui.projectBriefOpenTheProject')"
       @click="emit('navigate')"
     >
-      <span class="brand-mark">p<span class="brand-dot">.</span></span>
-      <span>project<span class="brand-light">brief</span></span>
+      <BrandLogo />
     </RouterLink>
     <label class="sidebar-workspace">
       <span class="sidebar-workspace-label">

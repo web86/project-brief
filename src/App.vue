@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from './components/BrandLogo.vue'
 import ClientSidebar from './components/ClientSidebar.vue'
 import TelegramPrompt from './components/TelegramPrompt.vue'
 import { usePersonalNotificationsStore } from './stores/personalNotifications.js'
@@ -137,10 +138,7 @@ watch(
             "
             class="brand"
             :aria-label="t('ui.projectBriefOpenTheProject')"
-            ><span class="brand-mark">p<span class="brand-dot">.</span></span
-            ><span class="brand-wordmark"
-              >project<span class="brand-light">brief</span></span
-            ></RouterLink
+            ><BrandLogo /></RouterLink
           ><ModeSwitcher v-if="!store.apiMode" />
           <div class="client-header-controls">
             <span v-if="store.currentClient" class="current-client-name">{{

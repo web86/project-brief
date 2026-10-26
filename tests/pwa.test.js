@@ -356,7 +356,7 @@ test('manifest uses neutral entry and regular/maskable icons with the correct PN
   assert.equal(manifest.background_color, manifest.theme_color)
   assert.equal(manifest.icons.length, 4)
   for (const icon of manifest.icons) {
-    const data = await readFile('public' + icon.src)
+    const data = await readFile('public' + icon.src.split('?')[0])
     const size = Number(icon.sizes.split('x')[0])
     assert.equal(data.readUInt32BE(16), size)
     assert.equal(data.readUInt32BE(20), size)
@@ -433,7 +433,7 @@ test('maskable logo pixels stay inside the safe circle and the brand is large', 
       assert.equal(rows[y * (size * 3 + 1)], 0)
       for (let x = 0; x < size; x++) {
         const offset = y * (size * 3 + 1) + 1 + x * 3
-        if (rows[offset] === 36 && rows[offset + 1] === 108 && rows[offset + 2] === 67) continue
+        if (rows[offset] === 36 && rows[offset + 1] === 59 && rows[offset + 2] === 98) continue
         assert.ok(
           Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2) <= size * 0.4,
           `outside safe zone: ${x},${y}`,

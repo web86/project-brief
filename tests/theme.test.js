@@ -180,6 +180,13 @@ test('head bootstrap applies the theme before splash and Vue, even when storage 
       const expected = ['light', 'dark'].includes(mode) ? mode : dark ? 'dark' : 'light'
       assert.equal(state.env.document.documentElement.dataset.theme, expected)
       assert.equal(state.env.document.documentElement.style.colorScheme, expected)
+      assert.equal(state.meta.content, expected === 'dark' ? '#15191f' : '#f7f8fa')
+      state.change(!dark)
+      assert.equal(
+        state.env.document.documentElement.dataset.theme,
+        ['light', 'dark'].includes(mode) ? mode : dark ? 'light' : 'dark',
+      )
+      state.change(dark)
       const theme = createThemePreferences(state.env)
       theme.initialize()
       assert.equal(theme.resolved.value, expected, 'bootstrap and Vue must agree')
@@ -195,4 +202,22 @@ test('head bootstrap applies the theme before splash and Vue, even when storage 
   vm.runInNewContext(source, state.env)
   assert.equal(state.env.document.documentElement.dataset.theme, 'dark')
   assert.equal(state.meta.content, '#15191f')
+})
+
+test('Vue takes over the system theme listener without leaving the head listener active', () => {
+  const state = browser({ dark: true })
+  const source = readFileSync('index.html', 'utf8').match(
+    /<script id="theme-bootstrap">([\s\S]*?)<\/script>/,
+  )[1]
+  vm.runInNewContext(source, state.env)
+  assert.equal(state.listeners.size, 1)
+  const theme = createThemePreferences(state.env)
+  theme.initialize()
+  assert.equal(state.listeners.size, 1)
+  theme.select('light')
+  state.change(false)
+  state.change(true)
+  assert.equal(state.env.document.documentElement.dataset.theme, 'light')
+  theme.dispose()
+  assert.equal(state.listeners.size, 0)
 })

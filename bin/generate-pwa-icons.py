@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Deterministic SVG rasterization for the local brand paths; Python stdlib only.
+"""Generate all standalone brand assets from src/assets/brand-mark.svg.
 
-Run python3 bin/generate-pwa-icons.py. The master mark fits within the maskable
+Run python3 bin/generate-pwa-icons.py [--check]. The master mark fits within the maskable
 safe circle (radius 40%); ordinary/Apple icons enlarge it by 1.25. No fonts,
 external services, package dependencies, or platform image tools are required.
 """
@@ -9,11 +9,44 @@ import math
 from pathlib import Path
 import re
 import struct
+import sys
 import xml.etree.ElementTree as ET
 import zlib
 
 PUBLIC = Path(__file__).resolve().parent.parent / 'public'
-SVG = ET.parse(PUBLIC / 'app-icon.svg').getroot()
+ROOT = PUBLIC.parent
+MASTER = (ROOT / 'src/assets/brand-mark.svg').read_text().strip()
+CHECK = '--check' in sys.argv
+OUTPUTS = {}
+
+
+def standalone(foreground, detail, background=False):
+    svg = MASTER.replace('currentColor', foreground)
+    svg = svg.replace(f'var(--brand-detail, {foreground})', detail)
+    svg = svg.replace(' aria-hidden="true"', '')
+    if background:
+        svg = svg.replace('viewBox="96 104 320 304"', 'viewBox="0 0 512 512"')
+        svg = svg.replace('>\n', '>\n  <rect width="512" height="512" fill="#243b62"/>\n', 1)
+    return svg + '\n'
+
+
+OUTPUTS['app-icon.svg'] = standalone('#ffffff', '#c9d7ed', True)
+for name, foreground, detail in [('light', '#243b62', '#5979a6'), ('dark', '#9dbff4', '#bad2fa')]:
+    svg = standalone(foreground, detail)
+    OUTPUTS[f'brand-mark-{name}.svg'] = svg
+    inner = svg[svg.index('>')+1:svg.rindex('</svg>')]
+    text = '#1f2937' if name == 'light' else '#e4e9f0'
+    OUTPUTS[f'brand-logo-{name}.svg'] = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 64">\n'
+        f'  <g transform="translate(-19.2 -20.8) scale(.2)">{inner}  </g>\n'
+        f'  <text x="70" y="42" fill="{text}" font-family="system-ui, sans-serif" '
+        'font-size="30" font-weight="650" letter-spacing="-.8">project'
+        '<tspan font-weight="450">brief</tspan></text>\n</svg>\n'
+    )
+favicon = OUTPUTS['app-icon.svg'].replace('height="512" fill=', 'height="512" rx="112" fill=')
+favicon = favicon.replace('  <path', '  <g transform="translate(-64 -64) scale(1.25)">\n  <path')
+OUTPUTS['favicon.svg'] = favicon.replace('</svg>', '  </g>\n</svg>')
+SVG = ET.fromstring(OUTPUTS['app-icon.svg'])
 
 
 def polygons(data):
@@ -92,4 +125,28 @@ def render(size, maskable):
 for name, size, maskable in [('icon-192.png', 192, False), ('icon-512.png', 512, False),
                              ('icon-maskable-192.png', 192, True), ('icon-maskable-512.png', 512, True),
                              ('apple-touch-icon.png', 180, False)]:
-    (PUBLIC / name).write_bytes(render(size, maskable))
+    OUTPUTS[name] = render(size, maskable)
+
+for name, content in OUTPUTS.items():
+    data = content.encode() if isinstance(content, str) else content
+    target = PUBLIC / name
+    if CHECK:
+        if not target.exists() or target.read_bytes() != data:
+            raise SystemExit('Brand asset is stale: ' + name)
+    else:
+        target.write_bytes(data)
+
+# The splash must work before JS or external CSS load. Keep its inline geometry
+# generated from exactly the same source that BrandLogo.vue imports as raw SVG.
+index = ROOT / 'index.html'
+html = index.read_text()
+updated = re.sub(r'(<!-- brand-mark:start -->)\s*.*?\s*(<!-- brand-mark:end -->)',
+                 lambda m: m[1] + '\n        ' + MASTER + '\n        ' + m[2], html, flags=re.S)
+if CHECK:
+    inline = re.search(r'<!-- brand-mark:start -->\s*(.*?)\s*<!-- brand-mark:end -->', html, re.S)
+    normalize = lambda text: re.sub(r'\s+', '', text).replace('/>', '>')
+    if not inline or normalize(inline[1]) != normalize(MASTER):
+        raise SystemExit('Inline splash mark is stale')
+else:
+    index.write_text(updated)
+print('Brand SVGs, splash and 5 PNGs ' + ('verified' if CHECK else 'generated'))

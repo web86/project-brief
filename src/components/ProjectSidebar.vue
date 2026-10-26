@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from './BrandLogo.vue'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
@@ -23,8 +24,7 @@ const nav = useAdminNavigationStore()
       :aria-label="t('ui.projectBriefOpenTheProject')"
       @click="emit('navigate')"
     >
-      <span class="brand-mark">p<span class="brand-dot">.</span></span>
-      <span>project<span class="brand-light">brief</span></span>
+      <BrandLogo />
     </RouterLink>
     <RouterLink
       to="/admin"
