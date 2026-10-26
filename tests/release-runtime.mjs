@@ -395,33 +395,42 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     assert.equal((await request('/admin/projects/' + fixture.project + '/' + section)).status, 200)
   }
   for (const format of ['pdf', 'docx']) {
-    const exported = await request('/api/admin/projects/' + fixture.project + '/export', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': workspaceCsrf.token,
+    const exported = await request(
+      '/api/admin/projects/' + fixture.project + (format === 'pdf' ? '/export-data' : '/export'),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': workspaceCsrf.token,
+        },
+        body: JSON.stringify({
+          format,
+          scope: 'approved',
+          locale: 'ru',
+          documentTitle: 'План работ',
+          pageBreakBySection: true,
+          fields: { estimateHours: true, price: true, attachments: true, approvalDate: true },
+        }),
       },
-      body: JSON.stringify({
-        format,
-        scope: 'approved',
-        locale: 'ru',
-        documentTitle: 'План работ',
-        pageBreakBySection: true,
-        fields: { estimateHours: true, price: true, attachments: true, approvalDate: true },
-      }),
-    })
-    assert.equal(exported.status, 200)
-    assert.match(
-      exported.headers.get('content-disposition'),
-      new RegExp('specification-.*\\.' + format),
     )
+    assert.equal(exported.status, 200)
+    if (format === 'docx')
+      assert.match(
+        exported.headers.get('content-disposition'),
+        new RegExp('specification-.*\\.' + format),
+      )
     const bytes = Buffer.from(await exported.arrayBuffer())
     assert.ok(bytes.length > 1000)
     if (format === 'pdf') {
-      assert.equal(exported.headers.get('content-type'), 'application/pdf')
-      assert.equal(bytes.subarray(0, 5).toString(), '%PDF-')
-      assert.ok(bytes.includes(Buffer.from('DejaVuSans')))
+      const data = JSON.parse(bytes.toString())
+      assert.equal(data.schemaVersion, 1)
+      assert.equal(data.document.title, 'План работ')
+      assert.match(exported.headers.get('cache-control'), /no-store/)
+      assert.doesNotMatch(
+        bytes.toString(),
+        /PRIVATE_STORED_NAME|PRIVATE_STORAGE_PATH|PRIVATE_RELEASE_NOTE/,
+      )
     } else {
       assert.equal(
         exported.headers.get('content-type'),
@@ -448,36 +457,44 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     }
     assert.equal(
       (
-        await request('/api/admin/projects/' + fixture.foreignProject + '/export', {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': workspaceCsrf.token,
+        await request(
+          '/api/admin/projects/' +
+            fixture.foreignProject +
+            (format === 'pdf' ? '/export-data' : '/export'),
+          {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': workspaceCsrf.token,
+            },
+            body: JSON.stringify({ format, scope: 'all', locale: 'ru' }),
           },
-          body: JSON.stringify({ format, scope: 'all', locale: 'ru' }),
-        })
+        )
       ).status,
       404,
     )
   }
   // Exercise bundled CJK faces from the production package, without host fonts or downloads.
   for (const format of ['pdf', 'docx']) {
-    const response = await request('/api/admin/projects/' + fixture.project + '/export', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': workspaceCsrf.token,
+    const response = await request(
+      '/api/admin/projects/' + fixture.project + (format === 'pdf' ? '/export-data' : '/export'),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': workspaceCsrf.token,
+        },
+        body: JSON.stringify({ format, scope: 'approved', locale: 'zh-CN' }),
       },
-      body: JSON.stringify({ format, scope: 'approved', locale: 'zh-CN' }),
-    })
+    )
     assert.equal(response.status, 200)
     const bytes = Buffer.from(await response.arrayBuffer())
     if (format === 'pdf') {
-      assert.equal(bytes.subarray(0, 5).toString(), '%PDF-')
-      assert.ok(bytes.includes(Buffer.from('NotoSansSC')))
-      assert.ok(bytes.includes(Buffer.from('/FontFile2')))
+      const data = JSON.parse(bytes.toString())
+      assert.equal(data.document.title, '技术需求说明书')
+      assert.equal(data.schemaVersion, 1)
     } else {
       const file = path.join(fixtureRoot, 'runtime-chinese.docx')
       await writeFile(file, bytes)
@@ -491,7 +508,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       assert.match(metadata, /Кириллица: задача/)
     }
   }
-  const completedExport = await request('/api/admin/projects/' + fixture.project + '/export', {
+  const completedExport = await request('/api/admin/projects/' + fixture.project + '/export-data', {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -501,12 +518,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     body: JSON.stringify({ format: 'pdf', scope: 'done', locale: 'en' }),
   })
   assert.equal(completedExport.status, 200)
-  assert.equal(
-    Buffer.from(await completedExport.arrayBuffer())
-      .subarray(0, 5)
-      .toString(),
-    '%PDF-',
-  )
+  assert.equal((await completedExport.json()).document.totals.taskCount, 1)
   const entered = await request(`/access/${'a'.repeat(64)}`)
   assert.equal(entered.status, 302)
   assert.equal(
@@ -562,7 +574,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
 
   assert.equal(
     (
-      await request('/api/admin/projects/' + fixture.project + '/export', {
+      await request('/api/admin/projects/' + fixture.project + '/export-data', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -625,24 +637,33 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     assert.deepEqual(Buffer.from(await original.arrayBuffer()), Buffer.from(fixture.png, 'base64'))
   }
   for (const format of ['pdf', 'docx']) {
-    const exported = await request('/api/client/project/' + fixture.project + '/export', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': clientCsrf.token,
+    const exported = await request(
+      '/api/client/project/' + fixture.project + (format === 'pdf' ? '/export-data' : '/export'),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': clientCsrf.token,
+        },
+        body: JSON.stringify({
+          format,
+          scope: 'all',
+          locale: 'en',
+          fields: { price: true, estimateHours: true, developerNotes: true, description: true },
+        }),
       },
-      body: JSON.stringify({
-        format,
-        scope: 'all',
-        locale: 'en',
-        fields: { price: true, estimateHours: true, developerNotes: true, description: true },
-      }),
-    })
+    )
     assert.equal(exported.status, 200)
     const bytes = Buffer.from(await exported.arrayBuffer())
-    if (format === 'pdf') assert.equal(bytes.subarray(0, 5).toString(), '%PDF-')
-    else {
+    if (format === 'pdf') {
+      const data = JSON.parse(bytes.toString())
+      assert.equal(data.schemaVersion, 1)
+      assert.doesNotMatch(
+        bytes.toString(),
+        /PRIVATE_RELEASE_NOTE|estimateHours|developerNotes|\"price\"/,
+      )
+    } else {
       const file = path.join(fixtureRoot, 'runtime-client-export.docx')
       await writeFile(file, bytes)
       const xml = command([
@@ -655,15 +676,20 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     }
     assert.equal(
       (
-        await request('/api/client/project/' + fixture.foreignProject + '/export', {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': clientCsrf.token,
+        await request(
+          '/api/client/project/' +
+            fixture.foreignProject +
+            (format === 'pdf' ? '/export-data' : '/export'),
+          {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': clientCsrf.token,
+            },
+            body: JSON.stringify({ format, scope: 'all', locale: 'en' }),
           },
-          body: JSON.stringify({ format, scope: 'all', locale: 'en' }),
-        })
+        )
       ).status,
       404,
     )

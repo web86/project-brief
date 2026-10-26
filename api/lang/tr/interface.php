@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'sections' => ['Ana sayfa', 'Katalog', 'Ürün sayfası', 'İletişim', 'Genel'],
     'task_changed' => 'Görev güncellendi',
     'client' => 'Müşteri',
     'invalid_credentials' => 'E-posta veya şifre yanlış.',

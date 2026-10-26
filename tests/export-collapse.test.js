@@ -133,14 +133,10 @@ test('actual RU/EN export form defaults, every format/scope/language and optiona
   ]) {
     i18n.global.locale.value = lang
     const output = await html(Export)
-    for (const label of [title, optional, 'PDF', 'Word (.docx)', 'Русский', 'English'])
+    for (const label of [title, optional, 'PDF', 'DOCX', 'Русский', 'English'])
       assert.ok(output.includes(label), label)
-    assert.match(output, /<input(?=[^>]*checked)(?=[^>]*value="pdf")(?=[^>]*name="format")[^>]*>/)
     assert.match(output, /<input(?=[^>]*checked)(?=[^>]*value="all")(?=[^>]*name="scope")[^>]*>/)
-    assert.match(
-      output,
-      new RegExp(`<input(?=[^>]*checked)(?=[^>]*value="${lang}")(?=[^>]*name="language")[^>]*>`),
-    )
+    assert.match(output, new RegExp(`<option[^>]*value="${lang}"[^>]*selected`))
     assert.equal(
       (output.match(/<input(?=[^>]*checked)(?=[^>]*type="checkbox")[^>]*>/g) || []).length,
       4,
@@ -179,11 +175,13 @@ test('download submits current controls with loading guard, saves binary and pre
     state.fields.estimateHours = true
     state.fields.price = true
     state.documentTitle = 'План работ'
-    const pending = state.download()
+    const pending = state.download('docx')
     assert.equal(state.pending, true)
-    await state.download()
+    await state.download('docx')
     assert.equal(calls.length, 1)
-    assert.deepEqual(calls[0], {
+    assert.ok(calls[0].signal instanceof AbortSignal)
+    const { signal, ...submitted } = calls[0]
+    assert.deepEqual(submitted, {
       path: '/api/admin/projects/project/export',
       method: 'POST',
       responseType: 'blob',
@@ -218,7 +216,7 @@ test('download submits current controls with loading guard, saves binary and pre
       api.request = async () => {
         throw { status: 422, errors: { scope: [message] } }
       }
-      await state.download()
+      await state.download('docx')
       assert.equal(state.error, message)
       assert.equal(toast.items.value.at(-1).message, message)
       assert.equal(state.pending, false)
@@ -226,7 +224,7 @@ test('download submits current controls with loading guard, saves binary and pre
     api.request = async () => {
       throw { status: 500, message: 'Secret SQL' }
     }
-    await state.download()
+    await state.download('docx')
     assert.equal(state.error.includes('Secret SQL'), false)
     assert.equal(toast.items.value.at(-1).type, 'error')
     assert.match(await html(Export), /class="export-form|export-form/)

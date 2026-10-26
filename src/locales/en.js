@@ -448,10 +448,19 @@ export default {
       ai_daily_limit: 'The daily AI limit has been reached. Please try again tomorrow.',
     },
   },
+  emptyProject: {
+    title: 'This project is empty',
+    manageHint: 'Create the first section to organise ideas and tasks.',
+    clientHint: 'The project team will add sections and tasks here.',
+    createSection: 'Create section',
+  },
   export: {
+    document: 'Document settings',
+    downloadPdf: 'Export PDF',
+    downloadDocx: 'Export DOCX',
+
     tooLarge: 'The document is too large. Reduce the export size.',
-    prototypeNotice: 'Browser PDF prototype. Standard export is unchanged.',
-    prototypeError: 'Could not generate the PDF. Please try again.',
+    pdfError: 'Could not generate the PDF. Please try again.',
     stages: {
       preparing: 'Preparing data…',
       library: 'Loading PDF module…',

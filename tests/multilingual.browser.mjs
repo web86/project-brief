@@ -211,7 +211,7 @@ try {
           (LANGUAGE_CATALOG.findIndex((item) => item.code === lang) + LANGUAGE_CATALOG.length - 1) %
             LANGUAGE_CATALOG.length
         ].code
-      await page.locator(`input[name=language][value=${documentLanguage}]`).check()
+      await page.locator('#export-language').selectOption(documentLanguage)
       assert.equal(
         await page.locator('#export-document-title').inputValue(),
         LANGUAGE_CATALOG.find((item) => item.code === documentLanguage).messages.export
@@ -220,13 +220,11 @@ try {
       assert.equal(await page.locator('html').getAttribute('lang'), interfaceLang)
       await page.getByLabel(messages.export.estimateHours, { exact: true }).check()
       await page.getByLabel(messages.export.price, { exact: true }).check()
-      await page.locator('input[name=format][value=pdf]').check()
       const pdf = page.waitForEvent('download')
       await page.locator('.export-form button[type=submit]').click()
       await (await pdf).saveAs(new URL(`sample-${documentLanguage}.pdf`, output).pathname)
-      await page.locator('input[name=format][value=docx]').check()
       const docx = page.waitForEvent('download')
-      await page.locator('.export-form button[type=submit]').click()
+      await page.locator('.export-actions button.secondary').click()
       await (await docx).saveAs(new URL(`sample-${documentLanguage}.docx`, output).pathname)
       await navigate(page, '/admin/account')
       await page.locator('#account-language').waitFor()

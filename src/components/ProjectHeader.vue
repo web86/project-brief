@@ -15,7 +15,7 @@ const route = useRoute()
   >
     <div v-if="!route.meta.adminShell || route.meta.projectOverview" class="project-intro">
       <h1>{{ store.project.name }}</h1>
-      <span v-if="!route.meta.adminShell" class="website-label"
+      <span v-if="!route.meta.adminShell && store.project.website" class="website-label"
         ><AppIcon name="globe" :size="15" />{{ store.project.website }}</span
       >
     </div>
@@ -24,7 +24,7 @@ const route = useRoute()
         :done="store.counts.done"
         :total="store.counts.all"
         :progress="store.progress"
-      /><RouterLink :to="store.newTaskPath" class="button primary"
+      /><RouterLink v-if="store.sections.length" :to="store.newTaskPath" class="button primary"
         ><AppIcon name="plus" :size="19" />{{ t('ui.addIdea') }}</RouterLink
       >
     </div>

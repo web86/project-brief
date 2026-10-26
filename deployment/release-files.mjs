@@ -89,6 +89,11 @@ export async function validateRelease(root, localSecrets = []) {
   const required = [
     'public/index.html',
     'public/sw.js',
+    'public/font-licenses/NotoSansSC-OFL.txt',
+    'public/font-licenses/DejaVu-LICENSE.txt',
+    'public/font-licenses/pdfmake-MIT.txt',
+    'private/project-brief-app/app/Http/Controllers/BrowserProjectExportController.php',
+    'private/project-brief-app/config/browser_pdf.php',
     'public/manifest.webmanifest',
     'public/icon-192.png',
     'public/icon-512.png',
@@ -108,21 +113,12 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/vendor/minishlink/web-push/src/WebPush.php',
     'private/project-brief-app/lang/ru/exports.php',
     'private/project-brief-app/lang/en/exports.php',
-    'private/project-brief-app/resources/views/exports/specification.blade.php',
     'private/project-brief-app/resources/fonts/DejaVu-LICENSE.txt',
     'private/project-brief-app/app/Services/ExportFonts.php',
     'private/project-brief-app/resources/fonts/NotoSansSC-Regular.ttf',
     'private/project-brief-app/resources/fonts/NotoSansSC-Bold.ttf',
-    'private/project-brief-app/resources/fonts/NotoSansSC-Pdf.json',
     'private/project-brief-app/resources/fonts/NotoSansSC-OFL.txt',
     'private/project-brief-app/resources/fonts/SOURCE.md',
-    'private/project-brief-app/vendor/dompdf/dompdf/src/Dompdf.php',
-    'private/project-brief-app/vendor/dompdf/dompdf/LICENSE.LGPL',
-    'private/project-brief-app/vendor/dompdf/dompdf/lib/fonts/installed-fonts.dist.json',
-    'private/project-brief-app/vendor/dompdf/dompdf/lib/fonts/DejaVuSans.ttf',
-    'private/project-brief-app/vendor/dompdf/dompdf/lib/fonts/DejaVuSans.ufm',
-    'private/project-brief-app/vendor/dompdf/dompdf/lib/fonts/DejaVuSans-Bold.ttf',
-    'private/project-brief-app/vendor/dompdf/dompdf/lib/fonts/DejaVuSans-Bold.ufm',
     'private/project-brief-app/vendor/phpoffice/phpword/src/PhpWord/PhpWord.php',
     'private/project-brief-app/vendor/phpoffice/phpword/LICENSE',
     'public/index.php',
@@ -184,26 +180,33 @@ export async function validateRelease(root, localSecrets = []) {
     'GUIDES/milestone-6-0/README.md',
     'release.json',
   ]
-  const cjkShards = JSON.parse(
-    await readFile(
-      path.join(root, 'private/project-brief-app/resources/fonts/NotoSansSC-Pdf.json'),
-      'utf8',
-    ),
-  )
-  for (const { id } of cjkShards) {
-    for (const weight of ['Regular', 'Bold']) {
-      for (const extension of ['ttf', 'ufm']) {
-        required.push(
-          `private/project-brief-app/resources/fonts/NotoSansSC-Pdf${id}-${weight}.${extension}`,
-        )
-      }
-    }
-  }
   for (const file of required) {
     if (!(await lstat(path.join(root, file))).isFile())
       throw new Error(`Required release file missing: ${file}`)
   }
   const files = await entries(root)
+  if (
+    files.some(({ relative }) =>
+      /vendor\/dompdf\/|NotoSansSC-Pdf|PdfProjectExporter|exports\/specification\.blade/.test(
+        relative,
+      ),
+    )
+  )
+    throw new Error('Retired server PDF component found in release')
+  for (const font of ['NotoSansSC-Regular', 'NotoSansSC-Bold', 'DejaVuSans-', 'DejaVuSans-Bold'])
+    if (
+      !files.some(
+        ({ relative }) => relative.startsWith('public/assets/' + font) && relative.endsWith('.ttf'),
+      )
+    )
+      throw new Error('Browser PDF font asset missing: ' + font)
+  for (const chunk of ['pdf.worker-', 'pdfmake-'])
+    if (
+      !files.some(
+        ({ relative }) => relative.startsWith('public/assets/' + chunk) && relative.endsWith('.js'),
+      )
+    )
+      throw new Error('Browser PDF chunk missing: ' + chunk)
   if (!files.some((file) => /^public\/assets\/.+\.js$/.test(file.relative)))
     throw new Error('Frontend JS missing')
   if (!files.some((file) => /^public\/assets\/.+\.css$/.test(file.relative)))
@@ -257,6 +260,8 @@ export async function validateRelease(root, localSecrets = []) {
   ) {
     throw new Error('Development Composer dependencies in release')
   }
+  if (installed.packages.some((pkg) => pkg.name.startsWith('dompdf/')))
+    throw new Error('Retired PDF dependency in Composer production installation')
   return files.filter((file) => !file.directory).length
 }
 

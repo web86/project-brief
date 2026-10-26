@@ -1,5 +1,6 @@
 <script setup>
 import { t } from '../i18n/index.js'
+import { hasProjectPermission } from '../services/projectPermissions.js'
 
 import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -13,6 +14,10 @@ import SectionBlock from '../components/SectionBlock.vue'
 import AppIcon from '../components/AppIcon.vue'
 
 const store = useProjectStore()
+const canManageStructure = computed(
+  () =>
+    store.apiMode && store.isDeveloper && hasProjectPermission(store.project, 'manage_structure'),
+)
 const activeFilter = ref('all')
 const activeSection = ref('')
 const route = useRoute()
@@ -54,7 +59,7 @@ const groups = computed(() =>
       <h2>{{ t('ui.ideasAndChanges') }}</h2>
       <ProjectTrash v-if="store.isDeveloper && !route.meta.adminShell" />
     </div>
-    <div class="filter-bar">
+    <div v-if="store.sections.length" class="filter-bar">
       <label v-if="route.meta.adminShell" class="mobile-status-filter" for="idea-status-filter">
         <span class="sr-only">{{ t('ui.filterByStatus') }}</span>
         <select id="idea-status-filter" v-model="activeFilter">
@@ -86,7 +91,12 @@ const groups = computed(() =>
         </select>
       </div>
     </div>
-    <p v-if="store.isDeveloper" class="task-order-help" role="status" aria-live="polite">
+    <p
+      v-if="store.isDeveloper && store.sections.length"
+      class="task-order-help"
+      role="status"
+      aria-live="polite"
+    >
       {{
         t(
           store.orderPending
@@ -110,7 +120,18 @@ const groups = computed(() =>
         :total-count="store.tasks.filter((task) => task.sectionId === group.id).length"
       />
     </div>
-    <div v-if="!groups.some((group) => group.tasks.length)" class="empty-state">
+    <div v-if="!store.sections.length" class="empty-state project-empty-state">
+      <AppIcon name="list-tree" :size="32" />
+      <h3>{{ t('emptyProject.title') }}</h3>
+      <p>{{ t(canManageStructure ? 'emptyProject.manageHint' : 'emptyProject.clientHint') }}</p>
+      <RouterLink
+        v-if="canManageStructure"
+        :to="`/admin/projects/${store.project.id}/structure`"
+        class="button primary"
+        >{{ t('emptyProject.createSection') }}</RouterLink
+      >
+    </div>
+    <div v-else-if="!groups.some((group) => group.tasks.length)" class="empty-state">
       <h3>{{ store.tasks.length ? t('ui.noIdeasHereYet') : t('ui.whereShallWeStart') }}</h3>
       <p>
         {{

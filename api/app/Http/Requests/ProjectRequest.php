@@ -24,7 +24,7 @@ class ProjectRequest extends FormRequest
         return ['workspace_id' => ['prohibited'], 'workspaceId' => ['prohibited'], 'title' => [$creating ? 'required' : 'sometimes', 'string', 'max:160'],
             'website' => ['nullable', 'url:http,https', 'max:2048'], 'clientName' => [$creating ? 'nullable' : 'prohibited', 'string', 'max:255'],
             'clientEmail' => [$creating ? 'nullable' : 'prohibited', 'email', 'max:255'], 'currency' => ['sometimes', Rule::in(['RUB', 'USD', 'EUR', 'TRY'])],
-            'status' => ['sometimes', Rule::in(['active', 'inactive'])], 'sections' => [$creating ? 'sometimes' : 'prohibited', 'array', 'max:30'], 'sections.*' => ['string', 'max:160', 'distinct']];
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])], 'sections' => ['prohibited']];
     }
 
     public function attributes(): array

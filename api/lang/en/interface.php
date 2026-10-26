@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'sections' => ['Home', 'Catalog', 'Product page', 'Contacts', 'General'],
     'task_changed' => 'Task updated',
     'client' => 'Client',
     'invalid_credentials' => 'Incorrect email or password.',

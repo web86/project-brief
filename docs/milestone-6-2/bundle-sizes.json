@@ -1,0 +1,210 @@
+{
+  "mainEntry": "/assets/index-Cq8VtxjC.js",
+  "assets": [
+    {
+      "file": "assets/AccessErrorView-DbXvvGhR.js",
+      "bytes": 568,
+      "gzipBytes": 391
+    },
+    {
+      "file": "assets/AccountTabs-D1p0De65.js",
+      "bytes": 579,
+      "gzipBytes": 396
+    },
+    {
+      "file": "assets/AdminAccountView-StUI6O9W.js",
+      "bytes": 7257,
+      "gzipBytes": 2271
+    },
+    {
+      "file": "assets/AdminIntegrationsView-Bd3iU8hc.js",
+      "bytes": 17235,
+      "gzipBytes": 5079
+    },
+    {
+      "file": "assets/AdminLoginView-lebuFk6S.js",
+      "bytes": 2148,
+      "gzipBytes": 1062
+    },
+    {
+      "file": "assets/AdminNotificationsView-CSBlLh1v.js",
+      "bytes": 7918,
+      "gzipBytes": 2770
+    },
+    {
+      "file": "assets/AdminProjectClientsView-DHrJ9naQ.js",
+      "bytes": 6832,
+      "gzipBytes": 2313
+    },
+    {
+      "file": "assets/AdminProjectDiscussionsView-2i0See2T.js",
+      "bytes": 5143,
+      "gzipBytes": 2202
+    },
+    {
+      "file": "assets/AdminProjectExportView-HgrnFURf.js",
+      "bytes": 5316,
+      "gzipBytes": 2222
+    },
+    {
+      "file": "assets/AdminProjectFormView-BOOUSw-8.js",
+      "bytes": 1451,
+      "gzipBytes": 821
+    },
+    {
+      "file": "assets/AdminProjectNotificationsView-CUfGlgct.js",
+      "bytes": 6394,
+      "gzipBytes": 2330
+    },
+    {
+      "file": "assets/AdminProjectSettingsView-B4Kd7Zhu.js",
+      "bytes": 1546,
+      "gzipBytes": 843
+    },
+    {
+      "file": "assets/AdminProjectShell-BiNwggn3.js",
+      "bytes": 561,
+      "gzipBytes": 347
+    },
+    {
+      "file": "assets/AdminProjectStructureView-BEop_UTH.js",
+      "bytes": 3596,
+      "gzipBytes": 1482
+    },
+    {
+      "file": "assets/AdminProjectTeamView-BP3VJKcG.js",
+      "bytes": 7805,
+      "gzipBytes": 2743
+    },
+    {
+      "file": "assets/AdminProjectUnavailableView-CR9VIL4u.js",
+      "bytes": 610,
+      "gzipBytes": 377
+    },
+    {
+      "file": "assets/AdminProjectsView-BRRQQZ3v.js",
+      "bytes": 2316,
+      "gzipBytes": 1013
+    },
+    {
+      "file": "assets/AdminShell-D0FIT8Q8.js",
+      "bytes": 16911,
+      "gzipBytes": 5125
+    },
+    {
+      "file": "assets/AppEntryView-r8vTtfSB.js",
+      "bytes": 786,
+      "gzipBytes": 497
+    },
+    {
+      "file": "assets/AttachmentList-BS5a3lg_.js",
+      "bytes": 7976,
+      "gzipBytes": 3292
+    },
+    {
+      "file": "assets/ClientNotificationsView-cjZxP1mq.js",
+      "bytes": 3571,
+      "gzipBytes": 1330
+    },
+    {
+      "file": "assets/CommentForm-Ckh9DMPh.js",
+      "bytes": 3055,
+      "gzipBytes": 1570
+    },
+    {
+      "file": "assets/DejaVuSans-Bold-D3XZ3B4H.ttf",
+      "bytes": 705684,
+      "gzipBytes": 350433
+    },
+    {
+      "file": "assets/DejaVuSans-CHjR2eXl.ttf",
+      "bytes": 757076,
+      "gzipBytes": 379453
+    },
+    {
+      "file": "assets/InvitationView-qptpRoX6.js",
+      "bytes": 6207,
+      "gzipBytes": 2255
+    },
+    {
+      "file": "assets/NotFoundView-CmrRG5dx.js",
+      "bytes": 567,
+      "gzipBytes": 404
+    },
+    {
+      "file": "assets/NotificationToggle-C_XIbRNw.js",
+      "bytes": 541,
+      "gzipBytes": 355
+    },
+    {
+      "file": "assets/NotoSansSC-Bold-Bj2WiPmA.ttf",
+      "bytes": 10585480,
+      "gzipBytes": 6382124
+    },
+    {
+      "file": "assets/NotoSansSC-Regular-CDnR9hCP.ttf",
+      "bytes": 10595936,
+      "gzipBytes": 6303519
+    },
+    {
+      "file": "assets/PasswordRecoveryView-CC9LHPie.js",
+      "bytes": 2631,
+      "gzipBytes": 1200
+    },
+    {
+      "file": "assets/ProjectFields-DkUHR6_d.js",
+      "bytes": 1936,
+      "gzipBytes": 878
+    },
+    {
+      "file": "assets/ProjectPermissionDeniedView-B5GIkRd4.js",
+      "bytes": 541,
+      "gzipBytes": 367
+    },
+    {
+      "file": "assets/TaskFormView-DZxKLMvC.js",
+      "bytes": 16843,
+      "gzipBytes": 5967
+    },
+    {
+      "file": "assets/TaskView-Cq2AvBJz.js",
+      "bytes": 17496,
+      "gzipBytes": 6113
+    },
+    {
+      "file": "assets/TelegramSettings-DWpNur4l.js",
+      "bytes": 11464,
+      "gzipBytes": 4041
+    },
+    {
+      "file": "assets/UserAvatar-M5T59eIS.js",
+      "bytes": 733,
+      "gzipBytes": 481
+    },
+    {
+      "file": "assets/_plugin-vue_export-helper-DlAUqK2U.js",
+      "bytes": 91,
+      "gzipBytes": 102
+    },
+    {
+      "file": "assets/index-Cjwlq8UD.js",
+      "bytes": 1357,
+      "gzipBytes": 786
+    },
+    {
+      "file": "assets/index-Cq8VtxjC.js",
+      "bytes": 429909,
+      "gzipBytes": 146816
+    },
+    {
+      "file": "assets/pdf.worker-DMpFpdNG.js",
+      "bytes": 5091,
+      "gzipBytes": 2317
+    },
+    {
+      "file": "assets/pdfmake-CZ8-yOWi.js",
+      "bytes": 787010,
+      "gzipBytes": 293984
+    }
+  ]
+}

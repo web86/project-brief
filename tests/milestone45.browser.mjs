@@ -115,10 +115,11 @@ try {
                     return route.fulfill({
                       status: 200,
                       headers: {
-                        'Content-Type': 'application/pdf',
-                        'Content-Disposition': 'attachment; filename="client-specification.pdf"',
+                        'Content-Type':
+                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'Content-Disposition': 'attachment; filename="client-specification.docx"',
                       },
-                      body: '%PDF-1.7\nSynthetic UI download fixture',
+                      body: 'PK Synthetic DOCX UI fixture',
                     })
                   else return route.fallback()
                   return route.fulfill({ json: result })
@@ -260,8 +261,8 @@ try {
           }
           await page.locator('#export-document-title').fill('Client specification')
           const download = page.waitForEvent('download')
-          await page.locator('.export-form button[type="submit"]').click()
-          assert.equal((await download).suggestedFilename(), 'client-specification.pdf')
+          await page.locator('.export-actions button.secondary').click()
+          assert.equal((await download).suggestedFilename(), 'client-specification.docx')
           const exportCall = calls.findLast((call) => call.path.endsWith('/export'))
           if (!admin)
             for (const key of ['price', 'estimateHours', 'developerNotes'])

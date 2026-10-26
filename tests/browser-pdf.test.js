@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { documentDefinition, textRuns, needsCjk } from '../preview/browser-pdf/definition.js'
-import { createBrowserPdfAdapter } from '../preview/browser-pdf/adapter.js'
-import { loadPublicFont } from '../preview/browser-pdf/font-cache.js'
+import { documentDefinition, textRuns, needsCjk } from '../src/services/pdf/definition.js'
+import { createBrowserPdfAdapter } from '../src/services/pdf/index.js'
+import { loadPublicFont } from '../src/services/pdf/font-cache.js'
 
 const document = {
   title: '技术需求 / Çığ / ТЗ',
@@ -73,7 +73,7 @@ test('browser layout preserves server strings, numbers, original text and mixed-
   assert.equal(definition.pageBreakBefore({ headlineLevel: 2 }, following({ id: 'body-7' })), false)
 })
 
-test('prototype worker is terminated on success and private JSON is sent only to it', async () => {
+test('PDF worker is terminated on success and private JSON is sent only to it', async () => {
   let terminated = false,
     requestPath
   const worker = {
@@ -143,7 +143,7 @@ test('public font cache avoids another transfer and unavailable storage does not
   assert.equal(await result.response.text(), 'synthetic font')
 })
 
-test('prototype cancellation terminates the worker and allows another operation', async () => {
+test('PDF cancellation terminates the worker and allows another operation', async () => {
   const controller = new AbortController()
   let terminated = false
   const worker = {

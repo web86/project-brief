@@ -97,7 +97,8 @@ class IntegrationsTest extends TestCase
         $this->postJson('/api/v1/projects', [...$data, 'title' => 'Different'], $headers)->assertConflict()->assertJsonPath('code', 'idempotency_conflict');
         $this->postJson('/api/v1/projects', $data, [...$headers, 'Idempotency-Key' => 'other-key'])->assertOk()->assertJsonPath('data.id', $id);
         $this->assertDatabaseCount('projects', 1);
-        $this->assertDatabaseCount('project_sections', 5);
+        $this->assertDatabaseCount('project_sections', 0);
+        $this->assertDatabaseCount('tasks', 0);
         $this->assertDatabaseHas('project_clients', ['name' => 'Anna', 'email' => 'anna@example.test']);
         $this->postJson('/api/v1/projects', $data, $this->headers($this->token(Workspace::factory()->create())))->assertCreated();
         $this->assertDatabaseCount('projects', 2);

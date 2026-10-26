@@ -184,10 +184,6 @@ class Milestone43Test extends TestCase
             $json = json_encode($document, JSON_UNESCAPED_UNICODE);
             $this->assertStringContainsString($label, $json);
             $this->assertStringNotContainsString('EXCLUDED_NOT_DONE', $json);
-            $html = view('exports.specification', compact('document'))->render();
-            $this->assertStringContainsString('Tech &lt;script&gt;unsafe&lt;/script&gt;', $html);
-            $this->assertSame(1, substr_count($html, $label));
-            $this->assertStringNotContainsString('<script>', $html);
             $bytes = app(DocxProjectExporter::class)->render($document);
             $file = tempnam(sys_get_temp_dir(), 'notes-test-');
             try {
@@ -201,7 +197,7 @@ class Milestone43Test extends TestCase
             } finally {
                 unlink($file);
             }
-            foreach (['pdf', 'docx'] as $format) {
+            foreach (['docx'] as $format) {
                 $this->postJson('/api/admin/projects/'.$task->project->uuid.'/export', ['format' => $format, 'scope' => 'done', 'locale' => $locale, 'fields' => ['developerNotes' => true]])->assertOk();
             }
         }

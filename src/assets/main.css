@@ -2964,23 +2964,62 @@ button.attachment-item:hover {
 .section-toggle .section-count {
   margin-left: auto;
 }
-.export-form fieldset {
+.export-form {
+  gap: 20px;
+}
+.export-form > h2 {
+  margin: 0;
+}
+.export-form .field {
+  margin: 0;
+}
+.export-grid {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.export-card {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.export-card h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.export-form fieldset {
+  min-width: 0;
   border: 0;
   padding: 0;
-  margin: 0 0 24px;
+  margin: 0;
 }
 .export-form legend {
   font-weight: 600;
   padding: 0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
-.export-form label {
+.export-options,
+.export-fields {
+  display: grid;
+  gap: 4px;
+}
+.export-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+}
+.export-option {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 28px;
+  min-height: 44px;
+  padding: 6px 4px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
 }
 .export-form input[type='checkbox'],
 .export-form input[type='radio'] {
@@ -2990,6 +3029,40 @@ button.attachment-item:hover {
   min-height: 18px;
   padding: 0;
   accent-color: var(--action);
+}
+.export-actions {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--divider);
+  padding-top: 20px;
+}
+.export-actions p {
+  margin: 0;
+}
+.export-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 1023px) {
+  .export-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 479px) {
+  .export-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .export-form {
+    padding: 18px;
+  }
+  .export-card {
+    padding: 16px;
+  }
+  .export-action-buttons > .button {
+    flex: 1 1 auto;
+  }
 }
 
 @media (max-width: 699px) {

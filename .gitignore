@@ -80,6 +80,3 @@ Desktop.ini
 *.bak
 *.orig
 *.rej
-
-# Local-only Milestone 6.1 prototype build
-artifacts/milestone-6-1/

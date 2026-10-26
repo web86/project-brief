@@ -451,10 +451,19 @@ export default {
       ai_daily_limit: 'Günlük yapay zekâ sınırına ulaşıldı. Yarın tekrar deneyin.',
     },
   },
+  emptyProject: {
+    title: 'Bu proje henüz boş',
+    manageHint: 'Fikirleri ve görevleri düzenlemek için ilk bölümü oluşturun.',
+    clientHint: 'Proje ekibi bölümleri ve görevleri buraya ekleyecek.',
+    createSection: 'Bölüm oluştur',
+  },
   export: {
+    document: 'Belge ayarları',
+    downloadPdf: 'PDF olarak dışa aktar',
+    downloadDocx: 'DOCX olarak dışa aktar',
+
     tooLarge: 'Belge çok büyük. Dışa aktarma kapsamını küçültün.',
-    prototypeNotice: 'Tarayıcıda PDF prototipi. Standart dışa aktarma değişmedi.',
-    prototypeError: 'PDF oluşturulamadı. Lütfen tekrar deneyin.',
+    pdfError: 'PDF oluşturulamadı. Lütfen tekrar deneyin.',
     stages: {
       preparing: 'Veriler hazırlanıyor…',
       library: 'PDF modülü yükleniyor…',

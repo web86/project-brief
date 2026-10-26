@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'sections' => ['首页', '商品目录', '商品详情页', '联系方式', '一般'],
     'task_changed' => '任务已更新',
     'client' => '客户',
     'invalid_credentials' => '邮箱或密码不正确。',

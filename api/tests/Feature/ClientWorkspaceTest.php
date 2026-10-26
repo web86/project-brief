@@ -129,7 +129,7 @@ class ClientWorkspaceTest extends TestCase
         Mail::assertSent(ProjectActivityMail::class, 1);
     }
 
-    public function test_client_export_allowlist_omits_private_columns_from_sql_builder_pdf_and_docx_even_with_forged_fields(): void
+    public function test_client_export_allowlist_omits_private_columns_from_sql_builder_and_docx_even_with_forged_fields(): void
     {
         $task = Task::factory()->create(['title' => 'Visible task', 'description' => 'PUBLIC_DESCRIPTION', 'expected_result' => 'PUBLIC_RESULT', 'price' => 934567.89, 'estimate_hours' => 76543.21, 'developer_notes' => 'PRIVATE_TECHNICAL_NOTES']);
         $this->enter($task->project);
@@ -146,26 +146,22 @@ class ClientWorkspaceTest extends TestCase
         foreach (['934567', '76543', 'PRIVATE_TECHNICAL_NOTES', 'estimateHours', 'developerNotes'] as $private) {
             $this->assertStringNotContainsString($private, $encoded);
         }
-        foreach (['pdf', 'docx'] as $format) {
+        foreach (['docx'] as $format) {
             $response = $this->postJson('/api/client/project/'.$task->project->uuid.'/export', ['format' => $format, 'scope' => 'all', 'locale' => 'en', 'fields' => $fields, 'documentTitle' => 'Client specification', 'pageBreakBySection' => true])->assertOk();
             $bytes = $response->streamedContent();
-            if ($format === 'pdf') {
-                $this->assertStringStartsWith('%PDF-', $bytes);
-            } else {
-                $file = tempnam(sys_get_temp_dir(), 'client-export');
-                try {
-                    file_put_contents($file, $bytes);
-                    $zip = new ZipArchive;
-                    $this->assertTrue($zip->open($file));
-                    $xml = $zip->getFromName('word/document.xml');
-                    $zip->close();
-                    $this->assertStringContainsString('PUBLIC_DESCRIPTION', $xml);
-                    $this->assertStringNotContainsString('PRIVATE_TECHNICAL_NOTES', $xml);
-                    $this->assertStringNotContainsString('934', $xml);
-                    $this->assertStringNotContainsString('76543', $xml);
-                } finally {
-                    unlink($file);
-                }
+            $file = tempnam(sys_get_temp_dir(), 'client-export');
+            try {
+                file_put_contents($file, $bytes);
+                $zip = new ZipArchive;
+                $this->assertTrue($zip->open($file));
+                $xml = $zip->getFromName('word/document.xml');
+                $zip->close();
+                $this->assertStringContainsString('PUBLIC_DESCRIPTION', $xml);
+                $this->assertStringNotContainsString('PRIVATE_TECHNICAL_NOTES', $xml);
+                $this->assertStringNotContainsString('934', $xml);
+                $this->assertStringNotContainsString('76543', $xml);
+            } finally {
+                unlink($file);
             }
         }
         $this->assertNotEmpty($queries);

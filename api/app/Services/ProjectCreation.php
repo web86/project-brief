@@ -15,9 +15,6 @@ class ProjectCreation
             if ($member && $member->role !== 'owner') {
                 $project->members()->create(['workspace_id' => $workspaceId, 'workspace_member_id' => $member->id]);
             }
-            foreach ($input['sections'] ?? trans('interface.sections') as $index => $name) {
-                $project->briefSections()->create(['name' => $name, 'position' => $index + 1]);
-            }
             if (! empty($input['clientName']) || ! empty($input['clientEmail'])) {
                 $project->clients()->create(['name' => ($input['clientName'] ?? null) ?: trans('interface.client'), 'email' => $input['clientEmail'] ?? null]);
             }

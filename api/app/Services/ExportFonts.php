@@ -25,29 +25,6 @@ class ExportFonts
         return resource_path('fonts/NotoSansSC-'.$weight);
     }
 
-    /** @return array<string, array<string, string>> */
-    public static function pdfFamilies(array $document): array
-    {
-        preg_match_all('/[^\x00-\x7F]/u', json_encode($document, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), $matches);
-        $characters = array_map(fn (string $character): int => mb_ord($character, 'UTF-8'), array_unique($matches[0]));
-        $families = [];
-        $shards = json_decode(file_get_contents(resource_path('fonts/NotoSansSC-Pdf.json')), true, flags: JSON_THROW_ON_ERROR);
-        foreach ($shards as $shard) {
-            foreach ($characters as $character) {
-                if ($character >= $shard['from'] && $character <= $shard['to']) {
-                    $prefix = 'fonts/NotoSansSC-Pdf'.$shard['id'];
-                    $families['ProjectBrief CJK '.$shard['id']] = [
-                        'normal' => resource_path($prefix.'-Regular'), 'bold' => resource_path($prefix.'-Bold'),
-                        'italic' => resource_path($prefix.'-Regular'), 'bold_italic' => resource_path($prefix.'-Bold'),
-                    ];
-                    break;
-                }
-            }
-        }
-
-        return $families;
-    }
-
     /** Embed complete, licensed TrueType faces so the document is editable on other devices. */
     public static function embedDocx(string $path): void
     {

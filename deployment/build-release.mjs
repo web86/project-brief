@@ -145,11 +145,11 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-6-0/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-6-2/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-6-0/RELEASE.md'),
+    path.join(root, 'docs/milestone-6-2/RELEASE.md'),
     path.join(staging, 'RELEASE-NOTES.md'),
   )
   for (const entry of ['README.md', 'openapi.json', 'verify-webhook.php']) {
@@ -232,6 +232,34 @@ try {
     path.join(staging, 'GUIDES/milestone-6-0'),
     { recursive: true },
   )
+  await copyRelease(
+    path.join(root, 'docs/milestone-6-2'),
+    path.join(staging, 'GUIDES/milestone-6-2'),
+    { recursive: true },
+  )
+  for (const file of ['RELEASE-ARTIFACT.json', 'SHA256SUMS.txt'])
+    await rm(path.join(staging, 'GUIDES/milestone-6-2', file), { force: true })
+  await copyRelease(path.join(root, 'docs/EXPORT.md'), path.join(staging, 'EXPORT.md'))
+  await copyRelease(path.join(root, 'docs/API-EXPORT.md'), path.join(staging, 'API-EXPORT.md'))
+  const currentGuide = path.join(staging, 'GUIDES/milestone-6-2/README.md')
+  await writeFile(
+    currentGuide,
+    (await readFile(currentGuide, 'utf8'))
+      .replaceAll('(../EXPORT.md)', '(../../EXPORT.md)')
+      .replaceAll('(../API-EXPORT.md)', '(../../API-EXPORT.md)')
+      .replaceAll(
+        '(../../api/resources/fonts/SOURCE.md)',
+        '(../../private/project-brief-app/resources/fonts/SOURCE.md)',
+      ),
+  )
+  const deploymentGuide = path.join(staging, 'DEPLOY-JINO.md')
+  await writeFile(
+    deploymentGuide,
+    (await readFile(deploymentGuide, 'utf8')).replaceAll(
+      '(docs/milestone-6-2/PRODUCTION.md)',
+      '(PRODUCTION.md)',
+    ),
+  )
   // Archive hashes are published after the ZIP exists; never bundle a previous build's hash.
   for (const file of ['RELEASE-ARTIFACT.json', 'SHA256SUMS.txt']) {
     await rm(path.join(staging, 'GUIDES/milestone-6-0', file), { force: true })
@@ -279,7 +307,7 @@ try {
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.6.0', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.6.2', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }
@@ -312,7 +340,7 @@ try {
   await validateRelease(staging, secrets)
   cleanTree()
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
-  const archive = path.join(releaseRoot, `project-brief-v0.6.0-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(releaseRoot, `project-brief-v0.6.2-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
   await rm(path.join(releaseRoot, 'project-brief'), { recursive: true, force: true })

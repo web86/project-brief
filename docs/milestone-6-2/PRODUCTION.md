@@ -1,0 +1,12 @@
+# Обновление и откат 6.2
+
+Deployment автоматически не выполняется. До ручного обновления сохраните предыдущий ZIP, `.env`, storage/uploads и резервную копию БД. Проверьте SHA-256 архива и `release.json`; public/private должны принадлежать одному commit.
+
+1. Включите штатный maintenance mode и сохраните прежние public/private файлы. Не заменяйте `.env`, uploads, сессии и пользовательские настройки примерами из ZIP.
+2. Распакуйте архив локально. `private/project-brief-app` установите в приватный `~/project-brief-app`, `public` — в `~/domains/brief.web86.site`. Следуйте DEPLOY-JINO.md. Не публикуйте private, vendor или весь ZIP.
+3. Замените vendor полным production-комплектом новой версии; удалённые пакеты Dompdf не должны оставаться от старого наложения. Уберите старые `PdfProjectExporter.php`, `resources/views/exports/specification.blade.php`, `resources/fonts/NotoSansSC-Pdf*`, если используете не чистую директорию версии. Не удаляйте полные NotoSansSC-Regular/Bold.ttf, используемые DOCX.
+4. Загрузите все новые public/assets JS/Worker/TTF и font-licenses. Сохраняйте прежние hashed assets на время обновления активных вкладок либо используйте атомарное переключение полной версии. HTML и sw.js не кешировать навсегда; hashed assets получают immutable. JSON всегда no-store. Web Worker/CSP должны разрешать same-origin script/worker/font fetch; inline/eval разрешения для PDF не нужны.
+5. Выполните существующие команды `php artisan migrate --force`, `php artisan optimize:clear`, затем принятые на хостинге config/route/view cache команды. В 6.2 новых миграций и массового изменения существующих проектов нет. PHP memory_limit не повышать. PDF не требует Node.js или очереди на сервере.
+6. Удалите ненужные BROWSER_PDF_PROTOTYPE_ENABLED/BROWSER_PDF_DIAGNOSTICS из env по желанию. JSON API доступен штатно; BROWSER_PDF_RATE_LIMIT остаётся. Проверьте RU/EN/TR/ZH-CN PDF, DOCX, клиентские ограничения, новый пустой проект и ручной первый раздел, затем снимите maintenance mode.
+
+Откат: maintenance → восстановить согласованные прежние public/private/vendor из проверенного ZIP, сохранив текущие `.env` и storage → optimize:clear и прежние cache команды → smoke → снять maintenance. Новые пустые проекты остаются пустыми и доступны прежней версии; обратной миграции данных для 6.2 нет. Не восстанавливайте БД из старого backup без отдельного решения: это потеряет новые пользовательские данные. Старые active tabs должны перезагрузить приложение при смене версии.

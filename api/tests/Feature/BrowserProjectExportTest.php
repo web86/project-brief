@@ -20,7 +20,7 @@ class BrowserProjectExportTest extends TestCase
 
     private function fixture(): Project
     {
-        config(['browser_pdf.enabled' => true, 'browser_pdf.max_per_minute' => 1000]);
+        config(['browser_pdf.max_per_minute' => 1000]);
         $project = Project::factory()->create(['currency' => 'USD']);
         Task::factory()->for($project)->create(['title' => 'Original Çığ / 中文 / задача', 'description' => '原始需求，不翻译。', 'developer_notes' => 'PRIVATE_DEVELOPER_NOTES', 'estimate_hours' => '1234.50', 'price' => '1234567.89', 'client_approved' => true]);
         $this->actingAs($this->ownerFor($project));
@@ -28,12 +28,11 @@ class BrowserProjectExportTest extends TestCase
         return $project;
     }
 
-    public function test_prototype_is_disabled_by_default_and_regular_export_is_unchanged(): void
+    public function test_pdf_uses_json_and_server_pdf_download_is_rejected(): void
     {
         $project = $this->fixture();
-        config(['browser_pdf.enabled' => false]);
-        $this->postJson('/api/admin/projects/'.$project->uuid.'/export-data', $this->payload())->assertNotFound();
-        $this->assertSame(1, app(ProjectExportData::class)->build($project, 'all', 'en')['totals']['taskCount']);
+        $this->postJson('/api/admin/projects/'.$project->uuid.'/export-data', $this->payload())->assertOk()->assertJsonPath('schemaVersion', 1);
+        $this->postJson('/api/admin/projects/'.$project->uuid.'/export', $this->payload())->assertUnprocessable();
     }
 
     public function test_four_languages_return_the_same_authorized_document_as_the_existing_builder(): void

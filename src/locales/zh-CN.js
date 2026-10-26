@@ -413,10 +413,19 @@ export default {
       ai_daily_limit: '已达到每日 AI 使用限额，请明天再试。',
     },
   },
+  emptyProject: {
+    title: '此项目暂无内容',
+    manageHint: '创建第一个分区，开始整理想法和任务。',
+    clientHint: '项目团队将在这里添加分区和任务。',
+    createSection: '创建分区',
+  },
   export: {
+    document: '文档设置',
+    downloadPdf: '导出 PDF',
+    downloadDocx: '导出 DOCX',
+
     tooLarge: '文档过大，请缩小导出范围。',
-    prototypeNotice: '浏览器 PDF 原型，现有导出功能保持不变。',
-    prototypeError: '无法生成 PDF，请重试。',
+    pdfError: '无法生成 PDF，请重试。',
     stages: {
       preparing: '正在准备数据…',
       library: '正在加载 PDF 模块…',

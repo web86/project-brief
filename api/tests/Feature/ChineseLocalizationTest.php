@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Services\DeveloperInvitations;
 use App\Services\DocxProjectExporter;
 use App\Services\ExportFonts;
-use App\Services\PdfProjectExporter;
 use App\Services\ProjectExportData;
 use App\Services\SupportedLocales;
 use DOMDocument;
@@ -107,12 +106,6 @@ class ChineseLocalizationTest extends TestCase
         $this->assertMatchesRegularExpression('/^\d{4}年\d{1,2}月\d{1,2}日$/u', $document['generated']['date']);
         $this->assertStringContainsString('1,234,567.89', json_encode($document, JSON_UNESCAPED_UNICODE));
         $this->assertSame($original, $document['sections'][0]['tasks'][0]['content'][0]['value']);
-        $pdf = app(PdfProjectExporter::class)->render($document);
-        $this->assertStringStartsWith('%PDF-', $pdf);
-        $this->assertStringContainsString('NotoSansSC', $pdf);
-        $this->assertStringContainsString('/FontFile2', $pdf);
-        $this->assertStringContainsString('/ToUnicode', $pdf);
-        unset($pdf);
         $bytes = app(DocxProjectExporter::class)->render($document);
         $path = tempnam(sys_get_temp_dir(), 'chinese-docx-');
         try {

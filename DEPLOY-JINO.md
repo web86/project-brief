@@ -12,7 +12,7 @@
    ./bin/build-release
    ```
 
-   Нужны Node/npm, PHP 8.3+ и Composer 2. Локальные PHP также требуют `pdo_sqlite` и `gd` для тестов, `zip` для упаковки. Script использует обычный `composer` или локальный `.tools/composer.phar`. Другой исполняемый файл можно задать через `PHP_BIN` и `COMPOSER_BIN` (путь к binary или `.phar`, без аргументов). Сборка выполняет `npm ci`, тесты, Vue build, Laravel tests, отдельную установку production vendor, проверку пакета и запуск его копии с временной SQLite. Текущие `.env`, MariaDB, uploads и development vendor сохраняются. Архив появляется в `release/project-brief-<UTC timestamp>-<commit>.zip`, распакованная копия — `release/project-brief/`.
+   Нужны Node/npm, PHP 8.3+ и Composer 2. Локальные PHP также требуют `pdo_sqlite` и `gd` для тестов, `zip` для упаковки. Script использует обычный `composer` или локальный `.tools/composer.phar`. Другой исполняемый файл можно задать через `PHP_BIN` и `COMPOSER_BIN` (путь к binary или `.phar`, без аргументов). Сборка выполняет `npm ci`, тесты, Vue build, Laravel tests, отдельную установку production vendor, проверку пакета и запуск его копии с временной SQLite. Текущие `.env`, MariaDB, uploads и development vendor сохраняются. Архив появляется в `release/project-brief-v0.6.2-<commit>.zip`, распакованная копия — `release/project-brief/`.
 
 2. Распакуйте архив локально и загрузите **содержимое**, включая скрытые файлы:
 
@@ -389,3 +389,7 @@ Deno-сервис не является частью PHP web root и не раз
 
 Реальную E2E доставку direct с Jino и через Deno проверяйте после предоставления
 тестовых credentials. В релизных проверках Telegram использует mocks.
+
+## Обновление Milestone 6.2
+
+PDF теперь создаётся только в браузере; PHPWord продолжает выдавать DOCX. Загрузите согласованный комплект public/private: Worker, ленивый pdfmake, четыре hashed TTF и `font-licenses` обязательны. Замените vendor целиком комплектом из ZIP, чтобы удалённые пакеты Dompdf не оставались от старой версии. Полные инструкции сохранения `.env`/storage и отката: `PRODUCTION.md` из архива или [руководство 6.2](docs/milestone-6-2/PRODUCTION.md). Новых миграций данных нет. Deployment автоматически не выполняется.

@@ -19,7 +19,6 @@ use App\Services\DeveloperInvitations;
 use App\Services\DocxProjectExporter;
 use App\Services\NotificationEvents;
 use App\Services\NotificationPayload;
-use App\Services\PdfProjectExporter;
 use App\Services\ProjectExportData;
 use App\Services\ProjectNotificationService;
 use App\Services\SupportedLocales;
@@ -199,10 +198,7 @@ class MultilingualTest extends TestCase
         } finally {
             unlink($file);
         }
-        $pdf = app(PdfProjectExporter::class)->render($document);
-        $this->assertStringStartsWith('%PDF-', $pdf);
-        $this->assertStringContainsString('DejaVuSans', $pdf);
-        foreach (['pdf', 'docx'] as $format) {
+        foreach (['docx'] as $format) {
             $this->actingAs($owner)->postJson('/api/admin/projects/'.$task->project->uuid.'/export', ['locale' => 'tr', 'format' => $format, 'scope' => 'all'])->assertOk();
         }
         $this->assertSame('USD', $task->project->fresh()->currency);
@@ -237,13 +233,14 @@ class MultilingualTest extends TestCase
         $this->assertSame('Geliştirici 2 dosya ekledi', NotificationPayload::commentText($comment, 'tr'));
     }
 
-    public function test_new_project_default_sections_follow_request_language_without_renaming_existing_content(): void
+    public function test_new_projects_are_empty_in_every_request_language_without_renaming_content(): void
     {
         $user = User::factory()->owner()->create();
         foreach (SupportedLocales::codes() as $locale) {
             $response = $this->actingAs($user)->withHeader('Accept-Language', $locale)->postJson('/api/admin/projects', ['title' => 'Original çğışİöü', 'currency' => 'USD'])->assertCreated();
             $project = Project::where('uuid', $response->json('data.id'))->firstOrFail();
-            $this->assertSame(trans('interface.sections', [], $locale), $project->briefSections()->orderBy('position')->pluck('name')->all());
+            $this->assertSame([], $project->briefSections()->pluck('name')->all());
+            $this->assertSame(0, $project->tasks()->count());
             $this->assertSame('Original çğışİöü', $project->title);
             $this->assertSame('USD', $project->currency);
         }

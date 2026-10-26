@@ -3,13 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Project;
-use App\Models\PushSubscription;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\ProjectExportData;
 use App\Services\TaskAudit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -59,13 +57,13 @@ class ProjectExportTest extends TestCase
         }
     }
 
-    public function test_export_uses_existing_project_access_for_both_formats_and_denies_guessed_representations(): void
+    public function test_docx_uses_existing_project_access_and_denies_guessed_representations(): void
     {
         $project = $this->project();
         $owner = auth()->user();
         $admin = User::factory()->memberOf($project->workspace)->create();
         $project->members()->create(['workspace_id' => $project->workspace_id, 'workspace_member_id' => $admin->workspaceMembers()->first()->id, 'permissions' => ['export_project' => true]]);
-        foreach (['pdf', 'docx'] as $format) {
+        foreach (['docx'] as $format) {
             $url = '/api/admin/projects/'.$project->uuid.'/export';
             $this->actingAs($owner)->postJson($url, $this->payload($format))->assertOk();
             $this->actingAs($admin)->postJson($url, $this->payload($format))->assertOk();
@@ -80,7 +78,7 @@ class ProjectExportTest extends TestCase
         $plain = str_repeat('a', 64);
         $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', $plain)]);
         $this->get('/access/'.$plain)->assertRedirect();
-        foreach (['pdf', 'docx'] as $format) {
+        foreach (['docx'] as $format) {
             $this->postJson('/api/admin/projects/'.$project->uuid.'/export', $this->payload($format))->assertUnauthorized();
         }
         $this->postJson('/api/client/project/'.$project->uuid.'/export', $this->payload())->assertOk();
@@ -145,40 +143,6 @@ class ProjectExportTest extends TestCase
         }
     }
 
-    public function test_pdf_renders_cyrillic_from_safe_escaped_source_and_embeds_packaged_font(): void
-    {
-        $project = $this->project();
-        $client = $project->clients()->first();
-        $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', 'SECRET_TOKEN')]);
-        $task = $project->tasks()->first();
-        PushSubscription::factory()->create(['user_id' => auth()->id(), 'endpoint' => 'https://fcm.googleapis.com/SECRET_PUSH_ENDPOINT']);
-        $task->history()->create(['actor_type' => 'admin', 'event_type' => 'developer_notes', 'meta' => ['text' => 'SECRET_HISTORY']]);
-        $task->comments()->create(['author_type' => 'admin', 'text' => 'SECRET_COMMENT']);
-        $task->attachments()->create(['uuid' => (string) Str::uuid(), 'uploaded_by_type' => 'admin', 'stored_name' => 'secret.txt', 'original_name' => 'secret.txt', 'disk' => 'local', 'path' => 'SECRET_STORAGE_PATH', 'mime_type' => 'text/plain', 'size' => 1]);
-        foreach (['ru', 'en'] as $locale) {
-            $document = app(ProjectExportData::class)->build($project, 'all', $locale);
-            $source = view('exports.specification', ['document' => $document])->render();
-            $this->assertStringContainsString($locale === 'ru' ? 'Описание' : 'Description', $source);
-            $this->assertStringContainsString('Каталог товаров', $source);
-            foreach (['SECRET_DEVELOPER_NOTES', 'SECRET_STORAGE_PATH', 'SECRET_TOKEN', hash('sha256', 'SECRET_TOKEN'), 'SECRET_COMMENT', 'SECRET_HISTORY', 'SECRET_PUSH_ENDPOINT', 'developer_notes', $task->uuid, $project->uuid, $client->uuid] as $secret) {
-                $this->assertStringNotContainsString($secret, $source);
-            }
-            $response = $this->postJson('/api/admin/projects/'.$project->uuid.'/export', $this->payload('pdf', $locale))->assertOk()->assertHeader('Content-Type', 'application/pdf');
-            $bytes = $response->streamedContent();
-            $this->assertStringStartsWith('%PDF-', $bytes);
-            $this->assertGreaterThan(10000, strlen($bytes));
-            $this->assertStringContainsString('DejaVuSans', $bytes);
-            $this->assertStringContainsString('/ToUnicode', $bytes);
-            $this->assertStringNotContainsString('SECRET_DEVELOPER_NOTES', $bytes);
-            $temporaryBefore = glob(sys_get_temp_dir().'/projectbrief-docx-*');
-            $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', $this->payload('docx', $locale))->assertOk()->streamedContent());
-            $this->assertSame($temporaryBefore, glob(sys_get_temp_dir().'/projectbrief-docx-*'));
-            foreach (['SECRET_DEVELOPER_NOTES', 'SECRET_STORAGE_PATH', 'SECRET_TOKEN', hash('sha256', 'SECRET_TOKEN'), 'SECRET_COMMENT', 'SECRET_HISTORY', 'SECRET_PUSH_ENDPOINT', $task->uuid, $project->uuid] as $secret) {
-                $this->assertStringNotContainsString($secret, $xml);
-            }
-        }
-    }
-
     public function test_unknown_options_invalid_values_and_empty_scope_are_rejected(): void
     {
         $project = $this->project();
@@ -188,7 +152,7 @@ class ProjectExportTest extends TestCase
         }
         $project->tasks()->update(['client_approved' => false]);
         foreach (['ru', 'en'] as $locale) {
-            $this->postJson($url, [...$this->payload('pdf', $locale), 'scope' => 'approved'])->assertUnprocessable()->assertJsonPath('errors.scope.0', trans('exports.empty', [], $locale));
+            $this->postJson($url, [...$this->payload('docx', $locale), 'scope' => 'approved'])->assertUnprocessable()->assertJsonPath('errors.scope.0', trans('exports.empty', [], $locale));
         }
         $project->update(['title' => '💡']);
         $this->postJson($url, $this->payload())->assertOk()->assertHeader('Content-Disposition', 'attachment; filename=project-specification-'.now()->toDateString().'.docx');
@@ -297,12 +261,10 @@ class ProjectExportTest extends TestCase
             foreach ([[false, false], [true, false], [false, true], [true, true]] as [$hours, $price]) {
                 $fields = ['estimateHours' => $hours, 'price' => $price];
                 $data = app(ProjectExportData::class)->build($project, 'all', $locale, $fields);
-                $source = view('exports.specification', ['document' => $data])->render();
                 $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('docx', $locale), 'fields' => $fields])->assertOk()->streamedContent());
                 $xpath = $this->documentXPath($xml);
                 foreach ($data['sections'] as $section) {
                     foreach ($section['tasks'] as $task) {
-                        $this->assertStringContainsString('<p class="task-metadata">'.$task['metadata'].'</p>', $source);
                         $metadataNodes = $xpath->query('//w:p[w:r/w:t[contains(., " · ")]]');
                         $found = false;
                         foreach ($metadataNodes as $node) {
@@ -316,35 +278,27 @@ class ProjectExportTest extends TestCase
                         $this->assertTrue($found, 'Task metadata occupies one smaller styled paragraph.');
                     }
                 }
-                $this->assertStringContainsString('font-size: 8.5pt', $source);
-                $this->assertGreaterThan(strpos($source, 'Каталог товаров'), strpos($source, '<div class="summary">'));
                 foreach ($data['summary'] as $row) {
-                    $this->assertStringContainsString($row['label'], $source);
                     $this->assertStringContainsString($row['label'].': '.$row['value'], $xml);
                     if ($row['coverage']) {
-                        $this->assertStringContainsString($row['coverage'], $source);
                         $this->assertStringContainsString($row['coverage'], $xml);
                     }
                 }
                 foreach (['estimateHours' => $hours, 'price' => $price] as $key => $enabled) {
                     $label = trans('exports.'.$key.'Total', [], $locale);
-                    $this->assertSame($enabled, str_contains($source, $label));
                     $this->assertSame($enabled, str_contains($xml, $label));
                 }
-                $pdf = $this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('pdf', $locale), 'fields' => $fields])->assertOk()->streamedContent();
-                $this->assertStringStartsWith('%PDF-', $pdf);
             }
         }
         $fields = array_fill_keys(array_keys(ProjectExportData::DEFAULT_FIELDS), false);
         $bare = app(ProjectExportData::class)->build($project, 'all', 'en', $fields);
         $this->assertSame('', $bare['sections'][0]['tasks'][0]['metadata']);
-        $this->assertStringNotContainsString('<p class="task-metadata">', view('exports.specification', ['document' => $bare])->render());
         $financialOnly = app(ProjectExportData::class)->build($project, 'all', 'en', [...$fields, 'estimateHours' => true, 'price' => true]);
         $metadata = $financialOnly['sections'][1]['tasks'][0]['metadata'];
         $this->assertSame("Estimate: 23.5 h · Price: 987.25\u{00A0}₽", $metadata);
     }
 
-    public function test_optional_filenames_dates_and_custom_title_are_safe_in_both_formats(): void
+    public function test_optional_filenames_dates_and_custom_title_are_safe_in_docx(): void
     {
         $project = $this->project();
         $task = $project->tasks()->where('title', 'Каталог товаров')->firstOrFail();
@@ -367,18 +321,13 @@ class ProjectExportTest extends TestCase
                 $this->assertStringNotContainsString(trans('exports.approvedOn', [], $locale), $withoutDate['metadata']);
                 $this->assertSame([], $withoutDate['attachments']);
             }
-            $source = view('exports.specification', ['document' => $data])->render();
-            $this->assertStringContainsString('План &lt;работ&gt; &amp; estimate', $source);
-            $this->assertStringContainsString('&lt;draft &amp; plan&gt;.pdf', $source);
             $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('docx', $locale), 'fields' => $fields, 'documentTitle' => '  План <работ> & estimate  '])->assertOk()->streamedContent());
             $this->assertStringContainsString('План &lt;работ&gt; &amp; estimate', $xml);
             $this->assertStringContainsString('requirements &amp; scope.pdf', $xml);
             $this->assertStringContainsString($date, $xml);
             foreach (['SECRET_PATH', 'SECRET_INTERNAL_UUID', 'SECRET_STORAGE_PATH', $task->uuid, $project->uuid] as $secret) {
-                $this->assertStringNotContainsString($secret, $source);
                 $this->assertStringNotContainsString($secret, $xml);
             }
-            $this->assertStringStartsWith('%PDF-', $this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('pdf', $locale), 'fields' => $fields, 'documentTitle' => 'План <работ> & estimate'])->assertOk()->streamedContent());
             $off = app(ProjectExportData::class)->build($project, 'all', $locale);
             $this->assertSame([], $off['sections'][1]['tasks'][0]['attachments']);
             $this->assertStringNotContainsString($date, json_encode($off));
@@ -391,8 +340,7 @@ class ProjectExportTest extends TestCase
         $fields = array_fill_keys(array_keys(ProjectExportData::DEFAULT_FIELDS), false);
         foreach ([false, true] as $breaks) {
             $data = app(ProjectExportData::class)->build($project, 'all', 'en', $fields, ['pageBreakBySection' => $breaks]);
-            $source = view('exports.specification', ['document' => $data])->render();
-            $this->assertSame($breaks ? 1 : 0, substr_count($source, 'class="section-page-break"'));
+            $this->assertSame($breaks, $data['presentation']['pageBreakBySection']);
             $payload = [...$this->payload('docx', 'en'), 'fields' => $fields, 'pageBreakBySection' => $breaks];
             $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', $payload)->assertOk()->streamedContent());
             $xpath = $this->documentXPath($xml);
@@ -402,14 +350,10 @@ class ProjectExportTest extends TestCase
                 $this->assertSame('2. Каталог', $xpath->query('//w:p[w:pPr/w:pStyle/@w:val="SectionStart"]')->item(0)->textContent);
                 $this->assertStringContainsString('<w:pageBreakBefore', $xml);
             }
-            $bytes = $this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$payload, 'format' => 'pdf'])->assertOk()->streamedContent();
-            $this->assertStringStartsWith('%PDF-', $bytes);
-            $this->assertSame($breaks ? 2 : 1, preg_match_all('/\/Type\s*\/Page\b/', $bytes));
         }
         $project->tasks()->where('project_section_id', $project->briefSections->first()->id)->update(['client_approved' => false]);
         $data = app(ProjectExportData::class)->build($project, 'approved', 'en', $fields, ['pageBreakBySection' => true]);
         $this->assertSame(2, $data['sections'][0]['number']);
-        $this->assertStringNotContainsString('class="section-page-break"', view('exports.specification', ['document' => $data])->render());
     }
 
     public function test_new_export_options_are_strict_and_title_fallback_is_localized(): void
@@ -444,7 +388,7 @@ class ProjectExportTest extends TestCase
         $this->assertCount(1, $data['sections']);
         $this->assertNull($data['totals']['estimateHours']['coverage']);
         $url = '/api/admin/projects/'.$project->uuid.'/export';
-        foreach (['pdf', 'docx'] as $format) {
+        foreach (['docx'] as $format) {
             $response = $this->postJson($url, [...$this->payload($format, 'en'), 'scope' => 'done', 'fields' => $fields])->assertOk();
             if ($format === 'docx') {
                 $xml = $this->xml($response->streamedContent());
@@ -452,13 +396,11 @@ class ProjectExportTest extends TestCase
                 $this->assertStringContainsString('Tasks: 2', $xml);
                 $this->assertStringContainsString('Approved: 1', $xml);
                 $this->assertStringContainsString("Total price: 18,000\u{00A0}₽", $xml);
-            } else {
-                $this->assertStringStartsWith('%PDF-', $response->streamedContent());
             }
         }
         $project->tasks()->where('status', 'done')->update(['status' => 'new']);
         foreach (['ru', 'en'] as $locale) {
-            $this->postJson($url, [...$this->payload('pdf', $locale), 'scope' => 'done'])->assertUnprocessable()->assertJsonPath('errors.scope.0', trans('exports.empty', [], $locale));
+            $this->postJson($url, [...$this->payload('docx', $locale), 'scope' => 'done'])->assertUnprocessable()->assertJsonPath('errors.scope.0', trans('exports.empty', [], $locale));
         }
     }
 }

@@ -1,0 +1,422 @@
+[
+  {
+    "file": "after-cancel-en.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-en-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-en.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-ru-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-ru.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-tr-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-tr.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-zh-CN-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-1440-zh-CN.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-en-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-en.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-ru-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-ru.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-tr-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-tr.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-zh-CN-client.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "chromium-390-zh-CN.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-1440-en.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-1440-ru.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-1440-tr.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-1440-zh-CN.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-390-en.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-390-ru.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-390-tr.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "firefox-390-zh-CN.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "retry-en.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "sample-en.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "sample-ru.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "sample-tr.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular",
+      "/EZZZZZ+NotoSansSC-Bold"
+    ],
+    "pageImages": 0
+  },
+  {
+    "file": "sample-zh-CN.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "unicodeAndOriginalText": "passed",
+    "orderAndTotals": "passed",
+    "embeddedFonts": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ],
+    "pageImages": 0
+  }
+]
