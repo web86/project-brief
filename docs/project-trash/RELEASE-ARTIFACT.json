@@ -1,0 +1,42 @@
+{
+  "archive": "project-brief-v0.6.3-046161d.zip",
+  "relativePath": "release/project-brief-v0.6.3-046161d.zip",
+  "bytes": 37726369,
+  "sizeMiB": 35.97866916656494,
+  "sha256": "d4ea9d440841a612a3b467204734ae5ea22a0ea9a2d3ebbb92acb41c2be7a55c",
+  "sourceCommit": "046161dd1f0607bfb3a7683224dd5156131bba74",
+  "release": {
+    "version": "0.6.3",
+    "commit": "046161dd1f0607bfb3a7683224dd5156131bba74",
+    "builtAt": "2026-10-26T20:26:07.046Z",
+    "phpTarget": "8.4",
+    "domain": "brief.web86.site"
+  },
+  "archiveFiles": 7594,
+  "archiveFilesSha256Verified": 7593,
+  "archiveCrcVerified": true,
+  "productionGuide": "docs/project-trash/PRODUCTION.md",
+  "migration": "2026_10_26_200540_add_project_trash_lifecycle.php",
+  "checks": {
+    "backend": {
+      "passed": 692,
+      "assertions": 8224
+    },
+    "frontend": {
+      "passed": 252
+    },
+    "brand": true,
+    "productionBuild": true,
+    "productionVendor": true,
+    "secretAndArtifactScan": true,
+    "manifestAfterUnzip": true,
+    "isolatedPackagedRuntime": true,
+    "packagedProjectTrashRestoreAndPurgeHttp": true
+  },
+  "productionDeployment": false,
+  "publicationTarget": {
+    "remote": "projects-manager",
+    "url": "https://github.com/web86/projects-manager.git",
+    "branch": "main"
+  }
+}
