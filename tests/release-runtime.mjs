@@ -963,7 +963,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.6.0',
+    '0.6.2',
   )
   assert.match(
     await readFile(path.join(packageRoot, 'GUIDES/milestone-5-0-2/README.md'), 'utf8'),
