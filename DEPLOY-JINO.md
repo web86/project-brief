@@ -12,7 +12,7 @@
    ./bin/build-release
    ```
 
-   Нужны Node/npm, PHP 8.3+ и Composer 2. Локальные PHP также требуют `pdo_sqlite` и `gd` для тестов, `zip` для упаковки. Script использует обычный `composer` или локальный `.tools/composer.phar`. Другой исполняемый файл можно задать через `PHP_BIN` и `COMPOSER_BIN` (путь к binary или `.phar`, без аргументов). Сборка выполняет `npm ci`, тесты, Vue build, Laravel tests, отдельную установку production vendor, проверку пакета и запуск его копии с временной SQLite. Текущие `.env`, MariaDB, uploads и development vendor сохраняются. Архив появляется в `release/project-brief-v0.6.2-<commit>.zip`, распакованная копия — `release/project-brief/`.
+   Нужны Node/npm, PHP 8.3+ и Composer 2. Локальные PHP также требуют `pdo_sqlite` и `gd` для тестов, `zip` для упаковки. Script использует обычный `composer` или локальный `.tools/composer.phar`. Другой исполняемый файл можно задать через `PHP_BIN` и `COMPOSER_BIN` (путь к binary или `.phar`, без аргументов). Сборка выполняет `npm ci`, тесты, Vue build, Laravel tests, отдельную установку production vendor, проверку пакета и запуск его копии с временной SQLite. Текущие `.env`, MariaDB, uploads и development vendor сохраняются. Архив появляется в `release/project-brief-v0.6.3-<commit>.zip`, распакованная копия — `release/project-brief/`.
 
    В ZIP входят только `public/`, `private/project-brief-app/`, необходимый Telegram bridge, `DEPLOY-JINO.md`, `PRODUCTION.md`, `release.json` и `checksums.txt`. Шрифты и лицензии сохранены. Тестовые документы, скриншоты, результаты проверок и исторические отчёты остаются в Git вне дистрибутива. Перед публикацией сборка распаковывает готовый ZIP в новую временную папку, сверяет все SHA-256 и проверяет установку, запуск и экспорт на отдельной SQLite.
 
@@ -395,3 +395,9 @@ Deno-сервис не является частью PHP web root и не раз
 ## Обновление Milestone 6.2
 
 PDF теперь создаётся только в браузере; PHPWord продолжает выдавать DOCX. Загрузите согласованный комплект public/private: Worker, ленивый pdfmake, четыре hashed TTF и `font-licenses` обязательны. Замените vendor целиком комплектом из ZIP, чтобы удалённые пакеты Dompdf не оставались от старой версии. Полные инструкции сохранения `.env`/storage и отката: `PRODUCTION.md` из архива или [руководство 6.2](docs/milestone-6-2/PRODUCTION.md). Новых миграций данных нет. Deployment автоматически не выполняется.
+
+## Обновление 0.6.3: карточки и корзина проектов
+
+В 0.6.3 добавлена миграция `2026_10_26_200540_add_project_trash_lifecycle.php` и повторная очистка файлов `projects:cleanup-files`. До возобновления запросов примените миграции; настройте hourly cleanup через существующий scheduler или отдельный cron. Восстановление сохраняет исходную активность и связи проекта; окончательное удаление доступно только владельцу workspace.
+
+Перед откатом на 0.6.2 восстановите проекты из корзины во всех workspaces и завершите pending cleanup: прежний код не знает `deleted_at` проектов. Полные команды, smoke и безопасный rollback: `PRODUCTION.md` из ZIP или [руководство 0.6.3](docs/project-trash/PRODUCTION.md). Требования browser PDF из раздела 6.2 выше сохраняются. Production deployment автоматически не выполняется.

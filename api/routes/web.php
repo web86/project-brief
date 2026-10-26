@@ -21,6 +21,7 @@ use App\Http\Controllers\ProjectDiscussionController;
 use App\Http\Controllers\ProjectExportController;
 use App\Http\Controllers\ProjectSectionController;
 use App\Http\Controllers\ProjectTeamController;
+use App\Http\Controllers\ProjectTrashController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SpaController;
@@ -91,6 +92,11 @@ Route::middleware(['admin', 'throttle:30,1'])->prefix('/api/admin/integrations')
 Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
     Route::get('/', [ProjectController::class, 'index']);
     Route::post('/', [ProjectController::class, 'store']);
+    Route::get('/trash', [ProjectTrashController::class, 'index']);
+    Route::delete('/trash', [ProjectTrashController::class, 'empty']);
+    Route::post('/{projectUuid}/trash', [ProjectTrashController::class, 'trash']);
+    Route::post('/{projectUuid}/restore', [ProjectTrashController::class, 'restore']);
+    Route::delete('/{projectUuid}/permanent', [ProjectTrashController::class, 'destroy']);
     Route::get('/{project}', [ProjectController::class, 'show']);
     Route::patch('/{project}', [ProjectController::class, 'update'])->middleware('project.permission:manage_project_settings');
 });

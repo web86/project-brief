@@ -126,7 +126,7 @@ class WebhookProjectFiltersTest extends TestCase
         app(WebhookProcessor::class)->process();
         $failed = DB::table('webhook_deliveries')->first();
         $this->queue($one);
-        $one->delete();
+        $one->forceDelete();
         $this->assertDatabaseCount('webhook_endpoint_projects', 0);
         $this->postJson('/api/admin/integrations/webhooks/'.$uuid.'/deliveries/'.$failed->uuid.'/retry')->assertConflict();
         Http::fake();

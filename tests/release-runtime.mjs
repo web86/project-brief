@@ -920,6 +920,103 @@ exit($status);
   assert.equal(successCron.status, 0)
   assert.equal(successCron.stdout, '')
   assert.equal(successCron.stderr, '')
+  // Exercise project lifecycle through the shipped HTTP routes, on disposable data only.
+  const lifecycleCsrf = await (await request('/api/csrf')).json()
+  assert.equal(
+    (
+      await request('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': lifecycleCsrf.token,
+        },
+        body: loginPayload,
+      })
+    ).status,
+    200,
+  )
+  const lifecycleHeaders = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+  }
+  const lifecycleCall = (url, method, body) =>
+    request(url, {
+      method,
+      headers: lifecycleHeaders,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    })
+  const lifecycleCreated = await lifecycleCall('/api/admin/projects', 'POST', {
+    title: 'Packaged lifecycle QA',
+    currency: 'EUR',
+  })
+  assert.equal(lifecycleCreated.status, 201)
+  const lifecycleId = (await lifecycleCreated.json()).data.id
+  const lifecycleRoot = '/api/admin/projects/' + lifecycleId
+  const lifecycleTask = await lifecycleCall(lifecycleRoot + '/tasks', 'POST', {
+    title: 'Preserved task',
+    location: 'QA',
+    description: 'Preserved data',
+    priority: 'normal',
+  })
+  assert.equal(lifecycleTask.status, 201)
+  const lifecycleTaskId = (await lifecycleTask.json()).data.id
+  const lifecycleUpload = new FormData()
+  lifecycleUpload.append(
+    'attachments[]',
+    new Blob(['packaged lifecycle bytes'], { type: 'text/plain' }),
+    'lifecycle.txt',
+  )
+  const lifecycleUploaded = await request('/api/admin/tasks/' + lifecycleTaskId + '/attachments', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': lifecycleHeaders['X-CSRF-TOKEN'] },
+    body: lifecycleUpload,
+  })
+  assert.equal(lifecycleUploaded.status, 200)
+  const lifecycleDownload = (await lifecycleUploaded.json()).data.attachments[0].downloadUrl
+  assert.equal((await lifecycleCall(lifecycleRoot, 'PATCH', { status: 'inactive' })).status, 200)
+  assert.equal((await lifecycleCall(lifecycleRoot + '/trash', 'POST', {})).status, 200)
+  assert.equal((await request(lifecycleRoot)).status, 404)
+  assert.equal((await request(lifecycleRoot + '/tasks')).status, 404)
+  assert.equal((await request(lifecycleDownload)).status, 404)
+  assert.equal((await callIntegration('/api/v1/projects/' + lifecycleId)).status, 404)
+  assert.equal((await (await request('/api/admin/projects/trash')).json()).data[0].id, lifecycleId)
+  assert.equal((await lifecycleCall(lifecycleRoot + '/restore', 'POST', {})).status, 200)
+  const lifecycleRestored = (await (await request(lifecycleRoot)).json()).data
+  assert.equal(lifecycleRestored.status, 'inactive')
+  assert.equal(lifecycleRestored.currency, 'EUR')
+  assert.equal(lifecycleRestored.tasksCount, 1)
+  assert.equal(await (await request(lifecycleDownload)).text(), 'packaged lifecycle bytes')
+  assert.equal((await lifecycleCall(lifecycleRoot + '/trash', 'POST', {})).status, 200)
+  assert.equal(
+    (await lifecycleCall('/api/admin/projects/trash', 'DELETE', { projectIds: [lifecycleId] }))
+      .status,
+    422,
+  )
+  assert.equal(
+    (
+      await lifecycleCall('/api/admin/projects/trash', 'DELETE', {
+        confirmed: true,
+        projectIds: [],
+      })
+    ).status,
+    409,
+  )
+  assert.equal(
+    (
+      await lifecycleCall('/api/admin/projects/trash', 'DELETE', {
+        confirmed: true,
+        projectIds: [lifecycleId],
+      })
+    ).status,
+    200,
+  )
+  assert.equal((await (await request('/api/admin/projects/trash')).json()).data.length, 0)
+  assert.equal((await request(lifecycleRoot)).status, 404)
+  assert.equal((await request('/api/admin/projects/' + fixture.project)).status, 200)
+  assert.equal((await request('/api/admin/projects/' + fixture.foreignProject)).status, 404)
+  command(['artisan', 'projects:cleanup-files'])
   const cleanupFixture = path.join(fixtureRoot, 'integration-cleanup-fixture.php')
   await writeFile(
     cleanupFixture,
@@ -955,9 +1052,13 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.6.2',
+    '0.6.3',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
+  assert.match(
+    await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
+    /2026_10_26_200540_add_project_trash_lifecycle/,
+  )
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 
   command(['artisan', 'down'])

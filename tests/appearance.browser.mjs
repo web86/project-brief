@@ -6,6 +6,7 @@ import { createServer, preview } from 'vite'
 import { createDemoData } from '../src/data/demo.js'
 import { notificationEvents } from '../src/services/notificationSettings.js'
 import { allProjectPermissions } from './helpers/projectPermissions.js'
+import { LANGUAGE_CATALOG } from '../src/i18n/catalog.js'
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const server = await createServer({
@@ -69,6 +70,7 @@ async function fixture(options = {}) {
       else if (path === '/api/client/me') payload = client
       else if (path === '/api/admin/me') payload = { user, workspace }
       else if (path === '/api/admin/workspaces') payload = { data: [workspace] }
+      else if (path === '/api/admin/projects/trash') payload = { data: [] }
       else if (path === '/api/admin/projects') payload = { data: [project] }
       else if (path.endsWith('/activity/read') || path.endsWith('/discussions/read'))
         payload = { unreadCount: 0 }
@@ -263,7 +265,7 @@ try {
       .locator('.language-switcher option')
       .allTextContents()
       .then((items) => items.map((item) => item.trim()).join('|')),
-    'Русский|English',
+    LANGUAGE_CATALOG.map((language) => language.name).join('|'),
   )
   assert.equal(await page.evaluate(() => localStorage.getItem('projectbrief.locale')), 'en')
   await page.reload()

@@ -63,6 +63,7 @@ async function fixture({ mode = 'system', language = 'ru', guest = false, ...opt
         json = { id: 'client', name: 'Анна', preferredLocale: 'ru' }
       else if (path === '/api/admin/workspaces')
         json = { data: [{ id: 'studio', name: 'Studio workspace' }] }
+      else if (path === '/api/admin/projects/trash') json = { data: [] }
       else if (path === '/api/admin/projects') json = { data: [project] }
       else if (path.endsWith('/tasks')) json = { data: demo.tasks }
       else if (path.endsWith('/sections')) json = { data: demo.sections }

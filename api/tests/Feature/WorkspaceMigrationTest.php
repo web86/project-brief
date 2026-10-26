@@ -155,6 +155,14 @@ class WorkspaceMigrationTest extends TestCase
                     }
                     unset($row);
                 }
+                if ($table === 'projects') {
+                    foreach ($after as &$row) {
+                        $this->assertNull($row['deleted_at']);
+                        $this->assertNull($row['status_before_trash']);
+                        unset($row['deleted_at'], $row['status_before_trash']);
+                    }
+                    unset($row);
+                }
                 if ($table === 'project_access_tokens') {
                     // Entering the preserved link intentionally updates these activity timestamps.
                     foreach ($rows as &$row) {

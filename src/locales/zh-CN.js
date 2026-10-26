@@ -1,4 +1,23 @@
 export default {
+  projectList: {
+    team: '团队',
+    currency: '货币',
+    progress: '完成进度',
+    updated: '更新于 {date}',
+    trash: '项目回收站',
+    trashCount: '项目回收站（{count}）',
+    moveToTrash: '移至回收站',
+    trashWarning: '将“{name}”移至回收站？该项目将无法访问。其数据和访问权限可以恢复。',
+    empty: '回收站为空。',
+    trashedOn: '移至回收站日期：{date}',
+    deleteForever: '永久删除',
+    emptyTrash: '清空回收站',
+    purgeWarning: '永久删除“{name}”及其任务、评论、文件和历史记录？此操作无法撤销。',
+    emptyWarning:
+      '永久删除回收站中的全部 {count} 个项目及其任务、评论、文件和历史记录？此操作无法撤销。',
+    confirmPermanent: '我理解删除是永久性的。',
+    trashChanged: '回收站已发生变化。请检查列表并再次确认。',
+  },
   bootstrap: {
     loading: '正在加载…',
     error: '无法打开应用。请检查网络连接后重试。',

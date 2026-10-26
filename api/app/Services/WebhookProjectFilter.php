@@ -31,7 +31,7 @@ class WebhookProjectFilter
     {
         return DB::table('webhook_endpoint_projects')->join('projects', function ($join): void {
             $join->on('projects.id', '=', 'webhook_endpoint_projects.project_id')->on('projects.workspace_id', '=', 'webhook_endpoint_projects.workspace_id');
-        })->where('webhook_endpoint_id', $endpoint->id)->where('webhook_endpoint_projects.workspace_id', $endpoint->workspace_id)->orderBy('projects.uuid')->pluck('projects.uuid')->all();
+        })->whereNull('projects.deleted_at')->where('webhook_endpoint_id', $endpoint->id)->where('webhook_endpoint_projects.workspace_id', $endpoint->workspace_id)->orderBy('projects.uuid')->pluck('projects.uuid')->all();
     }
 
     public function matches(object $endpoint, string $type, ?string $projectUuid): bool

@@ -40,6 +40,7 @@ const paths = {
   info: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 11v6M12 7v.01',
   clock: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 7v5l3 2',
   file: 'M14 2H5v20h14V7l-5-5ZM14 2v5h5M8 12h8M8 16h5',
+  'trash-2': 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
   trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
   send: 'm3 3 18 9-18 9 3-9-3-9ZM6 12h15',
 }

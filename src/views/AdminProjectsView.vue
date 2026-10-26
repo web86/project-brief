@@ -1,11 +1,50 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { canCreateProjects, hasProjectPermission } from '../services/projectPermissions.js'
 import UnreadBadge from '../components/UnreadBadge.vue'
-import { t, formatApiError } from '../i18n/index.js'
+import AppIcon from '../components/AppIcon.vue'
+import BaseDialog from '../components/BaseDialog.vue'
+import LoadingButton from '../components/LoadingButton.vue'
+import ProjectRecycleBin from '../components/ProjectRecycleBin.vue'
+import { api } from '../api/client.js'
+import { t, formatApiError, formatDate } from '../i18n/index.js'
 
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const nav = useAdminNavigationStore()
+const bin = ref(null),
+  candidate = ref(null),
+  busy = ref(false),
+  error = ref(null)
+const progress = (project) =>
+  project.tasksCount ? Math.round((100 * project.doneCount) / project.tasksCount) : 0
+watch(
+  () => nav.workspace?.id,
+  () => {
+    candidate.value = null
+    error.value = null
+  },
+)
+function askTrash(project) {
+  candidate.value = project
+  error.value = null
+}
+async function trash() {
+  if (busy.value || !candidate.value) return
+  const project = candidate.value,
+    workspaceId = nav.workspace?.id
+  busy.value = true
+  try {
+    await api.request(`/api/admin/projects/${project.id}/trash`, { method: 'POST' })
+    if (nav.workspace?.id !== workspaceId) return
+    nav.removeProject(project.id)
+    candidate.value = null
+    await bin.value?.refresh()
+  } catch (cause) {
+    if (nav.workspace?.id === workspaceId) error.value = cause
+  } finally {
+    busy.value = false
+  }
+}
 onMounted(() => nav.refreshProjects())
 </script>
 <template>
@@ -51,13 +90,56 @@ onMounted(() => nav.refreshProjects())
     </div>
     <div v-else class="admin-project-list">
       <article v-for="project in nav.projects" :key="project.id" class="surface admin-project-card">
-        <div>
-          <h2>{{ project.name }} <UnreadBadge :count="project.unreadCount || 0" /></h2>
-          <p class="muted">{{ project.website || t('ui.noWebsiteAddress') }}</p>
-          <p class="small muted">
-            {{ t('flow.progress', { done: project.doneCount, total: project.tasksCount }) }} ·
-            {{ project.status === 'active' ? t('ui.active') : t('ui.inactive') }}
+        <div class="project-card-information">
+          <div class="project-card-title">
+            <span
+              class="project-activity"
+              :class="{ 'is-active': project.status === 'active' }"
+              :title="t(project.status === 'active' ? 'ui.active' : 'ui.inactive')"
+              role="img"
+              :aria-label="t(project.status === 'active' ? 'ui.active' : 'ui.inactive')"
+              ><AppIcon v-if="project.status === 'active'" name="check" :size="12"
+            /></span>
+            <h2>
+              <RouterLink :to="`/admin/projects/${project.id}/brief`">{{
+                project.name
+              }}</RouterLink>
+              <UnreadBadge :count="project.unreadCount || 0" />
+            </h2>
+          </div>
+          <p class="muted project-card-website">
+            {{ project.website || t('ui.noWebsiteAddress') }}
           </p>
+          <p v-if="project.updatedAt" class="small muted">
+            {{ t('projectList.updated', { date: formatDate(project.updatedAt) }) }}
+          </p>
+          <dl class="project-card-metadata">
+            <div>
+              <dt><AppIcon name="users" :size="16" />{{ t('ui.clients') }}</dt>
+              <dd>{{ project.clientsCount ?? 0 }}</dd>
+            </div>
+            <div>
+              <dt><AppIcon name="user-check" :size="16" />{{ t('projectList.team') }}</dt>
+              <dd>{{ project.teamCount ?? 0 }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('projectList.currency') }}</dt>
+              <dd>{{ project.currency }}</dd>
+            </div>
+          </dl>
+          <div class="project-card-progress">
+            <div>
+              <span>{{
+                t('flow.progress', { done: project.doneCount, total: project.tasksCount })
+              }}</span
+              ><strong>{{ progress(project) }}%</strong>
+            </div>
+            <progress
+              :value="progress(project)"
+              max="100"
+              :aria-label="t('projectList.progress')"
+            />
+          </div>
         </div>
         <div class="admin-project-actions">
           <RouterLink :to="`/admin/projects/${project.id}/brief`" class="button primary">{{
@@ -69,13 +151,46 @@ onMounted(() => nav.refreshProjects())
             class="button secondary"
             >{{ t('ui.clients') }}</RouterLink
           ><RouterLink
+            v-if="nav.user?.membershipRole === 'owner'"
+            :to="`/admin/projects/${project.id}/team`"
+            class="button secondary"
+            >{{ t('projectList.team') }}</RouterLink
+          ><RouterLink
             v-if="hasProjectPermission(project, 'manage_project_settings')"
             :to="`/admin/projects/${project.id}/settings`"
             class="text-button"
             >{{ t('ui.settings') }}</RouterLink
           >
+          <button
+            v-if="hasProjectPermission(project, 'manage_trash')"
+            class="icon-button project-danger"
+            :title="t('projectList.moveToTrash')"
+            :aria-label="t('projectList.moveToTrash')"
+            :disabled="busy"
+            @click="askTrash(project)"
+          >
+            <AppIcon name="trash-2" />
+          </button>
         </div>
       </article>
     </div>
+    <ProjectRecycleBin v-if="nav.workspace" :key="nav.workspace.id" ref="bin" />
+    <BaseDialog
+      :open="!!candidate"
+      :title="t('projectList.moveToTrash')"
+      id="project-trash-confirm-title"
+      @close="!busy && (candidate = null)"
+    >
+      <p>{{ t('projectList.trashWarning', { name: candidate?.name || '' }) }}</p>
+      <p v-if="error" role="alert" class="field-error">{{ formatApiError(error) }}</p>
+      <template #footer>
+        <button class="button secondary" :disabled="busy" @click="candidate = null">
+          {{ t('ui.cancel') }}
+        </button>
+        <LoadingButton class="button danger" :busy="busy" @click="trash">{{
+          t('projectList.moveToTrash')
+        }}</LoadingButton>
+      </template>
+    </BaseDialog>
   </div>
 </template>

@@ -76,6 +76,7 @@ async function fixture(config) {
             json: { user, workspace: workspaces.find((item) => item.id === selected) },
           })
         if (path === '/api/admin/workspaces') return route.fulfill({ json: { data: workspaces } })
+        if (path === '/api/admin/projects/trash') return route.fulfill({ json: { data: [] } })
         if (path === '/api/admin/projects')
           return route.fulfill({
             json: { data: selected === 'studio' && !denied ? [project] : [] },

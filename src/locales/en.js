@@ -1,4 +1,25 @@
 export default {
+  projectList: {
+    team: 'Team',
+    currency: 'Currency',
+    progress: 'Completion progress',
+    updated: 'Updated {date}',
+    trash: 'Project trash',
+    trashCount: 'Project trash ({count})',
+    moveToTrash: 'Move to trash',
+    trashWarning:
+      'Move “{name}” to trash? The project will become unavailable. Its data and access can be restored.',
+    empty: 'Trash is empty.',
+    trashedOn: 'Moved to trash {date}',
+    deleteForever: 'Delete forever',
+    emptyTrash: 'Empty trash',
+    purgeWarning:
+      'Permanently delete “{name}”, including tasks, comments, files and history? This cannot be undone.',
+    emptyWarning:
+      'Permanently delete all {count} projects in trash, including their tasks, comments, files and history? This cannot be undone.',
+    confirmPermanent: 'I understand that deletion is permanent.',
+    trashChanged: 'The trash has changed. Review the list and confirm again.',
+  },
   bootstrap: {
     loading: 'Loading…',
     error: 'Could not open the app. Check your connection and try again.',

@@ -1,0 +1,59 @@
+{
+  "fixture": "API mocked; Laravel database and authorization verified separately in ProjectTrashTest",
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "lang": "ru",
+      "passed": true,
+      "checks": "counts, routes, progress, activity, collapsed/expanded, hit area, overflow, theme, localization"
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "lang": "ru",
+      "passed": true,
+      "checks": "counts, routes, progress, activity, collapsed/expanded, hit area, overflow, theme, localization"
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "lang": "en",
+      "passed": true,
+      "checks": "counts, routes, progress, activity, collapsed/expanded, hit area, overflow, theme, localization"
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "lang": "en",
+      "passed": true,
+      "checks": "counts, routes, progress, activity, collapsed/expanded, hit area, overflow, theme, localization"
+    },
+    {
+      "width": 320,
+      "mode": "system",
+      "lang": "tr",
+      "passed": true,
+      "checks": "counts, routes, progress, activity, collapsed/expanded, hit area, overflow, theme, localization"
+    },
+    {
+      "width": 390,
+      "mode": "system",
+      "lang": "zh-CN",
+      "passed": true,
+      "checks": "counts, routes, progress, activity, collapsed/expanded, hit area, overflow, theme, localization"
+    },
+    {
+      "actions": "cancel/Escape/focus, trash, restore, permanent-delete confirmation, empty exact snapshot, live refresh",
+      "passed": true
+    },
+    {
+      "navigation": "team and clients buttons open settings of the selected project",
+      "passed": true
+    },
+    {
+      "permissions": "developer can restore with permission; owner-only team and purge hidden",
+      "passed": true
+    }
+  ]
+}

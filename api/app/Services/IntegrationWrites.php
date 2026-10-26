@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Project;
 use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,8 +25,13 @@ class IntegrationWrites
             $previous = DB::table('integration_requests')->where('workspace_id', $token->workspace_id)->where('key_hash', $keyHash)->first();
             if ($previous) {
                 abort_unless(hash_equals($previous->body_hash, $bodyHash), 409, 'Idempotency key was already used with another body.');
+                $response = json_decode($previous->response, true, 512, JSON_THROW_ON_ERROR);
+                $projectUuid = $response['data']['projectId'] ?? $response['data']['id'] ?? null;
+                if ($projectUuid) {
+                    Project::where('workspace_id', $token->workspace_id)->where('uuid', $projectUuid)->firstOrFail();
+                }
 
-                return response()->json(json_decode($previous->response, true, 512, JSON_THROW_ON_ERROR), $previous->status)->header('Idempotency-Replayed', 'true');
+                return response()->json($response, $previous->status)->header('Idempotency-Replayed', 'true');
             }
             [$body, $status] = $create();
             DB::table('integration_requests')->insert(['workspace_id' => $token->workspace_id, 'key_hash' => $keyHash, 'body_hash' => $bodyHash, 'response' => json_encode($body, JSON_THROW_ON_ERROR), 'status' => $status, 'created_at' => now()]);

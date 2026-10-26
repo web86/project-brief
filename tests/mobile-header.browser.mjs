@@ -109,6 +109,7 @@ async function fixture({
         payload = { preferredLocale: request.postDataJSON().locale }
       else if (path === '/api/admin/me') payload = { user, workspace }
       else if (path === '/api/admin/workspaces') payload = { data: [workspace] }
+      else if (path === '/api/admin/projects/trash') payload = { data: [] }
       else if (path === '/api/admin/projects') payload = { data: [project] }
       else if (path.endsWith('/activity/read')) payload = { unreadCount: 0 }
       else if (path.endsWith('/push/status')) {

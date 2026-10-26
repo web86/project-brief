@@ -1,4 +1,25 @@
 export default {
+  projectList: {
+    team: 'Ekip',
+    currency: 'Para birimi',
+    progress: 'Tamamlanma ilerlemesi',
+    updated: 'Güncellendi: {date}',
+    trash: 'Proje çöp kutusu',
+    trashCount: 'Proje çöp kutusu ({count})',
+    moveToTrash: 'Çöp kutusuna taşı',
+    trashWarning:
+      '“{name}” çöp kutusuna taşınsın mı? Projeye erişilemeyecek. Veriler ve erişim geri yüklenebilir.',
+    empty: 'Çöp kutusu boş.',
+    trashedOn: 'Çöp kutusuna taşındı: {date}',
+    deleteForever: 'Kalıcı olarak sil',
+    emptyTrash: 'Çöp kutusunu boşalt',
+    purgeWarning:
+      '“{name}” görevleri, yorumları, dosyaları ve geçmişiyle kalıcı olarak silinsin mi? Bu işlem geri alınamaz.',
+    emptyWarning:
+      'Çöp kutusundaki {count} proje görevleri, yorumları, dosyaları ve geçmişleriyle kalıcı olarak silinsin mi? Bu işlem geri alınamaz.',
+    confirmPermanent: 'Silme işleminin kalıcı olduğunu anlıyorum.',
+    trashChanged: 'Çöp kutusu değişti. Listeyi kontrol edip tekrar onaylayın.',
+  },
   bootstrap: {
     loading: 'Yükleniyor…',
     error: 'Uygulama açılamadı. Bağlantınızı kontrol edip yeniden deneyin.',

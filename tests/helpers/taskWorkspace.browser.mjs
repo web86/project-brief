@@ -109,6 +109,7 @@ export async function taskWorkspaceFixture(browser, config, { output, port = 518
         result = { message: 'Selected' }
       } else if (pathname === '/api/admin/workspaces')
         result = { data: [workspace, { id: 'other-workspace', name: 'Other workspace' }] }
+      else if (pathname === '/api/admin/projects/trash') result = { data: [] }
       else if (pathname === '/api/admin/projects')
         result = {
           data: [

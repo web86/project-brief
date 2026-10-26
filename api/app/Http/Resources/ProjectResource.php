@@ -22,7 +22,10 @@ class ProjectResource extends JsonResource
 
         return ['id' => $this->uuid, 'name' => $this->title, 'website' => $this->website_url ?? '', 'description' => '', 'currency' => $this->currency,
             'permissions' => $this->when($admin, fn () => ProjectPermissions::effective($request, $this->resource)),
-            'status' => $this->status, 'sections' => $this->whenLoaded('briefSections', fn () => $this->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))),
+            'status' => $this->status, 'updatedAt' => $this->updated_at?->toISOString(),
+            'clientsCount' => $this->when($admin && isset($this->clients_count), (int) $this->clients_count),
+            'teamCount' => $this->when($admin && isset($this->team_count), (int) $this->team_count),
+            'sections' => $this->whenLoaded('briefSections', fn () => $this->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))),
             'tasksCount' => $this->when($admin, $this->tasks_count), 'doneCount' => $this->when($admin, $this->done_count), 'unreadCommentCount' => $unreadComments, 'unreadCount' => $this->when($admin && isset($this->unread_count), (int) $this->unread_count)];
     }
 }

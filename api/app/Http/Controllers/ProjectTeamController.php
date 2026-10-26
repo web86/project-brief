@@ -23,7 +23,7 @@ class ProjectTeamController extends Controller
 
         return response()->json([
             'projects' => $owner->workspace->projects()->get()->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]),
-            'members' => $owner->workspace->members()->active()->with(['user', 'projectMemberships.project'])->get()->map(fn ($m) => [
+            'members' => $owner->workspace->members()->active()->with(['user', 'projectMemberships' => fn ($q) => $q->whereHas('project')->with('project')])->get()->map(fn ($m) => [
                 'id' => $m->id, 'canCreateProjects' => ProjectPermissions::canCreateProjects($m), 'user' => app(AccountProfile::class)->state($m->user), 'role' => $m->role, 'status' => 'active', 'joinedAt' => $m->joined_at?->toISOString(),
                 'projectPermissions' => $m->projectMemberships->mapWithKeys(fn ($p) => [$p->project->uuid => ProjectPermissions::normalize($p->permissions)]),
                 'projects' => $m->role === 'owner' ? $owner->workspace->projects()->pluck('uuid') : $m->projectMemberships->map(fn ($p) => $p->project->uuid)]),
@@ -107,7 +107,7 @@ class ProjectTeamController extends Controller
             if (array_key_exists('canCreateProjects', $data)) {
                 $target->update(['can_create_projects' => $data['canCreateProjects']]);
             }
-            ProjectMember::where('workspace_member_id', $target->id)->whereNotIn('project_id', $ids)->delete();
+            ProjectMember::where('workspace_member_id', $target->id)->whereHas('project')->whereNotIn('project_id', $ids)->delete();
             foreach ($ids as $id) {
                 $assignment = ProjectMember::firstOrCreate(['project_id' => $id, 'workspace_member_id' => $target->id], ['workspace_id' => $owner->workspace_id]);
                 $uuid = Project::whereKey($id)->value('uuid');

@@ -5434,3 +5434,187 @@ button.attachment-item:hover {
   text-transform: uppercase;
   color: var(--muted);
 }
+
+/* Project summaries and the workspace project recycle bin. */
+.admin-project-card {
+  align-items: start;
+  gap: 28px;
+}
+.project-card-information {
+  min-width: 0;
+  flex: 1;
+}
+.project-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.project-card-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.project-card-title h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.project-card-title h2 a:hover {
+  text-decoration: underline;
+}
+.project-card-title .unread-badge {
+  flex-shrink: 0;
+}
+.project-activity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  color: var(--muted);
+}
+.project-activity.is-active {
+  color: var(--success);
+  border-color: currentColor;
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+}
+.project-card-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 20px 0;
+  font-size: 13px;
+}
+.project-card-metadata > div,
+.project-card-metadata dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-card-metadata dt {
+  color: var(--muted);
+}
+.project-card-metadata dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.project-card-progress {
+  max-width: 460px;
+  font-size: 13px;
+}
+.project-card-progress > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+.project-card-progress progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--border);
+  accent-color: var(--success);
+}
+.project-card-progress progress::-webkit-progress-bar {
+  background: var(--border);
+}
+.project-card-progress progress::-webkit-progress-value {
+  background: var(--success);
+  border-radius: 6px;
+}
+.project-card-progress progress::-moz-progress-bar {
+  background: var(--success);
+}
+.admin-project-actions {
+  gap: 8px;
+}
+.admin-project-actions > .text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.3;
+}
+.admin-project-actions > .icon-button,
+.admin-project-actions > .text-button,
+.project-bin-heading button {
+  min-height: 44px;
+  min-width: 44px;
+}
+.project-danger {
+  color: var(--error-text);
+}
+.project-recycle-bin {
+  margin-top: 28px;
+  padding: 16px 24px;
+}
+.project-bin-heading,
+.project-bin-toggle,
+.project-bin-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.project-bin-toggle {
+  justify-content: start;
+  text-align: start;
+  font-weight: 600;
+}
+.project-bin-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.project-bin-list li {
+  border-top: 1px solid var(--border);
+  padding: 18px 0;
+  overflow-wrap: anywhere;
+}
+.project-bin-list p {
+  margin: 6px 0 0;
+}
+.project-purge-confirm {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  margin-top: 20px;
+}
+.project-purge-confirm input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+@media (max-width: 1100px) {
+  .admin-project-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+}
+@media (max-width: 600px) {
+  .project-recycle-bin {
+    padding: 12px 18px;
+  }
+  .project-bin-heading,
+  .project-bin-list li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .project-card-metadata {
+    gap: 12px 18px;
+  }
+  .project-bin-heading > .project-danger {
+    text-align: start;
+  }
+}

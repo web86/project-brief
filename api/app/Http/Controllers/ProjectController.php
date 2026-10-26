@@ -18,7 +18,7 @@ class ProjectController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        return ProjectResource::collection(app(ProjectUnread::class)->withCounts(ProjectAccess::query($request), $request->user())->withCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
+        return ProjectResource::collection(app(ProjectUnread::class)->withCounts(ProjectAccess::query($request), $request->user())->withCount(['clients', 'members as team_count' => fn ($q) => $q->whereHas('workspaceMember', fn ($member) => $member->active()->where('role', 'admin')), 'tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
     }
 
     public function store(ProjectRequest $request): ProjectResource
@@ -42,6 +42,7 @@ class ProjectController extends Controller
     public function update(ProjectRequest $request, Project $project): ProjectResource
     {
         DB::transaction(function () use ($request, $project): void {
+            $project = ProjectAccess::query($request)->whereKey($project->id)->lockForUpdate()->firstOrFail();
             $project->fill($request->projectData());
             $changes = $project->getDirty();
             $project->save();

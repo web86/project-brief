@@ -86,6 +86,7 @@ async function fixture({ width, locale, theme, colorScheme, client = false }) {
         }
       else if (path === '/api/admin/workspaces')
         payload = { data: [{ id: 'workspace', name: 'Design Studio' }] }
+      else if (path === '/api/admin/projects/trash') payload = { data: [] }
       else if (path === '/api/admin/projects') payload = { data: [project] }
       else if (path.endsWith('/me/locale')) payload = { preferredLocale: body.locale }
       else if (path === '/api/client/me')
