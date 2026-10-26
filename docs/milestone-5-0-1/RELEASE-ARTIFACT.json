@@ -1,0 +1,46 @@
+{
+  "version": "0.5.0.1",
+  "commit": "4ee094a71931b983eb79af7f84839d27ac8575d4",
+  "builtAt": "2026-10-26T08:38:46.382Z",
+  "phpTarget": "8.4",
+  "domain": "brief.web86.site",
+  "archive": "release/project-brief-20261026-083909-4ee094a.zip",
+  "bytes": 15059587,
+  "sha256": "fd57e1fad40ff415b87716c3b46b8b831d363e867bfb961632bc778bc7b1fa81",
+  "checksummedFiles": 7865,
+  "vendorPackages": 91,
+  "baseline": "1360ec5",
+  "checks": {
+    "zipCRC": "passed",
+    "allFileSHA256": "passed",
+    "packagedSourceMatch": "passed",
+    "productionVendor": "passed",
+    "releaseRuntime": "passed",
+    "secretAndFileValidation": "passed",
+    "frontend": {
+      "passed": 238
+    },
+    "laravel": {
+      "passed": 642,
+      "assertions": 6759
+    },
+    "newBackend": {
+      "passed": 12,
+      "assertions": 208
+    },
+    "projectFilterBrowser": "passed",
+    "separateProcessSQLiteConcurrency": "passed",
+    "appearanceRegression": {
+      "passedGroups": 11
+    },
+    "productionBuild": "passed",
+    "format": "passed",
+    "pint": "passed",
+    "brandMaster": "passed"
+  },
+  "limitations": [
+    "No live Jino/MariaDB deployment or CRM/n8n E2E.",
+    "Concurrency verification uses SQLite and HTTP fakes.",
+    "No push or deployment performed."
+  ]
+}

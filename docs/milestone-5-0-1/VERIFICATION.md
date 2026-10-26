@@ -114,3 +114,9 @@ GitHub/Figma, widget, OAuth or two-way CRM sync were added. Existing at-least-on
 ordering, DNS resolver timeout and retention limits remain. Excluded events have no
 delivery log row; deleted projects may leave an enabled selected endpoint with an
 empty filter that sends nothing until the owner chooses available projects.
+
+## Final archive
+
+Packaged commit: `4ee094a71931b983eb79af7f84839d27ac8575d4`. Archive: `release/project-brief-20261026-083909-4ee094a.zip` (15059587 bytes). ZIP CRC, 7865 per-file SHA-256 checksums, packaged source matching, production vendor, secret/file validation and packaged runtime checks passed.
+
+SHA-256: `fd57e1fad40ff415b87716c3b46b8b831d363e867bfb961632bc778bc7b1fa81`. See [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json) and [SHA256SUMS.txt](SHA256SUMS.txt). The artifact includes runbooks, specification and screenshot evidence under INTEGRATIONS/GUIDES; final archive metadata is recorded in source by the following documentation-only commit.
