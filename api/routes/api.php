@@ -1,0 +1,14 @@
+<?php
+
+use App\Http\Controllers\IntegrationApiController;
+use App\Http\Middleware\AuthenticateIntegration;
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(function (): void {
+    Route::get('/projects', [IntegrationApiController::class, 'projects']);
+    Route::post('/projects', [IntegrationApiController::class, 'store']);
+    Route::get('/projects/{uuid}', [IntegrationApiController::class, 'show']);
+    Route::get('/projects/{uuid}/tasks', [IntegrationApiController::class, 'tasks']);
+    Route::post('/projects/{uuid}/tasks', [IntegrationApiController::class, 'storeTask']);
+    Route::any('/{path}', fn () => response()->json(['code' => 'not_found', 'message' => 'Endpoint not found.'], 404))->where('path', '.*');
+});

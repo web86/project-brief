@@ -145,16 +145,22 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-4-9-1/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-5-0/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-4-9-1/RELEASE.md'),
+    path.join(root, 'docs/milestone-5-0/RELEASE.md'),
     path.join(staging, 'RELEASE-NOTES.md'),
   )
+  for (const entry of ['README.md', 'openapi.json', 'verify-webhook.php']) {
+    await copyRelease(
+      path.join(root, 'docs/milestone-5-0', entry),
+      path.join(staging, 'INTEGRATIONS', entry),
+    )
+  }
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.4.9.1', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.5.0', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }

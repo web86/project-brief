@@ -113,6 +113,21 @@ async function select(event) {
         </div>
       </nav>
     </div>
+    <nav
+      v-if="nav.workspace && nav.user?.membershipRole === 'owner'"
+      class="sidebar-general"
+      :aria-label="t('integrations.title')"
+    >
+      <RouterLink
+        v-if="nav.workspace && nav.user?.membershipRole === 'owner'"
+        to="/admin/settings/integrations"
+        :aria-current="$route.path === '/admin/settings/integrations' ? 'page' : undefined"
+        @click="emit('navigate')"
+        ><AppIcon name="settings" :size="20" /><span>{{
+          t('integrations.title')
+        }}</span></RouterLink
+      >
+    </nav>
     <nav class="sidebar-general" :aria-label="t('nav.general')">
       <RouterLink
         to="/admin"

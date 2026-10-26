@@ -18,9 +18,7 @@ class TaskRequest extends FormRequest
     public function rules(): array
     {
         $required = $this->isMethod('POST') ? 'required' : 'sometimes';
-        $rules = ['title' => [$required, 'string', 'max:160'], 'location' => [$required, 'string', 'max:2048'],
-            'description' => [$required, 'string', 'max:10000'], 'expectedResult' => ['nullable', 'string', 'max:10000'],
-            'priority' => [$required, Rule::in(['low', 'normal', 'high'])], 'section' => ['sometimes', 'string', 'max:2048', 'regex:/\S/u']];
+        $rules = self::publicRules($required);
         if (TaskAccess::isAdmin($this)) {
             $rules += ['status' => ['sometimes', Rule::in(array_keys(TaskAudit::STATUSES))],
                 'estimateHours' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'], 'price' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
@@ -32,6 +30,13 @@ class TaskRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    public static function publicRules(string $required = 'required'): array
+    {
+        return ['title' => [$required, 'string', 'max:160'], 'location' => [$required, 'string', 'max:2048'],
+            'description' => [$required, 'string', 'max:10000'], 'expectedResult' => ['nullable', 'string', 'max:10000'],
+            'priority' => [$required, Rule::in(['low', 'normal', 'high'])], 'section' => ['sometimes', 'string', 'max:2048', 'regex:/\S/u']];
     }
 
     public function withValidator(Validator $validator): void

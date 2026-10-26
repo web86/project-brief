@@ -7,7 +7,9 @@ use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\CurrentWorkspace;
 use App\Services\ProjectAccess;
+use App\Services\ProjectCreation;
 use App\Services\ProjectUnread;
+use App\Services\WebhookEvents;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -21,21 +23,8 @@ class ProjectController extends Controller
 
     public function store(ProjectRequest $request): ProjectResource
     {
-        $project = DB::transaction(function () use ($request): Project {
-            $member = app(CurrentWorkspace::class)->resolve($request);
-            $project = $member->workspace->projects()->create($request->projectData());
-            if ($member->role !== 'owner') {
-                $project->members()->create(['workspace_id' => $member->workspace_id, 'workspace_member_id' => $member->id]);
-            }
-            foreach ($request->validated('sections') ?? ['Главная', 'Каталог', 'Карточка товара', 'Контакты', 'Общее'] as $index => $name) {
-                $project->briefSections()->create(['name' => $name, 'position' => $index + 1]);
-            }
-            if ($request->validated('clientName') || $request->validated('clientEmail')) {
-                $project->clients()->create(['name' => $request->validated('clientName') ?: 'Клиент', 'email' => $request->validated('clientEmail')]);
-            }
-
-            return $project;
-        });
+        $member = app(CurrentWorkspace::class)->resolve($request);
+        $project = app(ProjectCreation::class)->create($member->workspace_id, $request->projectData(), $request->validated(), $member);
 
         return new ProjectResource($project->load('briefSections'));
     }
@@ -52,7 +41,12 @@ class ProjectController extends Controller
 
     public function update(ProjectRequest $request, Project $project): ProjectResource
     {
-        $project->update($request->projectData());
+        DB::transaction(function () use ($request, $project): void {
+            $project->fill($request->projectData());
+            $changes = $project->getDirty();
+            $project->save();
+            app(WebhookEvents::class)->project($project, 'project.updated', $changes);
+        });
 
         return $this->show($request, $project);
     }

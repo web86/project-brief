@@ -30,6 +30,7 @@ build/
 release/
 artifacts/milestone-4-3-preview/
 artifacts/milestone-4-9-1/
+artifacts/milestone-5-0/
 *.zip
 *.tsbuildinfo
 /api/public/hot

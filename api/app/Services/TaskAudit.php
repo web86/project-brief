@@ -22,6 +22,7 @@ class TaskAudit
         $history = $task->history()->create(['actor_type' => TaskAccess::isAdmin($request) ? 'admin' : 'client', 'actor_user_id' => TaskAccess::isAdmin($request) ? $request->user()->id : null,
             'project_client_id' => $client?->id, 'event_type' => $type, 'old_value' => $old, 'new_value' => $new, 'meta' => ['text' => $text, ...$metadata], 'created_at' => now()]);
         $task->touch();
+        app(WebhookEvents::class)->task($task, $type, $old, $new);
         $actor = TaskAccess::isAdmin($request) ? 'admin' : 'client';
         $event = NotificationEvents::fromHistory($actor, $type, $old, $new);
         if ($event) {

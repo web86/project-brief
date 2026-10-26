@@ -627,13 +627,94 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const failedLink = await request(`/access/${'b'.repeat(64)}`)
   assert.equal(failedLink.status, 302)
   assert.match(failedLink.headers.get('location'), /access-error/)
+  // Check the shipped v1 implementation without browser session/CSRF, using a disposable token.
+  const integrationFixture = path.join(fixtureRoot, 'integration-fixture.php')
+  await writeFile(
+    integrationFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$user = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
+$workspace = $user->workspaceMembers()->active()->firstOrFail()->workspace;
+echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspace->id, ['name'=>'Release API', 'scopes'=>['projects:read','projects:write','tasks:read','tasks:write']]));
+`,
+  )
+  const integration = JSON.parse(command([integrationFixture, application]))
+  const integrationHeaders = {
+    Authorization: 'Bearer ' + integration.secret,
+    'Content-Type': 'application/json',
+    'Idempotency-Key': 'release-synthetic-project',
+  }
+  const callIntegration = (url, options = {}) =>
+    fetch(origin + url, { ...options, headers: integrationHeaders })
+  const noToken = await fetch(origin + '/api/v1/projects')
+  assert.equal(noToken.status, 401)
+  const projectPayload = JSON.stringify({
+    title: 'Packaged CRM project',
+    sourceSystem: 'release',
+    externalId: 'deal-1',
+  })
+  const createdIntegrationProject = await callIntegration('/api/v1/projects', {
+    method: 'POST',
+    body: projectPayload,
+  })
+  assert.equal(createdIntegrationProject.status, 201)
+  assert.equal(createdIntegrationProject.headers.getSetCookie().length, 0)
+  const integrationProject = (await createdIntegrationProject.json()).data
+  const replayIntegrationProject = await callIntegration('/api/v1/projects', {
+    method: 'POST',
+    body: projectPayload,
+  })
+  assert.equal(replayIntegrationProject.status, 201)
+  assert.equal(replayIntegrationProject.headers.get('Idempotency-Replayed'), 'true')
+  assert.equal((await replayIntegrationProject.json()).data.id, integrationProject.id)
+  assert.equal(
+    (
+      await callIntegration('/api/v1/projects', {
+        method: 'POST',
+        body: JSON.stringify({ title: 'Conflict' }),
+      })
+    ).status,
+    409,
+  )
+  assert.equal((await callIntegration('/api/v1/projects/' + fixture.foreignProject)).status, 404)
+  const createdIntegrationTask = await callIntegration(
+    '/api/v1/projects/' + integrationProject.id + '/tasks',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Packaged idea',
+        location: 'New section',
+        description: 'Synthetic',
+        priority: 'normal',
+      }),
+    },
+  )
+  assert.equal(createdIntegrationTask.status, 201)
+  const integrationTask = (await createdIntegrationTask.json()).data
+  assert.ok(integrationTask.number)
+  const readIntegrationTasks = await callIntegration(
+    '/api/v1/projects/' + integrationProject.id + '/tasks',
+  )
+  assert.equal(readIntegrationTasks.status, 200)
+  const integrationTasks = await readIntegrationTasks.json()
+  assert.equal(integrationTasks.data[0].id, integrationTask.id)
+  assert.equal(integrationTasks.data[0].price, undefined)
+  assert.equal(integrationTasks.data[0].developerNotes, undefined)
+  assert.match(command(['artisan', 'integrations:webhooks']), /Processed deliveries: 0/)
+  assert.ok(
+    (await readFile(path.join(packageRoot, 'INTEGRATIONS/openapi.json'), 'utf8')).includes(
+      'bearerAuth',
+    ),
+  )
   command(['artisan', 'down'])
   assert.equal((await request('/admin/login')).status, 503)
   command(['artisan', 'up'])
   assert.equal((await request('/admin/login')).status, 200)
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
-    'PASS: Packaged comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
+    'PASS: Packaged stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',
   )
 } finally {
   if (server && server.exitCode === null) {

@@ -11,6 +11,7 @@ use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
 use App\Services\TaskAudit;
+use App\Services\TaskCreation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -30,9 +31,7 @@ class TaskController extends Controller
             ProjectStructure::lock($owner);
             $sectionName = $request->validated('section') ?? $request->validated('location');
             $this->authorizeSectionCreation($request, $owner, $sectionName);
-            $task = $owner->tasks()->create($request->taskData());
-            ProjectStructure::assignNewTask($owner, $task, $request->validated('section') ?? $task->location);
-            TaskAudit::record($request, $task, 'created', (TaskAccess::isAdmin($request) ? 'Разработчик' : 'Клиент').' добавил новую идею');
+            $task = app(TaskCreation::class)->create($request, $owner, $request->taskData(), $sectionName);
 
             AttachmentStorage::storeFiles($request, $task, $paths);
 

@@ -10,6 +10,7 @@ use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DeveloperInvitationController;
+use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\ProjectActivityController;
@@ -70,6 +71,19 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/me', [AdminAuthController::class, 'me']);
     Route::patch('/me/locale', [ClientLocaleController::class, 'updateAdmin']);
     Route::post('/logout', [AdminAuthController::class, 'logout']);
+});
+
+Route::middleware(['admin', 'throttle:30,1'])->prefix('/api/admin/integrations')->group(function (): void {
+    Route::get('/', [IntegrationController::class, 'index']);
+    Route::post('/tokens', [IntegrationController::class, 'token']);
+    Route::delete('/tokens/{uuid}', [IntegrationController::class, 'revoke']);
+    Route::post('/webhooks', [IntegrationController::class, 'webhook']);
+    Route::patch('/webhooks/{uuid}', [IntegrationController::class, 'webhook']);
+    Route::delete('/webhooks/{uuid}', [IntegrationController::class, 'destroy']);
+    Route::post('/webhooks/{uuid}/rotate', [IntegrationController::class, 'rotate']);
+    Route::post('/webhooks/{uuid}/test', [IntegrationController::class, 'test'])->middleware('throttle:5,1');
+    Route::get('/webhooks/{uuid}/deliveries', [IntegrationController::class, 'history']);
+    Route::post('/webhooks/{uuid}/deliveries/{delivery}/retry', [IntegrationController::class, 'retry'])->middleware('throttle:5,1');
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {

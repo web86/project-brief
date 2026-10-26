@@ -615,3 +615,17 @@ budget, желательно не менее 30 секунд. Размер paylo
 Владелец управляет командой и назначениями проектов на странице «Команда». Приглашения действуют 7 суток, принимаются однократно после входа либо создания нового аккаунта. Один User может участвовать в нескольких workspace. Глобальный «Мой аккаунт» содержит профиль, аватары, безопасность и прежние личные уведомления. Новый Email требует подтверждения, смена/восстановление пароля отзывает остальные сеансы. Навигация desktop/mobile использует общий AppIcon и общую конфигурацию.
 
 [Архитектура и результаты](docs/milestone-4-8/REPORT.md), [обновление production и откат](docs/milestone-4-8/PRODUCTION.md), [release notes](docs/milestone-4-8/RELEASE.md). Требуются Argon2id и GD WebP; новая additive миграция сохраняет существующие таблицы и memberships. Проверку реальной доставки SMTP Jino пользователь выполняет самостоятельно. Push, deployment и GitHub Release не выполнялись.
+
+## Milestone 5.0 — Integrations API & Webhooks
+
+Владелец workspace управляет API-ключами и исходящими webhook на странице
+`/admin/settings/integrations`. Stateless `/api/v1` использует workspace-scoped
+Bearer tokens, scopes, пагинацию и Idempotency-Key; клиентские ссылки и браузерная
+сессия не участвуют. Подписанные события отправляет cron-команда
+`php artisan integrations:webhooks --limit=20 --seconds=45` из DB outbox.
+
+[Архитектура, API, curl и n8n](docs/milestone-5-0/README.md),
+[OpenAPI](docs/milestone-5-0/openapi.json),
+[проверки и screenshots](docs/milestone-5-0/VERIFICATION.md),
+[обновление и откат](docs/milestone-5-0/PRODUCTION.md).
+Нужны additive миграция и cron; реальный Jino/CRM E2E выполняется при внедрении.

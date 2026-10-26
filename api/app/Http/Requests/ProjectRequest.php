@@ -16,10 +16,15 @@ class ProjectRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['workspace_id' => ['prohibited'], 'workspaceId' => ['prohibited'], 'title' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'string', 'max:160'],
-            'website' => ['nullable', 'url:http,https', 'max:2048'], 'clientName' => [$this->isMethod('POST') ? 'nullable' : 'prohibited', 'string', 'max:255'],
-            'clientEmail' => [$this->isMethod('POST') ? 'nullable' : 'prohibited', 'email', 'max:255'], 'currency' => ['sometimes', Rule::in(['RUB', 'USD', 'EUR', 'TRY'])],
-            'status' => ['sometimes', Rule::in(['active', 'inactive'])], 'sections' => [$this->isMethod('POST') ? 'sometimes' : 'prohibited', 'array', 'max:30'], 'sections.*' => ['string', 'max:160', 'distinct']];
+        return self::fieldRules($this->isMethod('POST'));
+    }
+
+    public static function fieldRules(bool $creating): array
+    {
+        return ['workspace_id' => ['prohibited'], 'workspaceId' => ['prohibited'], 'title' => [$creating ? 'required' : 'sometimes', 'string', 'max:160'],
+            'website' => ['nullable', 'url:http,https', 'max:2048'], 'clientName' => [$creating ? 'nullable' : 'prohibited', 'string', 'max:255'],
+            'clientEmail' => [$creating ? 'nullable' : 'prohibited', 'email', 'max:255'], 'currency' => ['sometimes', Rule::in(['RUB', 'USD', 'EUR', 'TRY'])],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])], 'sections' => [$creating ? 'sometimes' : 'prohibited', 'array', 'max:30'], 'sections.*' => ['string', 'max:160', 'distinct']];
     }
 
     public function attributes(): array

@@ -81,6 +81,16 @@ export function createProjectRouter({
             },
           },
           {
+            path: 'settings/integrations',
+            component: () => import('../views/AdminIntegrationsView.vue'),
+            meta: {
+              ownerOnly: true,
+              get title() {
+                return t('integrations.title')
+              },
+            },
+          },
+          {
             path: 'settings/notifications',
             component: () => import('../views/AdminNotificationsView.vue'),
             meta: {
@@ -394,6 +404,8 @@ export function createProjectRouter({
         return true
       }
       if (current !== revision) return false
+      if (to.meta.ownerOnly && (!nav.workspace || nav.user?.membershipRole !== 'owner'))
+        return '/admin/unavailable?reason=permission'
       if (to.path === '/admin/projects/new') {
         try {
           const me = await request('/api/admin/me')

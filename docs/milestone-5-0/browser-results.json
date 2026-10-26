@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "screenshots": [
+    "desktop-tokens-ru-light",
+    "desktop-webhooks-en-dark",
+    "desktop-deliveries-en-dark",
+    "mobile-webhooks-en-dark",
+    "mobile-navigation-en-dark",
+    "mobile-tokens-ru-light"
+  ],
+  "checks": [
+    "owner create/copy/revoke",
+    "one-time secret cleared and not persisted",
+    "webhook create/test/history/manual retry",
+    "320px overflow",
+    "RU/EN light/dark",
+    "mobile navigation",
+    "workspace switch clears owner access",
+    "admin/client/guest denied"
+  ],
+  "errors": []
+}
