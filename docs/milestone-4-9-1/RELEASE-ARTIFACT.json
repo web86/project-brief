@@ -1,0 +1,34 @@
+{
+  "version": "0.4.9.1",
+  "commit": "f025de580e8f1aa3438c55395623adb270ea5722",
+  "builtAt": "2026-10-26T05:07:16.376Z",
+  "archive": "release/project-brief-20261026-050737-f025de5.zip",
+  "bytes": 14613914,
+  "sha256": "942c0929bffa3a006b5df6b07d662350eac81eaec4c30ed7cf68db223a2ff44d",
+  "checksummedFiles": 7828,
+  "vendorPackages": 91,
+  "checks": {
+    "zipCRC": "passed",
+    "allFileSHA256": "passed",
+    "productionVendor": "passed",
+    "releaseRuntime": "passed",
+    "secretAndFileValidation": "passed",
+    "frontend": {
+      "passed": 234
+    },
+    "laravel": {
+      "passed": 605,
+      "assertions": 6226
+    },
+    "brandMaster": "passed",
+    "productionBuild": "passed",
+    "manifest": "passed",
+    "pngDimensions": {
+      "icon-192.png": [192, 192],
+      "icon-512.png": [512, 512],
+      "icon-maskable-192.png": [192, 192],
+      "icon-maskable-512.png": [512, 512],
+      "apple-touch-icon.png": [180, 180]
+    }
+  }
+}

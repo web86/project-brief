@@ -16,8 +16,12 @@
 | `npm run test:branding`                    | PASS, 8 групп сценариев; 12 сочетаний viewport × theme × locale |
 | `npm run test:appearance`                  | PASS, 11 групп сценариев                                        |
 | `node tests/navigation-layout.browser.mjs` | PASS, 32 конфигурации                                           |
+| `./bin/build-release`                      | PASS, production vendor, 7828 файлов, packaged runtime          |
+| Независимая проверка готового ZIP          | PASS, CRC и SHA-256 каждого файла                               |
 
-Детальные browser results: [branding](browser-results.json), [appearance](appearance-results.json), [navigation](navigation-results.json). Production ZIP и повторные проверки сборщика фиксируются отдельно в `RELEASE-ARTIFACT.json` после сборки из чистого коммита. Сборщик проверяет vendor, PHP platform, отсутствие секретов и лишних файлов, checksums, migrations, повторную установку, SPA reload, assets и packaged runtime на disposable-копии.
+Детальные browser results: [branding](browser-results.json), [appearance](appearance-results.json), [navigation](navigation-results.json). Production ZIP и повторные проверки сборщика: [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json). Архив `release/project-brief-20261026-050737-f025de5.zip` (14 613 914 bytes) собран из чистого коммита `f025de580e8f1aa3438c55395623adb270ea5722`. Последующий коммит добавляет только итоговый отчёт/receipt; production-код не менялся. SHA-256 архива: `942c0929bffa3a006b5df6b07d662350eac81eaec4c30ed7cf68db223a2ff44d`.
+
+Сборщик повторно прошёл 234 frontend- и 605 Laravel-тестов (6226 assertions), проверку мастера, production build, установку 91 production Composer-пакета, PHP platform, сканирование секретов/лишних файлов и packaged runtime на disposable-копии. Runtime проверил migrations, повторную установку, SPA reload, assets, CSRF/login/client access, maintenance, комментарии/вложения и прежние сценарии 4.9. После сборки отдельно проверены CRC ZIP, SHA-256 всех 7828 файлов по `checksums.txt`, manifest и реальные размеры PNG непосредственно внутри архива.
 
 ## Что проверено
 
