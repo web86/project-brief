@@ -232,6 +232,23 @@ try {
     path.join(staging, 'GUIDES/milestone-6-0'),
     { recursive: true },
   )
+  // Archive hashes are published after the ZIP exists; never bundle a previous build's hash.
+  for (const file of ['RELEASE-ARTIFACT.json', 'SHA256SUMS.txt']) {
+    await rm(path.join(staging, 'GUIDES/milestone-6-0', file), { force: true })
+  }
+  const milestoneGuide = path.join(staging, 'GUIDES/milestone-6-0/README.md')
+  await writeFile(
+    milestoneGuide,
+    (await readFile(milestoneGuide, 'utf8'))
+      .replace(
+        'Готовый ZIP и source commit описаны в [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json); контрольная сумма — [SHA256SUMS.txt](SHA256SUMS.txt).',
+        'Source commit находится в [release.json](../../release.json); SHA-256 файлов — в [checksums.txt](../../checksums.txt). Контрольная сумма самого ZIP публикуется отдельно после сборки.',
+      )
+      .replace(
+        '(../../api/resources/fonts/SOURCE.md)',
+        '(../../private/project-brief-app/resources/fonts/SOURCE.md)',
+      ),
+  )
   const readApiGuide = await readFile(path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'), 'utf8')
   await writeFile(
     path.join(staging, 'INTEGRATIONS/MILESTONE-5-0-3.md'),
