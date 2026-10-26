@@ -1,0 +1,773 @@
+[
+  {
+    "file": "browser-cjk-10-full-en.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "browser-cjk-10-full-ru.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "browser-cjk-10-full-tr.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "browser-cjk-10-full-zh-CN.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "browser-cjk-500-full-zh-CN.pdf",
+    "pages": 201,
+    "tasks": 500,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "browser-cjk-edge-2-full-zh-CN.pdf",
+    "pages": 14,
+    "tasks": 2,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "browser-mixed-10-full-en.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans"
+    ]
+  },
+  {
+    "file": "browser-mixed-10-full-ru.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans"
+    ]
+  },
+  {
+    "file": "browser-mixed-10-full-tr.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans"
+    ]
+  },
+  {
+    "file": "browser-mixed-10-full-zh-CN.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "chromium-1440-en-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-1440-en-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-1440-ru-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-1440-ru-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-1440-tr-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-1440-tr-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-1440-zh-CN-browser-cjk-500-full-zh-CN.pdf",
+    "pages": 201,
+    "tasks": 500,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "chromium-1440-zh-CN-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "chromium-1440-zh-CN-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "chromium-390-en-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-390-en-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-390-ru-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-390-ru-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-390-tr-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-390-tr-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "chromium-390-zh-CN-browser-cjk-500-full-zh-CN.pdf",
+    "pages": 201,
+    "tasks": 500,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "chromium-390-zh-CN-client-ui.pdf",
+    "pages": 4,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "chromium-390-zh-CN-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "dompdf-cjk-10-full-en.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/SUBAAB+DejaVuSans-Bold",
+      "/SUBAAC+DejaVuSans",
+      "/SUBAAD+NotoSansSC-Pdf25-Regular",
+      "/SUBAAE+NotoSansSC-Pdf14-Regular",
+      "/SUBAAF+NotoSansSC-Pdf12-Regular",
+      "/SUBAAG+NotoSansSC-Pdf13-Regular",
+      "/SUBAAH+NotoSansSC-Pdf9-Regular",
+      "/SUBAAI+NotoSansSC-Pdf18-Regular",
+      "/SUBAAJ+NotoSansSC-Pdf10-Regular",
+      "/SUBAAK+NotoSansSC-Pdf11-Regular",
+      "/SUBAAL+NotoSansSC-Pdf8-Regular",
+      "/SUBAAM+NotoSansSC-Pdf27-Regular",
+      "/SUBAAN+NotoSansSC-Pdf16-Regular",
+      "/SUBAAO+NotoSansSC-Pdf29-Regular",
+      "/SUBAAP+NotoSansSC-Pdf24-Regular",
+      "/SUBAAQ+NotoSansSC-Pdf23-Regular",
+      "/SUBAAR+NotoSansSC-Pdf21-Regular",
+      "/SUBAAS+NotoSansSC-Pdf1-Regular",
+      "/SUBAAT+NotoSansSC-Pdf17-Regular",
+      "/SUBAAU+NotoSansSC-Pdf19-Regular",
+      "/SUBAAV+NotoSansSC-Pdf20-Regular"
+    ]
+  },
+  {
+    "file": "dompdf-cjk-10-full-ru.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/SUBAAB+DejaVuSans-Bold",
+      "/SUBAAC+DejaVuSans",
+      "/SUBAAD+NotoSansSC-Pdf25-Regular",
+      "/SUBAAE+NotoSansSC-Pdf14-Regular",
+      "/SUBAAF+NotoSansSC-Pdf12-Regular",
+      "/SUBAAG+NotoSansSC-Pdf13-Regular",
+      "/SUBAAH+NotoSansSC-Pdf9-Regular",
+      "/SUBAAI+NotoSansSC-Pdf18-Regular",
+      "/SUBAAJ+NotoSansSC-Pdf10-Regular",
+      "/SUBAAK+NotoSansSC-Pdf11-Regular",
+      "/SUBAAL+NotoSansSC-Pdf8-Regular",
+      "/SUBAAM+NotoSansSC-Pdf27-Regular",
+      "/SUBAAN+NotoSansSC-Pdf16-Regular",
+      "/SUBAAO+NotoSansSC-Pdf29-Regular",
+      "/SUBAAP+NotoSansSC-Pdf24-Regular",
+      "/SUBAAQ+NotoSansSC-Pdf23-Regular",
+      "/SUBAAR+NotoSansSC-Pdf21-Regular",
+      "/SUBAAS+NotoSansSC-Pdf1-Regular",
+      "/SUBAAT+NotoSansSC-Pdf17-Regular",
+      "/SUBAAU+NotoSansSC-Pdf19-Regular",
+      "/SUBAAV+NotoSansSC-Pdf20-Regular"
+    ]
+  },
+  {
+    "file": "dompdf-cjk-10-full-tr.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/SUBAAB+DejaVuSans-Bold",
+      "/SUBAAC+DejaVuSans",
+      "/SUBAAD+NotoSansSC-Pdf25-Regular",
+      "/SUBAAE+NotoSansSC-Pdf14-Regular",
+      "/SUBAAF+NotoSansSC-Pdf12-Regular",
+      "/SUBAAG+NotoSansSC-Pdf13-Regular",
+      "/SUBAAH+NotoSansSC-Pdf9-Regular",
+      "/SUBAAI+NotoSansSC-Pdf18-Regular",
+      "/SUBAAJ+NotoSansSC-Pdf10-Regular",
+      "/SUBAAK+NotoSansSC-Pdf11-Regular",
+      "/SUBAAL+NotoSansSC-Pdf8-Regular",
+      "/SUBAAM+NotoSansSC-Pdf27-Regular",
+      "/SUBAAN+NotoSansSC-Pdf16-Regular",
+      "/SUBAAO+NotoSansSC-Pdf29-Regular",
+      "/SUBAAP+NotoSansSC-Pdf24-Regular",
+      "/SUBAAQ+NotoSansSC-Pdf23-Regular",
+      "/SUBAAR+NotoSansSC-Pdf21-Regular",
+      "/SUBAAS+NotoSansSC-Pdf1-Regular",
+      "/SUBAAT+NotoSansSC-Pdf17-Regular",
+      "/SUBAAU+NotoSansSC-Pdf19-Regular",
+      "/SUBAAV+NotoSansSC-Pdf20-Regular"
+    ]
+  },
+  {
+    "file": "dompdf-cjk-10-full-zh-CN.pdf",
+    "pages": 6,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/SUBAAB+NotoSansSC-Pdf13-Bold",
+      "/SUBAAC+NotoSansSC-Pdf15-Bold",
+      "/SUBAAD+NotoSansSC-Pdf27-Bold",
+      "/SUBAAE+NotoSansSC-Pdf16-Bold",
+      "/SUBAAF+NotoSansSC-Pdf24-Bold",
+      "/SUBAAG+NotoSansSC-Pdf14-Bold",
+      "/SUBAAH+NotoSansSC-Pdf8-Bold",
+      "/SUBAAI+NotoSansSC-Pdf19-Bold",
+      "/SUBAAJ+DejaVuSans-Bold",
+      "/SUBAAK+DejaVuSans",
+      "/SUBAAL+NotoSansSC-Pdf18-Regular",
+      "/SUBAAM+NotoSansSC-Pdf13-Regular",
+      "/SUBAAN+NotoSansSC-Pdf14-Regular",
+      "/SUBAAO+NotoSansSC-Pdf15-Regular",
+      "/SUBAAP+NotoSansSC-Pdf12-Regular",
+      "/SUBAAQ+NotoSansSC-Pdf25-Bold",
+      "/SUBAAR+NotoSansSC-Pdf25-Regular",
+      "/SUBAAS+NotoSansSC-Pdf9-Regular",
+      "/SUBAAT+NotoSansSC-Pdf10-Regular",
+      "/SUBAAU+NotoSansSC-Pdf11-Regular",
+      "/SUBAAV+NotoSansSC-Pdf8-Regular",
+      "/SUBAAW+NotoSansSC-Pdf27-Regular",
+      "/SUBAAX+NotoSansSC-Pdf16-Regular",
+      "/SUBAAY+NotoSansSC-Pdf29-Regular",
+      "/SUBAAZ+NotoSansSC-Pdf24-Regular",
+      "/SUBABA+NotoSansSC-Pdf23-Regular",
+      "/SUBABB+NotoSansSC-Pdf21-Regular",
+      "/SUBABC+NotoSansSC-Pdf1-Regular",
+      "/SUBABD+NotoSansSC-Pdf17-Regular",
+      "/SUBABE+NotoSansSC-Pdf19-Regular",
+      "/SUBABF+NotoSansSC-Pdf20-Regular",
+      "/SUBABG+NotoSansSC-Pdf21-Bold",
+      "/SUBABH+NotoSansSC-Pdf11-Bold",
+      "/SUBABI+NotoSansSC-Pdf26-Bold",
+      "/SUBABJ+NotoSansSC-Pdf9-Bold",
+      "/SUBABK+NotoSansSC-Pdf12-Bold",
+      "/SUBABL+NotoSansSC-Pdf18-Bold"
+    ]
+  },
+  {
+    "file": "firefox-1440-en-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "firefox-1440-ru-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "firefox-1440-tr-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "firefox-1440-zh-CN-browser-cjk-500-full-zh-CN.pdf",
+    "pages": 201,
+    "tasks": 500,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "firefox-1440-zh-CN-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "firefox-390-en-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "firefox-390-ru-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "firefox-390-tr-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+DejaVuSans-Bold",
+      "/CZZZZZ+DejaVuSans",
+      "/DZZZZZ+NotoSansSC-Regular"
+    ]
+  },
+  {
+    "file": "firefox-390-zh-CN-browser-cjk-500-full-zh-CN.pdf",
+    "pages": 201,
+    "tasks": 500,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  },
+  {
+    "file": "firefox-390-zh-CN-ui.pdf",
+    "pages": 5,
+    "tasks": 10,
+    "taskOrder": "passed",
+    "originalText": "passed",
+    "metadataAndTotals": "passed",
+    "embeddedFonts": true,
+    "toUnicode": true,
+    "pageImages": 0,
+    "fontNames": [
+      "/BZZZZZ+NotoSansSC-Bold",
+      "/CZZZZZ+NotoSansSC-Regular",
+      "/DZZZZZ+DejaVuSans",
+      "/EZZZZZ+DejaVuSans-Bold"
+    ]
+  }
+]

@@ -8,6 +8,25 @@ export class ApiError extends Error {
   }
 }
 
+function waitForRequest(promise, signal) {
+  if (!signal) return promise
+  signal.throwIfAborted()
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(signal.reason || new DOMException('Cancelled', 'AbortError'))
+    signal.addEventListener('abort', abort, { once: true })
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort)
+        resolve(value)
+      },
+      (error) => {
+        signal.removeEventListener('abort', abort)
+        reject(error)
+      },
+    )
+  })
+}
+
 export function createApiClient({
   fetchImpl = (...args) => fetch(...args),
   baseUrl = '',
@@ -17,20 +36,30 @@ export function createApiClient({
   let csrfRequest = null
   async function request(
     path,
-    { method = 'GET', body, responseType = 'json', timeoutMs: requestTimeoutMs = timeoutMs } = {},
+    {
+      method = 'GET',
+      body,
+      responseType = 'json',
+      timeoutMs: requestTimeoutMs = timeoutMs,
+      signal: externalSignal,
+    } = {},
   ) {
+    externalSignal?.throwIfAborted()
     if (method !== 'GET' && !csrf) {
       csrfRequest ||= request('/api/csrf')
         .then((data) => (csrf = data.token))
         .finally(() => {
           csrfRequest = null
         })
-      await csrfRequest
+      await waitForRequest(csrfRequest, externalSignal)
     }
+    externalSignal?.throwIfAborted()
     const multipart = body instanceof FormData
     let response
     let data
     const controller = new AbortController()
+    const abortExternal = () => controller.abort(externalSignal.reason)
+    externalSignal?.addEventListener('abort', abortExternal, { once: true })
     const hasFiles = multipart && [...body.values()].some((value) => value instanceof Blob)
     const timer = setTimeout(
       () => controller.abort(),
@@ -62,6 +91,8 @@ export function createApiClient({
         return {}
       })
     } catch {
+      if (externalSignal?.aborted)
+        throw externalSignal.reason || new DOMException('Cancelled', 'AbortError')
       throw new ApiError(
         0,
         t('ui.weCouldNotConnectToTheServerCheck'),
@@ -70,6 +101,7 @@ export function createApiClient({
       )
     } finally {
       clearTimeout(timer)
+      externalSignal?.removeEventListener('abort', abortExternal)
     }
     if (!response.ok) {
       if ([401, 419].includes(response.status)) csrf = null

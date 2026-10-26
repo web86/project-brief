@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'tooLarge' => 'The document is too large. Reduce the export size.',
     'title' => 'Technical specification',
     'project' => 'Project',
     'website' => 'Website',

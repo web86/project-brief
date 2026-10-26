@@ -451,6 +451,16 @@ export default {
     },
   },
   export: {
+    tooLarge: 'Слишком большой документ. Уменьшите объём экспорта.',
+    prototypeNotice: 'Прототип PDF в браузере. Обычный экспорт не изменён.',
+    prototypeError: 'Не удалось сформировать PDF. Повторите попытку.',
+    stages: {
+      preparing: 'Подготовка данных…',
+      library: 'Загрузка PDF-модуля…',
+      fonts: 'Загрузка шрифтов…',
+      generating: 'Формирование PDF…',
+      downloading: 'Скачивание…',
+    },
     developerNotes: 'Показать технические заметки',
     done: 'Только готовые',
     documentTitle: 'Заголовок документа',

@@ -449,6 +449,16 @@ export default {
     },
   },
   export: {
+    tooLarge: 'The document is too large. Reduce the export size.',
+    prototypeNotice: 'Browser PDF prototype. Standard export is unchanged.',
+    prototypeError: 'Could not generate the PDF. Please try again.',
+    stages: {
+      preparing: 'Preparing data…',
+      library: 'Loading PDF module…',
+      fonts: 'Loading fonts…',
+      generating: 'Generating PDF…',
+      downloading: 'Downloading…',
+    },
     developerNotes: 'Show technical notes',
     done: 'Completed tasks only',
     documentTitle: 'Document title',

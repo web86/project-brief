@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AiTaskAssistantController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\BrowserProjectExportController;
 use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\CommentController;
@@ -103,6 +104,7 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
     Route::delete('/team/members/{member}', [ProjectTeamController::class, 'destroy']);
     Route::post('/ai/task-assistant', AiTaskAssistantController::class);
     Route::post('/export', ProjectExportController::class)->middleware('project.permission:export_project');
+    Route::post('/export-data', BrowserProjectExportController::class)->middleware(['project.permission:export_project', 'throttle:browser-pdf']);
     Route::get('/discussions', [ProjectDiscussionController::class, 'index']);
     Route::post('/discussions', [ProjectDiscussionController::class, 'store'])->middleware('throttle:comments');
     Route::post('/discussions/read', [ProjectDiscussionController::class, 'read']);
@@ -124,6 +126,7 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/notifications', [ClientNotificationController::class, 'show']);
     Route::patch('/notifications', [ClientNotificationController::class, 'update']);
     Route::post('/project/{project}/export', ProjectExportController::class);
+    Route::post('/project/{project}/export-data', BrowserProjectExportController::class)->middleware('throttle:browser-pdf');
     Route::get('/project/{project}/discussions', [ProjectDiscussionController::class, 'index']);
     Route::post('/project/{project}/discussions', [ProjectDiscussionController::class, 'store'])->middleware('throttle:comments');
     Route::post('/project/{project}/discussions/read', [ProjectDiscussionController::class, 'read']);

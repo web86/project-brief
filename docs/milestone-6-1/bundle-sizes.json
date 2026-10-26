@@ -1,0 +1,376 @@
+{
+  "ordinary": [
+    {
+      "file": "assets/AccessErrorView-XycvGfMJ.js",
+      "bytes": 568,
+      "gzipBytes": 389
+    },
+    {
+      "file": "assets/AccountTabs-CL_iXHmh.js",
+      "bytes": 579,
+      "gzipBytes": 396
+    },
+    {
+      "file": "assets/AdminAccountView-wPDTVg7P.js",
+      "bytes": 7257,
+      "gzipBytes": 2271
+    },
+    {
+      "file": "assets/AdminIntegrationsView-DPW8SG8m.js",
+      "bytes": 17235,
+      "gzipBytes": 5079
+    },
+    {
+      "file": "assets/AdminLoginView-DeFlTNQ7.js",
+      "bytes": 2148,
+      "gzipBytes": 1061
+    },
+    {
+      "file": "assets/AdminNotificationsView-CDMWs7Ez.js",
+      "bytes": 7918,
+      "gzipBytes": 2772
+    },
+    {
+      "file": "assets/AdminProjectClientsView-CZM3xISo.js",
+      "bytes": 6832,
+      "gzipBytes": 2313
+    },
+    {
+      "file": "assets/AdminProjectDiscussionsView-f_qjJ_V0.js",
+      "bytes": 5143,
+      "gzipBytes": 2201
+    },
+    {
+      "file": "assets/AdminProjectExportView-D2vrUIJo.js",
+      "bytes": 5112,
+      "gzipBytes": 1996
+    },
+    {
+      "file": "assets/AdminProjectFormView--mZbVRXh.js",
+      "bytes": 1451,
+      "gzipBytes": 820
+    },
+    {
+      "file": "assets/AdminProjectNotificationsView-BUPeSzrB.js",
+      "bytes": 6394,
+      "gzipBytes": 2330
+    },
+    {
+      "file": "assets/AdminProjectSettingsView-CR6CQa4o.js",
+      "bytes": 1546,
+      "gzipBytes": 843
+    },
+    {
+      "file": "assets/AdminProjectShell-C7VacX7X.js",
+      "bytes": 561,
+      "gzipBytes": 348
+    },
+    {
+      "file": "assets/AdminProjectStructureView-CXkOXgg9.js",
+      "bytes": 3596,
+      "gzipBytes": 1481
+    },
+    {
+      "file": "assets/AdminProjectTeamView-Y5Wdt0yw.js",
+      "bytes": 7805,
+      "gzipBytes": 2743
+    },
+    {
+      "file": "assets/AdminProjectUnavailableView-owjRbKuZ.js",
+      "bytes": 610,
+      "gzipBytes": 375
+    },
+    {
+      "file": "assets/AdminProjectsView-rsHCfAA3.js",
+      "bytes": 2316,
+      "gzipBytes": 1014
+    },
+    {
+      "file": "assets/AdminShell-mT-EwDQg.js",
+      "bytes": 16911,
+      "gzipBytes": 5125
+    },
+    {
+      "file": "assets/AppEntryView-gFtJx62X.js",
+      "bytes": 786,
+      "gzipBytes": 498
+    },
+    {
+      "file": "assets/AttachmentList-k3f_KQmx.js",
+      "bytes": 7976,
+      "gzipBytes": 3292
+    },
+    {
+      "file": "assets/ClientNotificationsView-BwjhmwjI.js",
+      "bytes": 3571,
+      "gzipBytes": 1331
+    },
+    {
+      "file": "assets/CommentForm-Bpkj-rsS.js",
+      "bytes": 3055,
+      "gzipBytes": 1571
+    },
+    {
+      "file": "assets/InvitationView-wbC5IjvD.js",
+      "bytes": 6207,
+      "gzipBytes": 2256
+    },
+    {
+      "file": "assets/NotFoundView-C0fC29-e.js",
+      "bytes": 567,
+      "gzipBytes": 403
+    },
+    {
+      "file": "assets/NotificationToggle-Cq9h61nT.js",
+      "bytes": 541,
+      "gzipBytes": 355
+    },
+    {
+      "file": "assets/PasswordRecoveryView-Dbw6Lxjg.js",
+      "bytes": 2631,
+      "gzipBytes": 1200
+    },
+    {
+      "file": "assets/ProjectFields-BqWC5Lsr.js",
+      "bytes": 1936,
+      "gzipBytes": 880
+    },
+    {
+      "file": "assets/ProjectPermissionDeniedView-BVpKFjzn.js",
+      "bytes": 541,
+      "gzipBytes": 364
+    },
+    {
+      "file": "assets/TaskFormView-DLbLhAj7.js",
+      "bytes": 16843,
+      "gzipBytes": 5967
+    },
+    {
+      "file": "assets/TaskView-Bd4bFBdK.js",
+      "bytes": 17496,
+      "gzipBytes": 6111
+    },
+    {
+      "file": "assets/TelegramSettings-WCSU1PT5.js",
+      "bytes": 11464,
+      "gzipBytes": 4041
+    },
+    {
+      "file": "assets/UserAvatar-BOAYXWge.js",
+      "bytes": 733,
+      "gzipBytes": 482
+    },
+    {
+      "file": "assets/_plugin-vue_export-helper-DlAUqK2U.js",
+      "bytes": 91,
+      "gzipBytes": 102
+    },
+    {
+      "file": "assets/index-DnROlLqS.js",
+      "bytes": 428293,
+      "gzipBytes": 146384
+    }
+  ],
+  "prototype": [
+    {
+      "file": "assets/AccessErrorView-BW_HW1-x.js",
+      "bytes": 568,
+      "gzipBytes": 390
+    },
+    {
+      "file": "assets/AccountTabs-D_jotYy-.js",
+      "bytes": 579,
+      "gzipBytes": 396
+    },
+    {
+      "file": "assets/AdminAccountView-CD0sdQsD.js",
+      "bytes": 7257,
+      "gzipBytes": 2271
+    },
+    {
+      "file": "assets/AdminIntegrationsView-B3xOfgqN.js",
+      "bytes": 17235,
+      "gzipBytes": 5080
+    },
+    {
+      "file": "assets/AdminLoginView-UKWSZKwY.js",
+      "bytes": 2148,
+      "gzipBytes": 1062
+    },
+    {
+      "file": "assets/AdminNotificationsView-DnnPRDAG.js",
+      "bytes": 7918,
+      "gzipBytes": 2771
+    },
+    {
+      "file": "assets/AdminProjectClientsView-CO4A3kQh.js",
+      "bytes": 6832,
+      "gzipBytes": 2313
+    },
+    {
+      "file": "assets/AdminProjectDiscussionsView-B2zEFGXl.js",
+      "bytes": 5143,
+      "gzipBytes": 2200
+    },
+    {
+      "file": "assets/AdminProjectExportView-2_gtsnwt.js",
+      "bytes": 5074,
+      "gzipBytes": 1974
+    },
+    {
+      "file": "assets/AdminProjectFormView-Ch0UkS5k.js",
+      "bytes": 1451,
+      "gzipBytes": 819
+    },
+    {
+      "file": "assets/AdminProjectNotificationsView-SxtzsBfO.js",
+      "bytes": 6394,
+      "gzipBytes": 2329
+    },
+    {
+      "file": "assets/AdminProjectSettingsView-DamrPxFL.js",
+      "bytes": 1546,
+      "gzipBytes": 841
+    },
+    {
+      "file": "assets/AdminProjectShell-BEPB0sjU.js",
+      "bytes": 561,
+      "gzipBytes": 348
+    },
+    {
+      "file": "assets/AdminProjectStructureView-Dx2luuuq.js",
+      "bytes": 3596,
+      "gzipBytes": 1481
+    },
+    {
+      "file": "assets/AdminProjectTeamView-D1Ly1gZb.js",
+      "bytes": 7805,
+      "gzipBytes": 2744
+    },
+    {
+      "file": "assets/AdminProjectUnavailableView-Dc7dHvB2.js",
+      "bytes": 610,
+      "gzipBytes": 378
+    },
+    {
+      "file": "assets/AdminProjectsView-CmY_i-_o.js",
+      "bytes": 2316,
+      "gzipBytes": 1014
+    },
+    {
+      "file": "assets/AdminShell-CGeQIrZt.js",
+      "bytes": 16911,
+      "gzipBytes": 5124
+    },
+    {
+      "file": "assets/AppEntryView-DBdd7T13.js",
+      "bytes": 786,
+      "gzipBytes": 498
+    },
+    {
+      "file": "assets/AttachmentList-DXEDnpae.js",
+      "bytes": 7976,
+      "gzipBytes": 3291
+    },
+    {
+      "file": "assets/ClientNotificationsView-DqPopylL.js",
+      "bytes": 3571,
+      "gzipBytes": 1330
+    },
+    {
+      "file": "assets/CommentForm-DV6vlPGt.js",
+      "bytes": 3055,
+      "gzipBytes": 1570
+    },
+    {
+      "file": "assets/DejaVuSans-Bold-D3XZ3B4H.ttf",
+      "bytes": 705684,
+      "gzipBytes": 350433
+    },
+    {
+      "file": "assets/DejaVuSans-CHjR2eXl.ttf",
+      "bytes": 757076,
+      "gzipBytes": 379453
+    },
+    {
+      "file": "assets/InvitationView-DKarxCgz.js",
+      "bytes": 6207,
+      "gzipBytes": 2255
+    },
+    {
+      "file": "assets/NotFoundView-BIa8RBze.js",
+      "bytes": 567,
+      "gzipBytes": 403
+    },
+    {
+      "file": "assets/NotificationToggle-zFzxF_4X.js",
+      "bytes": 541,
+      "gzipBytes": 356
+    },
+    {
+      "file": "assets/NotoSansSC-Bold-Bj2WiPmA.ttf",
+      "bytes": 10585480,
+      "gzipBytes": 6382124
+    },
+    {
+      "file": "assets/NotoSansSC-Regular-CDnR9hCP.ttf",
+      "bytes": 10595936,
+      "gzipBytes": 6303519
+    },
+    {
+      "file": "assets/PasswordRecoveryView-BhCi12fI.js",
+      "bytes": 2631,
+      "gzipBytes": 1200
+    },
+    {
+      "file": "assets/ProjectFields-ks4SptZi.js",
+      "bytes": 1936,
+      "gzipBytes": 879
+    },
+    {
+      "file": "assets/ProjectPermissionDeniedView-DF9EaE3C.js",
+      "bytes": 541,
+      "gzipBytes": 366
+    },
+    {
+      "file": "assets/TaskFormView-BY4pCwSf.js",
+      "bytes": 16843,
+      "gzipBytes": 5966
+    },
+    {
+      "file": "assets/TaskView-CmiktM1d.js",
+      "bytes": 17496,
+      "gzipBytes": 6110
+    },
+    {
+      "file": "assets/TelegramSettings-B1s2gEib.js",
+      "bytes": 11464,
+      "gzipBytes": 4041
+    },
+    {
+      "file": "assets/UserAvatar-3RpWsHAD.js",
+      "bytes": 733,
+      "gzipBytes": 481
+    },
+    {
+      "file": "assets/_plugin-vue_export-helper-DlAUqK2U.js",
+      "bytes": 91,
+      "gzipBytes": 102
+    },
+    {
+      "file": "assets/index-D0NfGOym.js",
+      "bytes": 429742,
+      "gzipBytes": 147050
+    },
+    {
+      "file": "assets/pdf.worker-Hvjs0Ei-.js",
+      "bytes": 5101,
+      "gzipBytes": 2325
+    },
+    {
+      "file": "assets/pdfmake-CZ8-yOWi.js",
+      "bytes": 787010,
+      "gzipBytes": 293984
+    }
+  ]
+}

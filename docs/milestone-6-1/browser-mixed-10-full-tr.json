@@ -1,0 +1,557 @@
+{
+  "title": "Teknik şartname",
+  "project": {
+    "name": "Website / Çığ / исходный проект",
+    "website": null
+  },
+  "generated": {
+    "date": "26 Ekim 2026",
+    "isoDate": "2026-10-26",
+    "locale": "tr"
+  },
+  "labels": {
+    "title": "Teknik şartname",
+    "project": "Proje",
+    "website": "Web sitesi",
+    "generated": "Oluşturulma tarihi",
+    "footer": "ProjectBrief ile oluşturuldu",
+    "attachments": "Ekler",
+    "summary": "ÖZET"
+  },
+  "sections": [
+    {
+      "number": 1,
+      "name": "Navigation",
+      "tasks": [
+        {
+          "number": "1.1",
+          "title": "Website improvement 1 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $",
+          "attachments": [
+            "requirements-1.pdf"
+          ]
+        },
+        {
+          "number": "1.2",
+          "title": "Website improvement 4 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            },
+            {
+              "label": "Müşteri onayı",
+              "value": "26 Eki 2026",
+              "block": false
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $ · Müşteri onayı: 26 Eki 2026",
+          "attachments": [
+            "requirements-4.pdf"
+          ]
+        },
+        {
+          "number": "1.3",
+          "title": "Website improvement 7 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $",
+          "attachments": [
+            "requirements-7.pdf"
+          ]
+        },
+        {
+          "number": "1.4",
+          "title": "Website improvement 10 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            },
+            {
+              "label": "Müşteri onayı",
+              "value": "26 Eki 2026",
+              "block": false
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $ · Müşteri onayı: 26 Eki 2026",
+          "attachments": [
+            "requirements-10.pdf"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "name": "Products",
+      "tasks": [
+        {
+          "number": "2.1",
+          "title": "Website improvement 2 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            },
+            {
+              "label": "Müşteri onayı",
+              "value": "26 Eki 2026",
+              "block": false
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $ · Müşteri onayı: 26 Eki 2026",
+          "attachments": [
+            "requirements-2.pdf"
+          ]
+        },
+        {
+          "number": "2.2",
+          "title": "Website improvement 5 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $",
+          "attachments": [
+            "requirements-5.pdf"
+          ]
+        },
+        {
+          "number": "2.3",
+          "title": "Website improvement 8 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            },
+            {
+              "label": "Müşteri onayı",
+              "value": "26 Eki 2026",
+              "block": false
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $ · Müşteri onayı: 26 Eki 2026",
+          "attachments": [
+            "requirements-8.pdf"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "name": "Account",
+      "tasks": [
+        {
+          "number": "3.1",
+          "title": "Website improvement 3 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $",
+          "attachments": [
+            "requirements-3.pdf"
+          ]
+        },
+        {
+          "number": "3.2",
+          "title": "Website improvement 6 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            },
+            {
+              "label": "Müşteri onayı",
+              "value": "26 Eki 2026",
+              "block": false
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $ · Müşteri onayı: 26 Eki 2026",
+          "attachments": [
+            "requirements-6.pdf"
+          ]
+        },
+        {
+          "number": "3.3",
+          "title": "Website improvement 9 — İpek / задача",
+          "content": [
+            {
+              "label": "Açıklama",
+              "value": "Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requirement. Improve navigation, accessibility and product photographs. Çığ ışığı İpek — исходный текст. Keep the original customer requireme",
+              "block": true
+            },
+            {
+              "label": "Beklenen sonuç",
+              "value": "Navigation is clear, accessible and responsive. Navigation is clear, accessible and responsive. Navi",
+              "block": true
+            },
+            {
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            },
+            {
+              "label": "Tahmini süre",
+              "value": "8,25 sa",
+              "block": false
+            },
+            {
+              "label": "Ücret",
+              "value": "975,5 $",
+              "block": false
+            },
+            {
+              "label": "Teknik notlar",
+              "value": "PRIVATE_INTERNAL_NOTES Preserve original content and existing access controls. P",
+              "block": true
+            }
+          ],
+          "metadata": "Öncelik: Normal · Durum: Tamamlandı · Tahmini süre: 8,25 sa · Ücret: 975,5 $",
+          "attachments": [
+            "requirements-9.pdf"
+          ]
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "taskCount": 10,
+    "approvedCount": 5,
+    "estimateHours": {
+      "providedTaskCount": 10,
+      "value": "82.50",
+      "formatted": "82,5 sa",
+      "coverage": null
+    },
+    "price": {
+      "providedTaskCount": 10,
+      "value": "9755.00",
+      "formatted": "9.755 $",
+      "coverage": null
+    }
+  },
+  "summary": [
+    {
+      "label": "Görevler",
+      "value": "10",
+      "coverage": null
+    },
+    {
+      "label": "Onaylananlar",
+      "value": "5",
+      "coverage": null
+    },
+    {
+      "label": "Toplam tahmini süre",
+      "value": "82,5 sa",
+      "coverage": null
+    },
+    {
+      "label": "Toplam ücret",
+      "value": "9.755 $",
+      "coverage": null
+    }
+  ],
+  "presentation": {
+    "pageBreakBySection": false
+  }
+}

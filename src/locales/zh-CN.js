@@ -414,6 +414,16 @@ export default {
     },
   },
   export: {
+    tooLarge: '文档过大，请缩小导出范围。',
+    prototypeNotice: '浏览器 PDF 原型，现有导出功能保持不变。',
+    prototypeError: '无法生成 PDF，请重试。',
+    stages: {
+      preparing: '正在准备数据…',
+      library: '正在加载 PDF 模块…',
+      fonts: '正在加载字体…',
+      generating: '正在生成 PDF…',
+      downloading: '正在下载…',
+    },
     developerNotes: '显示技术备注',
     done: '仅已完成的任务',
     documentTitle: '文档标题',

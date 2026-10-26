@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'tooLarge' => 'Belge çok büyük. Dışa aktarma kapsamını küçültün.',
     'title' => 'Teknik şartname',
     'project' => 'Proje',
     'website' => 'Web sitesi',

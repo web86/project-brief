@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { inject, onBeforeUnmount, ref, watch } from 'vue'
+import { exportRendererKey } from '../services/exportRenderer.js'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { api } from '../api/client.js'
@@ -9,6 +10,13 @@ import { saveProjectExport } from '../utils/projectExport.js'
 import { toast } from '../services/toast.js'
 import LoadingButton from '../components/LoadingButton.vue'
 
+const browserPdf = inject(exportRendererKey, null)
+const stage = ref('')
+let operation
+const cancel = () => {
+  if (browserPdf && format.value === 'pdf') operation?.abort()
+}
+onBeforeUnmount(cancel)
 const client = useRoute().meta.clientSection === 'export'
 const store = client ? useProjectStore() : useProjectManagementStore()
 const format = ref('pdf'),
@@ -52,37 +60,66 @@ async function download() {
   const projectId = store.project.id
   pending.value = true
   error.value = ''
+  operation = new AbortController()
   try {
-    const result = await api.request(
-      client
-        ? `/api/client/project/${projectId}/export`
-        : `/api/admin/projects/${projectId}/export`,
-      {
-        method: 'POST',
-        responseType: 'blob',
-        body: {
-          format: format.value,
-          scope: scope.value,
-          locale: language.value,
-          documentTitle: documentTitle.value.trim(),
-          pageBreakBySection: pageBreakBySection.value,
-          fields: { ...fields.value },
-        },
-      },
-    )
+    const options = {
+      format: format.value,
+      scope: scope.value,
+      locale: language.value,
+      documentTitle: documentTitle.value.trim(),
+      pageBreakBySection: pageBreakBySection.value,
+      fields: { ...fields.value },
+    }
+    const result =
+      browserPdf && format.value === 'pdf'
+        ? await browserPdf({
+            projectId,
+            client,
+            options,
+            signal: operation.signal,
+            onStage: (value) => {
+              stage.value = value
+            },
+          })
+        : await api.request(
+            client
+              ? `/api/client/project/${projectId}/export`
+              : `/api/admin/projects/${projectId}/export`,
+            {
+              method: 'POST',
+              responseType: 'blob',
+              body: {
+                format: format.value,
+                scope: scope.value,
+                locale: language.value,
+                documentTitle: documentTitle.value.trim(),
+                pageBreakBySection: pageBreakBySection.value,
+                fields: { ...fields.value },
+              },
+            },
+          )
     if (store.project?.id === projectId) saveProjectExport(result)
   } catch (cause) {
-    if (store.project?.id !== projectId) return
-    error.value = cause.errors?.scope?.[0] || formatApiError(cause)
+    if (store.project?.id !== projectId || operation.signal.aborted) return
+    error.value =
+      cause.errors?.scope?.[0] ||
+      (browserPdf && cause.status === 413
+        ? t('export.tooLarge')
+        : browserPdf && !cause.status
+          ? t('export.prototypeError')
+          : formatApiError(cause))
     toast.error(error.value)
   } finally {
     pending.value = false
+    stage.value = ''
+    operation = null
   }
 }
 </script>
 <template>
   <form class="surface admin-form export-form" :aria-busy="pending" @submit.prevent="download">
     <h2>{{ t('export.title') }}</h2>
+    <p v-if="browserPdf" class="muted">{{ t('export.prototypeNotice') }}</p>
     <fieldset :disabled="pending">
       <legend>{{ t('export.format') }}</legend>
       <label><input v-model="format" type="radio" value="pdf" name="format" /> PDF</label>
@@ -133,6 +170,17 @@ async function download() {
         {{ t('export.pageBreakBySection') }}</label
       >
     </fieldset>
+    <p v-if="browserPdf && pending && stage" role="status" aria-live="polite">
+      {{ t('export.stages.' + stage) }}
+    </p>
+    <button
+      v-if="browserPdf && pending && format === 'pdf'"
+      type="button"
+      class="button"
+      @click="cancel"
+    >
+      {{ t('ui.cancel') }}
+    </button>
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
     <LoadingButton type="submit" :busy="pending" class="button primary">{{
       t('export.download')

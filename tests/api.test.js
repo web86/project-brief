@@ -110,3 +110,43 @@ test('stalled requests abort with a stable timeout error instead of leaving load
   context.mock.timers.tick(201)
   await result
 })
+
+test('caller cancellation aborts a pending request without converting it to a network error', async () => {
+  const controller = new AbortController()
+  const client = createApiClient({
+    fetchImpl: (_url, options) =>
+      new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(options.signal.reason), {
+          once: true,
+        })
+      }),
+  })
+  const pending = assert.rejects(
+    client.request('/api/export-data', { signal: controller.signal }),
+    (error) => error.name === 'AbortError',
+  )
+  controller.abort()
+  await pending
+})
+
+test('cancellation while acquiring CSRF returns immediately without sending the mutation', async () => {
+  const controller = new AbortController()
+  let mutate = false,
+    complete
+  const client = createApiClient({
+    fetchImpl: (url) => {
+      if (url !== '/api/csrf') mutate = true
+      return new Promise((resolve) => {
+        complete = () => resolve(response(200, { token: 'csrf' }))
+      })
+    },
+  })
+  const pending = assert.rejects(
+    client.request('/api/export-data', { method: 'POST', body: {}, signal: controller.signal }),
+    (error) => error.name === 'AbortError',
+  )
+  controller.abort()
+  await pending
+  assert.equal(mutate, false)
+  complete()
+})

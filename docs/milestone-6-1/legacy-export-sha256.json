@@ -1,0 +1,5 @@
+{
+  "api/app/Services/PdfProjectExporter.php": "ae95e197c9119f8aebb41baf134117e3d08dffe9fa3c8ce9b07092eaf44ae501",
+  "api/app/Services/DocxProjectExporter.php": "77ef9172bcf128fc130bb760ee395a0c66ccc611d5d07f4fda3b85fdd689c38e",
+  "api/resources/views/exports/specification.blade.php": "d19a605c2dcebaa13813d412eaa6b67a27b3522d820fd3e8ccbee2d6b786a45d"
+}

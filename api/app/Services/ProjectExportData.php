@@ -20,7 +20,7 @@ class ProjectExportData
      *
      * @return array{title: string, project: array{name: string, website: ?string}, generated: array{date: string, isoDate: string, locale: string}, labels: array<string, string>, sections: array, totals: array, summary: array, presentation: array{pageBreakBySection: bool}}
      */
-    public function build(Project $project, string $scope, string $locale, array $fields = [], array $options = [], bool $client = false): array
+    public function build(Project $project, string $scope, string $locale, array $fields = [], array $options = [], bool $client = false, ?int $maxTasks = null, ?int $maxTextBytes = null): array
     {
         $locale = SupportedLocales::resolve($locale);
         $fields = array_replace(self::DEFAULT_FIELDS, $fields);
@@ -41,11 +41,37 @@ class ProjectExportData
         if ($fields['approvalDate']) {
             $columns[] = 'client_approved_at';
         }
-        $tasks = $project->tasks()->select($columns)
+        $query = $project->tasks()->select($columns)
             ->when($fields['attachments'], fn ($query) => $query->with(['attachments:id,task_id,original_name']))
             ->when($scope === 'approved', fn ($query) => $query->where('client_approved', true))
             ->when($scope === 'done', fn ($query) => $query->where('status', 'done'))
-            ->orderBy('position')->orderBy('id')->get()->groupBy('project_section_id');
+            ->orderBy('position')->orderBy('id');
+        if ($maxTasks !== null && (clone $query)->count() > $maxTasks) {
+            throw ValidationException::withMessages(['scope' => $labels['tooLarge']])->status(413);
+        }
+        if ($maxTextBytes !== null) {
+            $connection = $project->getConnection();
+            $textColumns = array_values(array_intersect($columns, ['title', 'description', 'expected_result', 'developer_notes']));
+            $lengths = array_map(function (string $column) use ($connection): string {
+                $value = 'COALESCE('.$connection->getQueryGrammar()->wrap($column).", '')";
+
+                return match ($connection->getDriverName()) {
+                    'sqlite' => 'LENGTH(CAST('.$value.' AS BLOB))',
+                    'sqlsrv' => 'DATALENGTH('.$value.')',
+                    default => 'OCTET_LENGTH('.$value.')',
+                };
+            }, $textColumns);
+            $bytes = (clone $query)->setEagerLoads([])->reorder()->select([])
+                ->selectRaw('COALESCE(SUM('.implode(' + ', $lengths).'), 0) AS export_bytes')->value('export_bytes');
+            if ($bytes > $maxTextBytes) {
+                throw ValidationException::withMessages(['scope' => $labels['tooLarge']])->status(413);
+            }
+        }
+        $tasks = $query->when($maxTasks !== null, fn ($query) => $query->limit($maxTasks + 1))->get();
+        if ($maxTasks !== null && $tasks->count() > $maxTasks) {
+            throw ValidationException::withMessages(['scope' => $labels['tooLarge']])->status(413);
+        }
+        $tasks = $tasks->groupBy('project_section_id');
         $sections = [];
         $totals = ['taskCount' => 0, 'approvedCount' => 0];
         foreach (['estimateHours', 'price'] as $key) {

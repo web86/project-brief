@@ -19,9 +19,13 @@
     "preview:public": "vite --config preview/milestone-4-3/vite.config.js",
     "build:public-preview": "vite build --config preview/milestone-4-3/vite.config.js",
     "test:public-preview": "node preview/milestone-4-3/verify.mjs",
-    "test:multilingual": "node tests/multilingual.browser.mjs"
+    "test:multilingual": "node tests/multilingual.browser.mjs",
+    "dev:browser-pdf": "vite --config preview/browser-pdf/vite.config.js",
+    "build:browser-pdf": "vite build --config preview/browser-pdf/vite.config.js",
+    "test:browser-pdf": "node tests/browser-pdf.browser.mjs"
   },
   "dependencies": {
+    "pdfmake": "0.3.13",
     "pinia": "^3.0.3",
     "vue": "^3.5.22",
     "vue-i18n": "^11.4.13",

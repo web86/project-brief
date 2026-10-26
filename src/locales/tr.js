@@ -452,6 +452,16 @@ export default {
     },
   },
   export: {
+    tooLarge: 'Belge çok büyük. Dışa aktarma kapsamını küçültün.',
+    prototypeNotice: 'Tarayıcıda PDF prototipi. Standart dışa aktarma değişmedi.',
+    prototypeError: 'PDF oluşturulamadı. Lütfen tekrar deneyin.',
+    stages: {
+      preparing: 'Veriler hazırlanıyor…',
+      library: 'PDF modülü yükleniyor…',
+      fonts: 'Yazı tipleri yükleniyor…',
+      generating: 'PDF oluşturuluyor…',
+      downloading: 'İndiriliyor…',
+    },
     developerNotes: 'Teknik notları göster',
     done: 'Yalnızca tamamlanan görevler',
     documentTitle: 'Belge başlığı',

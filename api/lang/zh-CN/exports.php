@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'tooLarge' => '文档过大，请缩小导出范围。',
     'title' => '技术需求说明书',
     'project' => '项目',
     'website' => '网站',

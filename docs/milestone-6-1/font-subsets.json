@@ -1,0 +1,10 @@
+{
+  "sample": "browser-cjk-500-full-zh-CN.pdf",
+  "pages": 201,
+  "decodedEmbeddedFontBytes": {
+    "/BZZZZZ+NotoSansSC-Bold": 7515,
+    "/CZZZZZ+NotoSansSC-Regular": 15345,
+    "/DZZZZZ+DejaVuSans": 14611,
+    "/EZZZZZ+DejaVuSans-Bold": 10353
+  }
+}
