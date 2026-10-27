@@ -18,9 +18,17 @@ const forbiddenDirectories = new Set([
   'secrets',
 ])
 
+const vendorRuntimeSources = new Set([
+  'web-auth/webauthn-lib/src/Credential.php',
+  'laravel/framework/src/Illuminate/Console/View/Components/Secret.php',
+])
+
 export function forbiddenPath(relative) {
   const parts = relative.split('/').map((part) => part.toLowerCase())
   const name = parts.at(-1)
+  const vendorRelative = relative.startsWith('private/project-brief-app/vendor/')
+    ? relative.slice('private/project-brief-app/vendor/'.length)
+    : relative
   if (
     parts[0] === 'public' &&
     (['app', 'bootstrap', 'config', 'database', 'storage', 'vendor', 'src'].includes(parts[1]) ||
@@ -35,7 +43,7 @@ export function forbiddenPath(relative) {
     name.startsWith('.env.') ||
     name === 'local-admin.json' ||
     /\.(key|map|sqlite(?:3)?(?:-.*)?)$/.test(name) ||
-    /^(credentials?|secrets?)([._-]|$)/.test(name) ||
+    (/^(credentials?|secrets?)([._-]|$)/.test(name) && !vendorRuntimeSources.has(vendorRelative)) ||
     ['.ds_store', '.gitignore', '.gitattributes', 'phpunit.xml', 'phpunit.xml.dist'].includes(name)
   )
 }
@@ -115,6 +123,10 @@ export function environmentSecrets(content) {
 
 export async function validateRelease(root, localSecrets = []) {
   const required = [
+    ...Array.from(
+      vendorRuntimeSources,
+      (relative) => 'private/project-brief-app/vendor/' + relative,
+    ),
     'public/index.html',
     'public/sw.js',
     'public/font-licenses/NotoSansSC-OFL.txt',

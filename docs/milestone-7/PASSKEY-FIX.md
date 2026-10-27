@@ -4,9 +4,15 @@ Date: 2026-10-27. Branch: `codex/milestone-7-account-security-passkeys`. Baselin
 
 ## What is established
 
-The supplied production 422 **does not establish that TOTP was reused**. In the 0.7.0 source, the exact generator of `errors.code` is `AccountSecurity::valid(false)`. It is used by factor verification and challenge validation; additionally, `AccountSecurityController::passkey()` called it from `catch (Throwable)`, covering deserialization, WebAuthn, database writes, events and session changes. A failed database insert therefore produced the same 422 as a replayed TOTP. The frontend then discarded status/body again in the Laravel client error wrapper and in component catches. These two diagnostic defects are reproduced by regression tests and corrected.
+The cause is **vendor pruning in the production ZIP**, not TOTP reuse. `forbiddenPath()` in `deployment/release-files.mjs` classified the WebAuthn runtime source `web-auth/webauthn-lib/src/Credential.php` as a secret file because its basename matched `credentials?`. `pruneVendor()` removed it before Composer optimized autoload generation. `PublicKeyCredential extends Credential`, so options generation and browser Touch ID could succeed, but server credential deserialization then failed with `Class "Webauthn\Credential" not found` before verification or storage.
 
-The original Touch ID failure on Jino remains **unattributed**. There is no production session/host access or new failure reference. Do not present this ZIP as proof that a particular production WebAuthn check or SQL error has been fixed. It fixes error handling and retry UX, and provides safe diagnostics to identify that gate if the failure persists. Installation and one reproduction with the new reference are operator actions described in [PRODUCTION.md](PRODUCTION.md#safe-jino-diagnosis).
+The exact generator of the observed `errors.code` was `AccountSecurityController::passkey()`'s `catch (Throwable)` calling `AccountSecurity::valid(false)`. That converted the missing-class error into the same 422 as a failed factor check. The frontend discarded the remaining response information and displayed the generic error at the top of the panel.
+
+**Causal reproduction on PHP 8.4.26 with production vendor:** the unchanged 0.7.0 ZIP `project-brief-v0.7.0-4248693.zip` lacks this file and the complete signed enrollment ends with `ValidationException`, status **422**, `errors.code`, `runtimeBasePresent:false`. In an isolated copy of that same old package, restoring **only the upstream Credential.php file**, with no controller/config/TOTP changes, makes the complete signed UV registration finish with `state=authenticated`; replaying the enrollment TOTP is still rejected. The before/after evidence is recorded in [PASSKEY-FIX-CAUSE.json](PASSKEY-FIX-CAUSE.json). The working checkout retained the class, explaining why ordinary PHP and HTTPS browser tests passed while the uploaded ZIP failed.
+
+The fix narrowly retains that exact upstream source path (and the Laravel Console `Secret.php` runtime class affected by the same filename rule), adds it to required package contents, and makes a signed enrollment test against the **extracted ZIP with no-dev vendor** part of the canonical builder. Credential JSON, secret files, keys and sensitive directories remain excluded/scanned. No authentication requirement or cryptographic check is bypassed.
+
+The live Jino filesystem has not been inspected. [PRODUCTION.md](PRODUCTION.md#safe-jino-diagnosis) includes a read-only command to verify this missing class in the installed 0.7.0 package before an authorized update. Proxy/cookie configuration can still be checked through safe diagnostics, but is not needed to explain the reproduced package failure.
 
 ## Chain and TOTP hypothesis
 
@@ -25,6 +31,7 @@ The exact production origin and RP ID pass both a signed PHP protocol test and t
 
 ## Changes
 
+- Fixed the overly broad vendor filename filter with an exact runtime-source exception; archive validation requires the class. Added `tests/account-security.package.mjs` / `.php`, invoked by the canonical builder after extracting the ZIP.
 - Replaced blanket `Throwable → errors.code` conversion with typed validation handling and safe diagnostics. Database/runtime errors keep 500. HTTP 400/401/403/419/422/423/429/500/503 are distinguishable.
 - Security error responses contain safe `code`, `stage`, random `diagnosticId` and a generic localized fallback; frontend maps codes to RU/EN/TR/ZH-CN user messages. Logs contain no request payload, challenge, cookie, secret, SQL bindings, exception message or trace. A real SQL error regression tests this boundary.
 - Passkey and TOTP setup, confirmation, recovery, rename/remove, Passkey login and identity confirmation use the existing global toast store. Onboarding keeps contextual form messages and diagnostic references. Guest/expired proof refreshes authoritative status.
@@ -37,7 +44,7 @@ Owner mandatory TOTP + Passkey, recovery acknowledgement, proof expiry, UV, cryp
 
 Focused runs before release:
 
-- PHP security suite: **33 tests / 507 assertions**, native PHP 8.5.10; PHP 8.4.26 with MariaDB 11.8.9 (final run recorded with artifact).
+- PHP security suite: **33 tests / 508 assertions** on native PHP 8.5.10 and PHP 8.4.26/SQLite; **33 / 507** on PHP 8.4.26/MariaDB 11.8.9 before the extra read-only runtime assertion. The original-package causal test also passes on PHP 8.4.26 after restoring only the missing runtime class.
 - Frontend: **20 focused tests**, including all requested failure statuses and Safari/Firefox/Chromium API shapes with the actual installed serializer. Full suite/build run by the canonical release builder.
 - HTTPS browser: **11 groups**, including complete real TOTP → saved recovery → Chromium resident UV Passkey → authenticated state; cancellation; real challenge replacement after credential creation; safe retry; toast/form references; exact production origin/RP; cookie/session/CSRF lifecycle; UV login; unchanged developer/client flows; four locales/mobile/light/dark/system; Firefox engine serializer compatibility with a mock authenticator.
 - MariaDB concurrency: **4 groups × 6 workers**; only one TOTP, recovery code or actual `passkey_register` challenge use succeeds; concurrent deletion retains one owner Passkey.
@@ -47,6 +54,6 @@ Canonical archive/build and full-suite results, SHA-256 and byte size are record
 
 ## Limits
 
-No physical Touch ID, Safari hardware ceremony, live Jino config/cookie/proxy/DB inspection, production smoke or SMTP test was performed. Firefox uses a real browser engine with a mock authenticator for serialization, not a physical credential. The installed special mac14 WebKit runtime failed before page creation with `Page.overrideSetting: Unknown setting: PushAPIEnabled`; that is a test-runtime limitation, not evidence of an application failure. Safari API shape tests pass; rerun `M7_TEST_WEBKIT=1` on a compatible Playwright host for the additional engine test. Current production root cause must be determined from one safe failure reference after an authorized installation.
+No physical Touch ID, Safari hardware ceremony, live Jino config/cookie/proxy/DB inspection, production smoke or SMTP test was performed. Firefox uses a real browser engine with a mock authenticator for serialization, not a physical credential. The installed special mac14 WebKit runtime failed before page creation with `Page.overrideSetting: Unknown setting: PushAPIEnabled`; that is a test-runtime limitation, not evidence of an application failure. Safari API shape tests pass; rerun `M7_TEST_WEBKIT=1` on a compatible Playwright host for the additional engine test. The packaging cause is reproduced. Live Jino file presence and successful physical Touch ID after an authorized update still require operator verification.
 
 Technical references: [SimpleWebAuthn browser API](https://simplewebauthn.dev/docs/packages/browser) describes the options → authenticator → server sequence. The implementation was checked against the **installed 13.3.0 source**, not newer API assumptions. [MDN toJSON](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential/toJSON) documents Base64URL representation and older-browser availability limits; no native toJSON is required by this implementation.

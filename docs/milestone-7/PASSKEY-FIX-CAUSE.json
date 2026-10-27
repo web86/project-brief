@@ -1,0 +1,24 @@
+{
+  "oldArchive": "project-brief-v0.7.0-4248693.zip",
+  "oldArchiveSha256": "8a43b7ee3991b3f7cce002103b3c9aa171fd710be2d82ca95f2c2f2e414f7f07",
+  "missingRuntimeSource": "web-auth/webauthn-lib/src/Credential.php",
+  "originalZipContainsSource": false,
+  "php84Before": {
+    "passed": false,
+    "php": "8.4.26",
+    "failureClass": "Illuminate\\Validation\\ValidationException",
+    "status": 422,
+    "hasCodeValidationError": true,
+    "runtimeBasePresent": false
+  },
+  "php84AfterRestoringOnlySource": {
+    "passed": true,
+    "php": "8.4.26",
+    "origin": "https://brief.web86.site",
+    "rpId": "brief.web86.site",
+    "productionVendor": true,
+    "flow": "TOTP -> saved recovery -> signed UV registration -> authenticated; TOTP replay rejected"
+  },
+  "restoredSourceSha256": "3431e8ad7ea145c1134d183860d70d4d563d755e72626a902f940b0999bb9508",
+  "liveProductionInspected": false
+}

@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Passkeys\Passkeys;
 use Throwable;
+use Webauthn\Credential;
 
 class DiagnoseAccountSecurity extends Command
 {
@@ -24,6 +25,7 @@ class DiagnoseAccountSecurity extends Command
             }
         }
         $origin = Passkeys::allowedOrigins();
+        $runtimeBase = class_exists(Credential::class);
         $this->line(json_encode([
             'php' => PHP_VERSION, 'sapi' => PHP_SAPI, 'utc' => gmdate('c'),
             'extensions' => array_combine(['openssl', 'mbstring', 'json', 'pdo'], array_map(extension_loaded(...), ['openssl', 'mbstring', 'json', 'pdo'])),
@@ -33,8 +35,9 @@ class DiagnoseAccountSecurity extends Command
             'transport_origin_matches_validator' => config('fortify.passkeys.allowed_origins') === $origin,
             'session' => ['driver' => config('session.driver'), 'secure' => config('session.secure'), 'http_only' => config('session.http_only'), 'same_site' => config('session.same_site'), 'domain_is_host_only' => ! config('session.domain')],
             'database_driver' => config('database.default'), 'schema' => $schema,
+            'runtime' => ['webauthn_base' => $runtimeBase],
         ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
-        return in_array(false, $schema, true) ? self::FAILURE : self::SUCCESS;
+        return in_array(false, $schema, true) || ! $runtimeBase ? self::FAILURE : self::SUCCESS;
     }
 }

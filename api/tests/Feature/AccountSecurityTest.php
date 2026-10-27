@@ -212,6 +212,7 @@ class AccountSecurityTest extends TestCase
         $output = Artisan::output();
         $data = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
         $this->assertTrue($data['schema']['passkeys']);
+        $this->assertTrue($data['runtime']['webauthn_base']);
         $this->assertFalse($data['origin_matches_expected']);
         foreach ([(string) config('app.key'), $user->fresh()->two_factor_secret, $user->fresh()->two_factor_recovery_codes] as $secret) {
             $this->assertStringNotContainsString($secret, $output);

@@ -205,6 +205,9 @@ try {
     (await readFile(path.join(verification, 'checksums.txt'), 'utf8'))
   )
     throw new Error('Unpacked ZIP does not match its checksum manifest')
+  run(process.execPath, ['tests/account-security.package.mjs', verification], root, {
+    PHP_BIN: php,
+  })
   run(process.execPath, ['tests/release-runtime.mjs', verification], root, { PHP_BIN: php })
   await validateRelease(verification, secrets)
   await rm(verification, { recursive: true, force: true })

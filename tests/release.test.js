@@ -126,6 +126,39 @@ test('vendor cleanup removes development fixtures while retaining runtime code a
   }
 })
 
+test('vendor cleanup preserves the WebAuthn Credential runtime class without allowing credential secrets', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'project-brief-vendor-webauthn-'))
+  const runtime = 'web-auth/webauthn-lib/src/Credential.php'
+  try {
+    await mkdir(path.join(root, path.dirname(runtime)), { recursive: true })
+    await writeFile(
+      path.join(root, runtime),
+      '<?php namespace Webauthn; abstract class Credential {}',
+    )
+    await writeFile(path.join(root, 'credentials.json'), 'secret')
+    const consoleRuntime = 'laravel/framework/src/Illuminate/Console/View/Components/Secret.php'
+    await mkdir(path.join(root, path.dirname(consoleRuntime)), { recursive: true })
+    await writeFile(path.join(root, consoleRuntime), '<?php namespace Illuminate; class Secret {}')
+    await pruneVendor(root)
+    assert.match(await readFile(path.join(root, runtime), 'utf8'), /abstract class Credential/)
+    assert.match(await readFile(path.join(root, consoleRuntime), 'utf8'), /class Secret/)
+    await assert.rejects(readFile(path.join(root, 'credentials.json')), { code: 'ENOENT' })
+    assert.equal(forbiddenProductionPath('private/project-brief-app/vendor/' + runtime), false)
+    for (const file of [
+      'Credential.php',
+      'app/Credential.php',
+      'private/project-brief-app/Credential.php',
+      'vendor/package/Credential.php',
+      'credentials.json',
+      'secrets.php',
+      'public/vendor/' + runtime,
+    ])
+      assert.equal(forbiddenPath(file), true, file)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('release checksums are stable, relative and exclude their own manifest', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'project-brief-checksums-'))
   try {

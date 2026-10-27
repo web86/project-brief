@@ -72,7 +72,7 @@ Never run the command blindly if later migrations exist. It drops Passkeys/chall
 
 ## 0.7.0 → 0.7.1: Passkey diagnostics and retry hotfix
 
-The observed Jino 422 has **not** been attributed to a specific production check. In 0.7.0 `AccountSecurityController::passkey()` converted every WebAuthn/storage exception into `AccountSecurity::valid(false)`, producing the same `errors.code` as an invalid TOTP. The registration route never calls `verifyFactor()`; confirmed TOTP supplies a version-bound ten-minute server proof, retained through recovery acknowledgement. Do not re-enter the enrollment TOTP at step 3. A genuinely expired proof requires a fresh code or unused recovery code in the confirmation form. TOTP replay protection remains active.
+The production ZIP cause is established: vendor pruning deleted `vendor/web-auth/webauthn-lib/src/Credential.php` as a presumed secret filename. This broke `PublicKeyCredential extends Credential` during deserialization after Touch ID. The unchanged 0.7.0 ZIP reproduces 422 on PHP 8.4; restoring only that upstream class in an isolated copy makes signed registration succeed. The 0.7.1 builder retains this exact runtime file and verifies signed enrollment from the extracted no-dev package. In 0.7.0 `AccountSecurityController::passkey()` converted every WebAuthn/storage exception into `AccountSecurity::valid(false)`, producing the same `errors.code` as an invalid TOTP. The registration route never calls `verifyFactor()`; confirmed TOTP supplies a version-bound ten-minute server proof, retained through recovery acknowledgement. Do not re-enter the enrollment TOTP at step 3. A genuinely expired proof requires a fresh code or unused recovery code in the confirmation form. TOTP replay protection remains active.
 
 The hotfix preserves HTTP status and returns `code`, `stage`, `diagnosticId`. Logs named `account_security_failure` contain only those values, exception class, presence/match booleans and, for a DB failure, SQLSTATE/numeric driver code. No credential, challenge, cookie, password, TOTP/recovery code, SQL query/binding, raw exception message or stack is recorded by this handler. Keep `APP_DEBUG=false`; do not export HAR, request bodies, cookies, setup QR/URI, `.env`, or complete exception logs for troubleshooting.
 
@@ -85,7 +85,15 @@ The hotfix preserves HTTP status and returns `code`, `stage`, `diagnosticId`. Lo
 
 ### Safe Jino diagnosis
 
-Run from the installed private application folder, with the same PHP 8.4 binary used by the website (CLI and PHP-FPM can load different extensions/configuration):
+Before updating, verify the concrete cause **read-only** in the existing installed 0.7.0 private app directory:
+
+```sh
+php -r 'require "vendor/autoload.php"; echo class_exists(\Webauthn\Credential::class) ? "PASS: WebAuthn runtime base present\n" : "FAIL: WebAuthn runtime base missing\n";'
+```
+
+A missing class confirms this package defect on that installation. Do not manually reset factors or disable validators. Install the complete verified ZIP through the normal maintenance/update procedure.
+
+After installing 0.7.1, run from the private application folder, with the same PHP 8.4 binary used by the website (CLI and PHP-FPM can load different extensions/configuration):
 
 ```sh
 php -v
@@ -94,7 +102,7 @@ php artisan migrate:status --no-interaction
 php artisan account:security-diagnostics
 ```
 
-This read-only command prints PHP/SAPI/time, required extension booleans, config-cache state, schema checks, session flags and matches for **exactly** `PASSKEY_ORIGIN=https://brief.web86.site` and `PASSKEY_RP_ID=brief.web86.site`. It deliberately exports neither configured secrets nor database contents. All schema booleans and both expected-origin/RP booleans should be true. Confirm the website runtime is also PHP 8.4 with OpenSSL; ask hosting support to compare its FPM extension list and clock without publishing phpinfo.
+This read-only command prints PHP/SAPI/time, required extension booleans, config-cache state, schema checks, session flags and matches for **exactly** `PASSKEY_ORIGIN=https://brief.web86.site` and `PASSKEY_RP_ID=brief.web86.site`. It deliberately exports neither configured secrets nor database contents. All schema booleans, `runtime.webauthn_base`, and both expected-origin/RP booleans should be true. Confirm the website runtime is also PHP 8.4 with OpenSSL; ask hosting support to compare its FPM extension list and clock without publishing phpinfo.
 
 Reproduce once with DevTools Network open. Record only method/path, HTTP status, `code`, `stage`, `diagnosticId`, elapsed seconds from options to submit, browser/OS versions, and whether Touch ID completed. Match the reference locally:
 
@@ -122,4 +130,4 @@ If the site uses stderr/syslog instead of file logging, find the same event in t
 
 For the Jino reverse proxy, verify the domain certificate, forwarded public Host, HTTPS termination, `X-Forwarded-Proto`, and documented proxy source addresses with hosting support. Failure records show `request_secure`, `forwarded_https`, `request_origin_matches`, `session_cookie_present` as booleans only. `request_secure=false` behind TLS termination is a configuration clue, **not proof of the WebAuthn failure**: this application validates against the configured RP ID and allowed origin, not a forwarded Host. Do not add wildcard trusted proxies or trust arbitrary forwarded headers. Secure host-only cookies and same-origin CSRF remain required. Also check DB/session write permissions, no stale config cache/mixed release assets, and no old tab replacing the pending challenge.
 
-Verified locally: exact production origin/RP with a Chromium virtual resident UV authenticator and real Laravel cookies/CSRF/database, plus protocol rejection and storage-failure regression tests. This is not a production smoke, physical Touch ID test, or confirmation of the currently installed Jino configuration.
+Verified locally: exact production origin/RP with a Chromium virtual resident UV authenticator and real Laravel cookies/CSRF/database, plus protocol rejection and storage-failure regression tests. The same signed enrollment is also exercised from the extracted ZIP with production vendor. This is not a production smoke, physical Touch ID test, or confirmation of the currently installed Jino filesystem/configuration.
