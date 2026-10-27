@@ -1131,7 +1131,11 @@ echo json_encode(['ok'=>true]);
     const browser = await chromium.launch({ headless: true })
     try {
       const publicOrigin = 'https://brief.web86.site'
-      const context = await browser.newContext({ viewport: { width: 1440, height: 1050 } })
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 1050 },
+        serviceWorkers: 'block',
+      })
+      await context.routeWebSocket('**/*', (socket) => socket.close())
       await context.route('**/*', async (route) => {
         const url = new URL(route.request().url())
         if (url.origin !== publicOrigin) return route.abort()

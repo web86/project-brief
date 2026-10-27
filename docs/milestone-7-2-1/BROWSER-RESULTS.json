@@ -16,6 +16,7 @@
     "Cancelled Passkey: no mutation or critical toast; fallback in four locales/themes, Cancel retains exact permission draft",
     "Unavailable Passkey uses allowed compact recovery alternative and continues the exact draft once",
     "Explicit Retry with Passkey invokes a new real UV assertion and continues once",
+    "Actual settings/integrations route prepares a confirmation challenge without opening an application dialog",
     "Real discoverable UV Passkey login without password or TOTP",
     "Password requires recovery challenge before workspace access",
     "CSRF enforced on security mutation over real HTTP",

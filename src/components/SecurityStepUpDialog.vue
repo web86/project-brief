@@ -5,7 +5,12 @@ import BaseDialog from './BaseDialog.vue'
 import SecurityConfirmation from './SecurityConfirmation.vue'
 import SecurityError from './SecurityError.vue'
 import LoadingButton from './LoadingButton.vue'
-import { stepUp, stepUpRequest, stepUpState } from '../services/stepUp.js'
+import {
+  stepUp,
+  stepUpRequest,
+  stepUpState,
+  isSecurityConfirmationScreen,
+} from '../services/stepUp.js'
 import { api } from '../api/client.js'
 import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
 import { useProjectStore } from '../stores/project'
@@ -28,11 +33,7 @@ const available = computed(() => {
   return status?.signedIn && (status.totp || !status.owner)
 })
 const enabled = () =>
-  store.apiMode &&
-  route.meta.adminShell &&
-  /^\/admin(?:$|\/account(?:\/|$)|\/integrations(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
-    route.path,
-  )
+  store.apiMode && route.meta.adminShell && isSecurityConfirmationScreen(route.path)
 function warm() {
   if (enabled() && document.visibilityState !== 'hidden') stepUp.prepare().catch(() => {})
 }

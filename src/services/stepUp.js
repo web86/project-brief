@@ -201,6 +201,12 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
   }
 }
 
+export function isSecurityConfirmationScreen(path) {
+  return /^\/admin(?:\/?$|\/account(?:\/|$)|\/settings\/integrations(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
+    path,
+  )
+}
+
 export function isSensitiveMutation(path, method) {
   if (!['POST', 'PATCH', 'DELETE'].includes(method)) return false
   if (

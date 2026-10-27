@@ -81,6 +81,7 @@ const vite = await createServer({
     host: '127.0.0.1',
     port: 5199,
     strictPort: true,
+    hmr: { host: 'localhost', clientPort: 5199, protocol: 'wss' },
     https: { key: await readFile(key), cert: await readFile(cert) },
     proxy: { '/api': 'http://127.0.0.1:8099', '/access/': 'http://127.0.0.1:8099' },
   },
@@ -96,9 +97,14 @@ try {
   browser = await chromium.launch({ headless: true })
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
+    serviceWorkers: 'block',
     viewport: { width: 1440, height: 1050 },
     locale: 'en-GB',
   })
+  // Vite HMR is irrelevant to auth; keep its socket fully inside the test harness.
+  await context.routeWebSocket('**/*', (socket) =>
+    socket.send(JSON.stringify({ type: 'connected' })),
+  )
   if (origin !== transportOrigin) {
     // Browser origin/RP are exact production values; all traffic terminates in disposable local fixtures.
     await context.route('**/*', async (route) => {
@@ -485,6 +491,17 @@ try {
   assert.equal(teamMutations.length, 4)
   results.push('Explicit Retry with Passkey invokes a new real UV assertion and continues once')
 
+  const integrationOptions = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/security/passkey/confirm/options') && response.status() === 200,
+  )
+  await page.goto(origin + '/admin/settings/integrations')
+  await integrationOptions
+  assert.equal(await page.locator('dialog[open]').count(), 0)
+  results.push(
+    'Actual settings/integrations route prepares a confirmation challenge without opening an application dialog',
+  )
+
   php(['tests/account-security-fixture.php', 'reset-limiter'])
   await request('/api/admin/logout', 'POST')
   await page.goto(origin + '/admin/login')
@@ -585,7 +602,13 @@ try {
   for (const [engine, browserType] of compatibilityEngines) {
     const compatibilityBrowser = await browserType.launch({ headless: true })
     try {
-      const compatibility = await compatibilityBrowser.newContext({ ignoreHTTPSErrors: true })
+      const compatibility = await compatibilityBrowser.newContext({
+        ignoreHTTPSErrors: true,
+        serviceWorkers: 'block',
+      })
+      await compatibility.routeWebSocket('**/*', (socket) =>
+        socket.send(JSON.stringify({ type: 'connected' })),
+      )
       await compatibility.route('**/*', async (route) => {
         const url = new URL(route.request().url())
         if (url.origin !== origin) return route.abort()

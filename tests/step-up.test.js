@@ -1,6 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createStepUpFlow, isSensitiveMutation } from '../src/services/stepUp.js'
+import {
+  createStepUpFlow,
+  isSensitiveMutation,
+  isSecurityConfirmationScreen,
+} from '../src/services/stepUp.js'
 import { createApiClient } from '../src/api/client.js'
 import { createPasskeyClient } from '../src/services/accountSecurity.js'
 const deferred = () => {
@@ -346,4 +350,26 @@ test('an unknown 423 is never replayed and a second typed refusal stops after on
     await assert.rejects(pending)
     assert.equal(calls, marker ? 2 : 1)
   }
+})
+
+test('preparation follows actual sensitive UI routes without warming ordinary task or notification screens', () => {
+  for (const path of [
+    '/admin',
+    '/admin/',
+    '/admin/account',
+    '/admin/account/security',
+    '/admin/settings/integrations',
+    '/admin/projects/id/team',
+    '/admin/projects/id/clients',
+  ])
+    assert.equal(isSecurityConfirmationScreen(path), true, path)
+  for (const path of [
+    '/admin/integrations',
+    '/admin/settings/notifications',
+    '/admin/projects/id/brief',
+    '/admin/projects/id/tasks/1',
+    '/project/id',
+    '/access/token',
+  ])
+    assert.equal(isSecurityConfirmationScreen(path), false, path)
 })
