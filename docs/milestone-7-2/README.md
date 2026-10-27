@@ -7,4 +7,4 @@ Implements GitHub issue [#7](https://github.com/web86/projects-manager/issues/7)
 - [Local verification and limitations](VERIFICATION.md)
 - [Jino update, diagnosis and rollback](PRODUCTION.md)
 
-No push, merge or deploy. The production ZIP and its digest are recorded separately after verification of the extracted package.
+No push, merge or deploy. The verified production ZIP is `project-brief-v0.7.2-d6539e3.zip` (39147010 bytes). Its [artifact record](RELEASE-ARTIFACT.json) and [SHA-256](SHA256SUMS.txt) identify the exact source commit. Full extracted-package smoke and signed UV enrollment on PHP 8.4/8.5 passed.

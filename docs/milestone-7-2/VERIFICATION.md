@@ -4,9 +4,9 @@ Branch: `codex/milestone-7-2-flexible-account-security`, based on actual local 0
 
 | Check                                                                                             | Observed result                                                                                                                                   |
 | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full PHP 8.5.10 suite / SQLite                                                                    | 744 passed, 9008 assertions                                                                                                                       |
-| PHP 8.3.36 security + additive migration / SQLite                                                 | 52 passed, 751 assertions                                                                                                                         |
-| PHP 8.4.26 security + additive migration / SQLite                                                 | 52 passed, 751 assertions                                                                                                                         |
+| Full PHP 8.5.10 suite / SQLite                                                                    | 745 passed, 9017 assertions                                                                                                                       |
+| PHP 8.3.36 security + additive migration / SQLite                                                 | 53 passed, 760 assertions                                                                                                                         |
+| PHP 8.4.26 security + additive migration / SQLite                                                 | 53 passed, 760 assertions                                                                                                                         |
 | PHP 8.4.26 / MariaDB 11.8.9 security, flexible policy, access links, invitations                  | 66 passed, 845 assertions                                                                                                                         |
 | Actual 0.7.1 schema -> new migration up/down, twice, PHP 8.4 / MariaDB                            | 1 passed, 21 assertions; encrypted factors, passkeys, project memberships and client tokens byte-preserved                                        |
 | Frontend Node suite                                                                               | 274 passed; serializers, explicit resubmit, error codes and four-locale key parity                                                                |
@@ -42,6 +42,12 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs M7_TEST_PRODUCTION_ORIG
 
 For races, use only a disposable MariaDB database named `projectbrief_m7_security_qa`, provide DB_CONNECTION=mysql and its connection variables, then `node tests/account-security.concurrent.mjs`. The script refuses other database names and creates/migrates test data. Migration testing can use M72_MIGRATION_MYSQL_DATABASE=projectbrief_m72_upgrade with disposable credentials allowed to create/drop its dedicated random database. Never run either against an installed site.
 
-Canonical package verification is mandatory and will be recorded in RELEASE-ARTIFACT.json after the clean-tree builder and extracted-ZIP smoke finish. Deployment and rollback instructions are in PRODUCTION.md; do not infer live production readiness from local results.
+The canonical clean-tree builder passed on source commit `d6539e3eac6185b16257c4b15f19d5b2094cbe59`. Its actual extracted ZIP passed signed WebAuthn enrollment on PHP 8.5.10 and the full HTTP/CLI runtime smoke, including first-install, repeated installation with unchanged APP_KEY, optimized routes, CSRF, admin/client sessions, bearer API and scoped permanent deletion. A second fresh extraction passed signed UV enrollment on PHP 8.4.26 with production-only vendor; both required runtime classes autoload. All 8807 manifest entries and ZIP CRC passed; 207 non-generated application PHP sources match checkout byte-for-byte. The new additive migration is present; no QA artifacts/tests/developer .env/database are shipped. See RELEASE-ARTIFACT.json and SHA256SUMS.txt. Deployment and rollback instructions are in PRODUCTION.md; do not infer live production readiness from local results.
 
 The first extracted candidate also exposed a new CLI connection regression, now corrected and documented in AUDIT.md. A two-PDO feature test reproduced its duplicate-email symptom before the fix, then verified model-connection binding and atomic rollback after forced membership failure. Focused security/migration/workspace checks after correction: 60 passed, 820 assertions. Final full-suite/package results are recorded with the final artifact.
+
+## Final artifact
+
+`project-brief-v0.7.2-d6539e3.zip` — 39147010 bytes.
+
+SHA-256: `73927c7f46dd6b4046f16345409237f56560ea97d565a54b189658773e933616`. The previous 0.7.1 archive remains present with its original verified digest. Final report files are a separate documentation commit; the ZIP identifies its exact runtime source commit.

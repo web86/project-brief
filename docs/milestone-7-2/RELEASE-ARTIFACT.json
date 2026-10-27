@@ -1,0 +1,99 @@
+{
+  "version": "0.7.2",
+  "verificationDate": "2026-10-27",
+  "timezone": "Europe/Istanbul",
+  "branch": "codex/milestone-7-2-flexible-account-security",
+  "codeCommit": "d6539e3eac6185b16257c4b15f19d5b2094cbe59",
+  "archive": "project-brief-v0.7.2-d6539e3.zip",
+  "localPath": "/Users/sonoma/Desktop/project-brief/release/project-brief-v0.7.2-d6539e3.zip",
+  "sizeBytes": 39147010,
+  "sha256": "73927c7f46dd6b4046f16345409237f56560ea97d565a54b189658773e933616",
+  "builtAt": "2026-10-27T10:18:10.047Z",
+  "builderRuntimeFiles": 8807,
+  "archiveFileEntries": 8808,
+  "phpSourceFilesMatchedToCheckout": 207,
+  "checks": {
+    "canonicalReleaseBuilder": "passed",
+    "productionBuild": "passed",
+    "archiveCRC": "passed",
+    "checksumManifest": "passed",
+    "secretAndArtifactExclusion": "passed",
+    "productionVendorOnly": true,
+    "extractedProductionRuntime": "passed",
+    "firstInstallAndRepeatKeyPreservation": "passed",
+    "signedWebAuthnFromExtractedZipPhp85": "passed",
+    "signedWebAuthnFromExtractedZipPhp84": "passed",
+    "requiredRuntimeClassesAutoloadPhp84": "passed",
+    "newMigrationPresent": true,
+    "sourceMatchesCheckout": true
+  },
+  "tests": {
+    "fullPhp": {
+      "version": "8.5.10",
+      "tests": 745,
+      "assertions": 9017,
+      "passed": true
+    },
+    "frontend": {
+      "tests": 274,
+      "passed": true
+    },
+    "php83SecurityAndMigration": {
+      "version": "8.3.36",
+      "tests": 53,
+      "assertions": 760,
+      "passed": true
+    },
+    "php84SecurityAndMigration": {
+      "version": "8.4.26",
+      "tests": 53,
+      "assertions": 760,
+      "passed": true
+    },
+    "php84MariaDbSecurityAccessLinksInvitations": {
+      "database": "MariaDB 11.8.9",
+      "tests": 66,
+      "assertions": 845,
+      "passed": true
+    },
+    "actual071StructureMigrationPhp84MariaDb": {
+      "tests": 1,
+      "assertions": 21,
+      "passed": true
+    },
+    "httpsBrowserScenarioGroups": 15,
+    "concurrentGroups": 5,
+    "workersPerConcurrentGroup": 6,
+    "uiLocales": ["ru", "en", "tr", "zh-CN"]
+  },
+  "requiredVendorFiles": [
+    "web-auth/webauthn-lib/src/Credential.php",
+    "laravel/framework/src/Illuminate/Console/View/Components/Secret.php"
+  ],
+  "previousRelease": {
+    "version": "0.7.1",
+    "archive": "project-brief-v0.7.1-22db2f3.zip",
+    "sha256": "71c873950cb35a1e893680d631052ebe045d108a0013cd1b760859869b350a01",
+    "retainedAndVerified": true
+  },
+  "boundaries": {
+    "noPush": true,
+    "noMerge": true,
+    "noDeploy": true,
+    "liveJinoInspected": false,
+    "physicalTouchIdTested": false,
+    "nativeSafariWebKitCeremonyTested": false,
+    "browserProductionOriginUsesLocalTransport": true,
+    "fullPhp84AppSuiteClaimed": false,
+    "existingSecretsOrFactorsReset": false,
+    "broaderMariaDbProbeLimitations": "VERIFICATION.md"
+  },
+  "reports": {
+    "policy": "POLICY.md",
+    "verification": "VERIFICATION.md",
+    "jinoUpdateRollback": "PRODUCTION.md",
+    "browser": "BROWSER-RESULTS.json",
+    "races": "CONCURRENCY-RESULTS.json",
+    "php84ActualZip": "PACKAGED-WEBAUTHN-PHP84.json"
+  }
+}
