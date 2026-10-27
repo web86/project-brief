@@ -17,6 +17,8 @@
 - `SidebarScroll` один для desktop и drawer: flex/min-height0, overflow только середины, ResizeObserver/MutationObserver и динамическая CSS mask без перекрывающего overlay. Список бокового меню подгружается серверными страницами. Верх/нижние настройки/профиль закреплены. Ссылка аккаунта сохраняется в профиле.
 - `/api/admin/projects` использует ProjectAccess и Laravel paginate20. Поиск title; activity active/inactive; owner-only client name/email; updated/created/name + стабильный id tie-break. Сервер зажимает пустую страницу к последней. `projectListing` отделён от sidebar state, query allowlist и debounce300ms, stale response guard, URL и обратная навигация. Корзина остаётся SoftDeletes и существующим lifecycle.
 
+Будущие ограничения по планам можно подключить в единой owner()-проверке и WorkspaceBranding, где сосредоточены проекции настроек. Тарифная подсистема и искусственные entitlement-флаги сейчас не добавлялись.
+
 ## Только UI — backend не подключён
 
 1. Желаемый custom domain портала: disabled пример `projects.agency.com`, описание будущего DNS и «Скоро».
@@ -26,7 +28,7 @@
 
 ## Проверки и материалы
 
-См. [TESTS.md](TESTS.md), [список файлов](CHANGED-FILES.md), [production update/rollback](PRODUCTION.md), [скриншоты](screenshots/) и [превью документов](export-previews/). Production ZIP создаётся только каноническим `./bin/build-release`, содержит production vendor и собранный frontend; исходники frontend/tests/docs/screenshots/QA документы/runtime данные в него не попадают. Отчёт SHA-256/bytes: RELEASE-ARTIFACT.json после сборки.
+См. [TESTS.md](TESTS.md), [список файлов](CHANGED-FILES.md), [production update/rollback](PRODUCTION.md), [скриншоты](screenshots/) и [превью документов](export-previews/). Production ZIP создаётся только каноническим `./bin/build-release`, содержит production vendor и собранный frontend; исходники frontend/tests/docs/screenshots/QA документы/runtime данные в него не попадают. Отчёт SHA-256/bytes: [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json).
 
 Исходные тестовые PDF/DOCX/JSON и промежуточный render остаются в игнорируемом `artifacts/milestone-7-5/`; это синтетические данные. Скриншоты Vue используют управляемый API fixture; packaged HTTP проверяет реальный Laravel из чистого ZIP. Реальные Jino/PHP8.4/MariaDB, SMTP delivery, Safari и физические touch-устройства не проверялись.
 

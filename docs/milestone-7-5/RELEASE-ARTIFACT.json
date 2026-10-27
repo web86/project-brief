@@ -1,0 +1,78 @@
+{
+  "sourceCommit": "9bd8fcbc1f53211f0e201a0c24806fee6d355451",
+  "version": "0.7.5",
+  "builtAt": "2026-10-27T22:41:36.543Z",
+  "branch": "codex/milestone-7-5",
+  "archive": "release/project-brief-v0.7.5-9bd8fcb.zip",
+  "bytes": 39199712,
+  "sha256": "0a3662b95b36d30bc73c548f42068c22c856da3a8bf5381b0dfb331bbf4dab27",
+  "fileCount": 8837,
+  "phpRuntime": "8.5.10",
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 801,
+    "passed": 801,
+    "assertions": 9700,
+    "duration_ms": 49667
+  },
+  "nodeTests": {
+    "tests": 308,
+    "passed": 308,
+    "failed": 0
+  },
+  "browser": {
+    "adminMatrixPassed": 6,
+    "clientPortalAndExitPassed": 2,
+    "widths": [390, 768, 1440],
+    "sidebarHeight": 600,
+    "themes": ["light", "dark"],
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "screenshots": 62,
+    "touch": "Chromium synthetic touch scroll",
+    "keyboard": "focus and Shift+Tab/Escape",
+    "physicalDevicesTested": false,
+    "webkitTested": false
+  },
+  "exports": {
+    "pdfAndDocxPairs": 5,
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "unbrandedFallback": true,
+    "unicodeTextAndPlatformLinks": true,
+    "wordRenderedBy": "LibreOffice",
+    "pdfRenderedBy": "Poppler"
+  },
+  "checks": {
+    "canonicalBuilder": true,
+    "cleanSourceCommit": true,
+    "archiveCrc": true,
+    "internalChecksums": true,
+    "productionVendorOnly": true,
+    "secretAndArtifactScan": true,
+    "packagedBrandingHttp": true,
+    "packagedPrivateBankExportFlags": true,
+    "publicPngStateless": true,
+    "packagedPagination": true,
+    "packagedFeedbackAndInvitationsHttp": true,
+    "packagedSignedWebAuthn": true,
+    "packagedExportsAndIntegrations": true,
+    "pint": true,
+    "changedFilePrettier": true,
+    "diffCheck": true
+  },
+  "previousMilestonePublication": {
+    "branch": "main",
+    "commit": "29d5583dc29b54edb83501909fcad3164c347e3b",
+    "remote": "projects-manager",
+    "authorizedAndVerified": true
+  },
+  "limitations": [
+    "PHP 8.4/MariaDB/Jino not run",
+    "SMTP delivery and email client compatibility not tested live",
+    "UI browser matrix uses API fixtures; packaged HTTP uses real disposable Laravel/SQLite"
+  ],
+  "productionVerified": false,
+  "pushed": false,
+  "merged": false,
+  "deployed": false
+}

@@ -14,7 +14,7 @@
 
 ## Каноническая сборка
 
-Результат `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem ./bin/build-release` и полного backend/runtime прогона фиксируется в RELEASE-ARTIFACT.json после завершения. Builder делает npm ci/test/brand:check/build, source Composer + Laravel tests, отдельный production vendor, dependency/platform checks, pruning/secret scan, checksums, ZIP CRC/extraction, signed WebAuthn и HTTP runtime из чистого архива.
+Каноническая команда `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem ./bin/build-release` прошла полностью: frontend308/308, Laravel801/801 и9700 assertions, production vendor, signed WebAuthn и packaged HTTP. Проверены8837 файлов, внутренние checksums и дополнительный полный CRC ZIP. Размер и SHA-256 записаны в [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json). Builder делает npm ci/test/brand:check/build, source Composer + Laravel tests, отдельный production vendor, dependency/platform checks, pruning/secret scan, checksums, ZIP CRC/extraction, signed WebAuthn и HTTP runtime из чистого архива.
 
 Packaged HTTP дополнен реальными branding GET/PATCH/upload/sanitize/image/reset, банковским export allowlist, foreign-workspace denial и pagination metadata/filter/clamp. Фикстуры живут в disposable SQLite/storage, никогда в upload ZIP.
 
