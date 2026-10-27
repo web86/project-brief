@@ -13,6 +13,17 @@ DirectoryIndex index.php
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
+    # Reject hidden path segments; keep ACME's real public challenge path.
+    RewriteRule "(^|/)\.(?!well-known(?:/|$))" - [F,L,NC]
+    RewriteRule ^(?:vendor|storage|bootstrap|config|database|private|deployment|node_modules|src)(?:/|$) - [F,L,NC]
+    RewriteRule ^(?:artisan|composer\.(?:json|lock)|package(?:-lock)?\.json)$ - [F,L,NC]
+
+    # Only the exact root front controller may execute, including internal rewrites.
+    RewriteRule ^(?!index\.php$).*\.(?i:php[0-9]*|phtml|pht|phar)(?:[./]|$) - [F,L]
+    RewriteRule \.(?:cgi|fcgi|pl|py|sh|shtml|shtm)(?:[./]|$) - [F,L,NC]
+    RewriteRule ^(?:wp-admin|wp-content|wp-includes|wp-json|phpmyadmin|pma|cgi-bin)(?:/|$) - [F,L,NC]
+    RewriteRule (?:~|\.(?:bak|old|orig|save|swp|sql|sqlite3?|ini|log|conf|env|ya?ml|zip|tar|tgz|gz|7z))$ - [F,L,NC]
+
     # Reserved backend prefixes always go through Laravel, even if a file exists.
     RewriteRule ^(?:api|access|sanctum)(?:/|$) index.php [L]
 
@@ -20,11 +31,31 @@ DirectoryIndex index.php
     RewriteRule ^index\.html$ index.php [L]
 
     RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(?:assets|font-licenses)(?:/|$) - [R=404,L]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
 
+# Optional host configuration: enable only after confirming ErrorDocument is
+# allowed on Jino and whether parent error pages dispatch to PHP. See PRODUCTION.md.
+<IfDefine PROJECT_BRIEF_NATIVE_ERRORS>
+    ErrorDocument 403 default
+    ErrorDocument 404 default
+</IfDefine>
+
 # Only content-hashed build assets are immutable; HTML, sw.js and private API are not.
 <IfModule mod_headers.c>
+    # Remove the onsuccess copy before setting the final always header.
+    Header unset X-Content-Type-Options
+    Header always set X-Content-Type-Options "nosniff"
+    Header unset Referrer-Policy
+    Header always set Referrer-Policy "no-referrer"
+    Header unset X-Frame-Options
+    Header always set X-Frame-Options "DENY"
+    <FilesMatch "^(?:sw\.js|manifest\.webmanifest)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
     <FilesMatch "^[A-Za-z0-9._-]+-[A-Za-z0-9_-]{8,}\.(js|css|ttf)$">
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>

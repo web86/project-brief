@@ -403,3 +403,7 @@ PDF теперь создаётся только в браузере; PHPWord п
 В 0.6.3 добавлена миграция `2026_10_26_200540_add_project_trash_lifecycle.php` и повторная очистка файлов `projects:cleanup-files`. До возобновления запросов примените миграции; настройте hourly cleanup через существующий scheduler или отдельный cron. Восстановление сохраняет исходную активность и связи проекта; окончательное удаление доступно только владельцу workspace.
 
 Перед откатом на 0.6.2 восстановите проекты из корзины во всех workspaces и завершите pending cleanup: прежний код не знает `deleted_at` проектов. Полные команды, smoke и безопасный rollback: `PRODUCTION.md` из ZIP или [руководство 0.6.3](docs/project-trash/PRODUCTION.md). Требования browser PDF из раздела 6.2 выше сохраняются. Production deployment автоматически не выполняется.
+
+## Milestone 7.3 — Apache and HTTP hardening
+
+See [the hardening update and rollback guide](docs/milestone-7-3/PRODUCTION.md) before replacing public `.htaccess`. Bootstrap IP limiting and the native error-page override remain disabled until Jino preflight. No migration, session-lifetime change, client-link format change or dependency update is included. The ZIP contains the prior canonical file outside public at `deployment/rollback-public.htaccess`; preserve the actual installed file separately.

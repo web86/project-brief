@@ -78,13 +78,13 @@ Route::prefix('/api/security')->controller(AccountSecurityController::class)->gr
     });
 });
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login')->block();
-Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:20,1');
-Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:10,1');
+Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:invitation-resolve');
+Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:invitation-accept');
 Route::post('/api/admin/password/forgot', [PasswordRecoveryController::class, 'request'])->middleware('throttle:account-recovery');
 Route::post('/api/admin/password/reset', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:account-recovery');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/account', [AccountController::class, 'show']);
-    Route::patch('/account', [AccountController::class, 'update'])->middleware('throttle:30,1');
+    Route::patch('/account', [AccountController::class, 'update'])->middleware('throttle:profile-update');
     Route::post('/account/email', [AccountController::class, 'email'])->middleware('throttle:account-security');
     Route::post('/account/email/confirm', [AccountController::class, 'confirmEmail'])->middleware('throttle:account-security');
     Route::delete('/account/email', [AccountController::class, 'cancelEmail']);
@@ -93,10 +93,10 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/avatars/{key}', [AccountController::class, 'image']);
 
     Route::get('/notifications', [AdminNotificationController::class, 'show']);
-    Route::patch('/notifications', [AdminNotificationController::class, 'update'])->middleware('throttle:30,1');
-    Route::post('/notifications/email/verify', [AdminNotificationController::class, 'verify'])->middleware('throttle:10,1');
+    Route::patch('/notifications', [AdminNotificationController::class, 'update'])->middleware('throttle:notification-update');
+    Route::post('/notifications/email/verify', [AdminNotificationController::class, 'verify'])->middleware('throttle:notification-verify');
     Route::delete('/notifications/email/pending', [AdminNotificationController::class, 'cancel']);
-    Route::post('/notifications/test', [AdminNotificationController::class, 'test'])->middleware('throttle:5,1');
+    Route::post('/notifications/test', [AdminNotificationController::class, 'test'])->middleware('throttle:notification-test');
     Route::get('/workspaces', [WorkspaceController::class, 'index']);
     Route::post('/workspaces/{workspace}/select', [WorkspaceController::class, 'select']);
     Route::get('/me', [AdminAuthController::class, 'me']);
@@ -104,7 +104,7 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout']);
 });
 
-Route::middleware(['admin', 'throttle:30,1'])->prefix('/api/admin/integrations')->group(function (): void {
+Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/integrations')->group(function (): void {
     Route::get('/', [IntegrationController::class, 'index']);
     Route::post('/tokens', [IntegrationController::class, 'token']);
     Route::delete('/tokens/{uuid}', [IntegrationController::class, 'revoke']);
@@ -112,9 +112,9 @@ Route::middleware(['admin', 'throttle:30,1'])->prefix('/api/admin/integrations')
     Route::patch('/webhooks/{uuid}', [IntegrationController::class, 'webhook']);
     Route::delete('/webhooks/{uuid}', [IntegrationController::class, 'destroy']);
     Route::post('/webhooks/{uuid}/rotate', [IntegrationController::class, 'rotate']);
-    Route::post('/webhooks/{uuid}/test', [IntegrationController::class, 'test'])->middleware('throttle:5,1');
+    Route::post('/webhooks/{uuid}/test', [IntegrationController::class, 'test'])->middleware('throttle:integration-test');
     Route::get('/webhooks/{uuid}/deliveries', [IntegrationController::class, 'history']);
-    Route::post('/webhooks/{uuid}/deliveries/{delivery}/retry', [IntegrationController::class, 'retry'])->middleware('throttle:5,1');
+    Route::post('/webhooks/{uuid}/deliveries/{delivery}/retry', [IntegrationController::class, 'retry'])->middleware('throttle:integration-retry');
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
@@ -173,13 +173,13 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/project/{project}/sections', fn (Project $project) => response()->json(['data' => $project->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))]));
 });
 
-Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:20,1');
-Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:10,1');
+Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:invitation-resolve');
+Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:invitation-accept');
 Route::post('/api/admin/password/forgot', [PasswordRecoveryController::class, 'request'])->middleware('throttle:account-recovery');
 Route::post('/api/admin/password/reset', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:account-recovery');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/account', [AccountController::class, 'show']);
-    Route::patch('/account', [AccountController::class, 'update'])->middleware('throttle:30,1');
+    Route::patch('/account', [AccountController::class, 'update'])->middleware('throttle:profile-update');
     Route::post('/account/email', [AccountController::class, 'email'])->middleware('throttle:account-security');
     Route::post('/account/email/confirm', [AccountController::class, 'confirmEmail'])->middleware('throttle:account-security');
     Route::delete('/account/email', [AccountController::class, 'cancelEmail']);
@@ -222,14 +222,14 @@ foreach (['admin', 'client'] as $actor) {
 foreach (['admin', 'client'] as $actor) {
     Route::middleware($actor)->prefix('/api/'.$actor.'/push')->group(function () {
         Route::get('/status', [PushSubscriptionController::class, 'status']);
-        Route::post('/subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:30,1');
+        Route::post('/subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-subscribe');
         Route::delete('/subscriptions', [PushSubscriptionController::class, 'destroy']);
     });
 }
 Route::middleware(['admin', 'project.permission:manage_project_notifications'])->prefix('/api/admin/projects/{project}/notifications')->group(function () {
     Route::get('/', [NotificationSettingsController::class, 'show']);
     Route::patch('/', [NotificationSettingsController::class, 'update']);
-    Route::post('/test', [NotificationSettingsController::class, 'test'])->middleware('throttle:5,1');
+    Route::post('/test', [NotificationSettingsController::class, 'test'])->middleware('throttle:project-notification-test');
 });
 
 foreach (['admin', 'client'] as $actor) {

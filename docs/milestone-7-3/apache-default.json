@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "apache": "Server version: Apache/2.4.68 (Unix)",
+  "packaged": false,
+  "nativeErrorDefine": false,
+  "bootstrapGuard": false,
+  "results": [
+    {
+      "name": "existing files + scanners + encoding + PATH_INFO + missing assets",
+      "requests": 56,
+      "phpEntriesAdded": 0,
+      "sessions": 0
+    },
+    {
+      "name": "Laravel routes, bearer header, client link, SPA maintenance, static/SW/ACME",
+      "passed": true
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Project;
 use App\Services\StoreAccountPasskey;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -23,6 +24,21 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        foreach (['invitation-resolve' => 20, 'invitation-accept' => 10, 'profile-update' => 30, 'notification-update' => 30, 'notification-verify' => 10, 'notification-test' => 5, 'integration-settings' => 30, 'integration-test' => 5, 'integration-retry' => 5, 'push-subscribe' => 30, 'project-notification-test' => 5] as $name => $maximum) {
+            RateLimiter::for($name, function (Request $request) use ($maximum) {
+                $client = $request->attributes->get('project_client');
+                $actor = $client ? 'client:'.$client->id : ($request->user() ? 'user:'.$request->user()->id : 'ip:'.$request->ip());
+
+                return Limit::perMinute($maximum)->by($actor);
+            });
+        }
+        RateLimiter::for('document-export', function (Request $request): array {
+            $project = $request->route('project');
+            abort_unless($project instanceof Project, 404);
+            $client = $request->attributes->get('project_client');
+
+            return [Limit::perMinute(5)->by($client ? 'client:'.$client->id : 'user:'.$request->user()->id), Limit::perMinute(10)->by('workspace:'.$project->workspace_id)];
+        });
         RateLimiter::for('security-passkeys', fn (Request $r) => [Limit::perMinute(10)->by('passkeys:'.$r->ip()), Limit::perMinute(10)->by('passkeys-session:'.$r->session()->getId())]);
         RateLimiter::for('security-challenge', function (Request $r): array {
             $pendingUser = DB::table('account_security_challenges')->where('id', $r->session()->get('security.pending'))->value('user_id');

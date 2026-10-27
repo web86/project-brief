@@ -1,0 +1,31 @@
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Reserved backend prefixes always go through Laravel, even if a file exists.
+    RewriteRule ^(?:api|access|sanctum)(?:/|$) index.php [L]
+
+    # Keep the SPA shell behind Laravel's maintenance middleware too.
+    RewriteRule ^index\.html$ index.php [L]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Only content-hashed build assets are immutable; HTML, sw.js and private API are not.
+<IfModule mod_headers.c>
+    <FilesMatch "^[A-Za-z0-9._-]+-[A-Za-z0-9_-]{8,}\.(js|css|ttf)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>

@@ -189,3 +189,46 @@ test('release rejects PEM material including escaped JSON keys while allowing cr
   assert.equal(containsPrivateKey('$pem = \'-----BEGIN EC PRIVATE KEY-----\' . "\\n";'), false)
   assert.equal(containsPrivateKey('-----BEGIN PRIVATE KEY-----'), false)
 })
+
+test('public package rejects executable aliases, compound suffixes, hidden directories and backups', () => {
+  for (const file of [
+    'public/probe.php',
+    'public/INDEX.PHP',
+    'public/sub/index.php',
+    'public/probe.phtml',
+    'public/probe.PHAR',
+    'public/probe.php.jpg',
+    'public/assets/x.php5/file.txt',
+    'public/index.php/extra',
+    'public/probe.cgi',
+    'public/probe.fcgi',
+    'public/probe.pl',
+    'public/probe.py',
+    'public/probe.sh',
+    'public/probe.shtml',
+    'public/private/file.txt',
+    'public/.git/config',
+    'public/assets/.secret/config.json',
+    'public/index.html~',
+    'public/export.sql',
+    'public/assets/config.yaml',
+    'public/snapshot.bak',
+    'public/archive.zip',
+    'public/package.json',
+  ])
+    assert.equal(forbiddenProductionPath(file), true, file)
+  for (const file of [
+    'public/index.php',
+    'public/index.html',
+    'public/.htaccess',
+    'public/.well-known/acme-challenge/synthetic-canary',
+    'public/manifest.webmanifest',
+    'public/sw.js',
+    'public/font-licenses/LICENSE.txt',
+    'public/assets/app-abc12345.js',
+    'public/assets/app-abc12345.css',
+    'public/assets/font-abc12345.ttf',
+    'private/project-brief-app/vendor/web-auth/webauthn-lib/src/Credential.php',
+  ])
+    assert.equal(forbiddenProductionPath(file), false, file)
+})

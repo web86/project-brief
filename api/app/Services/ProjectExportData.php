@@ -62,7 +62,7 @@ class ProjectExportData
                 };
             }, $textColumns);
             $bytes = (clone $query)->setEagerLoads([])->reorder()->select([])
-                ->selectRaw('COALESCE(SUM('.implode(' + ', $lengths).'), 0) AS export_bytes')->value('export_bytes');
+                ->selectRaw('COALESCE(SUM('.implode(' + ', $lengths).'), 0) AS export_bytes')->toBase()->value('export_bytes');
             if ($bytes > $maxTextBytes) {
                 throw ValidationException::withMessages(['scope' => $labels['tooLarge']])->status(413);
             }

@@ -259,6 +259,8 @@ class ProjectExportTest extends TestCase
         $project = $this->project();
         foreach (['ru', 'en'] as $locale) {
             foreach ([[false, false], [true, false], [false, true], [true, true]] as [$hours, $price]) {
+                // These cases verify document formatting; budget boundaries have dedicated tests.
+                $this->travel(61)->seconds();
                 $fields = ['estimateHours' => $hours, 'price' => $price];
                 $data = app(ProjectExportData::class)->build($project, 'all', $locale, $fields);
                 $xml = $this->xml($this->postJson('/api/admin/projects/'.$project->uuid.'/export', [...$this->payload('docx', $locale), 'fields' => $fields])->assertOk()->streamedContent());
@@ -365,6 +367,7 @@ class ProjectExportTest extends TestCase
         }
         foreach (['ru', 'en'] as $locale) {
             foreach (['', '  ', null, "\u{00A0}"] as $blank) {
+                $this->travel(61)->seconds();
                 $response = $this->postJson($url, [...$this->payload('docx', $locale), 'documentTitle' => $blank])->assertOk();
                 $this->assertStringContainsString(trans('exports.title', [], $locale), $this->xml($response->streamedContent()));
             }

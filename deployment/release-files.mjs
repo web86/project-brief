@@ -31,9 +31,35 @@ export function forbiddenPath(relative) {
     : relative
   if (
     parts[0] === 'public' &&
-    (['app', 'bootstrap', 'config', 'database', 'storage', 'vendor', 'src'].includes(parts[1]) ||
-      ['.env.production.example', 'composer.json', 'composer.lock', 'artisan'].includes(name) ||
-      (/\.(php|vue)$/.test(name) && relative !== 'public/index.php'))
+    ([
+      'app',
+      'bootstrap',
+      'config',
+      'database',
+      'storage',
+      'vendor',
+      'src',
+      'private',
+      'deployment',
+    ].includes(parts[1]) ||
+      [
+        '.env.production.example',
+        'composer.json',
+        'composer.lock',
+        'package.json',
+        'package-lock.json',
+        'artisan',
+      ].includes(name) ||
+      parts
+        .slice(1)
+        .some(
+          (part) =>
+            part.startsWith('.') && part !== '.well-known' && relative !== 'public/.htaccess',
+        ) ||
+      (/(?:\.(?:php\d*|phtml|pht|phar|cgi|fcgi|pl|py|sh|shtml|shtm|vue)(?:[./]|$)|~$|\.(?:bak|old|orig|save|swp|sql|sqlite3?|ini|log|conf|env|ya?ml|zip|tar|tgz|gz|7z)$)/i.test(
+        relative,
+      ) &&
+        relative !== 'public/index.php'))
   )
     return true
   if (parts.some((part) => forbiddenDirectories.has(part))) return true
@@ -60,6 +86,7 @@ export function forbiddenProductionPath(relative) {
     relative === 'private/project-brief-app' ||
     relative.startsWith('private/project-brief-app/') ||
     relative === 'deployment' ||
+    relative === 'deployment/rollback-public.htaccess' ||
     relative === 'deployment/telegram-bridge.mjs'
   return (
     !permitted ||
@@ -128,6 +155,7 @@ export async function validateRelease(root, localSecrets = []) {
       (relative) => 'private/project-brief-app/vendor/' + relative,
     ),
     'public/index.html',
+    'deployment/rollback-public.htaccess',
     'public/sw.js',
     'public/font-licenses/NotoSansSC-OFL.txt',
     'public/font-licenses/DejaVu-LICENSE.txt',

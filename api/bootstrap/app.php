@@ -5,14 +5,18 @@ use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
 use App\Http\Middleware\EnsureProjectPermission;
+use App\Http\Middleware\SecurityResponseHeaders;
 use App\Http\Middleware\SetRequestLocale;
+use App\Http\Middleware\ThrottleBootstrap;
 use App\Services\AccountSecurityDiagnostics;
+use App\Services\SafeExceptionReporter;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -25,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend([SecurityResponseHeaders::class, ThrottleBootstrap::class]);
+        $middleware->prependToPriorityList(ThrottleRequests::class, EnsureClientProjectAccess::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);
         $middleware->prependToPriorityList(EnsureAdmin::class, EnsureAccountSecurity::class);
         $middleware->prependToPriorityList(EnsureAccountSecurity::class, EnsureAccountSession::class);
@@ -38,7 +44,11 @@ return Application::configure(basePath: dirname(__DIR__))
             if (request()->is('api/security/*')) {
                 return false;
             }
+            app(SafeExceptionReporter::class)->report($e);
+
+            return false;
         });
+        $exceptions->respond(fn (Response $response) => SecurityResponseHeaders::apply($response));
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/security/*')) {
                 return app(AccountSecurityDiagnostics::class)->render($e, $request);

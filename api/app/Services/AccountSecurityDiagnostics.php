@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -50,7 +51,10 @@ class AccountSecurityDiagnostics
                 $context['driver_code'] = (int) $exception->errorInfo[1];
             }
         }
-        Log::warning('account_security_failure', $context);
+        // Fixed application codes/stages only; no per-IP/URL/credential log keys or SQL writes.
+        if ($status >= 500 || Cache::store('file')->add('security-diagnostic:'.$code.':'.$stage, true, 60)) {
+            Log::warning('account_security_failure', $context);
+        }
 
         return response()->json([
             'message' => trans('security.'.($code === 'security_step_up_required' ? 'step_up_required' : 'operation_failed')),

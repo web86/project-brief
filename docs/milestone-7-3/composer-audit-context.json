@@ -1,0 +1,14 @@
+{
+  "checkedAtUtc": "2026-10-27T18:09:59.433239+00:00",
+  "php": "8.5.10",
+  "composerLockSha256": "2e93dbcc5650f0ac922d5a8457fb14d551f215dc708744c63c59311d485cd39a",
+  "commands": [
+    "composer audit --locked --format=json",
+    "composer audit --locked --no-dev --format=json"
+  ],
+  "registry": "https://repo.packagist.org",
+  "tlsVerification": true,
+  "dependencyUpdates": false,
+  "fullExitCode": 0,
+  "productionExitCode": 0
+}

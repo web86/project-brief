@@ -146,13 +146,18 @@ try {
     path.join(staging, 'deployment/telegram-bridge.mjs'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-7-2-1/PRODUCTION.md'),
+    path.join(root, 'deployment/rollback-public.htaccess'),
+    path.join(staging, 'deployment/rollback-public.htaccess'),
+  )
+  await copyRelease(
+    path.join(root, 'docs/milestone-7-3/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   const deploymentGuide = path.join(staging, 'DEPLOY-JINO.md')
   await writeFile(
     deploymentGuide,
     (await readFile(deploymentGuide, 'utf8'))
+      .replaceAll('(docs/milestone-7-3/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-7-2-1/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/project-trash/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-6-2/PRODUCTION.md)', '(PRODUCTION.md)'),

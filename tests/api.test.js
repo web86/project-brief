@@ -150,3 +150,18 @@ test('cancellation while acquiring CSRF returns immediately without sending the 
   assert.equal(mutate, false)
   complete()
 })
+
+test('bootstrap 429 stops before a mutation and never retries automatically', async () => {
+  const calls = []
+  const client = createApiClient({
+    fetchImpl: async (url) => {
+      calls.push(url)
+      return response(429, { code: 'rate_limited' })
+    },
+  })
+  await assert.rejects(
+    client.request('/api/admin/login', { method: 'POST', body: {} }),
+    (error) => error instanceof ApiError && error.status === 429,
+  )
+  assert.deepEqual(calls, ['/api/csrf'])
+})
