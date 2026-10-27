@@ -1,0 +1,55 @@
+{
+  "sourceCommit": "2c788c0e64a7e0e37268cb23695471ca7aeef1fd",
+  "version": "0.7.4",
+  "builtAt": "2026-10-27T20:57:35.155Z",
+  "branch": "codex/milestone-7-4-ui-feedback",
+  "archive": "release/project-brief-v0.7.4-2c788c0.zip",
+  "bytes": 39172435,
+  "sha256": "be63cce5b96f09d1b9671393174a3228c12f6ab3abc31b9c948caa7c731b9796",
+  "phpRuntime": "8.5.10",
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 790,
+    "passed": 790,
+    "assertions": 9590,
+    "duration_ms": 50282
+  },
+  "nodeTests": {
+    "tests": 302,
+    "passed": 302,
+    "failed": 0
+  },
+  "browser": {
+    "uiMatrixPassed": 12,
+    "baselineCaptures": 12,
+    "widths": [390, 768, 1440],
+    "themes": ["light", "dark"],
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "attachmentsResponsiveConfigurations": 24,
+    "realLocalSmtp": true,
+    "physicalDevicesTested": false,
+    "webkitTested": false
+  },
+  "checks": {
+    "canonicalBuilder": true,
+    "cleanSourceCommit": true,
+    "archiveIntegrity": true,
+    "internalChecksums": true,
+    "productionVendorOnly": true,
+    "secretAndArtifactScan": true,
+    "packagedFeedbackAndInvitationsHttp": true,
+    "packagedFeedbackMailIntent": true,
+    "packagedSignedWebAuthn": true,
+    "packagedExportsAndIntegrations": true
+  },
+  "limitations": [
+    "External SMTP and Jino not tested",
+    "PHP 8.4/MariaDB not rerun for this milestone",
+    "Browser UI matrix uses fixtures; attachments E2E uses real disposable Laravel/SQLite/SMTP"
+  ],
+  "productionVerified": false,
+  "pushed": false,
+  "merged": false,
+  "deployed": false
+}
