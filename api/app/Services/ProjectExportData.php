@@ -143,6 +143,7 @@ class ProjectExportData
         }
 
         return [
+            'branding' => app(WorkspaceBranding::class)->document($project->workspace, $locale),
             'title' => $title,
             'project' => ['name' => $project->title, 'website' => $project->website_url],
             'generated' => ['date' => $generatedAt->isoFormat(SupportedLocales::settings($locale)['generated_date'] ?? 'D MMMM YYYY'), 'isoDate' => $generatedAt->toDateString(), 'locale' => $locale],

@@ -251,6 +251,104 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     'Content-Type': 'application/json',
     'X-CSRF-TOKEN': workspaceCsrf.token,
   }
+  // Milestone 7.5: execute shipped migration/controllers, private storage and both export paths.
+  const brandingRoot = `/api/admin/workspaces/${fixture.workspace}/branding`
+  const brandCall = (suffix = '', method = 'GET', body) =>
+    request(brandingRoot + suffix, {
+      method,
+      headers: personalHeaders,
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  assert.equal((await brandCall()).status, 200)
+  const defaults = await (await brandCall()).json()
+  assert.equal(defaults.data.export.business, false)
+  assert.equal(defaults.data.email.enabled, false)
+  assert.equal(
+    (await request(`/api/admin/workspaces/${fixture.foreignWorkspace}/branding`)).status,
+    404,
+  )
+  assert.equal(
+    (
+      await brandCall('', 'PATCH', {
+        section: 'visual',
+        values: { companyName: 'Packaged Studio Çığ 中文', primaryColor: '#17695d' },
+      })
+    ).status,
+    200,
+  )
+  assert.equal(
+    (
+      await brandCall('', 'PATCH', {
+        section: 'business',
+        values: { account: 'PRIVATE_PACKAGED_BANK' },
+      })
+    ).status,
+    200,
+  )
+  assert.equal(
+    (
+      await brandCall('', 'PATCH', {
+        section: 'contact',
+        values: { website: 'javascript:alert(1)' },
+      })
+    ).status,
+    422,
+  )
+  const logoUpload = new FormData()
+  logoUpload.set(
+    'file',
+    new Blob([Buffer.from(fixture.png, 'base64')], { type: 'image/png' }),
+    'brand.png',
+  )
+  const logoResponse = await request(brandingRoot + '/assets/logo', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': workspaceCsrf.token },
+    body: logoUpload,
+  })
+  assert.equal(logoResponse.status, 200)
+  const logoUrl = (await logoResponse.json()).data.assets.logo
+  const publicLogo = await request(new URL(logoUrl).pathname)
+  assert.equal(publicLogo.status, 200)
+  assert.equal(publicLogo.headers.get('content-type'), 'image/png')
+  assert.equal(publicLogo.headers.getSetCookie().length, 0)
+  assert.equal((await request('/branding-assets/invalid.png')).status, 404)
+  const svgUpload = new FormData()
+  svgUpload.set(
+    'file',
+    new Blob(
+      [
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" onload="bad()"><script>bad()</script><image href="https://unsafe.example.test"/><rect width="64" height="64" fill="#17695d"/></svg>',
+      ],
+      { type: 'image/svg+xml' },
+    ),
+    'brand.svg',
+  )
+  const cleanSvgResponse = await request(brandingRoot + '/sanitize-svg', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': workspaceCsrf.token },
+    body: svgUpload,
+  })
+  assert.equal(cleanSvgResponse.status, 200)
+  assert.doesNotMatch((await cleanSvgResponse.json()).svg, /script|onload|unsafe/)
+  const brandedExport = async () =>
+    request(`/api/admin/projects/${fixture.project}/export-data`, {
+      method: 'POST',
+      headers: personalHeaders,
+      body: JSON.stringify({ scope: 'all', locale: 'tr', format: 'pdf' }),
+    })
+  let exportedBrand = (await (await brandedExport()).json()).document.branding
+  assert.equal(exportedBrand.name, 'Packaged Studio Çığ 中文')
+  assert.match(exportedBrand.logo, /^data:image\/png;base64,/)
+  assert.deepEqual(exportedBrand.business, [])
+  assert.equal(
+    (await brandCall('', 'PATCH', { section: 'export', values: { business: true } })).status,
+    200,
+  )
+  exportedBrand = (await (await brandedExport()).json()).document.branding
+  assert.ok(exportedBrand.business.some((row) => row.value === 'PRIVATE_PACKAGED_BANK'))
+  assert.equal((await brandCall('/reset', 'POST', {})).status, 200)
+  assert.equal((await (await brandCall()).json()).data.business.account, 'PRIVATE_PACKAGED_BANK')
+  assert.equal((await request(new URL(logoUrl).pathname)).status, 404)
   const pauseChannel = await request('/api/admin/notifications', {
     method: 'PATCH',
     headers: personalHeaders,
@@ -346,6 +444,16 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.deepEqual(
     projects.data.map((project) => project.id),
     [fixture.feedbackProject, fixture.project],
+  )
+  assert.equal(projects.meta.per_page, 20)
+  assert.equal(projects.meta.total, 2)
+  const filteredProjects = await (
+    await request('/api/admin/projects?q=Release%20QA&sort=name&page=99')
+  ).json()
+  assert.equal(filteredProjects.meta.current_page, 1)
+  assert.deepEqual(
+    filteredProjects.data.map((project) => project.id),
+    [fixture.project],
   )
   assert.equal((await request('/api/admin/projects/' + fixture.foreignProject)).status, 404)
   assert.equal((await request('/api/admin/tasks/' + fixture.foreignTask)).status, 404)
@@ -1174,7 +1282,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.4',
+    '0.7.5',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

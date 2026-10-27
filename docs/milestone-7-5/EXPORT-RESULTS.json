@@ -1,0 +1,37 @@
+[
+  {
+    "name": "branded-ru",
+    "pdfPages": 1,
+    "unicode": "passed",
+    "bankOnceAtEnd": true,
+    "platformLink": true
+  },
+  {
+    "name": "branded-en",
+    "pdfPages": 1,
+    "unicode": "passed",
+    "bankOnceAtEnd": true,
+    "platformLink": true
+  },
+  {
+    "name": "branded-tr",
+    "pdfPages": 1,
+    "unicode": "passed",
+    "bankOnceAtEnd": true,
+    "platformLink": true
+  },
+  {
+    "name": "branded-zh-CN",
+    "pdfPages": 2,
+    "unicode": "passed",
+    "bankOnceAtEnd": true,
+    "platformLink": true
+  },
+  {
+    "name": "unbranded",
+    "pdfPages": 1,
+    "unicode": "passed",
+    "bankOnceAtEnd": false,
+    "platformLink": false
+  }
+]

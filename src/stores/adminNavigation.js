@@ -6,6 +6,8 @@ import { ref } from 'vue'
 import { api } from '../api/client.js'
 import { useProjectStore } from './project.js'
 import { useProjectManagementStore } from './projectManagement.js'
+import { useProjectListingStore } from './projectListing.js'
+import { useWorkspaceBrandingStore } from './workspaceBranding.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { toast } from '../services/toast.js'
 import { t, formatApiError, applyClientLocale } from '../i18n/index.js'
@@ -19,6 +21,9 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     refreshing = ref(false),
     switching = ref(false)
   const pageLoading = ref(false)
+  const projectsPath = ref('/admin'),
+    sidebarPage = ref(1),
+    sidebarLastPage = ref(1)
   const error = ref(null),
     listError = ref(null),
     ready = ref(false)
@@ -26,6 +31,11 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     listRevision = 0,
     pending = null
   function clearProjectState() {
+    useWorkspaceBrandingStore().clear()
+    useProjectListingStore().clear()
+    projectsPath.value = '/admin'
+    sidebarPage.value = 1
+    sidebarLastPage.value = 1
     useProjectStore().clearApiState()
     useProjectManagementStore().clear()
     useDiscussionsStore().clear()
@@ -64,6 +74,8 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
         workspace.value = me.workspace
         workspaces.value = choices.data
         projects.value = list.data
+        sidebarPage.value = list.meta?.current_page || 1
+        sidebarLastPage.value = list.meta?.last_page || 1
         useProjectStore().admin = me.user
         applyClientLocale(me.user.preferredLocale)
         ready.value = true
@@ -119,7 +131,11 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     listError.value = null
     try {
       const list = await request('/api/admin/projects')
-      if (current === revision && listCurrent === listRevision) projects.value = list.data
+      if (current === revision && listCurrent === listRevision) {
+        projects.value = list.data
+        sidebarPage.value = list.meta?.current_page || 1
+        sidebarLastPage.value = list.meta?.last_page || 1
+      }
     } catch (cause) {
       if (current === revision) {
         listError.value = cause
@@ -132,6 +148,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
   async function switchWorkspace(id, router, confirm) {
     if (switching.value || id === workspace.value?.id) return false
     if (!confirmDeveloperLeave(useProjectStore(), confirm)) return false
+    if (!useWorkspaceBrandingStore().confirmLeave()) return false
     switching.value = true
     clear()
     try {
@@ -152,6 +169,25 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
       return false
     } finally {
       switching.value = false
+    }
+  }
+  async function moreProjects() {
+    if (refreshing.value || sidebarPage.value >= sidebarLastPage.value) return
+    const current = revision,
+      listCurrent = ++listRevision
+    refreshing.value = true
+    listError.value = null
+    try {
+      const list = await api.request('/api/admin/projects?page=' + (sidebarPage.value + 1))
+      if (current !== revision || listCurrent !== listRevision) return
+      const known = new Set(projects.value.map((p) => p.id))
+      projects.value.push(...list.data.filter((p) => !known.has(p.id)))
+      sidebarPage.value = list.meta?.current_page || sidebarPage.value + 1
+      sidebarLastPage.value = list.meta?.last_page || sidebarPage.value
+    } catch (cause) {
+      if (current === revision && listCurrent === listRevision) listError.value = cause
+    } finally {
+      if (current === revision && listCurrent === listRevision) refreshing.value = false
     }
   }
   async function markRead(id, request = api.request) {
@@ -194,6 +230,10 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     workspace,
     workspaces,
     projects,
+    projectsPath,
+    sidebarPage,
+    sidebarLastPage,
+    moreProjects,
     pageLoading,
     loading,
     refreshing,

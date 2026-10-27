@@ -31,6 +31,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
 use App\Http\Controllers\TaskTrashController;
 use App\Http\Controllers\TelegramController;
+use App\Http\Controllers\WorkspaceBrandingController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
@@ -250,4 +251,14 @@ Route::post('/api/telegram/webhook', [TelegramController::class, 'webhook'])
     ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])
     ->middleware('throttle:telegram-webhook');
 
+Route::middleware('admin')->prefix('/api/admin/workspaces/{brandingWorkspace}/branding')->controller(WorkspaceBrandingController::class)->group(function (): void {
+    Route::get('/', 'show');
+    Route::patch('/', 'update');
+    Route::post('/sanitize-svg', 'sanitize')->middleware('throttle:uploads');
+    Route::post('/assets/{kind}', 'asset')->middleware('throttle:uploads');
+    Route::delete('/assets/{kind}', 'asset');
+    Route::post('/reset', 'reset');
+});
+Route::get('/branding-assets/{workspace}/{token}.png', [WorkspaceBrandingController::class, 'image'])->where('token', '[a-f0-9]{48}')
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class]);
 Route::any('/{fallbackPlaceholder}', SpaController::class)->where('fallbackPlaceholder', '.*')->fallback();

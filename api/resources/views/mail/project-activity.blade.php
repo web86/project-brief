@@ -4,7 +4,7 @@
 <body style="margin:0;padding:24px;background:#f6f8f5;font-family:Arial,sans-serif;color:#20352b">
 <table role="presentation" style="width:100%;max-width:560px;margin:auto;background:#fff;border-collapse:collapse">
 <tr><td style="padding:28px">
-    <p style="margin:0 0 24px;color:#40754e;font-weight:bold">ProjectBrief</p>
+    @include('mail.brand-header', ['branding'=>$payload['branding'] ?? null])
     <h1 style="font-size:24px;line-height:1.3;margin:0 0 16px">{{ $payload['heading'] }}</h1>
     <p style="line-height:1.6">{{ $payload['explanation'] }}</p>
     @if($payload['message'] !== null && $payload['message'] !== '')
@@ -16,8 +16,9 @@
         <p style="line-height:1.6"><strong>{{ $payload['task_label'] }}:</strong> #{{ $payload['number'] }} {{ $payload['task_title'] }}</p>
     @endif
     <p style="line-height:1.6">{{ $payload['next'] }}</p>
-    <p style="margin:24px 0"><a href="{{ $payload['url'] }}" style="display:inline-block;padding:12px 20px;background:#246c43;color:#fff;text-decoration:none;border-radius:6px">{{ $payload['open'] }}</a></p>
+    <p style="margin:24px 0"><a href="{{ $payload['url'] }}" style="display:inline-block;padding:12px 20px;background:{{ $payload['branding']['color'] ?? '#246c43' }};color:{{ $payload['branding']['onColor'] ?? '#ffffff' }};text-decoration:none;border-radius:6px">{{ $payload['open'] }}</a></p>
     <p style="font-size:13px;color:#637467;line-height:1.5">{{ $payload['access'] }}</p>
+@include('mail.brand-footer', ['branding'=>$payload['branding'] ?? null])
 </td></tr>
 </table>
 </body>

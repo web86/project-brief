@@ -1,5 +1,7 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch, computed, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useProjectListingStore, listQuery } from '../stores/projectListing.js'
 import { canCreateProjects, hasProjectPermission } from '../services/projectPermissions.js'
 import UnreadBadge from '../components/UnreadBadge.vue'
 import AppIcon from '../components/AppIcon.vue'
@@ -12,6 +14,66 @@ import { t, formatApiError, formatDate } from '../i18n/index.js'
 
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const nav = useAdminNavigationStore()
+const listing = useProjectListingStore(),
+  route = useRoute(),
+  router = useRouter()
+const search = ref(''),
+  client = ref(''),
+  filtersOpen = ref(false)
+let timer
+const activeFilters = computed(
+  () => !!(route.query.q || route.query.client || route.query.status || route.query.sort),
+)
+const pages = computed(() =>
+  Array.from(
+    { length: Math.min(5, listing.meta.last_page) },
+    (_, i) => Math.max(1, Math.min(listing.meta.current_page - 2, listing.meta.last_page - 4)) + i,
+  ),
+)
+function filters(patch = {}) {
+  clearTimeout(timer)
+  router.replace({
+    path: '/admin',
+    query: listQuery({ ...route.query, q: search.value, client: client.value, ...patch, page: 1 }),
+  })
+}
+function resetFilters() {
+  search.value = ''
+  client.value = ''
+  filters({ q: '', client: '', status: '', sort: '' })
+}
+function debounce() {
+  clearTimeout(timer)
+  timer = setTimeout(() => filters(), 300)
+}
+function page(number) {
+  router.push({ path: '/admin', query: listQuery({ ...route.query, page: number }) })
+}
+async function reload() {
+  if (!nav.workspace) return
+  const id = nav.workspace.id
+  const ok = await listing.load(id, route.query)
+  if (ok && nav.workspace?.id === id && route.path === '/admin') {
+    const actual = listing.meta.current_page
+    if (actual !== (Number(route.query.page) || 1))
+      await router.replace({ path: '/admin', query: listQuery({ ...route.query, page: actual }) })
+  }
+}
+watch(
+  () => [nav.workspace?.id, route.fullPath],
+  () => {
+    if (route.path !== '/admin') return
+    search.value = String(route.query.q || '')
+    client.value = String(route.query.client || '')
+    nav.projectsPath = route.fullPath
+    reload()
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  clearTimeout(timer)
+  listing.clear()
+})
 const bin = ref(null),
   candidate = ref(null),
   busy = ref(false),
@@ -39,14 +101,13 @@ async function trash() {
     if (nav.workspace?.id !== workspaceId) return
     nav.removeProject(project.id)
     candidate.value = null
-    await bin.value?.refresh()
+    await Promise.all([bin.value?.refresh(), nav.refreshProjects(), reload()])
   } catch (cause) {
     if (nav.workspace?.id === workspaceId) error.value = cause
   } finally {
     busy.value = false
   }
 }
-onMounted(() => nav.refreshProjects())
 </script>
 <template>
   <div>
@@ -62,20 +123,84 @@ onMounted(() => nav.refreshProjects())
         >{{ t('ui.newProject') }}</RouterLink
       >
     </div>
-    <p v-if="nav.refreshing" role="status" class="small muted">{{ t('nav.loading') }}</p>
-    <div v-if="nav.listError" role="alert">
-      <p class="field-error">{{ formatApiError(nav.listError) }}</p>
-      <button class="button secondary" @click="nav.refreshProjects()">
+    <div class="surface project-list-controls">
+      <div class="project-search-row">
+        <label class="project-search"
+          ><AppIcon name="search" :size="18" /><span class="sr-only">{{
+            t('branding.search')
+          }}</span
+          ><input
+            v-model="search"
+            type="search"
+            maxlength="150"
+            :placeholder="t('branding.search')"
+            @input="debounce" /></label
+        ><button
+          type="button"
+          class="button secondary project-filter-trigger"
+          :aria-expanded="filtersOpen"
+          aria-controls="project-list-filters"
+          @click="filtersOpen = !filtersOpen"
+        >
+          <AppIcon name="settings" :size="18" />{{ t('branding.filters') }}
+        </button>
+      </div>
+      <div
+        id="project-list-filters"
+        class="project-filters-extra"
+        :class="{ 'is-open': filtersOpen }"
+      >
+        <select
+          :value="route.query.status || ''"
+          :aria-label="t('branding.allStatuses')"
+          @change="filters({ status: $event.target.value })"
+        >
+          <option value="">{{ t('branding.allStatuses') }}</option>
+          <option value="active">{{ t('ui.active') }}</option>
+          <option value="inactive">{{ t('ui.inactive') }}</option>
+        </select>
+        <select
+          :value="route.query.sort || ''"
+          :aria-label="t('branding.filters')"
+          @change="filters({ sort: $event.target.value })"
+        >
+          <option value="">{{ t('branding.updated') }}</option>
+          <option value="created">{{ t('branding.created') }}</option>
+          <option value="name">{{ t('branding.nameSort') }}</option>
+        </select>
+        <input
+          v-if="nav.user?.membershipRole === 'owner'"
+          v-model="client"
+          type="search"
+          maxlength="150"
+          :aria-label="t('branding.clientSearch')"
+          :placeholder="t('branding.clientSearch')"
+          @input="debounce"
+        />
+      </div>
+      <div class="project-list-results">
+        <span role="status">{{ t('branding.results', { total: listing.meta.total }) }}</span
+        ><button v-if="activeFilters" type="button" class="text-button" @click="resetFilters">
+          {{ t('branding.clear') }}
+        </button>
+      </div>
+    </div>
+    <p v-if="listing.loading" role="status" class="small muted">{{ t('nav.loading') }}</p>
+    <div v-if="listing.error" role="alert">
+      <p class="field-error">{{ formatApiError(listing.error) }}</p>
+      <button class="button secondary" @click="reload()">
         {{ t('ui.tryAgain') }}
       </button>
     </div>
-    <div v-else-if="!nav.projects.length" class="empty-state">
+    <div v-else-if="!listing.projects.length" class="empty-state">
       <h2>
         {{
           t(
-            nav.user?.membershipRole === 'owner'
-              ? 'ui.startWithYourFirstProject'
-              : 'team.noProjects',
+            activeFilters
+              ? 'branding.noResults'
+              : nav.user?.membershipRole === 'owner'
+                ? 'ui.startWithYourFirstProject'
+                : 'team.noProjects',
           )
         }}
       </h2>
@@ -90,7 +215,11 @@ onMounted(() => nav.refreshProjects())
       </p>
     </div>
     <div v-else class="admin-project-list">
-      <article v-for="project in nav.projects" :key="project.id" class="surface admin-project-card">
+      <article
+        v-for="project in listing.projects"
+        :key="project.id"
+        class="surface admin-project-card"
+      >
         <div class="project-card-information">
           <div class="project-card-title">
             <span
@@ -176,7 +305,43 @@ onMounted(() => nav.refreshProjects())
         </div>
       </article>
     </div>
-    <ProjectRecycleBin v-if="nav.workspace" :key="nav.workspace.id" ref="bin" />
+    <nav
+      v-if="listing.meta.last_page > 1"
+      class="project-pagination"
+      :aria-label="
+        t('branding.page', { page: listing.meta.current_page, pages: listing.meta.last_page })
+      "
+    >
+      <button
+        type="button"
+        class="button secondary"
+        :disabled="listing.loading || listing.meta.current_page <= 1"
+        @click="page(listing.meta.current_page - 1)"
+      >
+        {{ t('branding.previous') }}</button
+      ><button
+        v-for="number in pages"
+        :key="number"
+        type="button"
+        class="button secondary page-number"
+        :aria-current="number === listing.meta.current_page ? 'page' : undefined"
+        :disabled="listing.loading"
+        @click="page(number)"
+      >
+        {{ number }}</button
+      ><span class="pagination-summary">{{
+        t('branding.page', { page: listing.meta.current_page, pages: listing.meta.last_page })
+      }}</span
+      ><button
+        type="button"
+        class="button secondary"
+        :disabled="listing.loading || listing.meta.current_page >= listing.meta.last_page"
+        @click="page(listing.meta.current_page + 1)"
+      >
+        {{ t('branding.next') }}
+      </button>
+    </nav>
+    <ProjectRecycleBin v-if="nav.workspace" :key="nav.workspace.id" ref="bin" @changed="reload()" />
     <BaseDialog
       :open="!!candidate"
       :title="t('projectList.moveToTrash')"

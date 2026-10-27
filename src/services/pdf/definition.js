@@ -18,6 +18,7 @@ export function textRuns(value) {
 }
 
 export function documentDefinition(document) {
+  const brand = document.branding || {}
   let bodyId = 0
   const text = (value, options = {}) => ({
     text: textRuns(value),
@@ -25,6 +26,27 @@ export function documentDefinition(document) {
     ...options,
   })
   const content = [
+    ...(brand.logo || brand.name || brand.address?.length || brand.contact?.length
+      ? [
+          {
+            columns: [
+              ...(brand.logo ? [{ image: brand.logo, fit: [130, 60], width: 145 }] : []),
+              {
+                width: '*',
+                stack: [
+                  ...(brand.name
+                    ? [text(brand.name, { fontSize: 14, bold: true, margin: [0, 0, 0, 6] })]
+                    : []),
+                  ...[...(brand.address || []), ...(brand.contact || [])].map((line) =>
+                    text(line, { fontSize: 9, margin: [0, 0, 0, 3] }),
+                  ),
+                ],
+              },
+            ],
+            margin: [0, 0, 0, 20],
+          },
+        ]
+      : []),
     text(document.title, { style: 'title' }),
     text(`${document.labels.project}: ${document.project.name}`, { style: 'project' }),
     ...(document.project.website
@@ -65,6 +87,20 @@ export function documentDefinition(document) {
     content.push(text(`${row.label}: ${row.value}`, { bold: true, margin: [0, 0, 0, 4] }))
     if (row.coverage) content.push(text(row.coverage, { style: 'metadata' }))
   }
+  if (brand.business?.length) {
+    const value = brand.business.map((row) => `${row.label}: ${row.value}`).join('\n')
+    const compact =
+      [...value].length <= 800 &&
+      (value.match(/[\n\r\u000b\u000c\u0085\u2028\u2029]/g) || []).length <= 12
+    const block = [
+      text(brand.businessTitle, { style: 'section', ...(!compact ? { headlineLevel: 1 } : {}) }),
+      ...brand.business.map((row) =>
+        text(`${row.label}: ${row.value}`, { fontSize: 9, margin: [0, 0, 0, 4] }),
+      ),
+    ]
+    if (compact) content.push({ stack: block, unbreakable: true })
+    else content.push(...block)
+  }
   // Keep short heading/first-paragraph groups together in one layout pass. Never make
   // arbitrary user text unbreakable: pdfmake cannot split an oversized unbreakable stack.
   const grouped = []
@@ -101,7 +137,7 @@ export function documentDefinition(document) {
     pageMargins: [56.7, 56.7, 56.7, 62.4],
     info: {
       title: document.title,
-      author: 'ProjectBrief',
+      author: brand.name || 'ProjectBrief',
       creator: 'ProjectBrief browser PDF',
     },
     defaultStyle: { font: 'DejaVu', fontSize: 10, color: '#243044', lineHeight: 1.2 },
@@ -117,10 +153,24 @@ export function documentDefinition(document) {
     content: grouped,
     footer: (page, pages) => ({
       columns: [
-        text(`${document.labels.footer} · ${document.generated.date}`, {
+        {
+          text: [
+            ...textRuns((brand.contact || []).slice(0, 3).join(' · ').slice(0, 140)),
+            ...((brand.contact || []).length ? textRuns(' · ') : []),
+            ...(brand.platform === false
+              ? []
+              : [
+                  ...textRuns(document.labels.footer).map((run) => ({
+                    ...run,
+                    link: brand.platformUrl,
+                  })),
+                  ...textRuns(' · '),
+                ]),
+            ...textRuns(document.generated.date),
+          ],
           width: '*',
           id: 'footer',
-        }),
+        },
         text(`${page} / ${pages}`, { alignment: 'right', width: 50, id: 'page-number' }),
       ],
       margin: [56.7, 16, 56.7, 0],

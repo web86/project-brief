@@ -1,5 +1,6 @@
 <script setup>
 import BrandLogo from './BrandLogo.vue'
+import SidebarScroll from './SidebarScroll.vue'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
@@ -19,7 +20,7 @@ const nav = useAdminNavigationStore()
   <div class="project-sidebar-content" :class="{ 'admin-sidebar-content': !task }">
     <RouterLink
       v-if="!task"
-      to="/admin"
+      :to="nav.projectsPath"
       class="brand"
       :aria-label="t('ui.projectBriefOpenTheProject')"
       @click="emit('navigate')"
@@ -27,23 +28,24 @@ const nav = useAdminNavigationStore()
       <BrandLogo />
     </RouterLink>
     <RouterLink
-      to="/admin"
+      :to="nav.projectsPath"
       class="task-all-projects project-all-projects"
       @click="emit('navigate')"
     >
       <AppIcon name="arrow" :size="20" /><span>{{ t('nav.allProjects') }}</span>
     </RouterLink>
-    <section class="task-project-management">
-      <h2 v-if="task">{{ t('taskWorkspace.manageProject') }}</h2>
-      <p class="project-sidebar-name" :title="project.name">{{ project.name }}</p>
-      <ProjectNavigation
-        vertical
-        :trash-busy="trashBusy"
-        :trash-open="trashOpen"
-        @navigate="emit('navigate')"
-        @trash="emit('trash')"
-      />
-    </section>
+    <SidebarScroll
+      ><section class="task-project-management">
+        <h2 v-if="task">{{ t('taskWorkspace.manageProject') }}</h2>
+        <p class="project-sidebar-name" :title="project.name">{{ project.name }}</p>
+        <ProjectNavigation
+          vertical
+          :trash-busy="trashBusy"
+          :trash-open="trashOpen"
+          @navigate="emit('navigate')"
+          @trash="emit('trash')"
+        /></section
+    ></SidebarScroll>
     <div class="project-personal-navigation">
       <h2 class="project-personal-heading">{{ t('centralNotifications.mySettings') }}</h2>
       <RouterLink
@@ -64,8 +66,12 @@ const nav = useAdminNavigationStore()
       >
         <AppIcon name="bell" :size="20" />{{ t('centralNotifications.myNotifications') }}
       </RouterLink>
-      <RouterLink to="/admin/account" class="task-personal-settings" @click="emit('navigate')"
-        ><AppIcon name="user" :size="20" />{{ t('account.title') }}</RouterLink
+      <RouterLink
+        v-if="nav.user?.membershipRole === 'owner'"
+        to="/admin/settings/branding"
+        class="task-personal-settings"
+        @click="emit('navigate')"
+        ><AppIcon name="palette" :size="20" />{{ t('branding.title') }}</RouterLink
       >
       <AdminAccount
         @navigate="emit('navigate')"

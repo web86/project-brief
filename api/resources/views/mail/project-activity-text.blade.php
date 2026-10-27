@@ -1,4 +1,4 @@
-ProjectBrief
+{{ ($payload['branding']['name'] ?? '') ?: 'ProjectBrief' }}
 {!! $payload['heading'] !!}
 
 {!! $payload['explanation'] !!}
@@ -17,3 +17,7 @@ ProjectBrief
 
 {!! $payload['open'] !!}: {!! $payload['url'] !!}
 {!! $payload['access'] !!}
+
+@if(!empty($payload['branding']['contact']))
+{{ implode(' · ', $payload['branding']['contact']) }}
+@endif

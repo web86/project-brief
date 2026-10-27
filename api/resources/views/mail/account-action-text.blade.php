@@ -5,4 +5,8 @@
 {{ $actionUrl }}
 @endif
 
-Project Brief
+{{ ($branding['name'] ?? '') ?: 'Project Brief' }}
+
+@if(!empty($branding['contact']))
+{{ implode(' · ', $branding['contact']) }}
+@endif

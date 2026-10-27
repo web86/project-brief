@@ -1,5 +1,5 @@
 <script setup>
-import BrandLogo from './BrandLogo.vue'
+import BrandLogo from './PortalBrandLogo.vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { useClientNavigation } from '../services/clientNavigation.js'

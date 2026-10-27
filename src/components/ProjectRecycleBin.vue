@@ -9,6 +9,7 @@ import BaseDialog from './BaseDialog.vue'
 import LoadingButton from './LoadingButton.vue'
 import AppIcon from './AppIcon.vue'
 
+const emit = defineEmits(['changed'])
 const nav = useAdminNavigationStore()
 const workspaceId = nav.workspace?.id
 const projects = ref([]),
@@ -52,6 +53,7 @@ async function restore(project) {
     await api.request(`/api/admin/projects/${project.id}/restore`, { method: 'POST' })
     if (!current()) return
     await Promise.all([refresh(), nav.refreshProjects()])
+    emit('changed')
   } catch (cause) {
     if (isSecurityCancellation(cause)) return
     if (current()) error.value = cause

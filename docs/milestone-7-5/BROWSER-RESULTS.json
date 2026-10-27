@@ -1,0 +1,48 @@
+[
+  {
+    "width": 390,
+    "mode": "light",
+    "language": "ru",
+    "passed": true
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "language": "ru",
+    "passed": true
+  },
+  {
+    "width": 768,
+    "mode": "light",
+    "language": "tr",
+    "passed": true
+  },
+  {
+    "width": 768,
+    "mode": "dark",
+    "language": "tr",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "language": "en",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "language": "zh-CN",
+    "passed": true
+  },
+  {
+    "persona": "client",
+    "mode": "light",
+    "brandedPortalAndExit": true
+  },
+  {
+    "persona": "client",
+    "mode": "dark",
+    "brandedPortalAndExit": true
+  }
+]

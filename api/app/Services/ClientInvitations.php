@@ -20,6 +20,6 @@ class ClientInvitations
 
     public function deliver(Project $project, ProjectClient $client, string $url): bool
     {
-        return app(AccountMail::class)->localized($client->email, $client->preferred_locale, 'client_invitation', $url, ['project' => $project->title]);
+        return app(AccountMail::class)->localized($client->email, $client->preferred_locale, 'client_invitation', $url, ['project' => $project->title], $project->workspace()->firstOrFail());
     }
 }

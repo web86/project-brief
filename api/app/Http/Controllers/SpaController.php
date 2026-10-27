@@ -14,7 +14,7 @@ class SpaController extends Controller
     public function __invoke(Request $request): BinaryFileResponse|JsonResponse
     {
         abort_unless(in_array($request->method(), ['GET', 'HEAD'], true), 404);
-        abort_if($request->is('api', 'api/*', 'access', 'access/*', 'sanctum', 'sanctum/*'), 404);
+        abort_if($request->is('api', 'api/*', 'access', 'access/*', 'sanctum', 'sanctum/*', 'branding-assets', 'branding-assets/*'), 404);
 
         $index = public_path('index.html');
         if (is_file($index)) {

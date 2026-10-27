@@ -76,7 +76,7 @@ class ProjectFeedbacks
             $payload = NotificationPayload::test($locale, rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid.'/brief');
             $heading = trans('feedback.mail_heading', [], $locale);
             $payload = array_replace($payload, ['heading' => $heading, 'subject' => '[ProjectBrief] '.$heading.' — '.NotificationPayload::excerpt($project->title, 80),
-                'project' => $project->title, 'message' => $feedback->text, 'message_label' => trans('feedback.text', [], $locale),
+                'project' => $project->title, 'project_uuid' => $project->uuid, 'message' => $feedback->text, 'message_label' => trans('feedback.text', [], $locale),
                 'explanation' => trans('feedback.mail_message', ['client' => $feedback->projectClient->name, 'rating' => $feedback->rating, 'date' => $feedback->submitted_at->toIso8601String()], $locale), 'next' => '']);
             try {
                 $result = $service->sendMail($owner->notificationEmail(), $payload);

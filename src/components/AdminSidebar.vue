@@ -1,5 +1,6 @@
 <script setup>
 import BrandLogo from './BrandLogo.vue'
+import SidebarScroll from './SidebarScroll.vue'
 import { canCreateProjects } from '../services/projectPermissions.js'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -75,52 +76,65 @@ async function select(event) {
     <p v-if="!nav.workspace && nav.ready" class="small muted">
       {{ t('centralNotifications.chooseWorkspace') }}
     </p>
-    <div v-else class="sidebar-project-group">
-      <nav
-        class="sidebar-projects"
-        :aria-label="t('nav.projects')"
-        :aria-busy="nav.loading || nav.refreshing"
-      >
-        <h2>
-          <RouterLink
-            to="/admin"
-            class="sidebar-project-heading"
-            :aria-current="route.path === '/admin' ? 'page' : undefined"
-            @click="emit('navigate')"
-            ><AppIcon name="arrow" :size="16" /><span>{{ t('nav.allProjects') }}</span></RouterLink
+    <SidebarScroll v-if="nav.workspace">
+      <div class="sidebar-project-group">
+        <nav
+          class="sidebar-projects"
+          :aria-label="t('nav.projects')"
+          :aria-busy="nav.loading || nav.refreshing"
+        >
+          <h2>
+            <RouterLink
+              :to="nav.projectsPath"
+              class="sidebar-project-heading"
+              :aria-current="route.path === '/admin' ? 'page' : undefined"
+              @click="emit('navigate')"
+              ><AppIcon name="arrow" :size="16" /><span>{{
+                t('nav.allProjects')
+              }}</span></RouterLink
+            >
+          </h2>
+          <div
+            v-if="nav.loading && !nav.projects.length"
+            class="sidebar-skeleton"
+            role="status"
+            :aria-label="t('nav.loading')"
           >
-        </h2>
-        <div
-          v-if="nav.loading && !nav.projects.length"
-          class="sidebar-skeleton"
-          role="status"
-          :aria-label="t('nav.loading')"
-        >
-          <span v-for="n in 4" :key="n" />
-        </div>
-        <p v-else-if="!nav.projects.length" class="small muted">{{ t('nav.noProjects') }}</p>
-        <RouterLink
-          v-for="project in nav.projects"
-          :key="project.id"
-          :to="`/admin/projects/${project.id}/brief`"
-          class="sidebar-project"
-          :class="{ active: activeProject === project.id }"
-          :aria-current="activeProject === project.id ? 'page' : undefined"
-          @click="emit('navigate')"
-        >
-          <AppIcon name="grid" :size="20" /><span class="sidebar-project-name">{{
-            project.name
-          }}</span
-          ><UnreadBadge :count="project.unreadCount || 0" />
-        </RouterLink>
-        <div v-if="nav.listError" class="sidebar-error" role="alert">
-          <p>{{ formatApiError(nav.listError) }}</p>
-          <button type="button" class="text-button" @click="nav.refreshProjects()">
-            {{ t('ui.tryAgain') }}
+            <span v-for="n in 4" :key="n" />
+          </div>
+          <p v-else-if="!nav.projects.length" class="small muted">{{ t('nav.noProjects') }}</p>
+          <RouterLink
+            v-for="project in nav.projects"
+            :key="project.id"
+            :to="`/admin/projects/${project.id}/brief`"
+            class="sidebar-project"
+            :class="{ active: activeProject === project.id }"
+            :aria-current="activeProject === project.id ? 'page' : undefined"
+            @click="emit('navigate')"
+          >
+            <AppIcon name="grid" :size="20" /><span class="sidebar-project-name">{{
+              project.name
+            }}</span
+            ><UnreadBadge :count="project.unreadCount || 0" />
+          </RouterLink>
+          <div v-if="nav.listError" class="sidebar-error" role="alert">
+            <p>{{ formatApiError(nav.listError) }}</p>
+            <button type="button" class="text-button" @click="nav.refreshProjects()">
+              {{ t('ui.tryAgain') }}
+            </button>
+          </div>
+          <button
+            v-if="nav.sidebarPage < nav.sidebarLastPage"
+            type="button"
+            class="text-button sidebar-more"
+            :disabled="nav.refreshing"
+            @click="nav.moreProjects()"
+          >
+            {{ t('branding.more') }}
           </button>
-        </div>
-      </nav>
-    </div>
+        </nav>
+      </div>
+    </SidebarScroll>
     <nav
       class="sidebar-general personal-settings-nav"
       :aria-label="t('centralNotifications.mySettings')"
@@ -136,10 +150,11 @@ async function select(event) {
         }}</span></RouterLink
       >
       <RouterLink
-        to="/admin/account"
-        :aria-current="route.path.startsWith('/admin/account') ? 'page' : undefined"
+        v-if="nav.workspace && nav.user?.membershipRole === 'owner'"
+        to="/admin/settings/branding"
+        :aria-current="route.path === '/admin/settings/branding' ? 'page' : undefined"
         @click="emit('navigate')"
-        ><AppIcon name="user" :size="20" /><span>{{ t('account.title') }}</span></RouterLink
+        ><AppIcon name="palette" :size="20" /><span>{{ t('branding.title') }}</span></RouterLink
       >
       <RouterLink
         to="/admin/settings/notifications"

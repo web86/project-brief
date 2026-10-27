@@ -18,7 +18,28 @@ class ProjectController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        return ProjectResource::collection(app(ProjectUnread::class)->withCounts(ProjectAccess::query($request), $request->user())->withExists(['feedback as feedback_requested' => fn ($q) => $q->whereNotNull('requested_at'), 'feedback as feedback_submitted' => fn ($q) => $q->whereNotNull('submitted_at')])->withCount(['clients', 'members as team_count' => fn ($q) => $q->whereHas('workspaceMember', fn ($member) => $member->active()->where('role', 'admin')), 'tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
+        $data = $request->validate(['q' => ['nullable', 'string', 'max:150'], 'client' => ['nullable', 'string', 'max:150'], 'status' => ['nullable', 'in:active,inactive'], 'sort' => ['nullable', 'in:updated,created,name'], 'page' => ['nullable', 'integer', 'min:1', 'max:100000']]);
+        $member = app(CurrentWorkspace::class)->resolve($request);
+        abort_if(! empty($data['client']) && $member->role !== 'owner', 403);
+        $query = ProjectAccess::forMember($member);
+        if (! empty($data['q'])) {
+            $query->where('title', 'like', '%'.$data['q'].'%');
+        }
+        if (! empty($data['status'])) {
+            $query->where('status', $data['status']);
+        }
+        if (! empty($data['client'])) {
+            $query->whereHas('clients', fn ($q) => $q->where(fn ($q) => $q->where('name', 'like', '%'.$data['client'].'%')->orWhere('email', 'like', '%'.$data['client'].'%')));
+        }
+        $sort = $data['sort'] ?? 'updated';
+        $query->orderBy(['updated' => 'updated_at', 'created' => 'created_at', 'name' => 'title'][$sort], $sort === 'name' ? 'asc' : 'desc')->orderByDesc('id');
+        $query = app(ProjectUnread::class)->withCounts($query, $request->user())->withExists(['feedback as feedback_requested' => fn ($q) => $q->whereNotNull('requested_at'), 'feedback as feedback_submitted' => fn ($q) => $q->whereNotNull('submitted_at')])->withCount(['clients', 'members as team_count' => fn ($q) => $q->whereHas('workspaceMember', fn ($q) => $q->active()->where('role', 'admin')), 'tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')]);
+        $page = $query->paginate(20)->withQueryString();
+        if ($page->currentPage() > $page->lastPage()) {
+            $page = $query->paginate(20, ['*'], 'page', $page->lastPage())->withQueryString();
+        }
+
+        return ProjectResource::collection($page);
     }
 
     public function store(ProjectRequest $request): ProjectResource

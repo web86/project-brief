@@ -38,7 +38,38 @@ class DocxProjectExporter
         $word->addTitleStyle(2, ['size' => 12, 'bold' => true], ['spaceBefore' => 140, 'spaceAfter' => 60, 'keepNext' => true]);
         $word->addParagraphStyle('SectionStart', ['basedOn' => 'Heading1', 'outlineLevel' => 0, 'pageBreakBefore' => true, 'keepNext' => true]);
         $section = $word->addSection(['marginTop' => 1247, 'marginBottom' => 1417, 'marginLeft' => 1134, 'marginRight' => 1134]);
-        $section->addFooter()->addText($document['labels']['footer'].' · '.$document['generated']['date'], ['size' => 8, 'color' => '667085']);
+        $brand = $document['branding'] ?? [];
+        $footer = $section->addFooter();
+        $footerLine = $footer->addTextRun();
+        $footerStyle = ['size' => 8, 'color' => '667085'];
+        $contactText = mb_substr(implode(' · ', array_slice($brand['contact'] ?? [], 0, 3)), 0, 140);
+        if ($contactText !== '') {
+            $footerLine->addText($contactText.' · ', $footerStyle);
+        }
+        if ($brand['platform'] ?? true) {
+            $footerLine->addLink($brand['platformUrl'] ?? config('app.url'), $document['labels']['footer'], $footerStyle);
+            $footerLine->addText(' · ', $footerStyle);
+        }
+        $footerLine->addText($document['generated']['date'], $footerStyle);
+        $footer->addPreserveText('{PAGE} / {NUMPAGES}', ['size' => 8, 'color' => '667085'], ['alignment' => 'right']);
+        if (! empty($brand['logo']) || ! empty($brand['name']) || ! empty($brand['address']) || ! empty($brand['contact'])) {
+            $header = $section->addTable(['width' => 9000, 'unit' => 'dxa', 'layout' => 'fixed', 'cellMargin' => 80]);
+            $header->addRow();
+            if (! empty($brand['logo'])) {
+                $bytes = base64_decode(substr($brand['logo'], strpos($brand['logo'], ',') + 1), true);
+                $size = getimagesizefromstring($bytes);
+                $scale = min(130 / $size[0], 60 / $size[1]);
+                $header->addCell(3000, ['noWrap' => false, 'valign' => 'top'])->addImage($bytes, ['width' => $size[0] * $scale, 'height' => $size[1] * $scale]);
+            }
+            $cell = $header->addCell(! empty($brand['logo']) ? 6000 : 9000, ['noWrap' => false]);
+            if (! empty($brand['name'])) {
+                $cell->addText($brand['name'], ['bold' => true, 'size' => 14]);
+            }
+            foreach (array_merge($brand['address'] ?? [], $brand['contact'] ?? []) as $line) {
+                $cell->addText($line, ['size' => 9, 'color' => '586174'], ['spaceAfter' => 40]);
+            }
+            $section->addTextBreak();
+        }
         $section->addTitle($document['title'], 0);
         $section->addText($document['labels']['project'].': '.$document['project']['name']);
         if ($document['project']['website']) {
@@ -80,6 +111,14 @@ class DocxProjectExporter
             $section->addText($row['label'].': '.$row['value'], ['size' => 10], ['spaceAfter' => 40, 'keepNext' => $keepNext]);
             if ($row['coverage']) {
                 $section->addText($row['coverage'], ['size' => 9, 'color' => '586174'], ['spaceAfter' => 60, 'keepNext' => $index < count($document['summary']) - 1]);
+            }
+        }
+        if (! empty($brand['business'])) {
+            $section->addTitle($brand['businessTitle'], 1);
+            $businessText = implode("\n", array_map(fn (array $row): string => $row['label'].': '.$row['value'], $brand['business']));
+            $compactBusiness = mb_strlen($businessText) <= 800 && preg_match_all('/\R/u', $businessText) <= 12;
+            foreach ($brand['business'] as $index => $row) {
+                $section->addText($row['label'].': '.$row['value'], ['size' => 9], ['keepNext' => $compactBusiness && $index < count($brand['business']) - 1]);
             }
         }
         $temporary = tempnam(sys_get_temp_dir(), 'projectbrief-docx-');

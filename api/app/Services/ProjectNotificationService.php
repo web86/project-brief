@@ -149,6 +149,8 @@ class ProjectNotificationService
         if (! $this->mailAvailable()) {
             return ['status' => 'skipped', 'error_code' => 'smtp_unconfigured'];
         }
+        $project = ! empty($payload['project_uuid']) ? Project::with('workspace')->where('uuid', $payload['project_uuid'])->first() : null;
+        $payload['branding'] = $project ? app(WorkspaceBranding::class)->email($project->workspace) : null;
         Mail::to($email)->send(new ProjectActivityMail($payload));
 
         return ['status' => 'sent', 'error_code' => null];

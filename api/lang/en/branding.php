@@ -1,0 +1,3 @@
+<?php
+
+return ['check_fields' => 'Please check the fields in this section.', 'invalid_image' => 'Use a valid PNG, JPEG, WebP or static SVG up to 2 MB (max 4096 × 4096).', 'business' => 'Company details', 'fields' => ['companyName' => 'Company / studio name', 'primaryColor' => 'Brand color', 'legalName' => 'Legal name', 'taxId' => 'Tax number / identifier', 'bankName' => 'Bank name', 'payee' => 'Payment recipient', 'account' => 'IBAN / account number', 'bic' => 'SWIFT / BIC', 'note' => 'Additional bank details / note', 'country' => 'Country', 'city' => 'City', 'address' => 'Address', 'postalCode' => 'Postal code', 'phone' => 'Phone', 'email' => 'Email', 'website' => 'Company website', 'extra' => 'Additional contact information']];

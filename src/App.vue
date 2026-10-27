@@ -1,6 +1,6 @@
 <script setup>
 import SecurityStepUpDialog from './components/SecurityStepUpDialog.vue'
-import BrandLogo from './components/BrandLogo.vue'
+import BrandLogo from './components/PortalBrandLogo.vue'
 import ClientSidebar from './components/ClientSidebar.vue'
 import TelegramPrompt from './components/TelegramPrompt.vue'
 import { usePersonalNotificationsStore } from './stores/personalNotifications.js'
@@ -16,6 +16,8 @@ import { confirmDeveloperLeave } from './utils/developerEditor.js'
 import { t, locale, formatApiError } from './i18n/index.js'
 
 import { computed, nextTick, watch } from 'vue'
+import { brandTokens } from './services/branding.js'
+import { theme } from './services/theme.js'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from './stores/adminNavigation.js'
 import { useProjectStore } from './stores/project'
@@ -32,6 +34,37 @@ const workspace = useTaskWorkspaceStore()
 const task = computed(() => route.meta.taskDetail && store.findTask(route.params.id))
 const navigationPending = router.navigationPending
 const personal = usePersonalNotificationsStore()
+const portalTokens = computed(() =>
+  store.apiMode &&
+  store.currentClient &&
+  route.meta.apiProject &&
+  !route.meta.admin &&
+  !route.meta.adminShell
+    ? brandTokens(store.project.branding?.primaryColor, theme.resolved.value === 'dark')
+    : {},
+)
+const originalIcons = new Map()
+watch(
+  () => [route.fullPath, store.currentClient, store.project.branding],
+  () => {
+    const favicon =
+      store.currentClient && route.meta.apiProject && !route.meta.admin && !route.meta.adminShell
+        ? store.project.branding?.faviconUrl
+        : null
+    for (const node of globalThis.document?.querySelectorAll?.('link[rel="icon"]') || []) {
+      if (!originalIcons.has(node))
+        originalIcons.set(node, {
+          href: node.getAttribute('href'),
+          type: node.getAttribute('type'),
+        })
+      const original = originalIcons.get(node)
+      node.setAttribute('href', favicon || original.href)
+      if (favicon || original.type) node.setAttribute('type', favicon ? 'image/png' : original.type)
+      else node.removeAttribute('type')
+    }
+  },
+  { flush: 'post', immediate: true },
+)
 const clientShell = computed(
   () =>
     store.apiMode &&
@@ -117,6 +150,7 @@ watch(
     <div
       v-else
       class="app-shell"
+      :style="portalTokens"
       :class="{
         'client-shell': clientShell,
         'task-workspace-shell': route.meta.taskDetail,

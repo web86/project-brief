@@ -7,6 +7,7 @@ import { useProjectStore } from '../stores/project.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { api } from '../api/client.js'
 import { toast } from '../services/toast.js'
+import { useWorkspaceBrandingStore } from '../stores/workspaceBranding.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t, formatApiError } from '../i18n/index.js'
@@ -120,7 +121,12 @@ async function retry() {
   }
 }
 async function logout() {
-  if (loggingOut.value || !confirmDeveloperLeave(store)) return
+  if (
+    loggingOut.value ||
+    !confirmDeveloperLeave(store) ||
+    !useWorkspaceBrandingStore().confirmLeave()
+  )
+    return
   loggingOut.value = true
   try {
     await api.request('/api/admin/logout', { method: 'POST' })

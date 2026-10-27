@@ -102,6 +102,16 @@ export function createProjectRouter({
             },
           },
           {
+            path: 'settings/branding',
+            component: () => import('../views/AdminBrandingView.vue'),
+            meta: {
+              ownerOnly: true,
+              get title() {
+                return t('branding.title')
+              },
+            },
+          },
+          {
             path: 'projects/new',
             component: () => import('../views/AdminProjectFormView.vue'),
             meta: {
@@ -491,7 +501,12 @@ export function createProjectRouter({
         } finally {
           nav.pageLoading = false
         }
-      } else if (to.path === '/admin' && from.meta.adminShell && !nav.switching) {
+      } else if (
+        to.path === '/admin' &&
+        from.path !== '/admin' &&
+        from.meta.adminShell &&
+        !nav.switching
+      ) {
         await nav.refreshProjects(request)
       }
       return true

@@ -3,27 +3,28 @@
 namespace App\Services;
 
 use App\Mail\AccountActionMail;
+use App\Models\Workspace;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 class AccountMail
 {
-    public function localized(string $email, ?string $locale, string $event, ?string $url = null, array $params = []): bool
+    public function localized(string $email, ?string $locale, string $event, ?string $url = null, array $params = [], ?Workspace $workspace = null): bool
     {
         $locale = SupportedLocales::resolve($locale);
 
-        return $this->send($email, trans('account.'.$event.'_heading', [], $locale), trans('account.'.$event.'_message', $params, $locale), $url, $locale);
+        return $this->send($email, trans('account.'.$event.'_heading', [], $locale), trans('account.'.$event.'_message', $params, $locale), $url, $locale, $workspace ? app(WorkspaceBranding::class)->email($workspace) : null);
     }
 
-    public function send(string $email, string $heading, string $message, ?string $url = null, string $locale = 'en'): bool
+    public function send(string $email, string $heading, string $message, ?string $url = null, string $locale = 'en', ?array $branding = null): bool
     {
         // Never send secrets to Laravel's log mail transport.
         if (! app(ProjectNotificationService::class)->mailAvailable()) {
             return false;
         }
         try {
-            Mail::to($email)->send(new AccountActionMail($heading, $message, $url, $locale));
+            Mail::to($email)->send(new AccountActionMail($heading, $message, $url, $locale, $branding));
 
             return true;
         } catch (Throwable $exception) {

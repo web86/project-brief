@@ -11,7 +11,14 @@ class Workspace extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'branding'];
+
+    protected $hidden = ['branding'];
+
+    protected function casts(): array
+    {
+        return ['branding' => 'array'];
+    }
 
     public function uniqueIds(): array
     {
