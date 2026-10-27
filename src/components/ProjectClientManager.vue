@@ -31,6 +31,7 @@ async function action(operation) {
     await operation()
   } catch (cause) {
     error.value = cause
+    notify(cause, cause.code === 'security_retry_required' ? 'info' : 'error')
   } finally {
     pending.value = false
   }

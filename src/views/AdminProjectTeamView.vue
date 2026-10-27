@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { toast } from '../services/toast.js'
 import { api } from '../api/client.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import { defaultProjectPermissions } from '../services/projectPermissions.js'
@@ -63,11 +64,14 @@ async function action(path, method, body, key = 'team.saved') {
     await api.request(root + path, { method, body })
     await load()
     success.value = t(key)
+    toast.success(() => t(key))
     inviting.value = false
     editing.value = null
   } catch (cause) {
     error.value =
       cause.code === 'account_mail_failed' ? t('account.mailFailed') : formatApiError(cause)
+    if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
+    else toast.error(() => formatApiError(cause))
     await load().catch(() => {})
   } finally {
     busy.value = false
@@ -167,6 +171,12 @@ function remove(member) {
             <div>
               <strong>{{ member.user.name }}</strong>
               <p>{{ member.user.email }}</p>
+              <p v-if="member.security" class="small muted">
+                {{ t('security.passkeys') }}:
+                {{ t(member.security.passkey ? 'security.configured' : 'security.notConfigured') }}
+                · {{ t('security.authenticator') }}:
+                {{ t(member.security.totp ? 'security.configured' : 'security.notConfigured') }}
+              </p>
               <span class="small muted"
                 >{{ t('team.' + (member.role === 'owner' ? 'owner' : 'developer')) }} ·
                 {{ t('team.active') }} · {{ t('team.joined') }}: {{ date(member.joinedAt) }}</span

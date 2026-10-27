@@ -55,12 +55,19 @@ class AccountSecurityTest extends TestCase
         $code = app(Google2FA::class)->getCurrentOtp($secret);
         $codes = $this->postJson('/api/security/totp/confirm', ['code' => $code])->assertOk()->json('codes');
         $this->postJson('/api/security/recovery-codes/acknowledge')->assertOk();
+        $this->postJson('/api/security/confirm', ['recovery_code' => $codes[7]])->assertOk();
 
         return [$secret, $codes, $code];
     }
 
     private function register(?WebAuthnDevice $device = null): WebAuthnDevice
     {
+        $status = $this->getJson('/api/security/status')->assertOk()->json();
+        if (! $status['fresh']) {
+            $user = Auth::user()->fresh();
+            $body = $user->hasEnabledTwoFactorAuthentication() ? ['recovery_code' => array_values($user->recoveryCodes())[count($user->recoveryCodes()) - 1]] : ['current_password' => 'Owner-password!'];
+            $this->postJson('/api/security/confirm', $body)->assertOk();
+        }
         $device ??= new WebAuthnDevice;
         $options = $this->getJson('/api/security/passkey/register/options')->assertOk()->json('options');
         $this->assertSame('required', $options['authenticatorSelection']['userVerification']);
@@ -91,14 +98,14 @@ class AccountSecurityTest extends TestCase
         $this->postJson('/api/security/totp/setup')->assertOk();
         $this->assertNull($user->fresh()->two_factor_confirmed_at);
         $this->postJson('/api/security/totp/confirm', ['code' => 'bad'])->assertUnprocessable();
-        $this->getJson('/api/security/passkey/register/options')->assertForbidden();
+        $this->getJson('/api/security/passkey/register/options')->assertStatus(423);
     }
 
     public function test_real_passkey_registration_unlocks_owner_and_password_requires_second_factor(): void
     {
         $user = $this->owner();
         [$secret, $codes, $enrollmentCode] = $this->enrollTotp($user);
-        $this->getJson('/api/admin/projects')->assertForbidden();
+        $this->getJson('/api/admin/projects')->assertOk();
         $device = $this->register();
         $this->getJson('/api/admin/me')->assertOk();
         $this->postJson('/api/admin/logout')->assertOk();
@@ -148,7 +155,7 @@ class AccountSecurityTest extends TestCase
             $options['rp']['id'] = 'evil.test';
         }
         if ($failure === 'expired') {
-            DB::table('account_security_challenges')->update(['expires_at' => now()->subSecond()]);
+            DB::table('account_security_challenges')->where('purpose', 'passkey_register')->update(['expires_at' => now()->subSecond()]);
         }
         $credential = $device->registration($options, origin: $failure === 'origin' ? 'https://evil.test' : 'http://localhost', uv: $failure !== 'uv');
         if ($failure === 'payload') {
@@ -158,7 +165,7 @@ class AccountSecurityTest extends TestCase
         $response->assertStatus($failure === 'payload' ? 400 : 422)->assertJsonPath('code', $expected)->assertJsonStructure(['diagnosticId', 'stage']);
         $this->assertStringNotContainsString($options['challenge'], $response->getContent());
         $this->assertDatabaseCount('passkeys', 0);
-        $this->getJson('/api/security/status')->assertJsonPath('state', 'enrollment_required')->assertJsonPath('fresh', true);
+        $this->getJson('/api/security/status')->assertJsonPath('state', 'authenticated')->assertJsonPath('fresh', true);
         $this->postJson('/api/security/passkey/register', ['name' => 'Replay', 'credential' => $credential])->assertUnprocessable()->assertJsonPath('code', 'PK_CHALLENGE_MISSING');
         $this->register();
         $this->getJson('/api/security/status')->assertJsonPath('state', 'authenticated');
@@ -183,7 +190,7 @@ class AccountSecurityTest extends TestCase
         });
         $this->postJson('/api/security/passkey/register', ['name' => 'Mac', 'credential' => $credential])->assertStatus(500)->assertJsonPath('code', 'PK_PERSIST_FAILED')->assertJsonPath('stage', 'persist');
         $this->assertDatabaseCount('passkeys', 0);
-        $this->assertDatabaseCount('account_security_challenges', 0);
+        $this->assertSame(0, DB::table('account_security_challenges')->where('purpose', 'passkey_register')->count());
         $after = $user->fresh();
         foreach (['two_factor_secret', 'two_factor_recovery_codes', 'last_totp_step', 'auth_session_version', 'recovery_codes_acknowledged_at'] as $field) {
             $this->assertEquals($before->$field, $after->$field);
@@ -300,7 +307,7 @@ class AccountSecurityTest extends TestCase
         $this->enrollTotp($user);
         $device = $this->register();
         $key = $user->passkeys()->first();
-        $this->deleteJson('/api/security/passkeys/'.$key->id)->assertConflict();
+        $this->deleteJson('/api/security/passkeys/'.$key->id)->assertStatus(423);
         $this->travel(601)->seconds();
         $this->postJson('/api/admin/integrations/tokens')->assertStatus(423);
         $this->deleteJson('/api/security/passkeys/'.$key->id)->assertStatus(423);
@@ -395,7 +402,7 @@ class AccountSecurityTest extends TestCase
         $this->assertSame(1, $user->fresh()->auth_session_version);
     }
 
-    public function test_credential_changes_revoke_old_sessions_and_challenges_and_preserve_final_owner_factor(): void
+    public function test_credential_changes_revoke_sessions_and_allow_final_passkey_with_proven_alternative(): void
     {
         $user = $this->owner();
         $this->enrollTotp($user);
@@ -404,9 +411,13 @@ class AccountSecurityTest extends TestCase
         $this->register();
         $this->assertGreaterThan($version, $user->fresh()->auth_session_version);
         $keys = $user->passkeys()->pluck('id');
+        $this->travel(61)->seconds();
+        $this->postJson('/api/security/confirm', ['recovery_code' => array_values($user->fresh()->recoveryCodes())[0]])->assertOk();
         $this->deleteJson('/api/security/passkeys/'.$keys[0])->assertOk();
-        $this->deleteJson('/api/security/passkeys/'.$keys[1])->assertConflict();
-        $this->assertSame(1, $user->passkeys()->count());
+        $this->postJson('/api/security/confirm', ['recovery_code' => array_values($user->fresh()->recoveryCodes())[0]])->assertOk();
+        $this->deleteJson('/api/security/passkeys/'.$keys[1], ['current_password' => 'Owner-password!'])->assertOk();
+        $this->assertSame(0, $user->passkeys()->count());
+        $this->assertTrue($user->fresh()->hasEnabledTwoFactorAuthentication());
         User::whereKey($user->id)->increment('auth_session_version');
         $this->getJson('/api/admin/me')->assertUnauthorized();
     }
@@ -433,7 +444,7 @@ class AccountSecurityTest extends TestCase
         $this->getJson('/api/security/passkey/register/options')->assertUnauthorized()->assertJsonPath('code', 'SEC_SESSION_EXPIRED');
         $user = $this->owner();
         $this->password($user)->assertOk();
-        $this->getJson('/api/security/passkey/register/options')->assertForbidden()->assertJsonPath('code', 'SEC_FORBIDDEN');
+        $this->getJson('/api/security/passkey/register/options')->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
         $this->travel(601)->seconds();
         $this->postJson('/api/security/totp/setup')->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
         $this->getJson('/api/security/passkey/register/options')->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');

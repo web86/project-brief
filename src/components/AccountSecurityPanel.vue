@@ -19,16 +19,22 @@ const state = ref(null),
 const renaming = ref(null),
   rename = ref(''),
   deleting = ref(null),
+  disablingTotp = ref(false),
+  alternativePassword = ref(''),
+  alternativeCode = ref(''),
   errorContext = ref('general')
 async function load() {
   state.value = await api.request('/api/security/status')
-  if (!state.value.fresh) {
+  if (!state.value.fresh && !state.value.setupFresh && !state.value.recoveryFresh) {
     codes.value = []
     setup.value = null
   }
 }
 onMounted(() => action(load))
 onBeforeUnmount(() => {
+  alternativePassword.value = ''
+  alternativeCode.value = ''
+  code.value = ''
   codes.value = []
   setup.value = null
 })
@@ -42,7 +48,8 @@ async function action(run, success, context = 'general') {
     if (success) toast.success(() => t(`security.${success}`))
   } catch (cause) {
     error.value = cause
-    toast.error(() => formatApiError(cause))
+    if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
+    else toast.error(() => formatApiError(cause))
     if ([401, 419, 423].includes(cause.status) || cause.credentialCreated) {
       try {
         await load()
@@ -143,12 +150,45 @@ function update(key) {
 function remove(key) {
   return action(
     async () => {
-      await refreshed(await api.request('/api/security/passkeys/' + key.id, { method: 'DELETE' }))
+      await refreshed(
+        await api.request('/api/security/passkeys/' + key.id, {
+          method: 'DELETE',
+          body: {
+            current_password: alternativePassword.value,
+            [/^\d{6}$/.test(alternativeCode.value) ? 'code' : 'recovery_code']:
+              alternativeCode.value || null,
+          },
+        }),
+      )
       deleting.value = null
+      alternativePassword.value = ''
+      alternativeCode.value = ''
     },
     'securityUpdated',
     'passkey',
   )
+}
+function disableTotp() {
+  return action(
+    async () => {
+      await refreshed(
+        await api.request('/api/security/totp', {
+          method: 'DELETE',
+          body: { current_password: alternativePassword.value },
+        }),
+      )
+      disablingTotp.value = false
+      alternativePassword.value = ''
+    },
+    'securityUpdated',
+    'totp',
+  )
+}
+function finish() {
+  return action(async () => {
+    await api.request('/api/security/recommendations/acknowledge', { method: 'POST' })
+    emit('ready')
+  }, 'securityUpdated')
 }
 </script>
 <template>
@@ -165,13 +205,22 @@ function remove(key) {
         t('account.backLogin')
       }}</RouterLink>
       <SecurityConfirmation
-        v-if="state.state !== 'guest' && (state.state === 'pending_2fa' || !state.fresh)"
+        v-if="
+          state.state !== 'guest' &&
+          (state.state === 'pending_2fa' ||
+            (state.state === 'enrollment_required' && !state.setupFresh && !state.recoveryFresh))
+        "
         :pending="state.state === 'pending_2fa'"
         @confirmed="refreshed"
       />
       <template v-else-if="state.state !== 'guest'">
-        <section v-if="state.owner" class="surface admin-form">
-          <h2>{{ t('security.authenticator') }}</h2>
+        <section class="surface admin-form">
+          <h2>
+            {{ t('security.authenticator') }}
+            <span class="small muted">{{
+              t(state.owner ? 'security.required' : 'security.optional')
+            }}</span>
+          </h2>
           <p>{{ t(state.totp ? 'security.totpActive' : 'security.totpHelp') }}</p>
           <SecurityError v-if="errorContext === 'totp'" :error="error" />
           <button v-if="!setup" class="button secondary" :disabled="busy" @click="startTotp">
@@ -206,6 +255,34 @@ function remove(key) {
             </button>
           </form>
           <template v-if="state.totp">
+            <template v-if="!state.owner">
+              <button
+                class="text-button danger"
+                :disabled="busy"
+                @click="disablingTotp = !disablingTotp"
+              >
+                {{ t('security.disableTotp') }}
+              </button>
+              <form v-if="disablingTotp" class="admin-form" @submit.prevent="disableTotp">
+                <p>{{ t('security.alternativeRequired') }}</p>
+                <label for="disable-totp-password">{{ t('account.currentPassword') }}</label>
+                <input
+                  id="disable-totp-password"
+                  v-model="alternativePassword"
+                  type="password"
+                  autocomplete="current-password"
+                  maxlength="1024"
+                  required
+                />
+                <LoadingButton
+                  class="button secondary"
+                  type="submit"
+                  :busy="busy"
+                  :disabled="busy"
+                  >{{ t('security.disableTotp') }}</LoadingButton
+                >
+              </form>
+            </template>
             <h3>{{ t('security.recoveryCodes') }}</h3>
             <p>{{ t('security.recoveryHelp') }}</p>
             <div class="security-actions">
@@ -229,7 +306,10 @@ function remove(key) {
           </template>
         </section>
         <section class="surface admin-form">
-          <h2>{{ t('security.passkeys') }}</h2>
+          <h2>
+            {{ t('security.passkeys') }}
+            <span class="small muted">{{ t('security.optional') }}</span>
+          </h2>
           <p>{{ t(state.owner ? 'security.passkeysRequired' : 'security.passkeysOptional') }}</p>
           <p v-if="!passkeysSupported()" role="status">{{ t('security.unsupported') }}</p>
           <p v-if="state.owner && (!state.totp || !state.recoverySaved)">
@@ -259,11 +339,7 @@ function remove(key) {
                 <button class="text-button" :disabled="busy" @click="beginRename(key)">
                   {{ t('security.rename') }}
                 </button>
-                <button
-                  class="text-button"
-                  :disabled="busy || (state.owner && state.passkeys.length === 1)"
-                  @click="deleting = key.id"
-                >
+                <button class="text-button" :disabled="busy" @click="deleting = key.id">
                   {{ t('security.remove') }}
                 </button>
               </div>
@@ -278,6 +354,26 @@ function remove(key) {
               </form>
               <div v-if="deleting === key.id" role="group" :aria-label="t('security.remove')">
                 <p>{{ t('security.removeHelp') }}</p>
+                <template v-if="state.passkeys.length === 1">
+                  <p>{{ t('security.alternativeRequired') }}</p>
+                  <label for="last-key-password">{{ t('account.currentPassword') }}</label>
+                  <input
+                    id="last-key-password"
+                    v-model="alternativePassword"
+                    type="password"
+                    autocomplete="current-password"
+                    maxlength="1024"
+                  />
+                  <template v-if="state.totp && state.confirmationMethod !== 'mfa'">
+                    <label for="last-key-code">{{ t('security.alternativeCode') }}</label>
+                    <input
+                      id="last-key-code"
+                      v-model="alternativeCode"
+                      autocomplete="off"
+                      maxlength="100"
+                    />
+                  </template>
+                </template>
                 <button class="button secondary" :disabled="busy" @click="remove(key)">
                   {{ t('security.remove') }}</button
                 ><button class="text-button" @click="deleting = null">
@@ -286,16 +382,16 @@ function remove(key) {
               </div>
             </li>
           </ul>
-          <p v-if="state.owner && state.passkeys.length === 1" class="small muted">
+          <p v-if="state.passkeys.length === 1" class="small muted">
             {{ t('security.lastPasskey') }}
           </p>
         </section>
         <button
           v-if="props.onboarding && state.state === 'authenticated'"
           class="button primary"
-          @click="emit('ready')"
+          @click="finish"
         >
-          {{ t('security.continue') }}
+          {{ t(state.recommendationsPending ? 'security.later' : 'security.continue') }}
         </button>
       </template>
     </template>

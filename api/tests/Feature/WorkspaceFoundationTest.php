@@ -35,7 +35,7 @@ class WorkspaceFoundationTest extends TestCase
             ->assertJsonPath('state', 'pending_2fa')
             ->assertJsonMissingPath('user.id')->assertJsonMissingPath('workspace.workspace_id');
         $this->actingAs($user);
-        $this->getJson('/api/session')->assertExactJson(['authenticated' => true, 'type' => 'admin', 'workspace' => ['id' => $workspace->uuid, 'name' => $workspace->name]]);
+        $this->getJson('/api/session')->assertExactJson(['authenticated' => true, 'securityRecommended' => false, 'type' => 'admin', 'workspace' => ['id' => $workspace->uuid, 'name' => $workspace->name]]);
     }
 
     public function test_workspace_selection_is_server_side_membership_checked_and_stale_selection_is_rejected(): void

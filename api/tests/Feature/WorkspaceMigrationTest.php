@@ -111,7 +111,7 @@ class WorkspaceMigrationTest extends TestCase
                 $after = DB::table($table)->orderBy('id')->get()->map(function ($row) use ($table) {
                     $data = (array) $row;
                     if ($table === 'users') {
-                        foreach (['preferred_locale', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pending_two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'security_recovery_token_hash', 'security_recovery_expires_at'] as $added) {
+                        foreach (['preferred_locale', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pending_two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'security_recovery_token_hash', 'security_recovery_expires_at', 'security_recommendations_seen_at'] as $added) {
                             $this->assertNull($data[$added]);
                             unset($data[$added]);
                         }

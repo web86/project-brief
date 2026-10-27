@@ -23,11 +23,12 @@ function run(...args) {
 }
 run('artisan', 'migrate', '--force', '--no-interaction')
 const results = []
-for (const kind of ['recovery', 'totp', 'challenge', 'delete']) {
+for (const kind of ['recovery', 'totp', 'challenge', 'delete', 'acl']) {
   const fixture = JSON.parse(run('tests/account-security-concurrent.php', 'prepare', kind))
   env.M7_RACE_USER = String(fixture.id)
   env.M7_RACE_CODE = fixture.code
   env.M7_RACE_CHALLENGE = fixture.challenge
+  env.M72_RACE_PROJECT = String(fixture.project || '')
   const workers = Array.from({ length: 6 }, (_, i) => {
     const worker = spawn(
       'php',
@@ -35,7 +36,7 @@ for (const kind of ['recovery', 'totp', 'challenge', 'delete']) {
         'tests/account-security-concurrent.php',
         'worker',
         kind,
-        String(fixture.keys[i % fixture.keys.length]),
+        String(fixture.keys[i % fixture.keys.length] || 0),
       ],
       { cwd, env },
     )
@@ -61,15 +62,25 @@ for (const kind of ['recovery', 'totp', 'challenge', 'delete']) {
     return { worker, ready, done }
   })
   await Promise.all(workers.map((worker) => worker.ready))
+  if (kind === 'acl') run('tests/account-security-concurrent.php', 'revoke-acl', kind)
   workers.forEach(({ worker }) => worker.stdin.end('go\n'))
   const statuses = await Promise.all(workers.map((worker) => worker.done))
-  assert.equal(statuses.filter((status) => status === 200).length, 1, JSON.stringify(statuses))
+  assert.equal(
+    statuses.filter((status) => status === 200).length,
+    kind === 'acl' ? 0 : 1,
+    JSON.stringify(statuses),
+  )
   assert.ok(
     statuses.every((status) =>
-      kind === 'delete' ? [200, 404, 409, 423].includes(status) : [200, 422].includes(status),
+      kind === 'acl'
+        ? [403].includes(status)
+        : kind === 'delete'
+          ? [200, 404, 409, 422, 423].includes(status)
+          : [200, 422].includes(status),
     ),
   )
   const state = JSON.parse(run('tests/account-security-concurrent.php', 'inspect', kind))
+  if (kind === 'acl') assert.equal(state.links, 0)
   if (kind === 'delete') assert.equal(state.passkeys, 1)
   if (kind === 'recovery') assert.equal(state.recoveryCodes, 0)
   results.push({ kind, workers: 6, statuses, state })

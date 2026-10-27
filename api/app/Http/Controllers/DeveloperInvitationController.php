@@ -26,15 +26,18 @@ class DeveloperInvitationController extends Controller
         $data['password_confirmation'] = $request->input('password_confirmation');
         $user = $invitations->accept($request, $data);
         $security = app(AccountSecurity::class);
-        if ($user->isWorkspaceOwner()) {
+        if ($request->user()) {
             abort_unless($security->state($request) === 'authenticated', 403);
+            Auth::login($user);
+            $request->session()->forget(['security.step_up', 'security.recovery_grant', 'client_project_id', 'project_client_id', 'client_access_token_id', CurrentWorkspace::SESSION_KEY]);
+            $request->session()->regenerate(true);
+            $request->session()->regenerateToken();
+        } else {
+            $security->complete($request, $user, 'password');
         }
-        Auth::login($user);
-        $request->session()->forget(['client_project_id', 'project_client_id', 'client_access_token_id', CurrentWorkspace::SESSION_KEY]);
         $accepted = DeveloperInvitation::where('token_hash', hash('sha256', $data['token']))->firstOrFail();
         $request->session()->put(CurrentWorkspace::SESSION_KEY, (int) $accepted->workspace_id);
         $request->session()->put('auth_session_version', (int) $user->auth_session_version);
-        $request->session()->regenerate();
 
         return response()->json(['accepted' => true]);
     }

@@ -64,6 +64,8 @@ class AccountProfileTest extends TestCase
         $this->assertSame($old, $this->user->fresh()->email);
         $this->assertSame(hash('sha256', $token), $this->user->fresh()->email_change_token_hash);
         $this->postJson('/api/admin/account/email/confirm', ['token' => $token])->assertOk()->assertJsonPath('user.email', 'new@example.test')->assertJsonPath('user.notificationPreferenceId', $preferenceId)->assertJsonPath('pendingEmail', null);
+        $this->postJson('/api/admin/account/email/confirm', ['token' => $token])->assertStatus(423);
+        $this->postJson('/api/security/confirm', ['recovery_code' => $this->user->fresh()->recoveryCodes()[0]])->assertOk();
         $this->postJson('/api/admin/account/email/confirm', ['token' => $token])->assertGone();
         $this->assertDatabaseCount('password_reset_tokens', 0);
         $this->assertSame($members, $this->user->workspaceMembers()->pluck('id')->all());

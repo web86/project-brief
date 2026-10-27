@@ -49,7 +49,9 @@ export function createPasskeyClient({
         status: cause.status,
         code:
           typeof cause.code === 'string' &&
-          /^(?:(?:PK|SEC)_[A-Z_]+|security_step_up_required|timeout)$/.test(cause.code)
+          /^(?:(?:PK|SEC)_[A-Z_]+|security_(?:step_up_required|retry_required)|timeout)$/.test(
+            cause.code,
+          )
             ? cause.code
             : undefined,
         diagnosticId: cause.diagnosticId,

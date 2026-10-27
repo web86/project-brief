@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\ProjectAccessToken;
 use App\Models\ProjectClient;
+use App\Models\Workspace;
+use App\Services\AccountSecurity;
+use App\Services\ProjectPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,8 +22,12 @@ class AccessLinkController extends Controller
         abort_unless($client->project_id === $project->id, 404);
         abort_unless($project->status === 'active' && $client->active, 422, trans('interface.activate_access'));
         $plaintext = bin2hex(random_bytes(32));
-        $token = DB::transaction(function () use ($project, $client, $plaintext, $data) {
+        $token = DB::transaction(function () use ($request, $project, $client, $plaintext, $data) {
+            Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
             Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            $request->attributes->remove(ProjectPermissions::class);
+            ProjectPermissions::authorize($request, $project, 'manage_clients', true);
+            app(AccountSecurity::class)->requireFresh($request);
             abort_unless($client->refresh()->active && $project->refresh()->status === 'active', 422);
             $client->accessTokens()->whereNull('revoked_at')->update(['revoked_at' => now()]);
 
@@ -30,11 +37,15 @@ class AccessLinkController extends Controller
         return response()->json(['id' => $token->id, 'url' => rtrim(config('projectbrief.frontend_url'), '/').'/access/'.$plaintext, 'expiresAt' => $token->expires_at?->toISOString()], 201)->header('Cache-Control', 'no-store');
     }
 
-    public function destroy(Project $project, ProjectClient $client, ProjectAccessToken $token): JsonResponse
+    public function destroy(Request $request, Project $project, ProjectClient $client, ProjectAccessToken $token): JsonResponse
     {
         abort_unless($client->project_id === $project->id && $token->project_id === $project->id && $token->project_client_id === $client->id, 404);
-        DB::transaction(function () use ($project, $token): void {
+        DB::transaction(function () use ($request, $project, $token): void {
+            Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
             Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            $request->attributes->remove(ProjectPermissions::class);
+            ProjectPermissions::authorize($request, $project, 'manage_clients', true);
+            app(AccountSecurity::class)->requireFresh($request);
             $token->refresh()->update(['revoked_at' => $token->revoked_at ?? now()]);
         }, 3);
 

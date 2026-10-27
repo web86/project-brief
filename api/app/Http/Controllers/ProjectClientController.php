@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProjectClientRequest;
 use App\Models\Project;
 use App\Models\ProjectClient;
+use App\Models\Workspace;
+use App\Services\AccountSecurity;
+use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use App\Services\SupportedLocales;
 use Illuminate\Http\JsonResponse;
@@ -38,8 +41,12 @@ class ProjectClientController extends Controller
     {
         abort_unless($client->project_id === $project->id, 404);
         $data = $request->validated();
-        DB::transaction(function () use ($project, $client, $data): void {
+        DB::transaction(function () use ($request, $project, $client, $data): void {
+            Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
             ProjectStructure::lock($project);
+            $request->attributes->remove(ProjectPermissions::class);
+            ProjectPermissions::authorize($request, $project, 'manage_clients', true);
+            app(AccountSecurity::class)->requireFresh($request);
             $client->refresh()->update($data);
             if (! $client->active) {
                 // Re-enabling cannot resurrect a link or an already revoked session.

@@ -17,11 +17,6 @@ class EnsureAccountSecurity
             if (in_array($state, ['pending_2fa', 'enrollment_required'], true)) {
                 return response()->json(['code' => 'account_security_required', 'state' => $state, 'message' => trans('security.'.$state)], 403)->header('Cache-Control', 'no-store');
             }
-            if ($request->user() && ! $request->isMethodSafe() && $request->is('api/admin/account/email', 'api/admin/account/email/*', 'api/admin/account/password', 'api/admin/integrations/*', 'api/admin/projects/*/team/*', 'api/admin/projects/*/notifications', 'api/admin/notifications', 'api/admin/notifications/*')) {
-                if (! $security->fresh($request)) {
-                    return response()->json(['code' => 'security_step_up_required', 'message' => trans('security.step_up_required')], 423)->header('Cache-Control', 'no-store');
-                }
-            }
         }
         $response = $next($request);
         if ($request->is('api/security/*')) {

@@ -26,8 +26,11 @@ class DeveloperInvitations
 
     public function owner(Request $request): WorkspaceMember
     {
-        $member = app(CurrentWorkspace::class)->resolve($request);
+        $member = app(CurrentWorkspace::class)->resolve($request, DB::transactionLevel() > 0);
         abort_unless($member->role === 'owner', 403);
+        if (! $request->isMethodSafe()) {
+            app(AccountSecurity::class)->requireFresh($request);
+        }
 
         return $member;
     }

@@ -70,7 +70,7 @@ $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
 // Enrolled fixture for HTTP package regression tests; signed WebAuthn is covered by HTTPS browser/protocol suites.
-$owner->forceFill(['two_factor_secret'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(app(\\PragmaRX\\Google2FA\\Google2FA::class)->generateSecretKey()), 'two_factor_confirmed_at'=>now(), 'recovery_codes_acknowledged_at'=>now(), 'two_factor_recovery_codes'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(json_encode(['Release-recovery-one', 'Release-recovery-two']))])->save();
+$owner->forceFill(['two_factor_secret'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(app(\\PragmaRX\\Google2FA\\Google2FA::class)->generateSecretKey()), 'two_factor_confirmed_at'=>now(), 'recovery_codes_acknowledged_at'=>now(), 'two_factor_recovery_codes'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(json_encode(['Release-recovery-one', 'Release-recovery-two', 'Release-cleanup-three']))])->save();
 $owner->passkeys()->create(['name'=>'Package fixture credential', 'credential_id'=>bin2hex(random_bytes(32)), 'credential'=>[]]);
 $owner->forceFill(['pending_notification_email'=>'verified-release@example.test', 'notification_email_token_hash'=>hash('sha256', str_repeat('a', 64)), 'notification_email_expires_at'=>now()->addMinutes(30)])->save();
 // Render templates with an in-memory transport; the isolated package has no SMTP credentials.
@@ -1032,9 +1032,15 @@ exit($status);
     ).status,
     409,
   )
+  const purgeConfirmation = await lifecycleCall('/api/admin/projects/trash/confirmation', 'POST', {
+    projectIds: [lifecycleId],
+  })
+  assert.equal(purgeConfirmation.status, 200)
+  const purgeProof = (await purgeConfirmation.json()).confirmation
   assert.equal(
     (
       await lifecycleCall('/api/admin/projects/trash', 'DELETE', {
+        confirmation: purgeProof,
         confirmed: true,
         projectIds: [lifecycleId],
       })
@@ -1059,6 +1065,15 @@ $request->setLaravelSession(app('session')->driver());
 $request->setUserResolver(fn () => $user);
 $controller = app(\\App\\Http\\Controllers\\IntegrationController::class);
 $requests = \\Illuminate\\Support\\Facades\\DB::table('integration_requests')->count();
+$request->session()->start();
+try {
+    $controller->revoke($request,$argv[2]);
+    throw new \\RuntimeException('Packaged sensitive mutation lacked step-up');
+} catch (\\Illuminate\\Http\\Exceptions\\HttpResponseException $error) {
+    if ($error->getResponse()->getStatusCode() !== 423) { throw $error; }
+}
+$request->merge(['recovery_code'=>'Release-cleanup-three']);
+app(\\App\\Http\\Controllers\\AccountSecurityController::class)->confirm($request);
 $controller->revoke($request,$argv[2]);
 $token = \\Illuminate\\Support\\Facades\\DB::table('integration_tokens')->where('uuid',$argv[2])->first();
 if (!$token->revoked_at || !$token->last_used_at || $requests < 1 || $requests !== \\Illuminate\\Support\\Facades\\DB::table('integration_requests')->count()) { throw new RuntimeException('Packaged token audit preservation failed'); }
@@ -1081,7 +1096,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.1',
+    '0.7.2',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

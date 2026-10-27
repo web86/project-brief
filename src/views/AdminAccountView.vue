@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { toast } from '../services/toast.js'
 import { api } from '../api/client.js'
-import { t, setManualLocale, locale, LANGUAGE_CATALOG } from '../i18n/index.js'
+import { t, formatApiError, setManualLocale, locale, LANGUAGE_CATALOG } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import AccountSecurityPanel from '../components/AccountSecurityPanel.vue'
 import AccountTabs from '../components/AccountTabs.vue'
@@ -35,6 +36,7 @@ function apply(result) {
   nav.user = { ...nav.user, ...result.user }
 }
 function message(cause) {
+  if (cause.status === 423 || cause.code?.startsWith('SEC_')) return formatApiError(cause)
   return cause.status === 410
     ? t('account.invalidLink')
     : cause.code === 'account_mail_failed'
@@ -53,8 +55,11 @@ async function action(run, key) {
   try {
     await run()
     success.value = t(key)
+    toast.success(() => t(key))
   } catch (cause) {
     error.value = message(cause)
+    if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
+    else toast.error(() => message(cause))
   } finally {
     busy.value = false
   }
@@ -73,6 +78,8 @@ onMounted(async () => {
       }, 'account.emailConfirmed')
   } catch (cause) {
     error.value = message(cause)
+    if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
+    else toast.error(() => message(cause))
   } finally {
     emailToken = null
   }

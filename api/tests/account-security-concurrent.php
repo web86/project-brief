@@ -1,11 +1,16 @@
 <?php
 
 use App\Exceptions\AccountSecurityFailure;
+use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AccountSecurityController;
+use App\Models\Project;
 use App\Models\User;
+use App\Models\Workspace;
 use App\Services\AccountSecurity;
+use App\Services\ProjectPermissions;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
@@ -29,22 +34,33 @@ $request = Request::create('/api/security/passkeys/1', 'DELETE');
 $request->setLaravelSession($session);
 $security = app(AccountSecurity::class);
 if ($argv[1] === 'prepare') {
-    $user = User::factory()->owner()->create();
+    $user = $kind === 'acl' ? User::factory()->memberOf(Workspace::factory()->create())->create() : User::factory()->owner()->create();
+    if ($kind === 'acl') {
+        $project = Project::factory()->for($user->workspaceMembers()->first()->workspace)->create();
+        $project->members()->create(['workspace_id' => $project->workspace_id, 'workspace_member_id' => $user->workspaceMembers()->first()->id, 'permissions' => ['manage_clients' => true]]);
+    }
     if ($kind === 'delete') {
         $user->passkeys()->create(['name' => 'Second', 'credential_id' => bin2hex(random_bytes(32)), 'credential' => []]);
     }
-    $code = app(Google2FA::class)->getCurrentOtp(Fortify::currentEncrypter()->decrypt($user->two_factor_secret));
+    $code = $user->hasEnabledTwoFactorAuthentication() ? app(Google2FA::class)->getCurrentOtp(Fortify::currentEncrypter()->decrypt($user->two_factor_secret)) : '000000';
     $challenge = $security->challenge($request, $kind === 'challenge' ? 'passkey_register' : 'race', '{}', $user);
-    echo json_encode(['id' => $user->id, 'keys' => $user->passkeys()->pluck('id'), 'code' => $code, 'challenge' => $challenge]);
+    echo json_encode(['id' => $user->id, 'keys' => $user->passkeys()->pluck('id'), 'code' => $code, 'challenge' => $challenge, 'project' => isset($project) ? $project->id : null]);
 } elseif ($argv[1] === 'worker') {
     $user = User::findOrFail(getenv('M7_RACE_USER'));
     $request->setUserResolver(fn () => $user);
     $security->confirm($request, $user, 'mfa');
+    if ($kind === 'acl') {
+        $project = Project::findOrFail(getenv('M72_RACE_PROJECT'));
+        ProjectPermissions::authorize($request, $project, 'manage_clients');
+    }
     echo "ready\n";
     fflush(STDOUT);
     fgets(STDIN);
     try {
-        if ($kind === 'delete') {
+        if ($kind === 'acl') {
+            app(AccessLinkController::class)->store($request, $project, $project->clients()->first());
+            $result = 200;
+        } elseif ($kind === 'delete') {
             $response = app(AccountSecurityController::class)->deletePasskey($request, (int) $argv[3]);
             $result = $response->getStatusCode();
         } elseif ($kind === 'challenge') {
@@ -57,6 +73,8 @@ if ($argv[1] === 'prepare') {
                 return $security->verifyFactor($locked, $kind === 'totp' ? ['code' => getenv('M7_RACE_CODE')] : ['recovery_code' => 'test-recovery-code']) ? 200 : 422;
             }, 5);
         }
+    } catch (HttpResponseException $error) {
+        $result = $error->getResponse()->getStatusCode();
     } catch (ModelNotFoundException) {
         $result = 404;
     } catch (HttpExceptionInterface $error) {
@@ -67,7 +85,13 @@ if ($argv[1] === 'prepare') {
         $result = $error->status;
     }
     echo json_encode(['status' => $result]);
+} elseif ($argv[1] === 'revoke-acl') {
+    DB::transaction(function (): void {
+        $project = Project::findOrFail(getenv('M72_RACE_PROJECT'));
+        Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
+        $project->members()->update(['permissions' => json_encode(['manage_clients' => false])]);
+    });
 } elseif ($argv[1] === 'inspect') {
     $user = User::findOrFail(getenv('M7_RACE_USER'));
-    echo json_encode(['passkeys' => $user->passkeys()->count(), 'recoveryCodes' => count($user->recoveryCodes())]);
+    echo json_encode(['passkeys' => $user->passkeys()->count(), 'recoveryCodes' => $user->hasEnabledTwoFactorAuthentication() ? count($user->recoveryCodes()) : 0, 'links' => $kind === 'acl' ? Project::findOrFail(getenv('M72_RACE_PROJECT'))->accessTokens()->count() : null]);
 }

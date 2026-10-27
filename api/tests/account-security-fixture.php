@@ -14,7 +14,7 @@ if (app()->environment('production') || config('database.default') !== 'sqlite' 
     throw new RuntimeException('Isolated security test database required.');
 }
 if (($argv[1] ?? '') === 'code') {
-    $user = User::where('email', 'security-owner@example.test')->firstOrFail();
+    $user = User::where('email', ($argv[2] ?? '') === 'developer' ? 'security-developer@example.test' : 'security-owner@example.test')->firstOrFail();
     $secret = Fortify::currentEncrypter()->decrypt($user->pending_two_factor_secret ?: $user->two_factor_secret);
     echo json_encode(['code' => app(Google2FA::class)->getCurrentOtp($secret)]);
     exit;

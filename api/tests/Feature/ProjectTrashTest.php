@@ -171,7 +171,8 @@ class ProjectTrashTest extends TestCase
         $this->deleteJson('/api/admin/projects/trash', ['projectIds' => [$project->uuid]])->assertUnprocessable();
         $this->deleteJson('/api/admin/projects/trash', ['confirmed' => true, 'projectIds' => []])->assertConflict();
         $this->deleteJson('/api/admin/projects/trash', ['confirmed' => true, 'projectIds' => [$project->uuid, $foreign->uuid]])->assertConflict();
-        $this->deleteJson('/api/admin/projects/trash', ['confirmed' => true, 'projectIds' => [$project->uuid]])->assertOk();
+        $confirmation = $this->postJson('/api/admin/projects/trash/confirmation', ['projectIds' => [$project->uuid]])->assertOk()->json('confirmation');
+        $this->deleteJson('/api/admin/projects/trash', ['confirmed' => true, 'projectIds' => [$project->uuid], 'confirmation' => $confirmation])->assertOk();
         $this->assertDatabaseMissing('projects', ['id' => $project->id]);
         foreach (['tasks', 'comments', 'attachments', 'task_history', 'project_file_deletions'] as $table) {
             $this->assertDatabaseCount($table, 0);
@@ -210,9 +211,11 @@ class ProjectTrashTest extends TestCase
         $this->postJson('/api/admin/projects/'.$created.'/restore')->assertOk();
         $this->postJson('/api/v1/projects', $body, $headers)->assertCreated()->assertHeader('Idempotency-Replayed', 'true');
         $this->postJson('/api/admin/projects/'.$created.'/trash')->assertOk();
-        $this->deleteJson('/api/admin/projects/'.$created.'/permanent', ['confirmed' => true])->assertOk();
+        $confirmation = $this->postJson('/api/admin/projects/'.$created.'/permanent/confirmation')->assertOk()->json('confirmation');
+        $this->deleteJson('/api/admin/projects/'.$created.'/permanent', ['confirmed' => true, 'confirmation' => $confirmation])->assertOk();
         $this->postJson('/api/v1/projects', $body, $headers)->assertGone()->assertDontSee('Replay');
-        $this->deleteJson($root.'/permanent', ['confirmed' => true])->assertOk();
+        $confirmation = $this->postJson($root.'/permanent/confirmation')->assertOk()->json('confirmation');
+        $this->deleteJson($root.'/permanent', ['confirmed' => true, 'confirmation' => $confirmation])->assertOk();
         $this->assertDatabaseCount('webhook_events', 0);
         $this->assertDatabaseCount('webhook_deliveries', 0);
     }

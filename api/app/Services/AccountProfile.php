@@ -37,6 +37,7 @@ class AccountProfile
         if ($request) {
             $request->session()->put('auth_session_version', (int) $user->auth_session_version);
             $request->session()->put('security.version', (int) $user->auth_session_version);
+            $request->session()->forget(['security.step_up', 'security.recovery_grant']);
             $request->session()->regenerate();
         }
     }

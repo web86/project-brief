@@ -33,7 +33,10 @@ async function login() {
     operatorToken.value = ''
     api.resetCsrf()
     useAdminNavigationStore().clear()
-    if (['pending_2fa', 'enrollment_required'].includes(result.state)) {
+    if (
+      result.securityRecommended ||
+      ['pending_2fa', 'enrollment_required'].includes(result.state)
+    ) {
       password.value = ''
       await router.replace('/admin/security')
       return
@@ -63,7 +66,11 @@ async function loginPasskey() {
     const result = await passkeyCeremony('login')
     toast.success(() => t('security.identityConfirmed'))
     useAdminNavigationStore().clear()
-    await router.replace(result.state === 'authenticated' ? '/admin' : '/admin/security')
+    await router.replace(
+      result.state === 'authenticated' && !result.recommendationsPending
+        ? '/admin'
+        : '/admin/security',
+    )
   } catch (cause) {
     error.value = cause
     toast.error(() => formatApiError(cause))

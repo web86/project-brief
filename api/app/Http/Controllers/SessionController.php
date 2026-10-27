@@ -18,7 +18,7 @@ class SessionController extends Controller
         }
         if ($request->user()?->workspaceMembers()->active()->exists()) {
             $context = app(CurrentWorkspace::class);
-            $state = ['authenticated' => true, 'type' => 'admin', 'workspace' => $context->state($context->resolve($request))];
+            $state = ['authenticated' => true, 'type' => 'admin', 'securityRecommended' => app(AccountSecurity::class)->recommendationsPending($request->user()), 'workspace' => $context->state($context->resolve($request))];
         } elseif ($access = $clients->resolve($request)) {
             $state = ['authenticated' => true, 'type' => 'client', 'project' => ['id' => $access->project->uuid]];
         } else {

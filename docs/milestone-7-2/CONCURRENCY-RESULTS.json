@@ -1,0 +1,90 @@
+{
+  "passed": 5,
+  "results": [
+    {
+      "kind": "recovery",
+      "workers": 6,
+      "statuses": [
+        200,
+        422,
+        422,
+        422,
+        422,
+        422
+      ],
+      "state": {
+        "passkeys": 1,
+        "recoveryCodes": 0,
+        "links": null
+      }
+    },
+    {
+      "kind": "totp",
+      "workers": 6,
+      "statuses": [
+        422,
+        422,
+        422,
+        422,
+        200,
+        422
+      ],
+      "state": {
+        "passkeys": 1,
+        "recoveryCodes": 1,
+        "links": null
+      }
+    },
+    {
+      "kind": "challenge",
+      "workers": 6,
+      "statuses": [
+        422,
+        422,
+        422,
+        422,
+        200,
+        422
+      ],
+      "state": {
+        "passkeys": 1,
+        "recoveryCodes": 1,
+        "links": null
+      }
+    },
+    {
+      "kind": "delete",
+      "workers": 6,
+      "statuses": [
+        404,
+        423,
+        200,
+        423,
+        423,
+        423
+      ],
+      "state": {
+        "passkeys": 1,
+        "recoveryCodes": 1,
+        "links": null
+      }
+    },
+    {
+      "kind": "acl",
+      "workers": 6,
+      "statuses": [
+        403,
+        403,
+        403,
+        403,
+        403,
+        403
+      ],
+      "state": {
+        "passkeys": 0,
+        "recoveryCodes": 0,
+        "links": 0
+      }
+    }
+  ]
+}

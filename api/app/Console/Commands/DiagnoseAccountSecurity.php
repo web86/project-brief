@@ -17,7 +17,7 @@ class DiagnoseAccountSecurity extends Command
     public function handle(): int
     {
         $schema = [];
-        foreach (['passkeys' => ['id', 'user_id', 'name', 'credential_id', 'credential', 'last_used_at'], 'account_security_challenges' => ['id', 'user_id', 'session_version', 'session_hash', 'purpose', 'options', 'expires_at'], 'users' => ['auth_session_version', 'two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at']] as $table => $columns) {
+        foreach (['passkeys' => ['id', 'user_id', 'name', 'credential_id', 'credential', 'last_used_at'], 'account_security_challenges' => ['id', 'user_id', 'session_version', 'session_hash', 'purpose', 'options', 'expires_at'], 'users' => ['auth_session_version', 'two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'security_recommendations_seen_at']] as $table => $columns) {
             try {
                 $schema[$table] = Schema::hasColumns($table, $columns);
             } catch (Throwable) {

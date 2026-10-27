@@ -40,6 +40,10 @@ class AccountSecurityController extends Controller
             'totp' => $user?->hasEnabledTwoFactorAuthentication() ?? false,
             'recoverySaved' => (bool) $user?->recovery_codes_acknowledged_at,
             'fresh' => $this->security->fresh($request),
+            'setupFresh' => $this->security->setupFresh($request),
+            'recoveryFresh' => $this->security->recoveryFresh($request),
+            'confirmationMethod' => $this->security->fresh($request) ? $request->session()->get('security.step_up.method') : null,
+            'recommendationsPending' => $user ? $this->security->recommendationsPending($user) : false,
             'passkeys' => $user ? $user->passkeys()->orderBy('id')->get()->map(fn (Passkey $key) => ['id' => $key->id, 'name' => $key->name, 'createdAt' => $key->created_at?->toISOString(), 'lastUsedAt' => $key->last_used_at?->toISOString()]) : [],
         ])->header('Cache-Control', 'no-store');
     }
@@ -66,19 +70,20 @@ class AccountSecurityController extends Controller
     public function confirm(Request $request): JsonResponse
     {
         $data = $this->factorInput($request);
-        $request->validate(['current_password' => ['required', 'string', 'max:1024']]);
+        $request->validate(['current_password' => ['nullable', 'string', 'max:1024']]);
         $user = DB::transaction(function () use ($request, $data): User {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            $this->security->valid(Hash::check($request->string('current_password')->toString(), $user->password));
-            if ($user->isWorkspaceOwner() && $user->hasEnabledTwoFactorAuthentication()) {
+            if ($user->hasEnabledTwoFactorAuthentication()) {
                 $this->security->valid($this->security->verifyFactor($user, $data));
+            } else {
+                $this->security->valid(Hash::check($request->string('current_password')->toString(), $user->password));
             }
 
             return $user;
         });
-        $this->security->confirm($request, $user, $user->isWorkspaceOwner() && $user->hasEnabledTwoFactorAuthentication() ? 'mfa' : 'password');
         $request->session()->regenerate(true);
         $request->session()->regenerateToken();
+        $this->security->confirm($request, $user, $user->hasEnabledTwoFactorAuthentication() ? 'mfa' : 'password');
 
         return $this->show($request);
     }
@@ -90,10 +95,10 @@ class AccountSecurityController extends Controller
 
     public function setupTotp(Request $request, TwoFactorAuthenticationProvider $provider): JsonResponse
     {
-        $this->security->requireFresh($request);
+        abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
         $user = DB::transaction(function () use ($request, $provider): User {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($user->isWorkspaceOwner(), 403);
+            abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
             if (! $user->pending_two_factor_secret) {
                 $user->forceFill(['pending_two_factor_secret' => Fortify::currentEncrypter()->encrypt($provider->generateSecretKey(32))])->save();
             }
@@ -108,11 +113,11 @@ class AccountSecurityController extends Controller
 
     public function confirmTotp(Request $request): JsonResponse
     {
-        $this->security->requireFresh($request);
+        abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
         $request->validate(['code' => ['required', 'string', 'regex:/^\d{6}$/D']]);
         $codes = DB::transaction(function () use ($request): array {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($user->isWorkspaceOwner(), 403);
+            abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
             $this->security->valid($user->pending_two_factor_secret && $this->security->verifyTotp($user, $user->pending_two_factor_secret, $request->input('code'), true));
             $user->forceFill(['two_factor_secret' => $user->pending_two_factor_secret, 'pending_two_factor_secret' => null, 'two_factor_confirmed_at' => now()])->save();
             $codes = $this->security->recoveryCodes($user);
@@ -122,6 +127,7 @@ class AccountSecurityController extends Controller
                 $request->session()->put('security.operator_recovery', true);
             }
             $this->security->changed($user, $request, 'totp_confirmed');
+            $this->security->grantRecovery($request, $user);
 
             return $codes;
         });
@@ -131,13 +137,15 @@ class AccountSecurityController extends Controller
 
     public function recovery(Request $request): JsonResponse
     {
-        $this->security->requireFresh($request);
+        abort_unless($request->isMethod('POST') ? $this->security->fresh($request) : $this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
         $codes = DB::transaction(function () use ($request): array {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($user->isWorkspaceOwner() && $user->hasEnabledTwoFactorAuthentication(), 403);
+            abort_unless($request->isMethod('POST') ? $this->security->fresh($request) : $this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
+            abort_unless($user->hasEnabledTwoFactorAuthentication(), 403);
             if ($request->isMethod('POST')) {
                 $codes = $this->security->recoveryCodes($user);
                 $this->security->changed($user, $request, 'recovery_codes_regenerated');
+                $this->security->grantRecovery($request, $user);
 
                 return $codes;
             }
@@ -150,11 +158,14 @@ class AccountSecurityController extends Controller
 
     public function acknowledgeRecovery(Request $request): JsonResponse
     {
-        $this->security->requireFresh($request);
+        abort_unless($this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
         DB::transaction(function () use ($request): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($user->isWorkspaceOwner() && $user->hasEnabledTwoFactorAuthentication() && count($user->recoveryCodes()) > 0, 403);
-            $user->forceFill(['recovery_codes_acknowledged_at' => now()])->save();
+            abort_unless($this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
+            abort_unless($user->hasEnabledTwoFactorAuthentication() && count($user->recoveryCodes()) > 0, 403);
+            $user->forceFill(['recovery_codes_acknowledged_at' => now(), 'security_recovery_token_hash' => null, 'security_recovery_expires_at' => null])->save();
+            DB::table('account_security_challenges')->where('id', $request->session()->get('security.recovery_grant.id'))->where('user_id', $user->id)->where('purpose', 'recovery_enrollment')->delete();
+            $request->session()->forget(['security.recovery_grant', 'security.operator_recovery']);
         });
 
         return $this->show($request);
@@ -199,6 +210,7 @@ class AccountSecurityController extends Controller
             if ($purpose === 'register') {
                 $user = DB::transaction(function () use ($request, $row, $credential): User {
                     $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+                    $this->security->requireFresh($request);
                     $this->security->valid((int) $row->user_id === $user->id && (int) $row->session_version === (int) $user->auth_session_version, 'PK_SESSION_CHANGED');
                     abort_if($user->isWorkspaceOwner() && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->recovery_codes_acknowledged_at), 403);
                     abort_if($user->passkeys()->count() >= 20, 422);
@@ -252,9 +264,9 @@ class AccountSecurityController extends Controller
             $this->security->complete($request, $user, 'passkey_uv');
             $this->security->audit($user, 'passkey_login');
         } elseif ($purpose === 'confirm') {
-            $this->security->confirm($request, $user, 'passkey_uv');
             $request->session()->regenerate(true);
             $request->session()->regenerateToken();
+            $this->security->confirm($request, $user, 'passkey_uv');
         }
 
         return $this->show($request);
@@ -266,6 +278,7 @@ class AccountSecurityController extends Controller
         $request->validate(['name' => ['required', 'string', 'max:100']]);
         DB::transaction(function () use ($request, $id): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            $this->security->requireFresh($request);
             $user->passkeys()->whereKey($id)->firstOrFail()->update(['name' => $request->input('name')]);
             $this->security->audit($user, 'passkey_renamed');
         });
@@ -279,9 +292,41 @@ class AccountSecurityController extends Controller
         DB::transaction(function () use ($request, $id): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             $key = $user->passkeys()->whereKey($id)->firstOrFail();
-            abort_if($user->isWorkspaceOwner() && $user->passkeys()->count() <= 1, 409, trans('security.last_passkey'));
+            $this->security->requireFresh($request);
+            if ($user->passkeys()->count() <= 1) {
+                $this->security->valid(Hash::check($request->string('current_password')->toString(), $user->password), 'SEC_ALTERNATIVE_REQUIRED');
+                abort_if($user->isWorkspaceOwner() && ! $this->security->enrolled($user), 409);
+                if ($user->hasEnabledTwoFactorAuthentication() && $request->session()->get('security.step_up.method') !== 'mfa') {
+                    $this->security->valid($this->security->verifyFactor($user, $this->factorInput($request)));
+                }
+            }
             $key->delete();
             $this->security->changed($user, $request, 'passkey_deleted');
+        });
+
+        return $this->show($request);
+    }
+
+    public function acknowledgeRecommendations(Request $request): JsonResponse
+    {
+        $request->user()->forceFill(['security_recommendations_seen_at' => now()])->save();
+
+        return $this->show($request);
+    }
+
+    public function disableTotp(Request $request): JsonResponse
+    {
+        $this->security->requireFresh($request);
+        DB::transaction(function () use ($request): void {
+            $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            if ($user->isWorkspaceOwner()) {
+                throw new AccountSecurityFailure('SEC_OWNER_TOTP_REQUIRED', 403);
+            }
+            $this->security->requireFresh($request);
+            $this->security->valid(Hash::check($request->string('current_password')->toString(), $user->password), 'SEC_ALTERNATIVE_REQUIRED');
+            $user->forceFill(['two_factor_secret' => null, 'pending_two_factor_secret' => null, 'two_factor_confirmed_at' => null, 'two_factor_recovery_codes' => null, 'recovery_codes_acknowledged_at' => null, 'last_totp_step' => null])->save();
+            $this->security->confirm($request, $user, 'password');
+            $this->security->changed($user, $request, 'totp_disabled');
         });
 
         return $this->show($request);

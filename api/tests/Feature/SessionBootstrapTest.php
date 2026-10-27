@@ -24,7 +24,7 @@ class SessionBootstrapTest extends TestCase
         $user = User::factory()->owner()->create();
         $workspace = $user->workspaceMembers()->first()->workspace;
         $this->actingAs($user);
-        $this->getJson('/api/session')->assertOk()->assertExactJson(['authenticated' => true, 'type' => 'admin', 'workspace' => ['id' => $workspace->uuid, 'name' => $workspace->name]]);
+        $this->getJson('/api/session')->assertOk()->assertExactJson(['authenticated' => true, 'securityRecommended' => false, 'type' => 'admin', 'workspace' => ['id' => $workspace->uuid, 'name' => $workspace->name]]);
         $this->postJson('/api/admin/logout')->assertOk();
         $this->getJson('/api/session')->assertExactJson(['authenticated' => false]);
         $this->getJson('/api/admin/me')->assertUnauthorized();

@@ -59,6 +59,9 @@ $code = app(Google2FA::class)->getCurrentOtp($secret);
 $codes = $controller->confirmTotp(packageRequest('/api/security/totp/confirm', ['code' => $code]))->getData(true)['codes'];
 packageCheck(count($codes) === 8, 'Recovery code setup failed');
 $controller->acknowledgeRecovery(packageRequest('/api/security/recovery-codes/acknowledge'));
+$state = $controller->show(packageRequest('/api/security/status'))->getData(true);
+packageCheck($state['state'] === 'authenticated' && ! $state['fresh'] && count($state['passkeys']) === 0, 'TOTP owner must be admitted without Passkey; enrollment must not issue sensitive proof');
+$controller->confirm(packageRequest('/api/security/confirm', ['recovery_code' => $codes[7]]));
 $step = $owner->fresh()->last_totp_step;
 $options = $controller->options(packageRequest('/api/security/passkey/register/options'), 'register')->getData(true)['options'];
 packageCheck($options['rp']['id'] === 'brief.web86.site', 'Wrong packaged RP ID');
@@ -71,7 +74,7 @@ try {
     echo json_encode(['passed' => false, 'php' => PHP_VERSION, 'failureClass' => $exception::class, 'status' => $exception instanceof ValidationException ? $exception->status : 500, 'hasCodeValidationError' => $exception instanceof ValidationException && isset($exception->errors()['code']), 'runtimeBasePresent' => class_exists(Credential::class)], JSON_THROW_ON_ERROR).PHP_EOL;
     exit(1);
 }
-packageCheck($result['state'] === 'authenticated' && $result['fresh'] === true, 'Packaged enrollment did not finish');
+packageCheck($result['state'] === 'authenticated' && $result['fresh'] === false, 'Packaged enrollment did not finish');
 packageCheck($owner->passkeys()->count() === 1 && $owner->fresh()->last_totp_step === $step, 'Stored credential / TOTP replay counter mismatch');
 $reused = DB::transaction(function () use ($owner, $security, $code): bool {
     $locked = User::whereKey($owner->id)->lockForUpdate()->firstOrFail();
@@ -79,4 +82,4 @@ $reused = DB::transaction(function () use ($owner, $security, $code): bool {
     return $security->verifyFactor($locked, ['code' => $code]);
 });
 packageCheck(! $reused, 'Enrollment TOTP must not be reusable');
-echo json_encode(['passed' => true, 'php' => PHP_VERSION, 'origin' => 'https://brief.web86.site', 'rpId' => $options['rp']['id'], 'productionVendor' => ! class_exists(TestCase::class), 'flow' => 'TOTP -> saved recovery -> signed UV registration -> authenticated; TOTP replay rejected'], JSON_THROW_ON_ERROR).PHP_EOL;
+echo json_encode(['passed' => true, 'php' => PHP_VERSION, 'origin' => 'https://brief.web86.site', 'rpId' => $options['rp']['id'], 'productionVendor' => ! class_exists(TestCase::class), 'flow' => 'TOTP -> saved recovery -> full access without Passkey -> fresh recovery proof -> signed UV registration -> proof cleared; TOTP replay rejected'], JSON_THROW_ON_ERROR).PHP_EOL;

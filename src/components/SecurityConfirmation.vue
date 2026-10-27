@@ -39,6 +39,7 @@ async function confirm(passkey = false) {
             : '/api/security/confirm',
           {
             method: 'POST',
+            securityRetry: false,
             body: {
               current_password: password.value,
               [recovery.value ? 'recovery_code' : 'code']: code.value || null,
@@ -61,7 +62,7 @@ async function confirm(passkey = false) {
 <template>
   <form class="admin-form" @submit.prevent="confirm()">
     <p>{{ t(pending ? 'security.challengeHelp' : 'security.stepUpHelp') }}</p>
-    <div v-if="!pending || status?.signedIn" class="field">
+    <div v-if="status && !status.totp && (!pending || status.signedIn)" class="field">
       <label for="security-password">{{ t('account.currentPassword') }}</label>
       <input
         id="security-password"
@@ -72,7 +73,7 @@ async function confirm(passkey = false) {
         required
       />
     </div>
-    <template v-if="pending || (status?.owner && status?.totp)">
+    <template v-if="status && (pending || status.totp)">
       <div class="field">
         <label for="security-code">{{
           t(recovery ? 'security.recoveryCode' : 'security.code')
@@ -92,14 +93,14 @@ async function confirm(passkey = false) {
       </button>
     </template>
     <SecurityError :error="error" />
-    <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
+    <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy || !status">{{
       t('security.confirm')
     }}</LoadingButton>
     <button
-      v-if="passkeysSupported()"
+      v-if="status && passkeysSupported()"
       class="button secondary"
       type="button"
-      :disabled="busy"
+      :disabled="busy || !status"
       @click="confirm(true)"
     >
       {{ t('security.signInPasskey') }}

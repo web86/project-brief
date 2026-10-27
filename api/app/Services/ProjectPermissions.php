@@ -30,16 +30,16 @@ class ProjectPermissions
             array_intersect_key(array_map(fn ($value) => $value === true, $permissions ?? []), self::DEFAULTS));
     }
 
-    public static function effective(Request $request, Project $project): array
+    public static function effective(Request $request, Project $project, bool $lock = false): array
     {
         $context = $request->attributes->get(self::class);
-        if ($context === null) {
-            $member = app(CurrentWorkspace::class)->resolve($request);
+        if ($context === null || $lock) {
+            $member = app(CurrentWorkspace::class)->resolve($request, $lock);
             $context = [
                 'workspace' => $member->workspace_id,
                 'owner' => $member->role === 'owner',
                 'projects' => $member->role === 'owner' ? [] : ProjectMember::where('workspace_id', $member->workspace_id)
-                    ->where('workspace_member_id', $member->id)->get()->keyBy('project_id'),
+                    ->where('workspace_member_id', $member->id)->when($lock, fn ($query) => $query->lockForUpdate())->get()->keyBy('project_id'),
             ];
             $request->attributes->set(self::class, $context);
         }
@@ -53,9 +53,9 @@ class ProjectPermissions
         return self::normalize($assignment->permissions);
     }
 
-    public static function authorize(Request $request, Project $project, string $permission): void
+    public static function authorize(Request $request, Project $project, string $permission, bool $lock = false): void
     {
-        if (! (self::effective($request, $project)[$permission] ?? false)) {
+        if (! (self::effective($request, $project, $lock)[$permission] ?? false)) {
             throw new HttpResponseException(response()->json(['code' => 'project_permission_denied', 'message' => 'Ask the workspace owner for access.'], 403));
         }
     }

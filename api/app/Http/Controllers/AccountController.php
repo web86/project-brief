@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\AccountMail;
 use App\Services\AccountProfile;
+use App\Services\AccountSecurity;
 use App\Services\SupportedLocales;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -41,6 +42,7 @@ class AccountController extends Controller
         $email = mb_strtolower(trim($data['email']));
         $sent = DB::transaction(function () use ($request, $email, $mail, $data): bool {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            app(AccountSecurity::class)->requireFresh($request);
             if (! Hash::check($data['current_password'], $user->password)) {
                 throw ValidationException::withMessages(['current_password' => ['Incorrect password.']]);
             }
@@ -59,7 +61,9 @@ class AccountController extends Controller
     public function cancelEmail(Request $request, AccountProfile $profile): JsonResponse
     {
         DB::transaction(function () use ($request, $profile): void {
-            User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail()->forceFill($profile->clearEmail())->save();
+            $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            app(AccountSecurity::class)->requireFresh($request);
+            $user->forceFill($profile->clearEmail())->save();
         });
 
         return $this->show($request, $profile);
@@ -71,6 +75,7 @@ class AccountController extends Controller
         try {
             $old = DB::transaction(function () use ($request, $data, $profile): string {
                 $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+                app(AccountSecurity::class)->requireFresh($request);
                 abort_unless($user->pending_email && $user->email_change_expires_at?->isFuture() && hash_equals((string) $user->email_change_token_hash, hash('sha256', $data['token'])), 410);
                 if (User::whereRaw('LOWER(email) = ?', [$user->pending_email])->where('id', '!=', $user->id)->exists()) {
                     throw ValidationException::withMessages(['email' => ['Email is already in use.']]);
@@ -95,6 +100,7 @@ class AccountController extends Controller
         $data = $request->validate(['current_password' => ['required', 'string', 'max:1024', 'current_password:web'], 'password' => ['required', 'string', 'min:9', 'max:1024', 'confirmed']]);
         DB::transaction(function () use ($request, $data, $profile): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            app(AccountSecurity::class)->requireFresh($request);
             if (! Hash::check($data['current_password'], $user->password)) {
                 throw ValidationException::withMessages(['current_password' => ['Incorrect password.']]);
             }

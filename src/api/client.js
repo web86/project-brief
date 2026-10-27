@@ -109,18 +109,11 @@ export function createApiClient({
       response.status === 423 &&
       data.code === 'security_step_up_required' &&
       securityRetry &&
-      !path.startsWith('/api/security/')
+      !/^\/api\/security\/(?:confirm|challenge|passkey\/(?:login|confirm)(?:\/|$))/.test(path)
     ) {
       if (await requestStepUp()) {
         csrf = null
-        return request(path, {
-          method,
-          body,
-          responseType,
-          timeoutMs: requestTimeoutMs,
-          signal: externalSignal,
-          securityRetry: false,
-        })
+        throw new ApiError(423, t('security.retryAction'), {}, 'security_retry_required')
       }
     }
     if (!response.ok) {

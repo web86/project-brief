@@ -67,6 +67,8 @@ Route::prefix('/api/security')->controller(AccountSecurityController::class)->gr
     }
     Route::middleware(['auth', 'throttle:account-security'])->group(function (): void {
         Route::post('/confirm', 'confirm')->block();
+        Route::post('/recommendations/acknowledge', 'acknowledgeRecommendations')->block();
+        Route::delete('/totp', 'disableTotp')->block();
         Route::post('/totp/setup', 'setupTotp')->block();
         Route::post('/totp/confirm', 'confirmTotp')->block();
         Route::match(['GET', 'POST'], '/recovery-codes', 'recovery')->block();
@@ -119,10 +121,12 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
     Route::get('/', [ProjectController::class, 'index']);
     Route::post('/', [ProjectController::class, 'store']);
     Route::get('/trash', [ProjectTrashController::class, 'index']);
-    Route::delete('/trash', [ProjectTrashController::class, 'empty']);
+    Route::post('/trash/confirmation', [ProjectTrashController::class, 'confirmDeletion'])->middleware('throttle:account-security')->block();
+    Route::delete('/trash', [ProjectTrashController::class, 'empty'])->block();
     Route::post('/{projectUuid}/trash', [ProjectTrashController::class, 'trash']);
     Route::post('/{projectUuid}/restore', [ProjectTrashController::class, 'restore']);
-    Route::delete('/{projectUuid}/permanent', [ProjectTrashController::class, 'destroy']);
+    Route::post('/{projectUuid}/permanent/confirmation', [ProjectTrashController::class, 'confirmDeletion'])->middleware('throttle:account-security')->block();
+    Route::delete('/{projectUuid}/permanent', [ProjectTrashController::class, 'destroy'])->block();
     Route::get('/{project}', [ProjectController::class, 'show']);
     Route::patch('/{project}', [ProjectController::class, 'update'])->middleware('project.permission:manage_project_settings');
 });

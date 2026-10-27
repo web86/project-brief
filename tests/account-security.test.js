@@ -43,7 +43,7 @@ for (const state of ['pending_2fa', 'enrollment_required']) {
   })
 }
 
-test('step-up retries only a denied mutation after explicit confirmation with fresh CSRF', async () => {
+test('step-up requires explicit resubmission and never automatically replays a denied mutation', async () => {
   let mutations = 0,
     tokens = 0
   const response = (status, data) => ({ ok: status < 400, status, json: async () => data })
@@ -60,7 +60,9 @@ test('step-up retries only a denied mutation after explicit confirmation with fr
   while (!stepUpRequest.value) await new Promise((resolve) => setImmediate(resolve))
   assert.equal(mutations, 1)
   stepUpRequest.value(true)
-  await pending
+  await assert.rejects(pending, (error) => error.code === 'security_retry_required')
+  assert.equal(mutations, 1)
+  await client.request('/api/admin/integrations/tokens', { method: 'POST', body: { name: 'CI' } })
   assert.equal(mutations, 2)
   assert.equal(tokens, 2)
 })
@@ -256,4 +258,23 @@ test('safe diagnostic codes have specific localized user messages', () => {
   } finally {
     locale.value = previous
   }
+})
+
+test('optional security recommendation routes once without changing authentication', async () => {
+  assert.equal(
+    await appDestination(async () => ({
+      authenticated: true,
+      type: 'admin',
+      securityRecommended: true,
+    })),
+    '/admin/security',
+  )
+  assert.equal(
+    await appDestination(async () => ({
+      authenticated: true,
+      type: 'admin',
+      securityRecommended: false,
+    })),
+    '/admin',
+  )
 })

@@ -7,10 +7,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class WorkspaceMember extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        $invalidate = function (self $member): void {
+            if (Schema::hasTable('account_security_challenges')) {
+                DB::table('account_security_challenges')->whereIn('user_id', array_filter([$member->user_id, $member->getOriginal('user_id')]))->delete();
+            }
+        };
+        static::saving(function (self $member) use ($invalidate): void {
+            if (! $member->exists || $member->isDirty(['role', 'status', 'can_create_projects', 'workspace_id', 'user_id'])) {
+                $invalidate($member);
+            }
+        });
+        static::deleting($invalidate);
+    }
 
     protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'can_create_projects'];
 

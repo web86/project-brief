@@ -111,8 +111,13 @@ try {
       await route.fulfill({ response })
     })
   }
-  await context.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+  await context.addInitScript(() => {
+    if (!localStorage.getItem('projectbrief.locale'))
+      localStorage.setItem('projectbrief.locale', 'en')
+  })
   const page = await context.newPage()
+  page.setDefaultTimeout(20000)
+  page.setDefaultNavigationTimeout(20000)
   activePage = page
   page.on('response', (response) => {
     if (response.url().includes('/api/'))
@@ -177,7 +182,26 @@ try {
   const recoveryCodes = await page.locator('.security-codes code').allTextContents()
   assert.equal(recoveryCodes.length, 8)
   await page.getByRole('button', { name: 'I have saved my recovery codes', exact: true }).click()
+  assert.equal((await request('/api/security/status')).body.state, 'authenticated')
+  assert.equal((await request('/api/security/status')).body.fresh, false)
+  assert.equal((await request('/api/admin/projects')).status, 200)
+  await page.getByRole('button', { name: 'Later — continue to workspace', exact: true }).waitFor()
+  results.push('Owner with saved TOTP recovery has full access without a Passkey')
   await page.getByLabel('Device name', { exact: true }).fill('Virtual authenticator')
+  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
+  const stepUp = page.getByRole('dialog')
+  await stepUp.waitFor()
+  await stepUp.getByRole('button', { name: 'Use a recovery code', exact: true }).waitFor()
+  assert.equal(await stepUp.locator('input[type="password"]').count(), 0)
+  await stepUp.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
+  await stepUp.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[7])
+  await stepUp.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+  await stepUp.waitFor({ state: 'hidden' })
+  await page.locator('.toast-info').filter({ hasText: 'submit it again' }).waitFor()
+  assert.equal((await request('/api/security/status')).body.passkeys.length, 0)
+  results.push(
+    'TOTP/recovery step-up needs no password and never automatically retries registration',
+  )
   await page.evaluate(() => {
     globalThis.m7OriginalCreate = navigator.credentials.create
     navigator.credentials.create = () =>
@@ -189,13 +213,13 @@ try {
     .filter({ hasText: 'cancelled or timed out' })
     .waitFor()
   await page.locator('.toast-error').filter({ hasText: 'cancelled or timed out' }).waitFor()
-  assert.equal((await request('/api/security/status')).body.state, 'enrollment_required')
+  assert.equal((await request('/api/security/status')).body.state, 'authenticated')
   assert.equal((await request('/api/security/status')).body.passkeys.length, 0)
   await page.evaluate(() => {
     navigator.credentials.create = globalThis.m7OriginalCreate
     delete globalThis.m7OriginalCreate
   })
-  results.push('Cancelled WebAuthn returns to restricted setup and permits retry')
+  results.push('Cancelled optional WebAuthn preserves account access and permits explicit retry')
   // The authenticator creates a credential but an expired server challenge prevents storage.
   // Retrying must create a new challenge and must not reuse the accepted enrollment TOTP.
   let rejectOnce = true
@@ -215,21 +239,21 @@ try {
     .waitFor()
   await page.locator('.toast-error').filter({ hasText: 'expired or was replaced' }).waitFor()
   const afterFailure = (await request('/api/security/status')).body
-  assert.equal(afterFailure.state, 'enrollment_required')
+  assert.equal(afterFailure.state, 'authenticated')
   assert.equal(afterFailure.passkeys.length, 0)
   assert.equal(afterFailure.fresh, true)
   assert.equal(afterFailure.totp, true)
   assert.equal(afterFailure.recoverySaved, true)
   await page.unroute('**/api/security/passkey/register')
   results.push(
-    'Created but unsaved credential: real challenge rejection, toast + form reference, restricted state and safe fresh retry',
+    'Created but unsaved credential: real challenge rejection, toast + form reference, full access and safe fresh retry',
   )
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
   await page.locator('.toast-success').filter({ hasText: 'Passkey registered.' }).waitFor()
   assert.equal((await request('/api/admin/projects')).status, 200)
   results.push(
-    'Owner password: restricted enrollment, reload, real TOTP, saved recovery, real UV Passkey, unlocked workspace',
+    'Owner password: restricted enrollment, reload, real TOTP, saved recovery, fresh recovery step-up, optional real UV Passkey, unlocked workspace',
   )
   for (const language of LANGUAGE_CATALOG) {
     for (const [width, scheme] of [
@@ -247,13 +271,15 @@ try {
       )
       await page.reload()
       await page
-        .getByRole('heading', { name: language.messages.security.passkeys, exact: true })
+        .getByRole('heading', { name: language.messages.security.passkeys, exact: false })
         .waitFor()
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
         `overflow ${language.code} ${width}`,
       )
+      await page.locator('#bootstrap-splash').waitFor({ state: 'detached' })
+      assert.equal(await page.evaluate(() => document.documentElement.lang), language.code)
       await page.screenshot({
         path: path.join(output, `${language.code}-${width}-${scheme}.png`),
         fullPage: true,
@@ -271,6 +297,42 @@ try {
   await page.emulateMedia({ colorScheme: 'light' })
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'light')
   results.push('System theme follows dark/light device changes on the security screen')
+  await page.goto(origin + '/admin/projects/' + fixture.project + '/team')
+  for (const language of LANGUAGE_CATALOG) {
+    for (const [width, scheme] of [
+      [1440, 'light'],
+      [390, 'dark'],
+    ]) {
+      await page.setViewportSize({ width, height: 1050 })
+      await page.emulateMedia({ colorScheme: scheme })
+      await page.evaluate(
+        ({ lang, scheme }) => {
+          localStorage.setItem('projectbrief.locale', lang)
+          localStorage.setItem('projectbrief.theme', scheme)
+        },
+        { lang: language.code, scheme },
+      )
+      await page.reload()
+      await page.locator('.team-member').first().waitFor()
+      const text = await page.locator('.team-member').first().textContent()
+      assert.ok(text.includes(language.messages.security.authenticator))
+      assert.ok(text.includes(language.messages.security.configured))
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      )
+      await page.locator('#bootstrap-splash').waitFor({ state: 'detached' })
+      assert.equal(await page.evaluate(() => document.documentElement.lang), language.code)
+      await page.screenshot({
+        path: path.join(output, `team-${language.code}-${width}-${scheme}.png`),
+        fullPage: true,
+      })
+    }
+  }
+  await page.evaluate(() => localStorage.setItem('projectbrief.locale', 'en'))
+  results.push(
+    'Owner team: textual factor indicators, RU/EN/TR/ZH-CN, desktop/mobile and light/dark without overflow',
+  )
   await request('/api/admin/logout', 'POST')
   await page.goto(origin + '/admin/login')
   await page.getByRole('button', { name: 'Sign in with a Passkey', exact: true }).click()
@@ -299,9 +361,46 @@ try {
   await page.getByLabel('Email', { exact: true }).fill('security-developer@example.test')
   await page.getByLabel('Password', { exact: true }).fill('Developer-test-password!')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await page.waitForURL(origin + '/admin/security')
+  await page.getByRole('button', { name: 'Later — continue to workspace', exact: true }).click()
   await page.waitForURL(origin + '/admin')
   assert.equal((await request('/api/security/status')).body.totp, false)
   results.push('Developer password remains usable without TOTP or Passkey')
+  await page.goto(origin + '/admin/account/security')
+  await page.getByRole('button', { name: 'Set up authenticator', exact: true }).click()
+  await page.locator('#totp-confirm').waitFor()
+  await page
+    .locator('#totp-confirm')
+    .fill(php(['tests/account-security-fixture.php', 'code', 'developer'], true).code)
+  await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+  await page.locator('.security-codes code').first().waitFor()
+  const developerCodes = await page.locator('.security-codes code').allTextContents()
+  await page.getByRole('button', { name: 'I have saved my recovery codes', exact: true }).click()
+  await page.getByRole('button', { name: 'Turn off authenticator', exact: true }).waitFor()
+  await request('/api/admin/logout', 'POST')
+  await page.goto(origin + '/admin/login')
+  await page.getByLabel('Email', { exact: true }).fill('security-developer@example.test')
+  await page.getByLabel('Password', { exact: true }).fill('Developer-test-password!')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await page.waitForURL(origin + '/admin/security')
+  assert.equal((await request('/api/admin/projects')).status, 403)
+  await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
+  await page.getByLabel('Recovery code', { exact: true }).fill(developerCodes[0])
+  await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+  await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
+  assert.equal((await request('/api/admin/projects')).status, 200)
+  await page.goto(origin + '/admin/account/security')
+  await page.getByRole('button', { name: 'Turn off authenticator', exact: true }).click()
+  await page.locator('#disable-totp-password').fill('Developer-test-password!')
+  await page
+    .locator('form:has(#disable-totp-password)')
+    .getByRole('button', { name: 'Turn off authenticator', exact: true })
+    .click()
+  await page.getByRole('button', { name: 'Set up authenticator', exact: true }).waitFor()
+  assert.equal((await request('/api/security/status')).body.totp, false)
+  results.push(
+    'Developer voluntarily enrolls TOTP, password login requires recovery, fresh MFA + password alternative permits disabling',
+  )
   await request('/api/admin/logout', 'POST')
   await page.goto(origin + '/access/' + fixture.clientToken)
   assert.equal((await request('/api/session')).body.type, 'client')

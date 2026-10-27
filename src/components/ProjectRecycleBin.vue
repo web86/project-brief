@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { toast } from '../services/toast.js'
 import { api } from '../api/client.js'
 import { t, formatDate, formatApiError } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
@@ -61,17 +62,28 @@ async function remove() {
   error.value = null
   const pending = action.value
   try {
+    const confirmation = await api.request(
+      pending.project
+        ? `/api/admin/projects/${pending.project.id}/permanent/confirmation`
+        : '/api/admin/projects/trash/confirmation',
+      { method: 'POST', body: { projectIds: pending.ids } },
+    )
     await api.request(
       pending.project
         ? `/api/admin/projects/${pending.project.id}/permanent`
         : '/api/admin/projects/trash',
-      { method: 'DELETE', body: { confirmed: true, projectIds: pending.ids } },
+      {
+        method: 'DELETE',
+        body: { confirmed: true, projectIds: pending.ids, confirmation: confirmation.confirmation },
+      },
     )
     if (!current()) return
     action.value = null
     await refresh()
   } catch (cause) {
     if (current()) {
+      if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
+      else toast.error(() => formatApiError(cause))
       error.value = cause
       if (cause.status === 409) {
         confirmed.value = false

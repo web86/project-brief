@@ -17,9 +17,12 @@ class CurrentWorkspace
         return $request->user()->workspaceMembers()->active()->getQuery();
     }
 
-    public function resolve(Request $request): WorkspaceMember
+    public function resolve(Request $request, bool $lock = false): WorkspaceMember
     {
         $query = $this->memberships($request)->with('workspace');
+        if ($lock) {
+            $query->lockForUpdate();
+        }
         if ($request->session()->has(self::SESSION_KEY)) {
             $selected = $request->session()->get(self::SESSION_KEY);
             abort_unless(is_int($selected) && $selected > 0, 403, 'Invalid workspace selection.');

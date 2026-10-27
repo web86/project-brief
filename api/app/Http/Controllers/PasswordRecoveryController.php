@@ -43,7 +43,7 @@ class PasswordRecoveryController extends Controller
 
             return Password::broker('users')->reset(Arr::only($data, ['email', 'token', 'password', 'password_confirmation']), function (User $user, string $password) use ($profile, $data, $request): void {
                 $security = app(AccountSecurity::class);
-                if ($user->isWorkspaceOwner() && $user->hasEnabledTwoFactorAuthentication()) {
+                if ($user->hasEnabledTwoFactorAuthentication()) {
                     $fresh = $request->user()?->id === $user->id && $security->fresh($request);
                     $security->valid($fresh || $security->verifyFactor($user, $data));
                 }

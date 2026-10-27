@@ -1,5 +1,19 @@
 export default {
   security: {
+    optional: 'Optional',
+    alternativeRequired:
+      'Confirm your current password to prove an alternative sign-in method. If your confirmation used a Passkey and TOTP is enabled, also provide a new authenticator code or unused recovery code.',
+    ownerTotpRequired:
+      'Workspace owners must keep an authenticator. Set up a replacement to change it.',
+    confirmResourceAgain:
+      'The deletion confirmation expired or its target changed. Review the selected items and confirm again.',
+    retryAction: 'Identity confirmed. Review the action and submit it again.',
+    alternativeCode: 'New authenticator code or unused recovery code',
+    disableTotp: 'Turn off authenticator',
+    later: 'Later — continue to workspace',
+    notConfigured: 'Not configured',
+    configured: 'Configured',
+    required: 'Required',
     passkeyCancelled: 'Passkey creation or verification was cancelled or timed out. Try again.',
     passkeyExists:
       'This Passkey is already registered. Refresh the device list or choose another authenticator.',
@@ -27,11 +41,11 @@ export default {
     identityConfirmed: 'Identity confirmed.',
 
     resetOwnerHelp:
-      'Owners with an authenticator must also enter an authenticator code or a recovery code.',
+      'If your account has an authenticator, enter an authenticator code or an unused recovery code.',
     title: 'Account security',
     signInPasskey: 'Sign in with a Passkey',
     challengeHelp: 'Enter your authenticator code or a recovery code to finish signing in.',
-    stepUpHelp: 'Confirm your identity. Confirmation lasts for 10 minutes.',
+    stepUpHelp: 'Confirm your identity. Confirmation lasts for 5 minutes.',
     code: 'Authenticator code',
     recoveryCode: 'Recovery code',
     useRecovery: 'Use a recovery code',
@@ -39,7 +53,7 @@ export default {
     confirm: 'Confirm identity',
     passkeyFailed: 'Passkey verification did not finish. Try again or use your password.',
     enrollmentHelp:
-      'Set up an authenticator, save recovery codes, then add a Passkey. Your workspace becomes available after all steps are complete. You can safely return here later.',
+      'Owners must confirm an authenticator and save recovery codes. Passkeys are optional. You can return to setup later.',
     authenticator: 'Authenticator',
     totpActive: 'Authenticator is active. Add a replacement before retiring the old authenticator.',
     totpHelp: 'Step 1: scan the QR code with an authenticator, then enter its six digit code.',
@@ -56,10 +70,10 @@ export default {
     savedCodes: 'I have saved my recovery codes',
     passkeys: 'Passkeys',
     passkeysRequired:
-      'Step 3: add a Passkey. Owners must keep at least one Passkey and an authenticator.',
+      'Optional and recommended: add a Passkey for sign-in with device verification. You can choose Later.',
     passkeysOptional: 'Optional: add Passkeys to sign in without a password.',
     unsupported:
-      'Passkeys need a supported browser and a secure connection. Use your password to sign in. Setup stays restricted until you can add a Passkey on a compatible device.',
+      'Passkeys need a supported browser and a secure connection. You can continue without a Passkey; owners must still set up an authenticator.',
     finishTotp: 'Confirm your authenticator and save recovery codes first.',
     deviceName: 'Device name',
     addPasskey: 'Add Passkey',
@@ -69,7 +83,7 @@ export default {
     rename: 'Rename',
     remove: 'Remove',
     removeHelp: 'Remove this Passkey? It will no longer work for sign in.',
-    lastPasskey: 'Add another Passkey before removing this one.',
+    lastPasskey: 'Removing your last Passkey requires proof of an alternative sign-in method.',
     continue: 'Continue to workspace',
     operatorToken: 'Operator recovery token',
   },
@@ -962,7 +976,7 @@ export default {
     of: 'of',
     orDragThemHere: 'or drag them here',
     theClient: 'the client',
-    optional: 'optional',
+    optional: 'Optional',
     hourEstimate: 'hour estimate',
     theDeveloper: 'the developer',
     linkActive: 'link active',

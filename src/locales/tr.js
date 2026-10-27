@@ -1,5 +1,19 @@
 export default {
   security: {
+    optional: 'İsteğe bağlı',
+    alternativeRequired:
+      'Alternatif giriş yöntemini doğrulamak için mevcut parolanızı girin. Passkey ile doğrulama yaptıysanız ve TOTP açıksa yeni bir doğrulayıcı kodu veya kullanılmamış kurtarma kodu da girin.',
+    ownerTotpRequired:
+      'Çalışma alanı sahipleri bir doğrulayıcı kullanmalıdır. Değiştirmek için önce yenisini kurun.',
+    confirmResourceAgain:
+      'Silme onayının süresi doldu veya seçilen öğeler değişti. Öğeleri kontrol edip yeniden onaylayın.',
+    retryAction: 'Kimlik doğrulandı. İşlemi kontrol edip yeniden gönderin.',
+    alternativeCode: 'Yeni doğrulayıcı kodu veya kullanılmamış kurtarma kodu',
+    disableTotp: 'Doğrulayıcıyı kapat',
+    later: 'Daha sonra — çalışma alanına geç',
+    notConfigured: 'Yapılandırılmadı',
+    configured: 'Yapılandırıldı',
+    required: 'Zorunlu',
     passkeyCancelled:
       'Passkey oluşturma veya doğrulama iptal edildi ya da zaman aşımına uğradı. Tekrar deneyin.',
     passkeyExists:
@@ -26,11 +40,12 @@ export default {
     securityUpdated: 'Güvenlik ayarları güncellendi.',
     identityConfirmed: 'Kimlik doğrulandı.',
 
-    resetOwnerHelp: 'Doğrulayıcısı olan sahipler doğrulayıcı veya kurtarma kodunu da girmelidir.',
+    resetOwnerHelp:
+      'Hesabınızda doğrulayıcı varsa doğrulayıcı kodunu veya kullanılmamış kurtarma kodunu girin.',
     title: 'Hesap güvenliği',
     signInPasskey: 'Passkey ile giriş yap',
     challengeHelp: 'Girişi tamamlamak için doğrulayıcı kodunu veya kurtarma kodunu girin.',
-    stepUpHelp: 'Kimliğinizi doğrulayın. Onay 10 dakika geçerlidir.',
+    stepUpHelp: 'Kimliğinizi doğrulayın. Onay 5 dakika geçerlidir.',
     code: 'Doğrulayıcı kodu',
     recoveryCode: 'Kurtarma kodu',
     useRecovery: 'Kurtarma kodu kullan',
@@ -38,7 +53,7 @@ export default {
     confirm: 'Kimliği doğrula',
     passkeyFailed: 'Passkey doğrulaması tamamlanmadı. Tekrar deneyin veya parolanızı kullanın.',
     enrollmentHelp:
-      'Doğrulayıcıyı kurun, kurtarma kodlarını kaydedin ve bir Passkey ekleyin. Tüm adımlar tamamlandığında çalışma alanı açılır. Kuruluma daha sonra devam edebilirsiniz.',
+      'Sahipler bir doğrulayıcıyı onaylamalı ve kurtarma kodlarını kaydetmelidir. Passkey isteğe bağlıdır. Kuruluma daha sonra dönebilirsiniz.',
     authenticator: 'Doğrulayıcı',
     totpActive: 'Doğrulayıcı etkin. Eskisini kaldırmadan önce yenisini kurun.',
     totpHelp: '1. adım: QR kodunu doğrulayıcı ile tarayın ve altı haneli kodu girin.',
@@ -55,10 +70,10 @@ export default {
     savedCodes: 'Kurtarma kodlarımı kaydettim',
     passkeys: 'Passkeys',
     passkeysRequired:
-      '3. adım: bir Passkey ekleyin. Sahipler en az bir Passkey ve doğrulayıcı bulundurmalıdır.',
+      'İsteğe bağlı ve önerilir: cihaz doğrulamasıyla giriş için bir Passkey ekleyin. Daha sonra seçeneğini kullanabilirsiniz.',
     passkeysOptional: 'İsteğe bağlı: parolasız giriş için Passkeys ekleyin.',
     unsupported:
-      'Passkeys için uyumlu tarayıcı ve güvenli bağlantı gerekir. Parolanızla giriş yapın. Uyumlu bir cihazda Passkey eklenene kadar erişim kısıtlı kalır.',
+      'Passkey için uyumlu tarayıcı ve güvenli bağlantı gerekir. Passkey olmadan devam edebilirsiniz; sahipler yine de doğrulayıcı kurmalıdır.',
     finishTotp: 'Önce doğrulayıcıyı onaylayın ve kurtarma kodlarını kaydedin.',
     deviceName: 'Cihaz adı',
     addPasskey: 'Passkey ekle',
@@ -68,7 +83,7 @@ export default {
     rename: 'Yeniden adlandır',
     remove: 'Kaldır',
     removeHelp: 'Bu Passkey kaldırılsın mı? Artık giriş için kullanılamaz.',
-    lastPasskey: 'Bunu kaldırmadan önce başka bir Passkey ekleyin.',
+    lastPasskey: 'Son Passkey silinirken alternatif giriş yöntemi doğrulanmalıdır.',
     continue: 'Çalışma alanına devam et',
     operatorToken: 'Operatör kurtarma kodu',
   },
@@ -971,7 +986,7 @@ export default {
     of: '/',
     orDragThemHere: 'veya buraya sürükleyin',
     theClient: 'müşteri',
-    optional: 'isteğe bağlı',
+    optional: 'İsteğe bağlı',
     hourEstimate: 'tahmini süre',
     theDeveloper: 'geliştirici',
     linkActive: 'bağlantı etkin',

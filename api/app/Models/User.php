@@ -15,7 +15,7 @@ use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 #[Fillable(['name', 'email', 'password', 'preferred_locale'])]
-#[Hidden(['security_recovery_token_hash', 'security_recovery_expires_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pending_two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'passkeys', 'password', 'remember_token', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_path', 'auth_session_version'])]
+#[Hidden(['security_recommendations_seen_at', 'security_recovery_token_hash', 'security_recovery_expires_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pending_two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'passkeys', 'password', 'remember_token', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_path', 'auth_session_version'])]
 /** Legacy users.role has no authorization meaning; active workspace memberships grant access. */
 class User extends Authenticatable implements PasskeyUser
 {
@@ -52,6 +52,7 @@ class User extends Authenticatable implements PasskeyUser
     protected function casts(): array
     {
         return [
+            'security_recommendations_seen_at' => 'datetime',
             'security_recovery_expires_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'recovery_codes_acknowledged_at' => 'datetime',

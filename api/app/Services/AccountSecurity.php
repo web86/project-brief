@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\AccountSecurityFailure;
 use App\Models\User;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,7 @@ class AccountSecurity
 {
     public function enrolled(User $user): bool
     {
-        return $user->hasEnabledTwoFactorAuthentication() && $user->recovery_codes_acknowledged_at && $user->hasPasskeysEnabled();
+        return $user->hasEnabledTwoFactorAuthentication() && $user->recovery_codes_acknowledged_at;
     }
 
     public function strong(Request $request, User $user): bool
@@ -40,30 +41,80 @@ class AccountSecurity
 
             return 'guest';
         }
-        if (! $user->isWorkspaceOwner()) {
-            return 'authenticated';
-        }
-        if (! $this->enrolled($user)) {
+        if (($user->isWorkspaceOwner() || $user->hasEnabledTwoFactorAuthentication()) && ! $this->enrolled($user)) {
             return 'enrollment_required';
         }
 
-        return $this->strong($request, $user) ? 'authenticated' : 'pending_2fa';
+        return $user->hasEnabledTwoFactorAuthentication() && ! $this->strong($request, $user) ? 'pending_2fa' : 'authenticated';
+    }
+
+    public function policyFingerprint(User $user): string
+    {
+        return hash('sha256', $user->workspaceMembers()->orderBy('id')->get(['id', 'workspace_id', 'role', 'status', 'can_create_projects'])->toJson());
+    }
+
+    private function proofValid(Request $request, string $key): bool
+    {
+        $user = $request->user()?->fresh();
+        $proof = $request->session()->get('security.'.$key, []);
+        if (! $user || ! is_array($proof)) {
+            return false;
+        }
+
+        return (int) ($proof['user'] ?? 0) === $user->id
+            && (int) ($proof['version'] ?? -1) === (int) $user->auth_session_version
+            && ($proof['session'] ?? '') === $this->sessionHash($request)
+            && ($proof['policy'] ?? '') === $this->policyFingerprint($user)
+            && DB::table('account_security_challenges')->where('id', $proof['id'] ?? null)->where('purpose', $key === 'step_up' ? 'step_up' : 'recovery_enrollment')->where('user_id', $user->id)->where('session_version', $user->auth_session_version)->where('session_hash', $this->sessionHash($request))->where('expires_at', '>', now())->when(DB::transactionLevel() > 0, fn ($query) => $query->lockForUpdate())->first(['id']) !== null
+            && (int) ($proof['at'] ?? 0) > now()->subMinutes(5)->timestamp
+            && (int) ($proof['at'] ?? 0) <= now()->timestamp
+            && (! $user->security_recovery_expires_at || ($user->security_recovery_expires_at->isFuture() && $request->session()->get('security.operator_recovery') === true));
     }
 
     public function fresh(Request $request): bool
     {
         $user = $request->user()?->fresh();
-        $confirmed = (int) $request->session()->get('security.confirmed_at', 0);
+        $method = $request->session()->get('security.step_up.method');
 
-        return $user && (! $user->security_recovery_expires_at || ($user->security_recovery_expires_at->isFuture() && $request->session()->get('security.operator_recovery') === true)) && (int) $request->session()->get('security.user') === $user->id
-            && (int) $request->session()->get('security.version', -1) === (int) $user->auth_session_version
-            && $confirmed > now()->subMinutes(10)->timestamp && $confirmed <= now()->timestamp
-            && (! $user->isWorkspaceOwner() || ! $user->hasEnabledTwoFactorAuthentication() || $this->strong($request, $user));
+        $valid = $user && $this->proofValid($request, 'step_up');
+        if (! $valid) {
+            $request->session()->forget('security.step_up');
+        }
+
+        return $valid
+            && (in_array($method, ['mfa', 'passkey_uv'], true) || ($method === 'password' && ! $user->isWorkspaceOwner() && ! $user->hasEnabledTwoFactorAuthentication()));
+    }
+
+    public function setupFresh(Request $request): bool
+    {
+        return $this->fresh($request) || ($request->user() && ! $request->user()->fresh()->hasEnabledTwoFactorAuthentication() && $this->proofValid($request, 'step_up'));
+    }
+
+    public function recoveryFresh(Request $request): bool
+    {
+        return $this->fresh($request) || $this->proofValid($request, 'recovery_grant');
+    }
+
+    public function grantRecovery(Request $request, User $user): void
+    {
+        $request->session()->put('security.recovery_grant', $this->proof($request, $user, 'recovery_enrollment'));
+    }
+
+    private function proof(Request $request, User $user, string $method): array
+    {
+        return ['id' => $this->challenge($request, $method === 'recovery_enrollment' ? 'recovery_enrollment' : 'step_up', '{}', $user), 'user' => $user->id, 'version' => (int) $user->auth_session_version, 'session' => $this->sessionHash($request), 'policy' => $this->policyFingerprint($user), 'method' => $method, 'at' => now()->timestamp];
+    }
+
+    public function recommendationsPending(User $user): bool
+    {
+        return ! $user->security_recommendations_seen_at && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->hasPasskeysEnabled());
     }
 
     public function requireFresh(Request $request): void
     {
-        abort_unless($this->fresh($request), 423, trans('security.step_up_required'));
+        if (! $this->fresh($request)) {
+            throw new HttpResponseException(response()->json(['code' => 'security_step_up_required', 'message' => trans('security.step_up_required')], 423)->header('Cache-Control', 'no-store'));
+        }
     }
 
     public function complete(Request $request, User $user, string $method): void
@@ -71,15 +122,15 @@ class AccountSecurity
         Auth::login($user);
         $request->session()->forget(['security', 'client_project_id', 'project_client_id', 'client_access_token_id', CurrentWorkspace::SESSION_KEY]);
         $request->session()->put('auth_session_version', (int) $user->auth_session_version);
-        $this->confirm($request, $user, $method);
         $request->session()->regenerate(true);
         $request->session()->regenerateToken();
+        $this->confirm($request, $user, $method);
     }
 
     public function confirm(Request $request, User $user, string $method): void
     {
         $operatorRecovery = $request->session()->get('security.operator_recovery') === true && (int) $request->session()->get('security.user') === $user->id;
-        $request->session()->put('security', ['user' => $user->id, 'version' => (int) $user->auth_session_version, 'method' => $method, 'confirmed_at' => now()->timestamp, 'operator_recovery' => $operatorRecovery]);
+        $request->session()->put('security', ['user' => $user->id, 'version' => (int) $user->auth_session_version, 'method' => $method, 'confirmed_at' => now()->timestamp, 'operator_recovery' => $operatorRecovery, 'step_up' => $this->proof($request, $user, $method)]);
     }
 
     public function passwordLogin(Request $request, User $user): string
@@ -95,7 +146,7 @@ class AccountSecurity
                 return $locked;
             });
         }
-        if ($user->isWorkspaceOwner() && $user->hasEnabledTwoFactorAuthentication()) {
+        if ($user->hasEnabledTwoFactorAuthentication()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -116,7 +167,7 @@ class AccountSecurity
         DB::table('account_security_challenges')->where('expires_at', '<=', now())->delete();
         DB::table('account_security_challenges')->where('session_hash', $this->sessionHash($request))->where('purpose', $purpose)->delete();
         $id = (string) Str::uuid();
-        DB::table('account_security_challenges')->insert(['id' => $id, 'user_id' => $user?->id, 'session_version' => $user?->auth_session_version, 'session_hash' => $this->sessionHash($request), 'purpose' => $purpose, 'options' => $options, 'expires_at' => now()->addMinutes($purpose === 'password_2fa' ? 5 : 2)]);
+        DB::table('account_security_challenges')->insert(['id' => $id, 'user_id' => $user?->id, 'session_version' => $user ? (int) $user->auth_session_version : null, 'session_hash' => $this->sessionHash($request), 'purpose' => $purpose, 'options' => $options, 'expires_at' => now()->addMinutes(in_array($purpose, ['password_2fa', 'step_up', 'recovery_enrollment'], true) ? 5 : 2)]);
 
         return $id;
     }
@@ -201,6 +252,7 @@ class AccountSecurity
     {
         app(AccountProfile::class)->revokeSessions($user, $request);
         $request->session()->put('security.version', (int) $user->auth_session_version);
+        $request->session()->forget(['security.step_up', 'security.recovery_grant']);
         $request->session()->regenerateToken();
         DB::table('account_security_challenges')->where('user_id', $user->id)->delete();
         $this->audit($user, $event);

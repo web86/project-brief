@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Workspace;
+use App\Services\AccountSecurity;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
 use App\Services\WebhookDestination;
@@ -21,8 +22,11 @@ class IntegrationController extends Controller
 {
     private function workspace(Request $request): int
     {
-        $member = app(CurrentWorkspace::class)->resolve($request);
+        $member = app(CurrentWorkspace::class)->resolve($request, DB::transactionLevel() > 0);
         abort_unless($member->role === 'owner', 403);
+        if (! $request->isMethodSafe()) {
+            app(AccountSecurity::class)->requireFresh($request);
+        }
 
         return $member->workspace_id;
     }
@@ -45,8 +49,9 @@ class IntegrationController extends Controller
             $data['expiresAt'] = Carbon::parse($data['expiresAt'])->utc();
         }
 
-        return DB::transaction(function () use ($workspace, $data): JsonResponse {
+        return DB::transaction(function () use ($request, $workspace, $data): JsonResponse {
             Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
             abort_if(DB::table('integration_tokens')->where('workspace_id', $workspace)->count() >= 100, 422, 'Token limit reached.');
 
             return response()->json(app(IntegrationTokens::class)->create($workspace, $data), 201)->header('Cache-Control', 'no-store');
@@ -55,9 +60,14 @@ class IntegrationController extends Controller
 
     public function revoke(Request $request, string $uuid): JsonResponse
     {
-        $row = DB::table('integration_tokens')->where('workspace_id', $this->workspace($request))->where('uuid', $uuid)->first();
-        abort_unless($row, 404);
-        DB::table('integration_tokens')->where('id', $row->id)->update(['revoked_at' => now(), 'updated_at' => now()]);
+        $workspace = $this->workspace($request);
+        DB::transaction(function () use ($request, $workspace, $uuid): void {
+            Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
+            $row = DB::table('integration_tokens')->where('workspace_id', $workspace)->where('uuid', $uuid)->lockForUpdate()->first();
+            abort_unless($row, 404);
+            DB::table('integration_tokens')->where('id', $row->id)->update(['revoked_at' => now(), 'updated_at' => now()]);
+        });
 
         return response()->json(['ok' => true]);
     }
@@ -71,8 +81,9 @@ class IntegrationController extends Controller
             app(WebhookDestination::class)->resolve($data['url']);
         }
 
-        return DB::transaction(function () use ($workspace, $uuid, $data): JsonResponse {
+        return DB::transaction(function () use ($request, $workspace, $uuid, $data): JsonResponse {
             Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
             $existing = $uuid ? DB::table('webhook_endpoints')->where('workspace_id', $workspace)->where('uuid', $uuid)->first() : null;
             abort_if($uuid && ! $existing, 404);
             $filters = app(WebhookProjectFilter::class);
@@ -126,7 +137,9 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
 
-        return DB::transaction(function () use ($workspace, $uuid): JsonResponse {
+        return DB::transaction(function () use ($request, $workspace, $uuid): JsonResponse {
+            Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
             $endpoint = $this->endpoint($workspace, $uuid);
             $secret = 'whsec_'.bin2hex(random_bytes(32));
             $this->cancel($endpoint->id);
@@ -140,7 +153,9 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
 
-        return DB::transaction(function () use ($workspace, $uuid): JsonResponse {
+        return DB::transaction(function () use ($request, $workspace, $uuid): JsonResponse {
+            Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
             $endpoint = $this->endpoint($workspace, $uuid);
             DB::table('webhook_endpoints')->where('id', $endpoint->id)->delete();
 
@@ -152,7 +167,9 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
 
-        return DB::transaction(function () use ($workspace, $uuid): JsonResponse {
+        return DB::transaction(function () use ($request, $workspace, $uuid): JsonResponse {
+            Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
             $endpoint = $this->endpoint($workspace, $uuid);
             abort_unless($endpoint->enabled, 422, 'Enable this endpoint first.');
             $workspaceUuid = Workspace::findOrFail($workspace)->uuid;
@@ -180,7 +197,9 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
 
-        return DB::transaction(function () use ($workspace, $uuid, $delivery): JsonResponse {
+        return DB::transaction(function () use ($request, $workspace, $uuid, $delivery): JsonResponse {
+            Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
             $endpoint = $this->endpoint($workspace, $uuid);
             $row = DB::table('webhook_deliveries')->where('webhook_endpoint_id', $endpoint->id)->where('uuid', $delivery)->first();
             abort_unless($row, 404);
