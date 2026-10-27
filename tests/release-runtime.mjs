@@ -1076,7 +1076,7 @@ try {
 } catch (\\Illuminate\\Http\\Exceptions\\HttpResponseException $error) {
     if ($error->getResponse()->getStatusCode() !== 423) { throw $error; }
 }
-$request->merge(['recovery_code'=>'Release-cleanup-three', 'Release-browser-login']);
+$request->merge(['recovery_code'=>'Release-cleanup-three']);
 app(\\App\\Http\\Controllers\\AccountSecurityController::class)->confirm($request);
 $controller->revoke($request,$argv[2]);
 $token = \\Illuminate\\Support\\Facades\\DB::table('integration_tokens')->where('uuid',$argv[2])->first();
@@ -1165,6 +1165,7 @@ echo json_encode(['ok'=>true]);
       await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
       await page.getByLabel('Recovery code', { exact: true }).fill('Release-browser-login')
       await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+      await page.getByRole('button', { name: 'Continue to workspace', exact: true }).click()
       await page.waitForURL(publicOrigin + '/admin')
       await page.goto(publicOrigin + '/admin/account/security')
       await page.getByLabel('Device name', { exact: true }).fill('Packaged virtual authenticator')
@@ -1224,6 +1225,17 @@ echo json_encode(['ok'=>true]);
       await page.locator('.toast-success').filter({ hasText: 'Access updated' }).waitFor()
       await member.locator('.team-edit').waitFor({ state: 'hidden' })
       assert.equal(mutations.length, 1)
+      const saved = await page.evaluate(async (project) => {
+        const response = await fetch('/api/admin/projects/' + project + '/team', {
+          headers: { Accept: 'application/json' },
+        })
+        if (!response.ok) throw new Error('Packaged team state unavailable')
+        return (await response.json()).members.find(
+          (member) => member.user.email === 'package-developer@example.test',
+        ).projectPermissions[project]
+      }, fixture.project)
+      assert.equal(Object.values(saved).filter(Boolean).length, 6)
+
       assert.deepEqual(await page.evaluate(() => window.packagedGet), [
         { active: true, dialog: false },
       ])
