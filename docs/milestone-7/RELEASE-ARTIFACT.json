@@ -1,0 +1,60 @@
+{
+  "version": "0.7.0",
+  "verificationDate": "2026-10-27",
+  "timezone": "Europe/Istanbul",
+  "branch": "codex/milestone-7-account-security-passkeys",
+  "codeCommit": "424869318b492ee45eab26f7ba82e642a8564668",
+  "baseCommit": "caa03a95cfb5f6e6bcd989aa911d70bac633329f",
+  "archive": "project-brief-v0.7.0-4248693.zip",
+  "localPath": "/Users/sonoma/Desktop/project-brief/release/project-brief-v0.7.0-4248693.zip",
+  "sizeBytes": 39133920,
+  "sha256": "8a43b7ee3991b3f7cce002103b3c9aa171fd710be2d82ca95f2c2f2e414f7f07",
+  "files": 8802,
+  "phpSourceFilesMatchedToCheckout": 172,
+  "composer": {
+    "laravel/framework": "v13.34.0",
+    "laravel/fortify": "v1.41.0",
+    "laravel/passkeys": "v0.2.1",
+    "web-auth/webauthn-lib": "5.3.9",
+    "pragmarx/google2fa": "v9.1.0"
+  },
+  "javascript": {
+    "@laravel/passkeys": "0.4.0"
+  },
+  "checks": {
+    "canonicalReleaseBuilder": "passed",
+    "extractedProductionRuntime": "passed",
+    "checksumManifest": "passed",
+    "productionVendorOnly": true,
+    "testsScreenshotsAndDocxExcluded": true,
+    "php": {
+      "runtime": "8.5.10",
+      "tests": 715,
+      "assertions": 8556
+    },
+    "php83": {
+      "runtime": "8.3.36",
+      "securityTests": 23,
+      "assertions": 307
+    },
+    "php84": {
+      "runtime": "8.4.26",
+      "securityTests": 23,
+      "assertions": 307
+    },
+    "frontendTests": 259,
+    "httpsBrowserGroups": 9,
+    "mariaDbConcurrentGroups": 4,
+    "workersPerGroup": 6
+  },
+  "deploymentPerformed": false,
+  "pushed": false,
+  "merged": false,
+  "limitations": [
+    "No live Jino deployment or production smoke",
+    "Virtual authenticator, not physical hardware or real biometrics",
+    "No real SMTP delivery",
+    "Existing Vite 7.3.6 development audit entry remains; Vite is not shipped in the ZIP",
+    "Full repository formatting has historical documentation failures; changed files pass"
+  ]
+}

@@ -56,3 +56,9 @@ PHP 8.3/8.4 checks used existing local containers, mounted source and the locked
 - Dependencies and delivery: Composer/NPM locks, 0.7.0 release builder and packaged runtime checks; PHP signed protocol tests, FE flow tests, real HTTPS browser harness, MariaDB process-race harness, deployment/recovery/rollback documentation.
 
 The exact list is reproducible with `git diff --name-status caa03a95cfb5f6e6bcd989aa911d70bac633329f HEAD`. Existing migration files, ProjectClient, AccessLinkController and the bearer integration authentication/routes have no changes.
+
+## Verified production archive
+
+`project-brief-v0.7.0-4248693.zip` was built from code commit `424869318b492ee45eab26f7ba82e642a8564668` by the canonical release builder. Size: 39133920 bytes. SHA-256: `8a43b7ee3991b3f7cce002103b3c9aa171fd710be2d82ca95f2c2f2e414f7f07`. The actual extracted archive passed runtime, checksum and content validation; 172 packaged PHP application/config/route/migration files exactly match the checkout, production vendor excludes development packages, and no tests, screenshots or DOCX fixtures are present.
+
+Machine-readable evidence: [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json), [BROWSER-RESULTS.json](BROWSER-RESULTS.json), [CONCURRENCY-RESULTS.json](CONCURRENCY-RESULTS.json), [SHA256SUMS.txt](SHA256SUMS.txt). No production deployment was performed.

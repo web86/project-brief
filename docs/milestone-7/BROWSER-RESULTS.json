@@ -1,0 +1,14 @@
+{
+  "results": [
+    "Cancelled WebAuthn returns to restricted setup and permits retry",
+    "Owner password: restricted enrollment, reload, real TOTP, saved recovery, real UV Passkey, unlocked workspace",
+    "RU/EN/TR/ZH-CN security UI: 1440px light + 390px dark; no horizontal overflow",
+    "System theme follows dark/light device changes on the security screen",
+    "Real discoverable UV Passkey login without password or TOTP",
+    "Password requires recovery challenge before workspace access",
+    "CSRF enforced on security mutation over real HTTP",
+    "Developer password remains usable without TOTP or Passkey",
+    "Existing client link and client task session unchanged"
+  ],
+  "errors": []
+}
