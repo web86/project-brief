@@ -4,14 +4,13 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Workspace;
-use Illuminate\Support\Facades\DB;
 
 class OwnerProvisioning
 {
     /** @param array{name: string, email: string, password: string} $data */
     public function create(array $data): User
     {
-        return DB::transaction(function () use ($data): User {
+        return (new User)->getConnection()->transaction(function () use ($data): User {
             $workspace = null;
             if (! User::query()->exists() && Workspace::query()->count() === 1) {
                 $candidate = Workspace::query()->lockForUpdate()->first();

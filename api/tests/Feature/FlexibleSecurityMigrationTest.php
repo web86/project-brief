@@ -3,12 +3,56 @@
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Models\User;
+use App\Models\Workspace;
+use App\Models\WorkspaceMember;
+use App\Services\OwnerProvisioning;
+use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class FlexibleSecurityMigrationTest extends TestCase
 {
+    public function test_membership_invalidation_uses_the_models_connection_after_cli_configuration_bootstrap(): void
+    {
+        $original = config('database.default');
+        $resolver = Model::getConnectionResolver();
+        $database = tempnam(sys_get_temp_dir(), 'm72-model-connection-');
+        config(['database.connections.membership_event' => ['driver' => 'sqlite', 'database' => $database, 'foreign_key_constraints' => true, 'busy_timeout' => 25], 'database.default' => 'membership_event']);
+        Schema::clearResolvedInstance('db.schema');
+        $models = null;
+        $event = 'eloquent.creating: '.WorkspaceMember::class;
+        $dispatcher = Model::getEventDispatcher();
+        try {
+            foreach (glob(database_path('migrations/*.php')) as $path) {
+                (require $path)->up();
+            }
+            $models = new DatabaseManager($this->app, $this->app['db.factory']);
+            Model::setConnectionResolver($models);
+            $this->assertNotSame(DB::connection()->getPdo(), $models->connection()->getPdo());
+            $rejectMembership = false;
+            $dispatcher->listen($event, function ($member) use (&$rejectMembership): void {
+                $this->assertGreaterThan(0, $member->getConnection()->transactionLevel());
+                if ($rejectMembership) {
+                    throw new \RuntimeException('membership_write_test_failure');
+                }
+            });
+            $owner = app(OwnerProvisioning::class)->create(['name' => 'CLI bootstrap owner', 'email' => 'cli-bootstrap@example.test', 'password' => 'Disposable-password!']);
+            $this->assertSame(1, $owner->workspaceMembers()->count());
+            $this->assertSame(1, User::where('email', $owner->email)->count());
+            $this->assertSame(1, Workspace::count());
+        } finally {
+            Model::setConnectionResolver($resolver);
+            $models?->purge('membership_event');
+            DB::purge('membership_event');
+            config(['database.default' => $original]);
+            Schema::clearResolvedInstance('db.schema');
+            @unlink($database);
+        }
+    }
+
     public function test_actual_071_schema_and_encrypted_factors_survive_upgrade_and_rollback(): void
     {
         $original = config('database.default');

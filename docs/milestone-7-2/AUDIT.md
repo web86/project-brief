@@ -16,3 +16,9 @@ Findings:
 - Keep the exact vendor-runtime allowlist and required classes from 0.7.1. Canonical ZIP verification must still run signed enrollment against extracted no-dev dependencies.
 
 Chosen release: 0.7.2. Only additive schema for a global, one-time recommendation acknowledgement; no factor/secret/link/token resets. Final verification and package evidence will be recorded separately.
+
+## Regression discovered by the extracted production smoke
+
+The first 0.7.2 candidate was rejected by the canonical builder: first-install -> optimize/config:cache -> app:create-admin failed with a duplicate email. ConfigCacheCommand boots a fresh application; Eloquent's resolver and a cached DB facade can then reference different PDOs to the same SQLite file. The new membership invalidation event wrote via the facade while membership wrote via the model. A write lock caused a retry after autocommitted User insertion, leading to UNIQUE users.email. A two-PDO regression test reproduced the same error before the correction; it passed afterwards.
+
+Membership invalidation now uses the member's own connection/schema builder. OwnerProvisioning also starts its transaction on the User model connection, retaining atomic User/workspace/membership creation after CLI configuration bootstrap. The regression asserts an active model transaction and forces membership failure to prove no orphan User/workspace survives. It complements the real packaged first-install smoke; no factor or session validator was weakened. The failed candidate produced no final release ZIP.

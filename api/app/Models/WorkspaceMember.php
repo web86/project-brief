@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class WorkspaceMember extends Model
 {
@@ -17,8 +15,9 @@ class WorkspaceMember extends Model
     protected static function booted(): void
     {
         $invalidate = function (self $member): void {
-            if (Schema::hasTable('account_security_challenges')) {
-                DB::table('account_security_challenges')->whereIn('user_id', array_filter([$member->user_id, $member->getOriginal('user_id')]))->delete();
+            $connection = $member->getConnection();
+            if ($connection->getSchemaBuilder()->hasTable('account_security_challenges')) {
+                $connection->table('account_security_challenges')->whereIn('user_id', array_filter([$member->user_id, $member->getOriginal('user_id')]))->delete();
             }
         };
         static::saving(function (self $member) use ($invalidate): void {
