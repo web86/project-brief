@@ -1,0 +1,78 @@
+{
+  "version": "0.7.1",
+  "verificationDate": "2026-10-27",
+  "timezone": "Europe/Istanbul",
+  "branch": "codex/milestone-7-account-security-passkeys",
+  "codeCommit": "22db2f3d2e67fcaff5e5fee80b23d877a7250c37",
+  "archive": "project-brief-v0.7.1-22db2f3.zip",
+  "localPath": "/Users/sonoma/Desktop/project-brief/release/project-brief-v0.7.1-22db2f3.zip",
+  "sizeBytes": 39145162,
+  "sha256": "71c873950cb35a1e893680d631052ebe045d108a0013cd1b760859869b350a01",
+  "builderRuntimeFiles": 8806,
+  "archiveFileEntries": 8807,
+  "phpSourceFilesMatchedToCheckout": 206,
+  "builtAt": "2026-10-27T07:03:05.511Z",
+  "cause": {
+    "established": "Vendor secret-name filter pruned Webauthn/Credential.php; POST deserialization failed and blanket Throwable catch changed it to 422 errors.code.",
+    "totpReuse": false,
+    "evidence": "PASSKEY-FIX-CAUSE.json",
+    "unchangedOriginalPackageReproduces422OnPhp84": true,
+    "restoringOnlyRuntimeSourceFixesOriginalPackage": true,
+    "liveProductionInspected": false
+  },
+  "checks": {
+    "canonicalReleaseBuilder": "passed",
+    "productionBuild": "passed",
+    "archiveCRC": "passed",
+    "checksumManifest": "passed",
+    "secretAndArtifactExclusion": "passed",
+    "productionVendorOnly": true,
+    "extractedProductionRuntime": "passed",
+    "packagedSignedEnrollmentPhp85": "passed",
+    "packagedSignedEnrollmentPhp84": {
+      "passed": true,
+      "php": "8.4.26",
+      "origin": "https://brief.web86.site",
+      "rpId": "brief.web86.site",
+      "productionVendor": true,
+      "flow": "TOTP -> saved recovery -> signed UV registration -> authenticated; TOTP replay rejected"
+    },
+    "php": {
+      "runtime": "8.5.10",
+      "tests": 725,
+      "assertions": 8757
+    },
+    "php84SecuritySqlite": {
+      "runtime": "8.4.26",
+      "tests": 33,
+      "assertions": 508
+    },
+    "php84SecurityMariaDb": {
+      "runtime": "8.4.26",
+      "database": "MariaDB 11.8.9",
+      "tests": 33,
+      "assertions": 507,
+      "note": "Before the final extra read-only runtime presence assertion."
+    },
+    "frontendTests": 273,
+    "focusedFrontendTests": 20,
+    "releaseFilterTests": 7,
+    "httpsBrowserGroups": 11,
+    "mariaDbConcurrentGroups": 4,
+    "workersPerGroup": 6,
+    "changedFileFormatting": "passed",
+    "gitDiffCheck": "passed"
+  },
+  "deploymentPerformed": false,
+  "pushed": false,
+  "merged": false,
+  "userSecretsChanged": false,
+  "limitations": [
+    "No live Jino filesystem/configuration/proxy/cookie inspection or production smoke",
+    "Chromium virtual UV authenticator; no physical Touch ID ceremony",
+    "Firefox real engine serializer test uses a mock authenticator",
+    "Bundled WebKit runtime rejected PushAPIEnabled before page creation; Safari API shapes covered in frontend tests",
+    "No real SMTP delivery",
+    "Existing Vite 7.3.6 development audit entry remains; Vite is excluded from production ZIP"
+  ]
+}
