@@ -363,6 +363,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const ownerSession = await (await request('/api/session')).json()
   assert.deepEqual(ownerSession, {
     authenticated: true,
+    securityRecommended: false,
     type: 'admin',
     workspace: { id: fixture.workspace, name: 'Release QA' },
   })

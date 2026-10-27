@@ -43,7 +43,17 @@ class FlexibleSecurityMigrationTest extends TestCase
             $this->assertSame(1, $owner->workspaceMembers()->count());
             $this->assertSame(1, User::where('email', $owner->email)->count());
             $this->assertSame(1, Workspace::count());
+            $rejectMembership = true;
+            try {
+                app(OwnerProvisioning::class)->create(['name' => 'Rollback owner', 'email' => 'cli-rollback@example.test', 'password' => 'Disposable-password!']);
+                $this->fail('Membership failure must abort provisioning');
+            } catch (\RuntimeException $error) {
+                $this->assertSame('membership_write_test_failure', $error->getMessage());
+            }
+            $this->assertSame(0, User::where('email', 'cli-rollback@example.test')->count());
+            $this->assertSame(1, Workspace::count());
         } finally {
+            $dispatcher->forget($event);
             Model::setConnectionResolver($resolver);
             $models?->purge('membership_event');
             DB::purge('membership_event');
