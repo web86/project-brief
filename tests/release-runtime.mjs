@@ -349,6 +349,9 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal((await brandCall('/reset', 'POST', {})).status, 200)
   assert.equal((await (await brandCall()).json()).data.business.account, 'PRIVATE_PACKAGED_BANK')
   assert.equal((await request(new URL(logoUrl).pathname)).status, 404)
+  // Reset counters only in this disposable installation between independent QA phases.
+  // Production keeps its five-PDF/minute budget; branding checks must not spend the regression phase's quota.
+  command(['artisan', 'cache:clear'])
   const pauseChannel = await request('/api/admin/notifications', {
     method: 'PATCH',
     headers: personalHeaders,
