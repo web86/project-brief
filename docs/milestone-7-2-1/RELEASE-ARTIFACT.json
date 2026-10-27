@@ -1,0 +1,69 @@
+{
+  "version": "0.7.3",
+  "archive": "project-brief-v0.7.3-05d4414.zip",
+  "sizeBytes": 39149306,
+  "sha256": "86f507c330d4bec938b84aa2c68a95084b39f609185354dc89afe0dc9c9182a9",
+  "codeCommit": "05d44141ce135f5142792280b8b764a5a7b5e067",
+  "builtAt": "2026-10-27T12:12:00.074Z",
+  "manifestFiles": 8807,
+  "archiveFileEntries": 8808,
+  "phpSourcesMatched": 207,
+  "crc": true,
+  "manifest": true,
+  "previous072Preserved": true,
+  "verificationDate": "2026-10-27",
+  "branch": "codex/milestone-7-2-flexible-account-security",
+  "localPath": "/Users/sonoma/Desktop/project-brief/release/project-brief-v0.7.3-05d4414.zip",
+  "checks": {
+    "canonicalReleaseBuilder": "passed",
+    "productionBuild": "passed",
+    "secretAndArtifactExclusion": "passed",
+    "productionVendorOnly": true,
+    "extractedHttpCliRuntime": "passed",
+    "firstInstallRepeatedKeyPreservation": "passed",
+    "extractedSignedUvPhp85": "passed",
+    "extractedSignedUvPhp84": "passed",
+    "extractedCompiledUiRealUv": "passed",
+    "requiredRuntimeClassesAutoloadPhp84": "passed",
+    "newMigrations": false,
+    "newEnvParameters": false
+  },
+  "tests": {
+    "php85": {
+      "tests": 751,
+      "assertions": 9075
+    },
+    "frontend": 297,
+    "php83Security": {
+      "tests": 59,
+      "assertions": 818
+    },
+    "php84Security": {
+      "tests": 59,
+      "assertions": 818
+    },
+    "php84MariaDbSecurity": {
+      "tests": 57,
+      "assertions": 789
+    },
+    "httpsBrowserScenarioGroups": 23,
+    "concurrentGroups": 5,
+    "workersPerGroup": 6
+  },
+  "boundaries": {
+    "noPush": true,
+    "noMerge": true,
+    "noDeploy": true,
+    "liveJinoInspected": false,
+    "physicalTouchIdTested": false,
+    "nativeSafariWebKitCeremonyTested": false,
+    "firefoxAuthenticatorMocked": true,
+    "productionOriginUsesLocalTransport": true,
+    "existingSecretsOrFactorsReset": false
+  },
+  "previousRelease": {
+    "archive": "project-brief-v0.7.2-d6539e3.zip",
+    "sha256": "73927c7f46dd6b4046f16345409237f56560ea97d565a54b189658773e933616",
+    "retainedAndVerified": true
+  }
+}
