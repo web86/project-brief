@@ -20,6 +20,7 @@ import BaseDialog from '../components/BaseDialog.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 import { canDeleteTask, canEditClientTask, useDraftDeletion } from '../utils/clientDraft.js'
 import DeveloperNotes from '../components/DeveloperNotes.vue'
+import { newestComments } from '../utils/comments.js'
 const route = useRoute()
 const storeRouter = useRouter()
 const store = useProjectStore()
@@ -56,6 +57,7 @@ watch(
 )
 onUnmounted(() => clearTimeout(readTimer))
 const task = computed(() => store.findTask(route.params.id))
+const comments = computed(() => newestComments(task.value?.comments))
 const editorTask = computed(() => store.developerTask(route.params.id))
 const dirty = computed(() => store.isDeveloper && store.hasDeveloperChanges(route.params.id))
 let editor
@@ -173,12 +175,8 @@ function focusClarification() {
             <h2>
               {{ t('ui.comments2') }} <span class="count-pill">{{ task.comments.length }}</span>
             </h2>
-            <CommentList
-              :comments="task.comments"
-              :target="route.hash.slice(1)"
-              @seen="seenComment"
-            />
             <CommentForm ref="commentForm" :task-id="task.id" />
+            <CommentList :comments="comments" :target="route.hash.slice(1)" @seen="seenComment" />
           </section>
         </div>
         <div class="task-sidebar">

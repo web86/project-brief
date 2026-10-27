@@ -9,4 +9,6 @@ return [
     'reset_message' => 'Bu bağlantı 60 dakika geçerlidir. Şifre sıfırlama istemediyseniz bu e-postayı dikkate almayın.',
     'invitation_heading' => 'Ekip daveti',
     'invitation_message' => ':workspace çalışma alanına davet edildiniz. Giriş yapın veya hesap oluşturun. Bu bağlantı 7 gün geçerlidir.',
+    'client_invitation_heading' => 'Proje daveti',
+    'client_invitation_message' => ':project projesine davet edildiniz. Kişisel müşteri arayüzünüzü bu bağlantıyla açın. Bağlantı 7 gün geçerlidir.',
 ];

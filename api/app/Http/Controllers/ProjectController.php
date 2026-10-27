@@ -18,7 +18,7 @@ class ProjectController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        return ProjectResource::collection(app(ProjectUnread::class)->withCounts(ProjectAccess::query($request), $request->user())->withCount(['clients', 'members as team_count' => fn ($q) => $q->whereHas('workspaceMember', fn ($member) => $member->active()->where('role', 'admin')), 'tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
+        return ProjectResource::collection(app(ProjectUnread::class)->withCounts(ProjectAccess::query($request), $request->user())->withExists(['feedback as feedback_requested' => fn ($q) => $q->whereNotNull('requested_at'), 'feedback as feedback_submitted' => fn ($q) => $q->whereNotNull('submitted_at')])->withCount(['clients', 'members as team_count' => fn ($q) => $q->whereHas('workspaceMember', fn ($member) => $member->active()->where('role', 'admin')), 'tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')])->latest('id')->get());
     }
 
     public function store(ProjectRequest $request): ProjectResource
@@ -36,7 +36,7 @@ class ProjectController extends Controller
             $project->load('briefSections');
         }
 
-        return new ProjectResource($project->loadCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')]));
+        return new ProjectResource($project->loadExists(['feedback as feedback_requested' => fn ($q) => $q->whereNotNull('requested_at'), 'feedback as feedback_submitted' => fn ($q) => $q->whereNotNull('submitted_at')])->loadCount(['tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')]));
     }
 
     public function update(ProjectRequest $request, Project $project): ProjectResource

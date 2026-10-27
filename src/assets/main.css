@@ -240,11 +240,29 @@
 }
 @media (max-width: 640px) {
   .toast-viewport {
-    top: auto;
-    right: 16px;
-    bottom: calc(88px + env(safe-area-inset-bottom));
-    max-height: 45vh;
+    top: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    gap: 4px;
+    max-height: 40dvh;
     overflow-y: auto;
+  }
+  .app-toast {
+    align-items: center;
+    gap: 8px;
+    padding: 8px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left));
+    border-radius: 0 0 8px 8px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .app-toast:first-child {
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .toast-close {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
   }
   .app-entry {
     padding: 24px 20px;
@@ -3617,7 +3635,7 @@ button.attachment-item:hover {
 }
 .task-workspace .task-layout:not(.has-developer) {
   grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  grid-template-areas: 'details comments' 'history history';
+  grid-template-areas: 'details history' 'comments history';
 }
 .task-layout:not(.has-developer) .task-main-column,
 .task-layout:not(.has-developer) .task-sidebar {
@@ -3632,7 +3650,8 @@ button.attachment-item:hover {
 .task-layout:not(.has-developer) .history-panel {
   grid-area: history;
 }
-.developer-notes .notes-heading {
+.developer-notes .notes-heading,
+.idea-disclosure .notes-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5616,5 +5635,173 @@ button.attachment-item:hover {
   }
   .project-bin-heading > .project-danger {
     text-align: start;
+  }
+}
+
+/* Shared people cards keep names, contact details and actions readable at every width. */
+.team-member,
+.managed-client {
+  padding: 20px;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.managed-client:last-of-type {
+  padding-bottom: 20px;
+}
+.person-name {
+  display: block;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.person-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.person-identity h3 {
+  font-size: 17px;
+}
+.person-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 10px 0;
+  line-height: 1.5;
+  min-width: 0;
+}
+.person-meta svg,
+.person-identity > svg,
+.toast-status-icon {
+  flex-shrink: 0;
+}
+.person-meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.person-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.person-role,
+.client-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.4;
+}
+.person-role {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  background: var(--surface-muted);
+  border-radius: 20px;
+}
+.team-identity {
+  align-items: flex-start;
+}
+.team-actions,
+.managed-client .order-actions {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 16px;
+  gap: 8px;
+}
+.team-actions .button,
+.managed-client .order-actions .button {
+  font-size: 13px;
+}
+.client-invitation-option {
+  margin: 16px 0;
+}
+.client-invitation-option p {
+  margin-top: 8px;
+}
+.task-workspace .comments-panel .comment-form {
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+.feedback-request {
+  background: var(--client-active-bg);
+  color: var(--client-active-text);
+  border: 1px solid currentColor;
+  margin-top: 10px;
+}
+.feedback-request:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.feedback-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--link);
+  margin-top: 8px;
+}
+.feedback-form > p {
+  margin-bottom: 20px;
+}
+.feedback-rating {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.feedback-rating legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.rating-stars {
+  display: flex;
+  gap: 6px;
+}
+.rating-choice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.rating-choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.rating-choice.selected {
+  color: var(--link);
+}
+.rating-choice.selected svg {
+  fill: currentColor;
+}
+.rating-choice:has(input:focus-visible) {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+.feedback-form textarea {
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .team-member,
+  .managed-client {
+    padding: 16px;
+  }
+  .managed-client:last-of-type {
+    padding-bottom: 16px;
+  }
+  .person-identity {
+    align-items: flex-start;
+  }
+  .client-heading .person-identity {
+    flex: 1 1 100%;
   }
 }

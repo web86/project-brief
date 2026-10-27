@@ -7,6 +7,7 @@ import { api } from '../api/client.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import { defaultProjectPermissions } from '../services/projectPermissions.js'
 import NotificationToggle from '../components/NotificationToggle.vue'
+import AppIcon from '../components/AppIcon.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 const route = useRoute(),
@@ -128,7 +129,7 @@ function remove(member) {
         <p class="muted">{{ t('team.hint') }}</p>
       </div>
       <button class="button primary" :disabled="busy" @click="inviting = !inviting">
-        {{ t('team.invite') }}
+        <AppIcon name="plus" :size="18" />{{ t('team.invite') }}
       </button>
     </div>
     <p v-if="error" role="alert" class="field-error">{{ error }}</p>
@@ -173,18 +174,30 @@ function remove(member) {
           <div class="team-identity">
             <UserAvatar :user="member.user" />
             <div>
-              <strong>{{ member.user.name }}</strong>
-              <p>{{ member.user.email }}</p>
+              <strong class="person-name">{{ member.user.name }}</strong>
+              <p class="person-meta muted">
+                <AppIcon name="mail" :size="16" /><span>{{ member.user.email }}</span>
+              </p>
               <p v-if="member.security" class="small muted">
                 {{ t('security.passkeys') }}:
                 {{ t(member.security.passkey ? 'security.configured' : 'security.notConfigured') }}
                 · {{ t('security.authenticator') }}:
                 {{ t(member.security.totp ? 'security.configured' : 'security.notConfigured') }}
               </p>
-              <span class="small muted"
-                >{{ t('team.' + (member.role === 'owner' ? 'owner' : 'developer')) }} ·
-                {{ t('team.active') }} · {{ t('team.joined') }}: {{ date(member.joinedAt) }}</span
-              >
+              <div class="person-badges">
+                <span class="person-role"
+                  ><AppIcon name="users" :size="14" />{{
+                    t('team.' + (member.role === 'owner' ? 'owner' : 'developer'))
+                  }}</span
+                ><span class="client-state"
+                  ><AppIcon name="check" :size="13" />{{ t('team.active') }}</span
+                >
+              </div>
+              <p class="small muted person-meta">
+                <AppIcon name="clock" :size="15" /><span
+                  >{{ t('team.joined') }}: {{ date(member.joinedAt) }}</span
+                >
+              </p>
             </div>
           </div>
           <p class="small muted">
@@ -199,9 +212,9 @@ function remove(member) {
           </p>
           <div v-if="member.role !== 'owner'" class="team-actions">
             <button class="button secondary" :disabled="busy" @click="edit(member)">
-              {{ t('team.edit') }}</button
+              <AppIcon name="edit" :size="16" />{{ t('team.edit') }}</button
             ><button class="text-button danger" :disabled="busy" @click="remove(member)">
-              {{ t('team.remove') }}
+              <AppIcon name="trash" :size="16" />{{ t('team.remove') }}
             </button>
           </div>
           <form v-if="editing === member.id" class="team-edit" @submit.prevent="saveMember(member)">
@@ -270,10 +283,17 @@ function remove(member) {
         <h3>{{ t('team.invitations') }}</h3>
         <p v-if="!state.invitations.length" class="muted">{{ t('team.empty') }}</p>
         <article v-for="invitation in state.invitations" :key="invitation.id" class="team-member">
-          <strong>{{ invitation.name || invitation.email }}</strong>
-          <p v-if="invitation.name">{{ invitation.email }}</p>
+          <div class="person-identity">
+            <AppIcon name="send" :size="22" /><strong class="person-name">{{
+              invitation.name || invitation.email
+            }}</strong>
+          </div>
+          <p v-if="invitation.name" class="person-meta muted">
+            <AppIcon name="mail" :size="16" /><span>{{ invitation.email }}</span>
+          </p>
           <p class="small muted">
-            {{ t('team.' + invitation.status) }} · {{ date(invitation.expiresAt) }}
+            <AppIcon name="clock" :size="15" />{{ t('team.' + invitation.status) }} ·
+            {{ date(invitation.expiresAt) }}
           </p>
           <p class="small muted">
             {{
@@ -291,9 +311,9 @@ function remove(member) {
                 action('/invitations/' + invitation.id + '/resend', 'POST', undefined, 'team.sent')
               "
             >
-              {{ t('team.resend') }}</button
+              <AppIcon name="send" :size="16" />{{ t('team.resend') }}</button
             ><button class="text-button danger" :disabled="busy" @click="revoke(invitation)">
-              {{ t('team.revoke') }}
+              <AppIcon name="close" :size="16" />{{ t('team.revoke') }}
             </button>
           </div>
         </article>

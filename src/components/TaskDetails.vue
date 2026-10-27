@@ -3,7 +3,9 @@ import LoadingButton from './LoadingButton.vue'
 import { t } from '../i18n/index.js'
 
 import { canEditClientTask } from '../utils/clientDraft.js'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import AppIcon from './AppIcon.vue'
+import { readSectionCollapsed, writeSectionCollapsed } from '../utils/sectionCollapse.js'
 import { useProjectStore } from '../stores/project'
 import FileUploader from './FileUploader.vue'
 const store = useProjectStore()
@@ -16,44 +18,67 @@ async function upload(id) {
   uploading.value = false
 }
 import AttachmentList from './AttachmentList.vue'
-defineProps({ task: Object })
+const props = defineProps({ task: Object })
+const expanded = ref(true)
+watch(
+  () => [store.project.id, props.task.id],
+  () => {
+    expanded.value = !readSectionCollapsed(store.project.id, 'idea:' + props.task.id)
+  },
+  { immediate: true },
+)
+function toggle() {
+  expanded.value = !expanded.value
+  writeSectionCollapsed(store.project.id, 'idea:' + props.task.id, !expanded.value)
+}
 </script>
 <template>
   <section class="surface details-surface">
-    <div class="detail-block">
-      <h2>{{ t('ui.whatYouWouldLikeToChange') }}</h2>
-      <p class="prose">{{ task.description }}</p>
-    </div>
-    <div class="detail-block">
-      <h2>{{ t('ui.whatTheResultShouldLookLike') }}</h2>
-      <p v-if="task.expectedResult" class="prose expected-result">{{ task.expectedResult }}</p>
-      <p v-else class="muted">{{ t('ui.notSpecified') }}</p>
-    </div>
-    <div v-if="task.attachments.length" class="detail-block">
-      <h2>
-        {{ t('ui.examplesAndFiles') }} <span class="count-pill">{{ task.attachments.length }}</span>
-      </h2>
-      <AttachmentList :attachments="task.attachments" />
-    </div>
-    <details
-      v-if="
-        store.apiMode &&
-        task.attachments.length < 10 &&
-        (store.isDeveloper || canEditClientTask(task))
-      "
-      class="detail-block upload-details"
-    >
-      <summary>{{ t('ui.addAnExampleOrFile') }}</summary>
-      <FileUploader v-model="selectedFiles" @busy="busy = $event" />
-      <LoadingButton
-        :busy="uploading"
-        v-if="selectedFiles.length"
-        class="button secondary"
-        :disabled="busy || uploading"
-        @click="upload(task.id)"
-      >
-        {{ t('ui.addFiles') }}
-      </LoadingButton>
+    <details class="idea-disclosure notes-disclosure" :open="expanded">
+      <summary class="notes-heading" @click.prevent="toggle">
+        <span class="notes-title"
+          ><AppIcon name="file" :size="18" />{{ t('feedback.ideaDetails') }}</span
+        >
+        <AppIcon name="chevron" class="notes-chevron" :size="16" />
+      </summary>
+      <div class="notes-body">
+        <div class="detail-block">
+          <h2>{{ t('ui.whatYouWouldLikeToChange') }}</h2>
+          <p class="prose">{{ task.description }}</p>
+        </div>
+        <div class="detail-block">
+          <h2>{{ t('ui.whatTheResultShouldLookLike') }}</h2>
+          <p v-if="task.expectedResult" class="prose expected-result">{{ task.expectedResult }}</p>
+          <p v-else class="muted">{{ t('ui.notSpecified') }}</p>
+        </div>
+        <div v-if="task.attachments.length" class="detail-block">
+          <h2>
+            {{ t('ui.examplesAndFiles') }}
+            <span class="count-pill">{{ task.attachments.length }}</span>
+          </h2>
+          <AttachmentList :attachments="task.attachments" />
+        </div>
+        <details
+          v-if="
+            store.apiMode &&
+            task.attachments.length < 10 &&
+            (store.isDeveloper || canEditClientTask(task))
+          "
+          class="detail-block upload-details"
+        >
+          <summary>{{ t('ui.addAnExampleOrFile') }}</summary>
+          <FileUploader v-model="selectedFiles" @busy="busy = $event" />
+          <LoadingButton
+            :busy="uploading"
+            v-if="selectedFiles.length"
+            class="button secondary"
+            :disabled="busy || uploading"
+            @click="upload(task.id)"
+          >
+            {{ t('ui.addFiles') }}
+          </LoadingButton>
+        </details>
+      </div>
     </details>
   </section>
 </template>

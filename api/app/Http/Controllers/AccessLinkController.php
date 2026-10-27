@@ -7,6 +7,7 @@ use App\Models\ProjectAccessToken;
 use App\Models\ProjectClient;
 use App\Models\Workspace;
 use App\Services\AccountSecurity;
+use App\Services\ClientInvitations;
 use App\Services\ProjectPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,20 +22,18 @@ class AccessLinkController extends Controller
         $data = $request->validate(['expiresAt' => ['nullable', 'date', 'after:now']]);
         abort_unless($client->project_id === $project->id, 404);
         abort_unless($project->status === 'active' && $client->active, 422, trans('interface.activate_access'));
-        $plaintext = bin2hex(random_bytes(32));
-        $token = DB::transaction(function () use ($request, $project, $client, $plaintext, $data) {
+        $link = DB::transaction(function () use ($request, $project, $client, $data) {
             Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
             Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
             $request->attributes->remove(ProjectPermissions::class);
             ProjectPermissions::authorize($request, $project, 'manage_clients', true);
             app(AccountSecurity::class)->requireFresh($request);
             abort_unless($client->refresh()->active && $project->refresh()->status === 'active', 422);
-            $client->accessTokens()->whereNull('revoked_at')->update(['revoked_at' => now()]);
 
-            return $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', $plaintext), 'expires_at' => $data['expiresAt'] ?? null]);
+            return app(ClientInvitations::class)->issue($project, $client, $data['expiresAt'] ?? null);
         }, 3);
 
-        return response()->json(['id' => $token->id, 'url' => rtrim(config('projectbrief.frontend_url'), '/').'/access/'.$plaintext, 'expiresAt' => $token->expires_at?->toISOString()], 201)->header('Cache-Control', 'no-store');
+        return response()->json($link, 201)->header('Cache-Control', 'no-store');
     }
 
     public function destroy(Request $request, Project $project, ProjectClient $client, ProjectAccessToken $token): JsonResponse

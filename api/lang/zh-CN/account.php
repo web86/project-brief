@@ -9,4 +9,6 @@ return [
     'reset_message' => '此链接有效期为 60 分钟。如果您未申请重置密码，请忽略此邮件。',
     'invitation_heading' => '团队邀请',
     'invitation_message' => '您受邀加入工作区 :workspace。请登录或创建账号。此链接有效期为 7 天。',
+    'client_invitation_heading' => '项目邀请',
+    'client_invitation_message' => '您受邀加入项目 :project。请通过此链接打开您的专属客户界面。链接有效期为7天。',
 ];

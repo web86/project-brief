@@ -1,4 +1,28 @@
 export default {
+  feedback: {
+    ideaDetails: 'Fikir bilgileri',
+    sendInvitation: 'E-posta ile davet gönder',
+    invitationHint: 'Müşteriye 7 gün geçerli kişisel proje bağlantısı gönderilir.',
+    invitationSent: 'Müşteri kaydedildi. Davet gönderildi.',
+    invitationFailed:
+      'Müşteri kaydedildi ancak e-posta gönderilemedi. Müşteri kartından yeniden deneyin.',
+    invitationExisting: 'Bu e-posta projede zaten bir müşteriye ait. Mevcut kartını kullanın.',
+    inviteAgain: 'Davet gönder',
+    invitationReplace: 'Bu müşterinin önceki erişim bağlantısı değiştirilir.',
+    request: 'Geri bildirim iste',
+    requested: 'İstek gönderildi',
+    submitted: 'Geri bildirim gönderildi',
+    leave: 'Geri bildirim bırak',
+    title: 'Proje tamamlandı!',
+    thanks: 'Birlikte çalıştığınız için teşekkür ederiz. Deneyiminiz nasıldı?',
+    rating: 'Puanınız',
+    stars: '5 üzerinden {count} yıldız',
+    text: 'Geri bildirim (isteğe bağlı)',
+    send: 'Geri bildirim gönder',
+    later: 'Daha sonra',
+    saved: 'Teşekkürler! Geri bildiriminiz kaydedildi.',
+    requestSaved: 'Müşteriler projeyi açtıklarında geri bildirim bırakmaya davet edilecek.',
+  },
   security: {
     confirmPasskey: 'Passkey ile doğrula',
     retryPasskey: 'Passkey ile yeniden dene',

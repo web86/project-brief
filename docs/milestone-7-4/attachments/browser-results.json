@@ -1,0 +1,43 @@
+{
+  "realLaravelApi": true,
+  "localSmtpTransport": true,
+  "results": [
+    {
+      "kind": "task",
+      "filePicker": true,
+      "pasteShortcut": true,
+      "dragDrop": true,
+      "remove": true,
+      "errorRetainsDraft": true,
+      "lostResponseIdempotency": true,
+      "developerEmail": true,
+      "clientEmail": true,
+      "deepLinks": true,
+      "originalDownload": true
+    },
+    {
+      "kind": "general",
+      "filePicker": true,
+      "pasteShortcut": true,
+      "dragDrop": true,
+      "remove": true,
+      "errorRetainsDraft": true,
+      "lostResponseIdempotency": true,
+      "developerEmail": true,
+      "clientEmail": true,
+      "deepLinks": true,
+      "originalDownload": true
+    },
+    {
+      "responsiveConfigurations": 24,
+      "stats": {
+        "comments": 6,
+        "files": 6,
+        "deliveries": 6
+      },
+      "webkit": "Not installed; iOS Safari not run",
+      "android": "Chromium mobile viewport; physical Android device not available"
+    }
+  ],
+  "errors": []
+}

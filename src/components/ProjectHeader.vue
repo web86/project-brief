@@ -5,6 +5,8 @@ import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project'
 import ProjectProgress from './ProjectProgress.vue'
 import AppIcon from './AppIcon.vue'
+import FeedbackRequestButton from './FeedbackRequestButton.vue'
+import ProjectFeedback from './ProjectFeedback.vue'
 const store = useProjectStore()
 const route = useRoute()
 </script>
@@ -15,6 +17,8 @@ const route = useRoute()
   >
     <div v-if="!route.meta.adminShell || route.meta.projectOverview" class="project-intro">
       <h1>{{ store.project.name }}</h1>
+      <FeedbackRequestButton v-if="store.apiMode && store.isDeveloper" :project="store.project" />
+      <ProjectFeedback v-else-if="store.apiMode" />
       <span v-if="!route.meta.adminShell && store.project.website" class="website-label"
         ><AppIcon name="globe" :size="15" />{{ store.project.website }}</span
       >

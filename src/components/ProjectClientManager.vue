@@ -2,6 +2,9 @@
 import { isSecurityCancellation } from '../services/stepUp.js'
 import { toast } from '../services/toast.js'
 import LoadingButton from './LoadingButton.vue'
+import AppIcon from './AppIcon.vue'
+import UserAvatar from './UserAvatar.vue'
+import NotificationToggle from './NotificationToggle.vue'
 import { t, formatApiError } from '../i18n/index.js'
 
 import { ref } from 'vue'
@@ -10,7 +13,7 @@ import { formatDate } from '../constants/project.js'
 const store = useProjectManagementStore()
 const adding = ref(false)
 const editing = ref('')
-const form = ref({ name: '', email: '' })
+const form = ref({ name: '', email: '', sendInvitation: false })
 const secrets = ref({})
 const pending = ref(false)
 const generatingId = ref('')
@@ -22,7 +25,7 @@ const activeLinks = (client) => client.accessLinks.filter((link) => link.active)
 function edit(client = null) {
   adding.value = !client
   editing.value = client?.id || ''
-  form.value = { name: client?.name || '', email: client?.email || '' }
+  form.value = { name: client?.name || '', email: client?.email || '', sendInvitation: false }
 }
 async function action(operation) {
   if (pending.value) return
@@ -40,15 +43,36 @@ async function action(operation) {
 }
 function save(client = null) {
   action(async () => {
-    await store.mutateClient(client?.id, client ? 'PATCH' : 'POST', form.value)
+    const body = client ? { name: form.value.name, email: form.value.email } : form.value
+    const result = await store.mutateClient(client?.id, client ? 'PATCH' : 'POST', body)
     adding.value = false
     editing.value = ''
+    if (!client && result.invitation && result.invitation !== 'not_requested') {
+      invitationResult(result.invitation)
+      return
+    }
     notify(
       client
         ? { messageKey: 'ui.clientDetailsSaved', params: {} }
         : { messageKey: 'ui.clientAddedYouCanNowCreateAPersonal', params: {} },
     )
   })
+}
+function invitationResult(status) {
+  toast[status === 'failed' ? 'warning' : status === 'existing' ? 'info' : 'success'](() =>
+    t(
+      'feedback.' +
+        (status === 'failed'
+          ? 'invitationFailed'
+          : status === 'existing'
+            ? 'invitationExisting'
+            : 'invitationSent'),
+    ),
+  )
+}
+function invite(client) {
+  if (activeLinks(client).length && !window.confirm(t('feedback.invitationReplace'))) return
+  action(async () => invitationResult((await store.inviteClient(client.id)).invitation))
 }
 function toggle(client) {
   action(async () => {
@@ -115,10 +139,20 @@ async function copy(client) {
           @input="$event.target.setCustomValidity('')"
           id="new-client-email"
           v-model="form.email"
+          :required="form.sendInvitation"
           type="email"
           maxlength="255"
           autocomplete="email"
         />
+      </div>
+      <div class="client-invitation-option">
+        <NotificationToggle
+          :checked="form.sendInvitation"
+          :disabled="pending"
+          :label="t('feedback.sendInvitation')"
+          @change="form.sendInvitation = $event.target.checked"
+        />
+        <p class="small muted">{{ t('feedback.invitationHint') }}</p>
       </div>
       <div class="order-actions">
         <LoadingButton type="submit" :busy="pending" class="button primary" :disabled="pending">{{
@@ -162,6 +196,14 @@ async function copy(client) {
           />
         </div>
         <div class="order-actions">
+          <button
+            v-if="client.email"
+            class="button secondary"
+            :disabled="pending || !client.active || store.project.status !== 'active'"
+            @click="invite(client)"
+          >
+            <AppIcon name="mail" :size="16" />{{ t('feedback.inviteAgain') }}
+          </button>
           <LoadingButton type="submit" :busy="pending" class="button primary" :disabled="pending">{{
             t('ui.save')
           }}</LoadingButton
@@ -172,19 +214,30 @@ async function copy(client) {
       </form>
       <template v-else>
         <div class="client-heading">
-          <h3>{{ client.name }}</h3>
-          <span class="client-state" :class="{ inactive: !client.active }">{{
-            client.active ? t('ui.active') : t('ui.disabled')
-          }}</span>
+          <div class="person-identity">
+            <UserAvatar :user="client" />
+            <h3>{{ client.name }}</h3>
+          </div>
+          <span class="client-state" :class="{ inactive: !client.active }"
+            ><AppIcon :name="client.active ? 'check' : 'close'" :size="13" />{{
+              client.active ? t('ui.active') : t('ui.disabled')
+            }}</span
+          >
         </div>
-        <p v-if="client.email" class="client-email muted">{{ client.email }}</p>
-        <p class="small">
-          {{ t('ui.access') }}
-          {{ activeLinks(client).length ? t('ui.linkActive') : t('ui.noActiveLink') }}
+        <p v-if="client.email" class="person-meta client-email muted">
+          <AppIcon name="mail" :size="16" /><span>{{ client.email }}</span>
         </p>
-        <p class="small muted">
-          {{ t('ui.lastVisit') }}
-          {{ client.lastUsedAt ? formatDate(client.lastUsedAt) : t('ui.notYet') }}
+        <p class="small person-meta">
+          <AppIcon name="link" :size="16" /><span>
+            {{ t('ui.access') }}
+            {{ activeLinks(client).length ? t('ui.linkActive') : t('ui.noActiveLink') }}</span
+          >
+        </p>
+        <p class="small muted person-meta">
+          <AppIcon name="clock" :size="16" /><span>
+            {{ t('ui.lastVisit') }}
+            {{ client.lastUsedAt ? formatDate(client.lastUsedAt) : t('ui.notYet') }}</span
+          >
         </p>
         <div v-if="secrets[client.id]" class="client-secret">
           <label :for="`link-${client.id}`">{{ t('ui.linkFor') }} {{ client.name }}</label>
@@ -200,13 +253,23 @@ async function copy(client) {
           <p class="field-help">{{ t('ui.saveTheLinkNowItWillNotBe') }}</p>
         </div>
         <div class="order-actions">
+          <button
+            v-if="client.email"
+            class="button secondary"
+            :disabled="pending || !client.active || store.project.status !== 'active'"
+            @click="invite(client)"
+          >
+            <AppIcon name="mail" :size="16" />{{ t('feedback.inviteAgain') }}
+          </button>
           <LoadingButton
             :busy="pending && generatingId === client.id"
             class="button primary"
             :disabled="pending || !client.active || store.project.status !== 'active'"
             @click="generate(client)"
           >
-            {{ activeLinks(client).length ? t('ui.createNewLink') : t('ui.createLink') }}
+            <AppIcon name="link" :size="16" />{{
+              activeLinks(client).length ? t('ui.createNewLink') : t('ui.createLink')
+            }}
           </LoadingButton>
           <button
             v-if="activeLinks(client).length"
@@ -217,7 +280,7 @@ async function copy(client) {
             {{ t('ui.revokeLink') }}
           </button>
           <button class="button text" :disabled="pending" @click="edit(client)">
-            {{ t('ui.edit') }}
+            <AppIcon name="edit" :size="16" />{{ t('ui.edit') }}
           </button>
           <button class="button text" :disabled="pending" @click="toggle(client)">
             {{ client.active ? t('ui.disable') : t('ui.enable') }}

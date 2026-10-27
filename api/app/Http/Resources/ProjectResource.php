@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Services\ProjectDiscussions;
+use App\Services\ProjectFeedbacks;
 use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class ProjectResource extends JsonResource
         return ['id' => $this->uuid, 'name' => $this->title, 'website' => $this->website_url ?? '', 'description' => '', 'currency' => $this->currency,
             'permissions' => $this->when($admin, fn () => ProjectPermissions::effective($request, $this->resource)),
             'status' => $this->status, 'updatedAt' => $this->updated_at?->toISOString(),
+            'feedback' => $this->when($admin, fn () => ['eligible' => app(ProjectFeedbacks::class)->eligible($this->resource), 'requested' => (bool) $this->feedback_requested, 'submitted' => (bool) $this->feedback_submitted]),
             'clientsCount' => $this->when($admin && isset($this->clients_count), (int) $this->clients_count),
             'teamCount' => $this->when($admin && isset($this->team_count), (int) $this->team_count),
             'sections' => $this->whenLoaded('briefSections', fn () => $this->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))),

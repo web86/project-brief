@@ -20,6 +20,7 @@ use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDiscussionController;
 use App\Http\Controllers\ProjectExportController;
+use App\Http\Controllers\ProjectFeedbackController;
 use App\Http\Controllers\ProjectSectionController;
 use App\Http\Controllers\ProjectTeamController;
 use App\Http\Controllers\ProjectTrashController;
@@ -132,6 +133,7 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
+    Route::post('/feedback/request', [ProjectFeedbackController::class, 'request']);
     Route::get('/team', [ProjectTeamController::class, 'index']);
     Route::post('/team/invitations', [ProjectTeamController::class, 'invite'])->middleware('throttle:account-security');
     Route::post('/team/invitations/{invitation}/resend', [ProjectTeamController::class, 'resend'])->middleware('throttle:account-security');
@@ -148,6 +150,7 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
     Route::post('/activity/read', [ProjectActivityController::class, 'read']);
     Route::get('/clients', [ProjectClientController::class, 'index'])->middleware('project.permission:manage_clients');
     Route::post('/clients', [ProjectClientController::class, 'store'])->middleware('project.permission:manage_clients');
+    Route::post('/clients/{client}/invitation', [ProjectClientController::class, 'invite'])->middleware(['project.permission:manage_clients', 'throttle:account-security'])->block();
     Route::patch('/clients/{client}', [ProjectClientController::class, 'update'])->middleware('project.permission:manage_clients');
     Route::post('/clients/{client}/access-links', [AccessLinkController::class, 'store'])->middleware('project.permission:manage_clients');
     Route::delete('/clients/{client}/access-links/{token}', [AccessLinkController::class, 'destroy'])->middleware('project.permission:manage_clients');
@@ -158,6 +161,9 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
 });
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
+    Route::get('/project/{project}/feedback', [ProjectFeedbackController::class, 'show']);
+    Route::post('/project/{project}/feedback/invitation', [ProjectFeedbackController::class, 'invitation']);
+    Route::post('/project/{project}/feedback', [ProjectFeedbackController::class, 'store'])->middleware('throttle:comments');
     Route::post('/project/{project}/ai/task-assistant', AiTaskAssistantController::class);
     Route::get('/notifications', [ClientNotificationController::class, 'show']);
     Route::patch('/notifications', [ClientNotificationController::class, 'update']);

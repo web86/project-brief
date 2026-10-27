@@ -76,6 +76,13 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
     const current = revision
     const result = await api.request(`${root()}/clients${id ? `/${id}` : ''}`, { method, body })
     if (current === revision) clients.value = result.data
+    return result
+  }
+  async function inviteClient(id) {
+    const current = revision
+    const result = await api.request(`${root()}/clients/${id}/invitation`, { method: 'POST' })
+    if (current === revision) clients.value = result.data
+    return result
   }
   async function createAccessLink(clientId) {
     const current = revision,
@@ -109,6 +116,7 @@ export const useProjectManagementStore = defineStore('projectManagement', () => 
     saveProject,
     mutateSection,
     mutateClient,
+    inviteClient,
     createAccessLink,
     revokeAccess,
   }

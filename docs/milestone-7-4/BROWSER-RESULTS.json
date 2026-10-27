@@ -1,0 +1,86 @@
+[
+  {
+    "width": 390,
+    "mode": "light",
+    "admin": true,
+    "language": "ru",
+    "passed": true
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "admin": false,
+    "language": "ru",
+    "passed": true
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "admin": true,
+    "language": "ru",
+    "passed": true
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "admin": false,
+    "language": "ru",
+    "passed": true
+  },
+  {
+    "width": 768,
+    "mode": "light",
+    "admin": true,
+    "language": "tr",
+    "passed": true
+  },
+  {
+    "width": 768,
+    "mode": "light",
+    "admin": false,
+    "language": "tr",
+    "passed": true
+  },
+  {
+    "width": 768,
+    "mode": "dark",
+    "admin": true,
+    "language": "tr",
+    "passed": true
+  },
+  {
+    "width": 768,
+    "mode": "dark",
+    "admin": false,
+    "language": "tr",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "admin": true,
+    "language": "en",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "admin": false,
+    "language": "en",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "admin": true,
+    "language": "zh-CN",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "admin": false,
+    "language": "zh-CN",
+    "passed": true
+  }
+]

@@ -6,6 +6,7 @@ import AppIcon from '../components/AppIcon.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 import ProjectRecycleBin from '../components/ProjectRecycleBin.vue'
+import FeedbackRequestButton from '../components/FeedbackRequestButton.vue'
 import { api } from '../api/client.js'
 import { t, formatApiError, formatDate } from '../i18n/index.js'
 
@@ -142,6 +143,7 @@ onMounted(() => nav.refreshProjects())
           </div>
         </div>
         <div class="admin-project-actions">
+          <FeedbackRequestButton :project="project" />
           <RouterLink :to="`/admin/projects/${project.id}/brief`" class="button primary">{{
             t('ui.open')
           }}</RouterLink

@@ -100,12 +100,16 @@ $project->tasks()->create(['project_section_id'=>$exportSection->id, 'position'=
 $token = str_repeat('a', 64);
 $client = $project->clients()->create(['name'=>'Release client']);
 $project->accessTokens()->create(['project_client_id'=>$client->id, 'token_hash'=>hash('sha256', $token)]);
+$feedbackProject = $workspace->projects()->create(['title'=>'Completed feedback package QA', 'status'=>'active']);
+$feedbackProject->tasks()->create(['title'=>'Complete', 'description'=>'Done', 'status'=>'done']);
+$feedbackClient = $feedbackProject->clients()->create(['name'=>'Feedback runtime client']);
+$feedbackProject->accessTokens()->create(['project_client_id'=>$feedbackClient->id, 'token_hash'=>hash('sha256', str_repeat('c',64))]);
 $foreign = $app->make(\\App\\Services\\OwnerProvisioning::class)->create(['name'=>'Foreign QA', 'email'=>'foreign@example.test', 'password'=>'Foreign-test-only-password']);
 $foreignWorkspace = $foreign->workspaceMembers()->active()->firstOrFail()->workspace;
 $foreignProject = $foreignWorkspace->projects()->create(['title'=>'Foreign QA project']);
 $foreignTask = $foreignProject->tasks()->create(['title'=>'Foreign QA task', 'description'=>'Protected foreign task']);
 $runtimeImage = imagecreatetruecolor(4, 4); ob_start(); imagepng($runtimeImage); $runtimePng = base64_encode(ob_get_clean());
-echo json_encode(['png'=>$runtimePng, 'project'=>$project->uuid, 'workspace'=>$workspace->uuid, 'foreignWorkspace'=>$foreignWorkspace->uuid, 'foreignProject'=>$foreignProject->uuid, 'foreignTask'=>$foreignTask->uuid, 'trashTask'=>$trashTask->uuid, 'trashFile'=>$trashFile->uuid, 'mainSection'=>$section->uuid, 'targetSection'=>$exportSection->uuid, 'exportTask'=>$exportTask->uuid]);
+echo json_encode(['feedbackProject'=>$feedbackProject->uuid, 'png'=>$runtimePng, 'project'=>$project->uuid, 'workspace'=>$workspace->uuid, 'foreignWorkspace'=>$foreignWorkspace->uuid, 'foreignProject'=>$foreignProject->uuid, 'foreignTask'=>$foreignTask->uuid, 'trashTask'=>$trashTask->uuid, 'trashFile'=>$trashFile->uuid, 'mainSection'=>$section->uuid, 'targetSection'=>$exportSection->uuid, 'exportTask'=>$exportTask->uuid]);
 `,
   )
   const fixture = JSON.parse(command([fixturePhp, application]))
@@ -341,7 +345,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const projects = await (await request('/api/admin/projects')).json()
   assert.deepEqual(
     projects.data.map((project) => project.id),
-    [fixture.project],
+    [fixture.feedbackProject, fixture.project],
   )
   assert.equal((await request('/api/admin/projects/' + fixture.foreignProject)).status, 404)
   assert.equal((await request('/api/admin/tasks/' + fixture.foreignTask)).status, 404)
@@ -542,6 +546,37 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   })
   assert.equal(completedExport.status, 200)
   assert.equal((await completedExport.json()).document.totals.taskCount, 1)
+  const feedbackAdminRoot = `/api/admin/projects/${fixture.feedbackProject}`
+  const feedbackOwnerCsrf = (await (await request('/api/csrf')).json()).token
+  const feedbackAdminWrite = (suffix, body) =>
+    request(feedbackAdminRoot + suffix, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': feedbackOwnerCsrf,
+      },
+      body: JSON.stringify(body),
+    })
+  assert.equal(
+    (
+      await feedbackAdminWrite('/clients', {
+        name: 'Runtime invite',
+        email: 'runtime-invite@example.test',
+        sendInvitation: true,
+      })
+    ).status,
+    201,
+  )
+  const duplicateInvitation = await feedbackAdminWrite('/clients', {
+    name: 'Runtime invite retry',
+    email: 'RUNTIME-INVITE@example.test',
+    sendInvitation: true,
+  })
+  assert.equal(duplicateInvitation.status, 200)
+  assert.equal((await duplicateInvitation.json()).invitation, 'existing')
+  assert.equal((await feedbackAdminWrite('/feedback/request', {})).status, 200)
+
   const entered = await request(`/access/${'a'.repeat(64)}`)
   assert.equal(entered.status, 302)
   assert.equal(
@@ -720,6 +755,42 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const failedLink = await request(`/access/${'b'.repeat(64)}`)
   assert.equal(failedLink.status, 302)
   assert.match(failedLink.headers.get('location'), /access-error/)
+  assert.equal((await request(`/access/${'c'.repeat(64)}`)).status, 302)
+  const feedbackRoot = `/api/client/project/${fixture.feedbackProject}/feedback`
+  const feedbackCsrf = (await (await request('/api/csrf')).json()).token
+  const feedbackWrite = (suffix, body) =>
+    request(feedbackRoot + suffix, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': feedbackCsrf,
+      },
+      body: JSON.stringify(body),
+    })
+  assert.equal((await (await request(feedbackRoot)).json()).eligible, true)
+  assert.equal(
+    (await (await feedbackWrite('/invitation', { action: 'claim' })).json()).autoOpen,
+    true,
+  )
+  assert.equal(
+    (await (await feedbackWrite('/invitation', { action: 'claim' })).json()).autoOpen,
+    false,
+  )
+  assert.equal((await feedbackWrite('/invitation', { action: 'dismiss' })).status, 200)
+  assert.equal(
+    (await feedbackWrite('', { rating: 5, text: '<script>Package feedback</script>' })).status,
+    200,
+  )
+  assert.equal((await feedbackWrite('', { rating: 1, text: 'Retry' })).status, 200)
+  assert.equal((await (await request(feedbackRoot)).json()).submitted, true)
+  assert.equal((await request(`/api/client/project/${fixture.project}/feedback`)).status, 404)
+  const feedbackStats = command([
+    '-r',
+    'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo json_encode(["reviews"=>App\\Models\\ProjectFeedback::whereNotNull("submitted_at")->count(), "rating"=>App\\Models\\ProjectFeedback::whereNotNull("submitted_at")->value("rating"), "mail"=>App\\Models\\NotificationDelivery::where("event", "client.feedback_submitted")->count()]);',
+  ])
+  assert.deepEqual(JSON.parse(feedbackStats), { reviews: 1, rating: 5, mail: 1 })
+
   // Check the shipped v1 implementation without browser session/CSRF, using a disposable token.
   const integrationFixture = path.join(fixtureRoot, 'integration-fixture.php')
   await writeFile(
@@ -1100,7 +1171,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.3',
+    '0.7.4',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

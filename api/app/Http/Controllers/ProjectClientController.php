@@ -7,10 +7,13 @@ use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\Workspace;
 use App\Services\AccountSecurity;
+use App\Services\ClientInvitations;
+use App\Services\DeveloperInvitations;
 use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use App\Services\SupportedLocales;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProjectClientController extends Controller
@@ -29,12 +32,49 @@ class ProjectClientController extends Controller
     public function store(ProjectClientRequest $request, Project $project): JsonResponse
     {
         $data = $request->validated();
-        DB::transaction(function () use ($project, $data): void {
+        $send = $request->boolean('sendInvitation');
+        unset($data['sendInvitation']);
+        $data['email'] = empty($data['email']) ? null : DeveloperInvitations::normalizeEmail($data['email']);
+        [$client, $link, $existing] = DB::transaction(function () use ($request, $project, $data, $send): array {
+            Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
             ProjectStructure::lock($project);
-            $project->clients()->create([...$data, 'name' => trim($data['name'])]);
+            $request->attributes->remove(ProjectPermissions::class);
+            ProjectPermissions::authorize($request, $project, 'manage_clients', true);
+            app(AccountSecurity::class)->requireFresh($request);
+            $existing = $data['email'] ? $project->clients()->whereRaw('LOWER(TRIM(email)) = ?', [$data['email']])->first() : null;
+            if ($existing) {
+                return [$existing, null, true];
+            }
+            $client = $project->clients()->create([...$data, 'name' => trim($data['name']), 'preferred_locale' => SupportedLocales::storage(app()->getLocale())])->refresh();
+            $link = $send ? app(ClientInvitations::class)->issue($project, $client, now()->addDays(7)) : null;
+
+            return [$client, $link, false];
         }, 3);
 
-        return $this->index($project)->setStatusCode(201);
+        $delivery = $existing ? 'existing' : ($link ? (app(ClientInvitations::class)->deliver($project, $client, $link['url']) ? 'sent' : 'failed') : 'not_requested');
+
+        $response = $this->index($project);
+
+        return $response->setData([...$response->getData(true), 'invitation' => $delivery])->setStatusCode($existing ? 200 : 201);
+    }
+
+    public function invite(Request $request, Project $project, ProjectClient $client): JsonResponse
+    {
+        abort_unless($client->project_id === $project->id, 404);
+        abort_unless($client->email, 422);
+        $link = DB::transaction(function () use ($request, $project, $client): array {
+            Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
+            ProjectStructure::lock($project);
+            $request->attributes->remove(ProjectPermissions::class);
+            ProjectPermissions::authorize($request, $project, 'manage_clients', true);
+            app(AccountSecurity::class)->requireFresh($request);
+
+            return app(ClientInvitations::class)->issue($project->refresh(), $client->refresh(), now()->addDays(7));
+        }, 3);
+        $delivery = app(ClientInvitations::class)->deliver($project, $client, $link['url']) ? 'sent' : 'failed';
+        $response = $this->index($project);
+
+        return $response->setData([...$response->getData(true), 'invitation' => $delivery]);
     }
 
     public function update(ProjectClientRequest $request, Project $project, ProjectClient $client): JsonResponse

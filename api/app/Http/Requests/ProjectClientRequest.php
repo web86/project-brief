@@ -15,7 +15,8 @@ class ProjectClientRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['name' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'string', 'max:255', 'regex:/\S/u'], 'email' => ['nullable', 'email', 'max:255'], 'active' => ['sometimes', 'boolean']];
+        return ['name' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'string', 'max:255', 'regex:/\S/u'], 'email' => ['required_if:sendInvitation,true', 'nullable', 'email', 'max:255'], 'active' => ['sometimes', 'boolean'],
+            ...($this->isMethod('POST') ? ['sendInvitation' => ['sometimes', 'boolean']] : [])];
     }
 
     public function withValidator(Validator $validator): void

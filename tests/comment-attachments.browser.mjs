@@ -8,7 +8,9 @@ import path from 'node:path'
 import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
-const output = new URL('../docs/milestone-4-9/', import.meta.url)
+const output = process.env.COMMENT_ATTACHMENTS_OUTPUT_DIR
+  ? new URL('file://' + process.env.COMMENT_ATTACHMENTS_OUTPUT_DIR.replace(/\/$/, '') + '/')
+  : new URL('../docs/milestone-4-9/', import.meta.url)
 await mkdir(output, { recursive: true })
 const scratch = await mkdtemp(path.join(tmpdir(), 'milestone49-e2e-'))
 const database = path.join(scratch, 'test.sqlite')

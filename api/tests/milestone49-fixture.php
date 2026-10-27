@@ -22,7 +22,7 @@ if (($argv[1] ?? '') === 'stats') {
     exit;
 }
 $workspace = Workspace::factory()->create(['name' => 'Web86 Studio']);
-$developer = User::factory()->memberOf($workspace)->create(['name' => 'Алексей / Alex', 'email' => 'developer@example.test', 'password' => 'Local-e2e-password!']);
+$developer = User::factory()->memberOf($workspace)->create(['name' => 'Алексей / Alex', 'email' => 'developer@example.test', 'password' => 'Local-e2e-password!', 'security_recommendations_seen_at' => now()]);
 $project = Project::factory()->for($workspace)->create(['title' => 'Обновление интернет-магазина']);
 $project->members()->create(['workspace_id' => $workspace->id, 'workspace_member_id' => $developer->workspaceMembers()->first()->id]);
 $task = Task::factory()->for($project)->create(['title' => 'Карточка товара', 'description' => 'Уточнить расположение фотографии и описание товара.']);

@@ -2,6 +2,7 @@
 import { onUnmounted } from 'vue'
 import { t } from '../i18n/index.js'
 import { toast } from '../services/toast.js'
+import AppIcon from './AppIcon.vue'
 const resolve = (value) => (typeof value === 'function' ? value() : value)
 onUnmounted(toast.clear)
 </script>
@@ -19,6 +20,11 @@ onUnmounted(toast.clear)
       @focusin="toast.pause(item.id)"
       @focusout="!$event.currentTarget.contains($event.relatedTarget) && toast.resume(item.id)"
     >
+      <AppIcon
+        class="toast-status-icon"
+        :name="item.type === 'success' ? 'check' : 'info'"
+        :size="18"
+      />
       <div class="toast-content">
         <p>{{ resolve(item.message) }}</p>
         <button

@@ -59,6 +59,11 @@ class Project extends Model
         return $this->hasMany(ProjectClient::class)->orderBy('id');
     }
 
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(ProjectFeedback::class);
+    }
+
     public function accessTokens(): HasMany
     {
         return $this->hasMany(ProjectAccessToken::class)->orderBy('id');

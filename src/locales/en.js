@@ -1,4 +1,28 @@
 export default {
+  feedback: {
+    ideaDetails: 'Idea details',
+    sendInvitation: 'Email an invitation',
+    invitationHint: 'The client receives a personal project link, valid for 7 days.',
+    invitationSent: 'Client saved. Invitation sent.',
+    invitationFailed: 'Client saved, but the email could not be sent. Retry from the client card.',
+    invitationExisting:
+      'This email already belongs to a client in this project. Use their existing card.',
+    inviteAgain: 'Send invitation',
+    invitationReplace: 'This replaces the previous access link for this client.',
+    request: 'Request feedback',
+    requested: 'Request sent',
+    submitted: 'Feedback sent',
+    leave: 'Leave feedback',
+    title: 'Project completed!',
+    thanks: 'Thank you for working with us. How was your experience?',
+    rating: 'Your rating',
+    stars: '{count} out of 5 stars',
+    text: 'Feedback (optional)',
+    send: 'Send feedback',
+    later: 'Later',
+    saved: 'Thank you! Your feedback has been saved.',
+    requestSaved: 'Clients will be invited to leave feedback when they open the project.',
+  },
   security: {
     confirmPasskey: 'Confirm with Passkey',
     retryPasskey: 'Retry with Passkey',
