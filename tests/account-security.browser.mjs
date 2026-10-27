@@ -414,12 +414,58 @@ try {
   await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).waitFor()
   assert.equal(teamMutations.length, 2)
   assert.equal(await page.locator('.toast-error').count(), criticalBefore)
+  // Measure actual action colors before and after theme transitions, not just theme attributes.
+  await page.waitForFunction(() => !document.querySelector('.toast-success'))
+  await page.waitForFunction(() => {
+    const retry = document.querySelector('dialog[open] .primary')
+    return retry && !retry.disabled
+  })
+  const contrastSamples = []
+  const readFallbackColors = () =>
+    fallback.locator('.button, .text-button').evaluateAll((buttons) => {
+      const luminance = (color) => {
+        const components = color
+          .match(/[\d.]+/g)
+          .slice(0, 3)
+          .map(Number)
+        return components
+          .map((value) => {
+            const channel = value / 255
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+          })
+          .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0)
+      }
+      return buttons.map((button) => {
+        const style = getComputedStyle(button)
+        let parent = button,
+          background
+        while (parent) {
+          background = getComputedStyle(parent).backgroundColor
+          if (!background.startsWith('rgba') && background !== 'transparent') break
+          parent = parent.parentElement
+        }
+        const foregroundLuminance = luminance(style.color),
+          backgroundLuminance = luminance(background)
+        return {
+          text: button.textContent.trim(),
+          enabled: !button.disabled,
+          foreground: style.color,
+          background,
+          ratio: Number(
+            (
+              (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+              (Math.min(foregroundLuminance, backgroundLuminance) + 0.05)
+            ).toFixed(3),
+          ),
+        }
+      })
+    })
   for (const language of LANGUAGE_CATALOG) {
     for (const [width, scheme] of [
       [1440, 'light'],
       [390, 'dark'],
     ]) {
-      await page.setViewportSize({ width, height: 1050 })
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1050 })
       await page.emulateMedia({ colorScheme: scheme })
       await page.evaluate(
         async ({ lang, scheme }) => {
@@ -435,12 +481,36 @@ try {
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
       )
+      const before = await readFallbackColors()
+      await page.waitForFunction(() =>
+        document
+          .getAnimations()
+          .every(
+            (animation) =>
+              !('transitionProperty' in animation) || animation.playState === 'finished',
+          ),
+      )
+      const after = await readFallbackColors()
+      for (const button of after) {
+        assert.equal(button.enabled, true, button.text)
+        assert.ok(
+          button.ratio >= 4.5,
+          `${language.code}/${scheme}: ${button.text} contrast ${button.ratio}`,
+        )
+      }
+      contrastSamples.push({ locale: language.code, scheme, width, before, after })
+      await page.evaluate(() => window.scrollTo(0, 0))
       await page.screenshot({
         path: path.join(output, `fallback-${language.code}-${width}-${scheme}.png`),
-        fullPage: true,
+        fullPage: false,
+        animations: 'disabled',
       })
     }
   }
+  await writeFile(
+    path.join(output, 'fallback-contrast.json'),
+    JSON.stringify(contrastSamples, null, 2) + '\n',
+  )
   await page.evaluate(async () => {
     const { setManualLocale } = await import('/src/i18n/index.js')
     setManualLocale('en')

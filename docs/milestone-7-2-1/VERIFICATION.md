@@ -60,6 +60,22 @@ SHA-256: `86f507c330d4bec938b84aa2c68a95084b39f609185354dc89afe0dc9c9182a9`.
 
 [Artifact metadata](RELEASE-ARTIFACT.json), [checksum file](SHA256SUMS.txt), [Jino update/rollback](PRODUCTION.md), [implementation](IMPLEMENTATION.md). The original 0.7.2 ZIP remains with its original verified checksum. Final report-only commits do not change the archive's runtime source commit. No deployment or publication was performed.
 
+## Fallback screenshot correction — 27 October 2026
+
+The original fallback captures were taken immediately after programmatic theme changes. `.button` transitions its background for 150 ms, while the text color changes immediately. The old test checked only the root theme attribute and horizontal overflow, so it captured mismatched intermediate foreground/background colors. This readability problem was present in the report; the stable light/dark action styles have sufficient contrast. No production CSS, authentication code, secrets or release ZIP changed in this correction.
+
+The harness now waits for retry readiness, old success toasts to expire and finite CSS transitions to finish. It verifies every active fallback action against the project's existing 4.5:1 text-contrast threshold, then captures the viewport with animations disabled. Modal screenshots use 1440×1050 or 390×844 instead of stitched full-page images. No colors are overridden for the capture.
+
+Observed RU text/background ratios, calculated from real computed colors:
+
+| Action                      | During switch to light | Settled light | During switch to dark | Settled dark |
+| --------------------------- | ---------------------- | ------------- | --------------------- | ------------ |
+| Повторить через Passkey     | 1.876                  | 11.188        | 1.393                 | 8.307        |
+| Другой способ подтверждения | 1.490                  | 10.461        | 1.422                 | 10.963       |
+| Отменить                    | 7.275                  | 7.275         | 8.309                 | 8.309        |
+
+All 24 active-action checks across RU/EN/TR/ZH-CN and both capture themes passed; the complete HTTPS suite again passed all 23 scenario groups. [Measured colors and ratios](FALLBACK-CONTRAST.json). The eight fallback images below have been replaced with settled, readable viewport captures. The existing 0.7.3 ZIP and its SHA-256 remain unchanged; rebuilding or updating production is unnecessary for this report correction.
+
 ## Fallback screenshots
 
 | Locale | Desktop light                                     | Mobile dark                                    |

@@ -1,0 +1,410 @@
+[
+  {
+    "locale": "ru",
+    "scheme": "light",
+    "width": 1440,
+    "before": [
+      {
+        "text": "Повторить через Passkey",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(157, 191, 244)",
+        "ratio": 1.876
+      },
+      {
+        "text": "Другой способ подтверждения",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 1.49
+      },
+      {
+        "text": "Отменить",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ],
+    "after": [
+      {
+        "text": "Повторить через Passkey",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 11.188
+      },
+      {
+        "text": "Другой способ подтверждения",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 10.461
+      },
+      {
+        "text": "Отменить",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ]
+  },
+  {
+    "locale": "ru",
+    "scheme": "dark",
+    "width": 390,
+    "before": [
+      {
+        "text": "Повторить через Passkey",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 1.393
+      },
+      {
+        "text": "Другой способ подтверждения",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 1.422
+      },
+      {
+        "text": "Отменить",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ],
+    "after": [
+      {
+        "text": "Повторить через Passkey",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(157, 191, 244)",
+        "ratio": 8.307
+      },
+      {
+        "text": "Другой способ подтверждения",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 10.963
+      },
+      {
+        "text": "Отменить",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ]
+  },
+  {
+    "locale": "en",
+    "scheme": "light",
+    "width": 1440,
+    "before": [
+      {
+        "text": "Retry with Passkey",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(157, 191, 244)",
+        "ratio": 1.876
+      },
+      {
+        "text": "Another confirmation method",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 1.49
+      },
+      {
+        "text": "Cancel",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ],
+    "after": [
+      {
+        "text": "Retry with Passkey",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 11.188
+      },
+      {
+        "text": "Another confirmation method",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 10.461
+      },
+      {
+        "text": "Cancel",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ]
+  },
+  {
+    "locale": "en",
+    "scheme": "dark",
+    "width": 390,
+    "before": [
+      {
+        "text": "Retry with Passkey",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 1.393
+      },
+      {
+        "text": "Another confirmation method",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 1.422
+      },
+      {
+        "text": "Cancel",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ],
+    "after": [
+      {
+        "text": "Retry with Passkey",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(157, 191, 244)",
+        "ratio": 8.307
+      },
+      {
+        "text": "Another confirmation method",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 10.963
+      },
+      {
+        "text": "Cancel",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ]
+  },
+  {
+    "locale": "tr",
+    "scheme": "light",
+    "width": 1440,
+    "before": [
+      {
+        "text": "Passkey ile yeniden dene",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(157, 191, 244)",
+        "ratio": 1.876
+      },
+      {
+        "text": "Başka bir doğrulama yöntemi",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 1.49
+      },
+      {
+        "text": "İptal",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ],
+    "after": [
+      {
+        "text": "Passkey ile yeniden dene",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 11.188
+      },
+      {
+        "text": "Başka bir doğrulama yöntemi",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 10.461
+      },
+      {
+        "text": "İptal",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ]
+  },
+  {
+    "locale": "tr",
+    "scheme": "dark",
+    "width": 390,
+    "before": [
+      {
+        "text": "Passkey ile yeniden dene",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 1.393
+      },
+      {
+        "text": "Başka bir doğrulama yöntemi",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 1.422
+      },
+      {
+        "text": "İptal",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ],
+    "after": [
+      {
+        "text": "Passkey ile yeniden dene",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(157, 191, 244)",
+        "ratio": 8.307
+      },
+      {
+        "text": "Başka bir doğrulama yöntemi",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 10.963
+      },
+      {
+        "text": "İptal",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ]
+  },
+  {
+    "locale": "zh-CN",
+    "scheme": "light",
+    "width": 1440,
+    "before": [
+      {
+        "text": "重新使用 Passkey",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(143, 176, 228)",
+        "ratio": 2.211
+      },
+      {
+        "text": "其他确认方式",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(55, 61, 70)",
+        "ratio": 1.046
+      },
+      {
+        "text": "取消",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ],
+    "after": [
+      {
+        "text": "重新使用 Passkey",
+        "enabled": true,
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 11.188
+      },
+      {
+        "text": "其他确认方式",
+        "enabled": true,
+        "foreground": "rgb(52, 64, 84)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 10.461
+      },
+      {
+        "text": "取消",
+        "enabled": true,
+        "foreground": "rgb(36, 84, 165)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 7.275
+      }
+    ]
+  },
+  {
+    "locale": "zh-CN",
+    "scheme": "dark",
+    "width": 390,
+    "before": [
+      {
+        "text": "重新使用 Passkey",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(36, 59, 98)",
+        "ratio": 1.393
+      },
+      {
+        "text": "其他确认方式",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(255, 255, 255)",
+        "ratio": 1.422
+      },
+      {
+        "text": "取消",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ],
+    "after": [
+      {
+        "text": "重新使用 Passkey",
+        "enabled": true,
+        "foreground": "rgb(20, 36, 60)",
+        "background": "rgb(157, 191, 244)",
+        "ratio": 8.307
+      },
+      {
+        "text": "其他确认方式",
+        "enabled": true,
+        "foreground": "rgb(209, 217, 229)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 10.963
+      },
+      {
+        "text": "取消",
+        "enabled": true,
+        "foreground": "rgb(157, 191, 244)",
+        "background": "rgb(30, 36, 46)",
+        "ratio": 8.309
+      }
+    ]
+  }
+]
