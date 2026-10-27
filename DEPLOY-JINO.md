@@ -1,3 +1,5 @@
+> Milestone 7 (0.7.0): до обновления прочитайте [защита аккаунтов, восстановление и откат](docs/milestone-7/PRODUCTION.md). Нужны HTTPS, стабильный origin/RP ID и APP_KEY. Владельцы с незавершённой настройкой получают только ограниченный onboarding.
+
 # ProjectBrief на Jino
 
 Домен: **https://brief.web86.site**. Публичная папка: **`~/domains/brief.web86.site`**.

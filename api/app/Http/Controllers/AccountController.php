@@ -78,6 +78,7 @@ class AccountController extends Controller
                 $old = $user->email;
                 Password::broker('users')->deleteToken($user);
                 $user->forceFill(['email' => $user->pending_email, 'email_verified_at' => now(), ...$profile->clearEmail()])->save();
+                $profile->revokeSessions($user, $request);
 
                 return $old;
             });

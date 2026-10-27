@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AiTaskAssistantController;
@@ -49,7 +50,32 @@ Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cac
     ]);
 Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'));
 Route::get('/api/session', SessionController::class);
-Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login');
+Route::prefix('/api/security')->controller(AccountSecurityController::class)->group(function (): void {
+    Route::get('/status', 'show');
+    Route::post('/challenge', 'challenge')->middleware('throttle:security-challenge')->block();
+    foreach (['login', 'confirm', 'register'] as $purpose) {
+        $routes = [
+            Route::get('/passkey/'.$purpose.'/options', 'options')->defaults('purpose', $purpose),
+            Route::post('/passkey/'.$purpose, 'passkey')->defaults('purpose', $purpose),
+        ];
+        foreach ($routes as $route) {
+            $route->middleware('throttle:security-passkeys')->block();
+            if ($purpose !== 'login') {
+                $route->middleware('auth');
+            }
+        }
+    }
+    Route::middleware(['auth', 'throttle:account-security'])->group(function (): void {
+        Route::post('/confirm', 'confirm')->block();
+        Route::post('/totp/setup', 'setupTotp')->block();
+        Route::post('/totp/confirm', 'confirmTotp')->block();
+        Route::match(['GET', 'POST'], '/recovery-codes', 'recovery')->block();
+        Route::post('/recovery-codes/acknowledge', 'acknowledgeRecovery')->block();
+        Route::patch('/passkeys/{id}', 'updatePasskey')->whereNumber('id')->block();
+        Route::delete('/passkeys/{id}', 'deletePasskey')->whereNumber('id')->block();
+    });
+});
+Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login')->block();
 Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:20,1');
 Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:10,1');
 Route::post('/api/admin/password/forgot', [PasswordRecoveryController::class, 'request'])->middleware('throttle:account-recovery');

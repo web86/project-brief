@@ -104,14 +104,14 @@ class WorkspaceMigrationTest extends TestCase
             } else {
                 $this->assertSame(0, DB::table('project_members')->count());
             }
-            $this->actingAs(User::findOrFail($first))->getJson('/api/admin/projects')->assertJsonCount(2, 'data');
+            $this->actingAs(User::findOrFail($first))->getJson('/api/admin/projects')->assertForbidden()->assertJsonPath('state', 'enrollment_required');
             $this->get('/access/'.$plain)->assertRedirect(config('projectbrief.frontend_url').'/project/'.DB::table('projects')->where('id', $project)->value('uuid'));
             $this->getJson('/api/client/tasks')->assertOk()->assertJsonCount(1, 'data')->assertJsonMissingPath('data.0.developerNotes');
             foreach ($before as $table => $rows) {
                 $after = DB::table($table)->orderBy('id')->get()->map(function ($row) use ($table) {
                     $data = (array) $row;
                     if ($table === 'users') {
-                        foreach (['preferred_locale', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at'] as $added) {
+                        foreach (['preferred_locale', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pending_two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'security_recovery_token_hash', 'security_recovery_expires_at'] as $added) {
                             $this->assertNull($data[$added]);
                             unset($data[$added]);
                         }
@@ -176,7 +176,7 @@ class WorkspaceMigrationTest extends TestCase
                 }
                 $this->assertSame($rows, $after, $table.' existing values must survive');
             }
-            $this->postJson('/api/admin/login', ['email' => 'first@example.test', 'password' => 'Legacy-password-long'])->assertOk()->assertJsonPath('user.membershipRole', 'owner');
+            $this->postJson('/api/admin/login', ['email' => 'first@example.test', 'password' => 'Legacy-password-long'])->assertOk()->assertJsonPath('state', 'enrollment_required');
             if ($second !== null) {
                 $this->postJson('/api/admin/login', ['email' => 'second@example.test', 'password' => 'Legacy-password-long'])->assertOk()->assertJsonPath('user.membershipRole', 'admin');
             }

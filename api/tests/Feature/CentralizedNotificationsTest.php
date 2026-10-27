@@ -143,6 +143,7 @@ class CentralizedNotificationsTest extends TestCase
         $second = $this->token();
         $this->postJson('/api/admin/notifications/email/verify', ['token' => $first])->assertUnprocessable();
         $this->travel(31)->minutes();
+        $this->actingAs($user);
         $this->postJson('/api/admin/notifications/email/verify', ['token' => $second])->assertUnprocessable();
         $this->deleteJson('/api/admin/notifications/email/pending')->assertOk()->assertJsonPath('pendingEmail', null)->assertJsonPath('email', 'current@example.test');
         config(['mail.default' => 'log']);

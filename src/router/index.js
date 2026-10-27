@@ -47,6 +47,7 @@ export function createProjectRouter({
           },
         },
       },
+      { path: '/admin/security', component: () => import('../views/AccountEnrollmentView.vue') },
       { path: '/invitation', component: () => import('../views/InvitationView.vue') },
       ...['forgot-password', 'reset-password'].map((path) => ({
         path: '/admin/' + path,
@@ -339,6 +340,10 @@ export function createProjectRouter({
     if (to.path !== from.path && !confirmDeveloperLeave(draftStore)) return false
     useTaskWorkspaceStore().closePanel()
 
+    if (apiMode && to.path === '/admin/security') {
+      const status = await request('/api/security/status')
+      if (status.state === 'guest') return '/admin/login'
+    }
     if (to.path === '/app') {
       const store = useProjectStore()
       try {
@@ -387,6 +392,11 @@ export function createProjectRouter({
           return false
         store.sessionLost = false
       } catch (error) {
+        if (error.code === 'account_security_required') {
+          nav.clear()
+          store.admin = null
+          return '/admin/security'
+        }
         if ([401, 403].includes(error.status)) {
           nav.clear()
           store.admin = null

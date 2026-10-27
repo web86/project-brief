@@ -32,8 +32,9 @@ class WorkspaceFoundationTest extends TestCase
         $user = User::factory()->owner()->create(['role' => 'other']);
         $workspace = $user->workspaceMembers()->first()->workspace;
         $this->postJson('/api/admin/login', ['email' => $user->email, 'password' => 'password'])->assertOk()
-            ->assertJsonPath('user.membershipRole', 'owner')->assertJsonPath('workspace.id', $workspace->uuid)
+            ->assertJsonPath('state', 'pending_2fa')
             ->assertJsonMissingPath('user.id')->assertJsonMissingPath('workspace.workspace_id');
+        $this->actingAs($user);
         $this->getJson('/api/session')->assertExactJson(['authenticated' => true, 'type' => 'admin', 'workspace' => ['id' => $workspace->uuid, 'name' => $workspace->name]]);
     }
 

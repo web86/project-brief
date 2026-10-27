@@ -120,7 +120,7 @@ class AccountProfileTest extends TestCase
         $this->assertSame($known, $unknown);
         $this->assertDatabaseCount('password_reset_tokens', 1);
         parse_str(parse_url(Mail::sent(AccountActionMail::class)->last()->actionUrl, PHP_URL_FRAGMENT), $fragment);
-        $body = ['email' => $this->user->email, 'token' => $fragment['token'], 'password' => 'Recovered-password', 'password_confirmation' => 'Recovered-password'];
+        $body = ['email' => $this->user->email, 'token' => $fragment['token'], 'recovery_code' => $this->user->fresh()->recoveryCodes()[0], 'password' => 'Recovered-password', 'password_confirmation' => 'Recovered-password'];
         $this->postJson('/api/admin/password/reset', $body)->assertOk();
         $this->postJson('/api/admin/password/reset', $body)->assertUnprocessable();
         $this->assertDatabaseCount('password_reset_tokens', 0);

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -21,7 +22,7 @@ class SessionSecurityTest extends TestCase
                 return false;
             }
         });
-        $user = User::factory()->owner()->create(['password' => Hash::make('Local-test-password')]);
+        $user = User::factory()->memberOf(Workspace::factory()->create())->create(['password' => Hash::make('Local-test-password')]);
         $this->postJson('/api/admin/login', ['email' => $user->email, 'password' => 'Local-test-password'])->assertStatus(419);
         $this->assertGuest();
         $token = $this->getJson('/api/csrf')->assertOk()->json('token');

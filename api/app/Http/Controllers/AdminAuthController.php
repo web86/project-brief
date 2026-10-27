@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Models\DeveloperInvitation;
 use App\Models\User;
 use App\Services\AccountProfile;
+use App\Services\AccountSecurity;
 use App\Services\CurrentWorkspace;
 use App\Services\DeveloperInvitations;
 use App\Services\ProjectPermissions;
@@ -20,14 +21,16 @@ class AdminAuthController extends Controller
         $credentials = $request->only('email', 'password');
         $registeredEmail = User::whereRaw('LOWER(TRIM(email)) = ?', [DeveloperInvitations::normalizeEmail($credentials['email'])])->value('email');
         $credentials['email'] = $registeredEmail ?? $credentials['email'];
-        if (! Auth::attemptWhen($credentials, function (User $user) use ($request): bool {
-            return $user->workspaceMembers()->active()->exists() || DeveloperInvitation::where('token_hash', hash('sha256', (string) $request->input('invitation_token')))->whereRaw('LOWER(email) = ?', [DeveloperInvitations::normalizeEmail($user->email)])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->exists();
-        })) {
+        $provider = Auth::getProvider();
+        $user = $provider->retrieveByCredentials($credentials);
+        $eligible = $user && ($user->workspaceMembers()->active()->exists() || DeveloperInvitation::where('token_hash', hash('sha256', (string) $request->input('invitation_token')))->whereRaw('LOWER(email) = ?', [DeveloperInvitations::normalizeEmail($user->email)])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->exists());
+        if (! $user || ! $provider->validateCredentials($user, $credentials) || ! $eligible) {
             return response()->json(['code' => 'invalid_credentials', 'errors' => ['email' => [trans('interface.invalid_credentials')]]], 422);
         }
-        $request->session()->forget(['client_project_id', 'project_client_id', 'client_access_token_id', CurrentWorkspace::SESSION_KEY]);
-        $request->session()->put('auth_session_version', (int) $request->user()->auth_session_version);
-        $request->session()->regenerate();
+        $state = app(AccountSecurity::class)->passwordLogin($request, $user);
+        if ($state !== 'authenticated') {
+            return response()->json(['state' => $state])->header('Cache-Control', 'no-store');
+        }
 
         return $request->user()->workspaceMembers()->active()->exists() ? $this->me($request) : response()->json(['user' => app(AccountProfile::class)->state($request->user())]);
     }

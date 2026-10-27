@@ -1,3 +1,4 @@
+import { requestStepUp } from '../services/stepUp.js'
 import { t, locale } from '../i18n/index.js'
 export class ApiError extends Error {
   constructor(status, message, errors = {}, code = null) {
@@ -42,6 +43,7 @@ export function createApiClient({
       responseType = 'json',
       timeoutMs: requestTimeoutMs = timeoutMs,
       signal: externalSignal,
+      securityRetry = true,
     } = {},
   ) {
     externalSignal?.throwIfAborted()
@@ -102,6 +104,24 @@ export function createApiClient({
     } finally {
       clearTimeout(timer)
       externalSignal?.removeEventListener('abort', abortExternal)
+    }
+    if (
+      response.status === 423 &&
+      data.code === 'security_step_up_required' &&
+      securityRetry &&
+      !path.startsWith('/api/security/')
+    ) {
+      if (await requestStepUp()) {
+        csrf = null
+        return request(path, {
+          method,
+          body,
+          responseType,
+          timeoutMs: requestTimeoutMs,
+          signal: externalSignal,
+          securityRetry: false,
+        })
+      }
     }
     if (!response.ok) {
       if ([401, 419].includes(response.status)) csrf = null

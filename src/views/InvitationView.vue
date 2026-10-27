@@ -6,11 +6,13 @@ import { t, formatApiError } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectStore } from '../stores/project.js'
 import { createInvitationFlow } from '../services/invitationFlow.js'
+import AccountSecurityPanel from '../components/AccountSecurityPanel.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 const route = useRoute(),
   router = useRouter()
 const token = /^#token=([a-f0-9]{64})$/.exec(route.hash)?.[1] || ''
 const {
+  securityPending,
   state,
   register,
   name,
@@ -37,6 +39,10 @@ const {
     await router.replace('/admin')
   },
 })
+function securityReady() {
+  securityPending.value = false
+  return load()
+}
 const errorMessage = computed(() =>
   error.value
     ? error.value.status === 410 || !token
@@ -61,7 +67,8 @@ onMounted(async () => {
     >
       {{ t('ui.tryAgain') }}
     </button>
-    <form v-if="state" class="surface admin-form" @submit.prevent="accept">
+    <AccountSecurityPanel onboarding v-if="securityPending" @ready="securityReady" />
+    <form v-if="state && !securityPending" class="surface admin-form" @submit.prevent="accept">
       <h2>{{ t('account.invitedTo', { name: state.workspace }) }}</h2>
       <p v-if="!mismatch">
         {{ t('invitation.invitedEmail') }} <strong>{{ state.email }}</strong>

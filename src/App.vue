@@ -1,4 +1,5 @@
 <script setup>
+import SecurityStepUpDialog from './components/SecurityStepUpDialog.vue'
 import BrandLogo from './components/BrandLogo.vue'
 import ClientSidebar from './components/ClientSidebar.vue'
 import TelegramPrompt from './components/TelegramPrompt.vue'
@@ -183,5 +184,6 @@ watch(
     </div>
   </div>
   <LoadingOverlay :active="navigationPending" class="navigation-loading" />
+  <SecurityStepUpDialog />
   <ToastViewport />
 </template>

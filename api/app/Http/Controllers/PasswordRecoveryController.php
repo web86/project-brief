@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\AccountMail;
 use App\Services\AccountProfile;
+use App\Services\AccountSecurity;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -31,15 +33,20 @@ class PasswordRecoveryController extends Controller
 
     public function reset(Request $request, AccountProfile $profile): JsonResponse
     {
-        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'token' => ['required', 'string', 'max:256'], 'password' => ['required', 'string', 'min:9', 'max:1024', 'confirmed']]);
+        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'token' => ['required', 'string', 'max:256'], 'code' => ['nullable', 'string', 'max:6'], 'recovery_code' => ['nullable', 'string', 'max:100'], 'password' => ['required', 'string', 'min:9', 'max:1024', 'confirmed']]);
         $user = User::whereRaw('LOWER(email) = ?', [mb_strtolower(trim($data['email']))])->first();
         if ($user) {
             $data['email'] = $user->email;
         }
-        $status = DB::transaction(function () use ($data, $profile): string {
+        $status = DB::transaction(function () use ($data, $profile, $request): string {
             User::where('email', $data['email'])->lockForUpdate()->first();
 
-            return Password::broker('users')->reset($data, function (User $user, string $password) use ($profile): void {
+            return Password::broker('users')->reset(Arr::only($data, ['email', 'token', 'password', 'password_confirmation']), function (User $user, string $password) use ($profile, $data, $request): void {
+                $security = app(AccountSecurity::class);
+                if ($user->isWorkspaceOwner() && $user->hasEnabledTwoFactorAuthentication()) {
+                    $fresh = $request->user()?->id === $user->id && $security->fresh($request);
+                    $security->valid($fresh || $security->verifyFactor($user, $data));
+                }
                 if (Hash::check($password, $user->password)) {
                     throw ValidationException::withMessages(['password' => ['Choose a different password.']]);
                 }

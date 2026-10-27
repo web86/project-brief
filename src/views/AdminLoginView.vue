@@ -1,4 +1,5 @@
 <script setup>
+import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
 import LoadingButton from '../components/LoadingButton.vue'
 import { t, formatApiError } from '../i18n/index.js'
 
@@ -12,6 +13,7 @@ const router = useRouter(),
 const store = useProjectStore()
 const email = ref('')
 const password = ref('')
+const operatorToken = ref('')
 const pending = ref(false)
 const error = ref('')
 async function login() {
@@ -21,10 +23,20 @@ async function login() {
   try {
     const result = await api.request('/api/admin/login', {
       method: 'POST',
-      body: { email: email.value, password: password.value },
+      body: {
+        email: email.value,
+        password: password.value,
+        operator_recovery_token: operatorToken.value || undefined,
+      },
     })
+    operatorToken.value = ''
     api.resetCsrf()
     useAdminNavigationStore().clear()
+    if (['pending_2fa', 'enrollment_required'].includes(result.state)) {
+      password.value = ''
+      await router.replace('/admin/security')
+      return
+    }
     store.admin = result.user
     store.apiError = ''
     store.sessionLost = false
@@ -38,6 +50,20 @@ async function login() {
     )
   } catch (cause) {
     error.value = cause
+  } finally {
+    pending.value = false
+  }
+}
+async function loginPasskey() {
+  if (pending.value) return
+  pending.value = true
+  error.value = ''
+  try {
+    const result = await passkeyCeremony('login')
+    useAdminNavigationStore().clear()
+    await router.replace(result.state === 'authenticated' ? '/admin' : '/admin/security')
+  } catch {
+    error.value = { messageKey: 'security.passkeyFailed' }
   } finally {
     pending.value = false
   }
@@ -74,10 +100,27 @@ async function login() {
           required
         />
       </div>
+      <details>
+        <summary>{{ t('security.operatorToken') }}</summary>
+        <div class="field">
+          <label for="operator-token">{{ t('security.operatorToken') }}</label
+          ><input id="operator-token" v-model="operatorToken" autocomplete="off" maxlength="64" />
+        </div>
+      </details>
       <p v-if="error" class="field-error" role="alert">{{ formatApiError(error) }}</p>
       <LoadingButton :busy="pending" class="button primary" type="submit" :disabled="pending">
         {{ t('ui.signIn') }}
       </LoadingButton>
+      <button
+        v-if="passkeysSupported()"
+        type="button"
+        class="button secondary"
+        :disabled="pending"
+        @click="loginPasskey"
+      >
+        {{ t('security.signInPasskey') }}
+      </button>
+      <p v-else class="small muted">{{ t('security.unsupported') }}</p>
       <RouterLink to="/admin/forgot-password">{{ t('account.forgot') }}</RouterLink>
     </form>
   </div>

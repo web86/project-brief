@@ -9,7 +9,8 @@ export function createInvitationFlow({ token, request, resetCsrf, onSignedOut, o
     confirmation = ref('')
   const busy = ref(false),
     error = ref(null),
-    signInRequired = ref(false)
+    signInRequired = ref(false),
+    securityPending = ref(false)
   const mismatch = computed(() => !!state.value?.authenticated && !state.value.accountMatches)
   async function resolve() {
     state.value = await request('/api/invitations/resolve', { method: 'POST', body: { token } })
@@ -46,11 +47,16 @@ export function createInvitationFlow({ token, request, resetCsrf, onSignedOut, o
     signInRequired.value = false
     try {
       if (!state.value.authenticated && !register.value) {
-        await request('/api/admin/login', {
+        const login = await request('/api/admin/login', {
           method: 'POST',
           body: { email: state.value.email, password: password.value, invitation_token: token },
         })
         resetCsrf()
+        if (['pending_2fa', 'enrollment_required'].includes(login.state)) {
+          password.value = ''
+          securityPending.value = true
+          return false
+        }
         await resolve()
         if (mismatch.value) return false
       }
@@ -114,6 +120,7 @@ export function createInvitationFlow({ token, request, resetCsrf, onSignedOut, o
     }
   }
   return {
+    securityPending,
     state,
     register,
     name,

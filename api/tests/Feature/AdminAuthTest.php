@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -13,7 +14,7 @@ class AdminAuthTest extends TestCase
 
     public function test_admin_can_login_and_logout(): void
     {
-        $user = User::factory()->owner()->create(['password' => Hash::make('Long-local-password')]);
+        $user = User::factory()->memberOf(Workspace::factory()->create())->create(['password' => Hash::make('Long-local-password')]);
         $this->withSession(['client_project_id' => 123, 'project_client_id' => 456, 'client_access_token_id' => 789]);
         $this->postJson('/api/admin/login', ['email' => $user->email, 'password' => 'Long-local-password'])->assertOk()->assertJsonPath('user.role', 'admin')->assertSessionMissing('client_project_id')->assertSessionMissing('project_client_id')->assertSessionMissing('client_access_token_id');
         $this->assertAuthenticatedAs($user);

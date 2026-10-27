@@ -13,6 +13,9 @@ class EnsureAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->is('api/admin/logout')) {
+            return $next($request);
+        }
         abort_unless($request->user(), 401, 'Войдите в аккаунт администратора.');
         // "admin" remains the interface persona, not a global account role.
         if (! $request->is('api/admin/logout')) {

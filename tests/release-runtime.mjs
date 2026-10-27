@@ -69,6 +69,9 @@ require $argv[1].'/vendor/autoload.php';
 $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
+// Enrolled fixture for HTTP package regression tests; signed WebAuthn is covered by HTTPS browser/protocol suites.
+$owner->forceFill(['two_factor_secret'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(app(\\PragmaRX\\Google2FA\\Google2FA::class)->generateSecretKey()), 'two_factor_confirmed_at'=>now(), 'recovery_codes_acknowledged_at'=>now(), 'two_factor_recovery_codes'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(json_encode(['Release-recovery-one', 'Release-recovery-two']))])->save();
+$owner->passkeys()->create(['name'=>'Package fixture credential', 'credential_id'=>bin2hex(random_bytes(32)), 'credential'=>[]]);
 $owner->forceFill(['pending_notification_email'=>'verified-release@example.test', 'notification_email_token_hash'=>hash('sha256', str_repeat('a', 64)), 'notification_email_expires_at'=>now()->addMinutes(30)])->save();
 // Render templates with an in-memory transport; the isolated package has no SMTP credentials.
 config(['mail.default'=>'array']);
@@ -209,7 +212,23 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     body: loginPayload,
   })
   assert.equal(login.status, 200)
-  const ownerState = await login.json()
+  assert.equal((await login.json()).state, 'pending_2fa')
+  assert.equal(
+    (await request('/api/admin/me', { headers: { Accept: 'application/json' } })).status,
+    403,
+  )
+  const factor = await request('/api/security/challenge', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+    body: JSON.stringify({ recovery_code: 'Release-recovery-one' }),
+  })
+  assert.equal(factor.status, 200)
+  assert.equal((await factor.json()).state, 'authenticated')
+  const ownerState = await (await request('/api/admin/me')).json()
   assert.equal(ownerState.user.role, 'admin')
   assert.equal(ownerState.user.membershipRole, 'owner')
   assert.equal(ownerState.user.canCreateProjects, true)
@@ -936,6 +955,16 @@ exit($status);
     ).status,
     200,
   )
+  const lifecycleFactor = await request('/api/security/challenge', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+    body: JSON.stringify({ recovery_code: 'Release-recovery-two' }),
+  })
+  assert.equal(lifecycleFactor.status, 200)
   const lifecycleHeaders = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -1052,7 +1081,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.6.3',
+    '0.7.0',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

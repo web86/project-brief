@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountSecurity;
 use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
@@ -24,8 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);
+        $middleware->prependToPriorityList(EnsureAdmin::class, EnsureAccountSecurity::class);
+        $middleware->prependToPriorityList(EnsureAccountSecurity::class, EnsureAccountSession::class);
+        $middleware->prependToPriorityList(EnsureAccountSecurity::class, SetRequestLocale::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureProjectPermission::class);
-        $middleware->web(append: [EnsureAccountSession::class, SetRequestLocale::class]);
+        $middleware->web(append: [EnsureAccountSession::class, SetRequestLocale::class, EnsureAccountSecurity::class]);
         $middleware->alias(['admin' => EnsureAdmin::class, 'client' => EnsureClientProjectAccess::class, 'project.permission' => EnsureProjectPermission::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -38,7 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return response()->json(['code' => $code, 'message' => $status === 500 ? 'Internal error.' : ($status === 422 ? 'Check request fields and Idempotency-Key.' : Response::$statusTexts[$status]), ...($e instanceof ValidationException ? ['errors' => $e->errors()] : [])], $status)->withHeaders($e instanceof HttpExceptionInterface ? $e->getHeaders() : [])->header('Cache-Control', 'no-store');
         });
-        $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token', 'invitation_token']);
+        $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token', 'invitation_token', 'code', 'recovery_code', 'credential', 'operator_recovery_token']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

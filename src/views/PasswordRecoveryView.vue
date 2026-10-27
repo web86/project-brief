@@ -14,6 +14,8 @@ const params = new URLSearchParams(route.hash.slice(1)),
 const email = ref(params.get('email') || ''),
   password = ref(''),
   confirmation = ref(''),
+  code = ref(''),
+  recovery = ref(''),
   busy = ref(false),
   error = ref(''),
   success = ref('')
@@ -29,17 +31,29 @@ async function submit() {
       body: {
         email: email.value,
         ...(resetting.value
-          ? { token, password: password.value, password_confirmation: confirmation.value }
+          ? {
+              token,
+              password: password.value,
+              password_confirmation: confirmation.value,
+              code: code.value || null,
+              recovery_code: recovery.value || null,
+            }
           : {}),
       },
     })
     success.value = t(resetting.value ? 'account.resetDone' : 'account.resetSent')
     password.value = ''
     confirmation.value = ''
+    code.value = ''
+    recovery.value = ''
     api.resetCsrf()
   } catch (cause) {
     error.value =
-      resetting.value && cause.status === 422 ? t('account.invalidLink') : formatApiError(cause)
+      resetting.value && cause.errors?.code
+        ? t('security.challengeHelp')
+        : resetting.value && cause.status === 422
+          ? t('account.invalidLink')
+          : formatApiError(cause)
   } finally {
     busy.value = false
   }
@@ -87,8 +101,24 @@ async function submit() {
             minlength="9"
             maxlength="1024"
             required
-          /></div
-      ></template>
+          />
+        </div>
+        <p>{{ t('security.resetOwnerHelp') }}</p>
+        <div class="field">
+          <label for="reset-totp">{{ t('security.code') }}</label
+          ><input
+            id="reset-totp"
+            v-model="code"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+          />
+        </div>
+        <div class="field">
+          <label for="reset-recovery">{{ t('security.recoveryCode') }}</label
+          ><input id="reset-recovery" v-model="recovery" autocomplete="off" maxlength="100" />
+        </div>
+      </template>
       <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
         t(resetting ? 'account.reset' : 'account.sendReset')
       }}</LoadingButton

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, setManualLocale, locale, LANGUAGE_CATALOG } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
+import AccountSecurityPanel from '../components/AccountSecurityPanel.vue'
 import AccountTabs from '../components/AccountTabs.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import LoadingButton from '../components/LoadingButton.vue'
@@ -190,6 +191,7 @@ function changePassword() {
         </form>
       </template>
       <template v-else>
+        <AccountSecurityPanel />
         <form class="surface admin-form" @submit.prevent="changeEmail">
           <h2>{{ t('account.email') }}</h2>
           <p>{{ state.user.email }}</p>
