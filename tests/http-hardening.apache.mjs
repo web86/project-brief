@@ -311,6 +311,7 @@ try {
         const context = await browser.newContext({
           viewport: { width: 390, height: 844 },
           serviceWorkers: 'allow',
+          acceptDownloads: true,
         })
         await context.route('**/*', (route) =>
           new URL(route.request().url()).origin === origin ? route.continue() : route.abort(),
@@ -336,12 +337,46 @@ try {
         })
         assert.deepEqual(state, { active: true, cacheKeys: [], fits: true, manifest: true })
         assert.deepEqual(errors, [])
+        if (process.env.M73_EXPORTS === '1') {
+          await page.goto(origin + '/project/' + fixture.project + '/export')
+          await page.locator('.export-form').waitFor()
+          await page.locator('#bootstrap-splash').waitFor({ state: 'detached' })
+          await page.locator('#export-language').selectOption(locale)
+          for (const format of ['pdf', 'docx']) {
+            const download = page.waitForEvent('download', { timeout: 60000 })
+            await page
+              .locator(
+                format === 'pdf'
+                  ? '.export-actions button[type=submit]'
+                  : '.export-actions button[type=button]',
+              )
+              .first()
+              .click()
+            const file = await download
+            assert.equal(await file.failure(), null)
+            const bytes = await readFile(await file.path())
+            assert.ok(bytes.length > 1000)
+            assert.ok(
+              format === 'pdf'
+                ? bytes.subarray(0, 5).toString() === '%PDF-'
+                : bytes[0] === 0x50 && bytes[1] === 0x4b,
+            )
+          }
+        }
         await context.close()
       }
       results.push({
         name: 'mobile client link + real SW registration + manifest + no private cache, four locales',
         passed: true,
       })
+      if (process.env.M73_EXPORTS === '1')
+        results.push({
+          name: 'client browser downloads from production assets',
+          pdf: 4,
+          docx: 4,
+          locales: ['ru', 'en', 'tr', 'zh-CN'],
+          passed: true,
+        })
     } finally {
       await browser.close()
     }

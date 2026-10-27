@@ -1,0 +1,49 @@
+{
+  "sourceCommit": "ba2bf8c3b2818195f5ed5be95e3d5a7bcf2216a9",
+  "version": "0.7.3",
+  "builtAt": "2026-10-27T18:12:23.090Z",
+  "archive": "release/project-brief-v0.7.3-ba2bf8c.zip",
+  "bytes": 39156852,
+  "sha256": "25e25440eab1f269afa9d859d7a802f7df5461d037049b9e5bbc653f67147c8e",
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 778,
+    "passed": 778,
+    "assertions": 9468,
+    "duration_ms": 45796
+  },
+  "nodeTests": {
+    "tests": 299,
+    "passed": 299,
+    "failed": 0
+  },
+  "php84MariaDb": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 134,
+    "assertions": 2230,
+    "isolated": true,
+    "gdAvailable": false,
+    "exclusions": ["GD-dependent tenant/image cases", "existing transaction-DDL rollback case"]
+  },
+  "checks": {
+    "canonicalBuilder": true,
+    "cleanSourceCommit": true,
+    "archiveIntegrity": true,
+    "internalChecksums": true,
+    "productionVendorOnly": true,
+    "secretAndArtifactScan": true,
+    "packagedApache": true,
+    "packagedMobilePwa": true,
+    "packagedBrowserPdfDownloads": 4,
+    "packagedBrowserDocxDownloads": 4,
+    "packagedSignedWebAuthnPhp84": true,
+    "packagedCompiledUvStepUp": true
+  },
+  "productionVerified": false,
+  "pushed": false,
+  "merged": false,
+  "deployed": false
+}

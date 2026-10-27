@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "php": "8.4.26",
+  "database": "MariaDB 11.8.9",
+  "tests": 134,
+  "assertions": 2230,
+  "isolated": true,
+  "gdAvailable": false,
+  "exclusions": ["GD-dependent tenant/image cases", "existing transaction-DDL rollback case"]
+}

@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "php": "8.4.26",
+  "origin": "https://brief.web86.site",
+  "rpId": "brief.web86.site",
+  "productionVendor": true,
+  "flow": "TOTP -> saved recovery -> full access without Passkey -> fresh recovery proof -> signed UV registration -> proof cleared; TOTP replay rejected"
+}

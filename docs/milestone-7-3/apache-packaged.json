@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "apache": "Server version: Apache/2.4.68 (Unix)",
+  "packaged": true,
+  "nativeErrorDefine": false,
+  "bootstrapGuard": false,
+  "results": [
+    {
+      "name": "existing files + scanners + encoding + PATH_INFO + missing assets",
+      "requests": 56,
+      "phpEntriesAdded": 0,
+      "sessions": 0
+    },
+    {
+      "name": "mobile client link + real SW registration + manifest + no private cache, four locales",
+      "passed": true
+    },
+    {
+      "name": "client browser downloads from production assets",
+      "pdf": 4,
+      "docx": 4,
+      "locales": ["ru", "en", "tr", "zh-CN"],
+      "passed": true
+    },
+    {
+      "name": "Laravel routes, bearer header, client link, SPA maintenance, static/SW/ACME",
+      "passed": true
+    }
+  ]
+}

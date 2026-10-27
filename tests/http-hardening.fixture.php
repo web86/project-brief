@@ -16,6 +16,8 @@ $app->make(Kernel::class)->bootstrap();
 $owner = app(OwnerProvisioning::class)->create(['name' => 'HTTP Fixture', 'email' => 'http-fixture@example.test', 'password' => 'Synthetic-http-password!']);
 $workspace = $owner->workspaceMembers()->first()->workspace;
 $project = Project::create(['workspace_id' => $workspace->id, 'title' => 'HTTP fixture', 'status' => 'active', 'currency' => 'USD', 'sections' => []]);
+$section = $project->briefSections()->create(['name' => 'Main', 'position' => 1]);
+$project->tasks()->create(['project_section_id' => $section->id, 'title' => 'Кириллица / 中文需求 / Çığ İpek', 'location' => '/', 'description' => 'Multilingual HTTP export fixture', 'priority' => 'normal', 'status' => 'new', 'position' => 1]);
 $client = $project->clients()->create(['name' => 'HTTP client', 'active' => true]);
 $token = bin2hex(random_bytes(32));
 $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', $token)]);
