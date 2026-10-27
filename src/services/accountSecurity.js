@@ -15,12 +15,13 @@ export function createPasskeyClient({
   register = startRegistration,
   authenticate = startAuthentication,
 } = {}) {
-  return async function ceremony(purpose, name) {
+  return async function ceremony(purpose, name, preparedOptions) {
     let stage = 'options'
     let created = false
     client.resetCsrf()
     try {
-      const { options } = await client.request(`/api/security/passkey/${purpose}/options`)
+      let options = preparedOptions
+      if (!options) ({ options } = await client.request(`/api/security/passkey/${purpose}/options`))
       stage = 'authenticator'
       const credential = await (purpose === 'register' ? register : authenticate)({
         optionsJSON: options,
@@ -58,6 +59,9 @@ export function createPasskeyClient({
         stage: cause.stage || stage,
         ...(stage === 'authenticator' ? { messageKey: `security.${nativeKey}` } : {}),
         credentialCreated: created,
+        unavailable: stage === 'authenticator' && nativeName === 'NotSupportedError',
+        cancelled:
+          stage === 'authenticator' && ['NotAllowedError', 'AbortError'].includes(nativeName),
       }
     } finally {
       client.resetCsrf()

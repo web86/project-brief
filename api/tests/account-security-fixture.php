@@ -4,6 +4,8 @@ use App\Models\Project;
 use App\Models\User;
 use App\Services\OwnerProvisioning;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Laravel\Fortify\Fortify;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -12,6 +14,15 @@ $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 if (app()->environment('production') || config('database.default') !== 'sqlite' || ! str_contains(config('database.connections.sqlite.database'), 'm7-security-')) {
     throw new RuntimeException('Isolated security test database required.');
+}
+if (($argv[1] ?? '') === 'expire-proof') {
+    $user = User::where('email', ($argv[2] ?? '') === 'developer' ? 'security-developer@example.test' : 'security-owner@example.test')->firstOrFail();
+    DB::table('account_security_challenges')->where('user_id', $user->id)->where('purpose', 'step_up')->delete();
+    exit;
+}
+if (($argv[1] ?? '') === 'reset-limiter') {
+    Artisan::call('cache:clear');
+    exit;
 }
 if (($argv[1] ?? '') === 'code') {
     $user = User::where('email', ($argv[2] ?? '') === 'developer' ? 'security-developer@example.test' : 'security-owner@example.test')->firstOrFail();

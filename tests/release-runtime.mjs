@@ -70,7 +70,7 @@ $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
 // Enrolled fixture for HTTP package regression tests; signed WebAuthn is covered by HTTPS browser/protocol suites.
-$owner->forceFill(['two_factor_secret'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(app(\\PragmaRX\\Google2FA\\Google2FA::class)->generateSecretKey()), 'two_factor_confirmed_at'=>now(), 'recovery_codes_acknowledged_at'=>now(), 'two_factor_recovery_codes'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(json_encode(['Release-recovery-one', 'Release-recovery-two', 'Release-cleanup-three']))])->save();
+$owner->forceFill(['two_factor_secret'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(app(\\PragmaRX\\Google2FA\\Google2FA::class)->generateSecretKey()), 'two_factor_confirmed_at'=>now(), 'recovery_codes_acknowledged_at'=>now(), 'two_factor_recovery_codes'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(json_encode(['Release-recovery-one', 'Release-recovery-two', 'Release-cleanup-three', 'Release-browser-login']))])->save();
 $owner->passkeys()->create(['name'=>'Package fixture credential', 'credential_id'=>bin2hex(random_bytes(32)), 'credential'=>[]]);
 $owner->forceFill(['pending_notification_email'=>'verified-release@example.test', 'notification_email_token_hash'=>hash('sha256', str_repeat('a', 64)), 'notification_email_expires_at'=>now()->addMinutes(30)])->save();
 // Render templates with an in-memory transport; the isolated package has no SMTP credentials.
@@ -84,6 +84,9 @@ foreach (\\App\\Services\\SupportedLocales::codes() as $language) {
 
 $workspace = $owner->workspaceMembers()->active()->firstOrFail()->workspace;
 $project = $workspace->projects()->create(['title'=>'Release QA project', 'sections'=>['Главная'], 'status'=>'active']);
+$developer = \\App\\Models\\User::create(['name'=>'Package Developer', 'email'=>'package-developer@example.test', 'password'=>'Package-test-only-password', 'role'=>'user']);
+$member = $workspace->members()->create(['user_id'=>$developer->id, 'role'=>'admin', 'status'=>'active', 'joined_at'=>now()]);
+$project->members()->create(['workspace_id'=>$workspace->id, 'workspace_member_id'=>$member->id]);
 $section = $project->briefSections()->create(['name'=>'Главная', 'position'=>1]);
 $exportTask = $project->tasks()->create(['project_section_id'=>$section->id, 'position'=>1, 'title'=>'Кириллица: задача', 'description'=>'Описание проекта & результат', 'developer_notes'=>'PRIVATE_RELEASE_NOTE', 'client_approved'=>true, 'client_approved_at'=>'2026-10-18 12:00:00', 'estimate_hours'=>6, 'price'=>18000]);
 $exportTask->attachments()->create(['uploaded_by_type'=>'admin', 'original_name'=>'requirements.pdf', 'stored_name'=>'PRIVATE_STORED_NAME', 'disk'=>'local', 'path'=>'PRIVATE_STORAGE_PATH', 'mime_type'=>'application/pdf', 'size'=>1]);
@@ -1073,7 +1076,7 @@ try {
 } catch (\\Illuminate\\Http\\Exceptions\\HttpResponseException $error) {
     if ($error->getResponse()->getStatusCode() !== 423) { throw $error; }
 }
-$request->merge(['recovery_code'=>'Release-cleanup-three']);
+$request->merge(['recovery_code'=>'Release-cleanup-three', 'Release-browser-login']);
 app(\\App\\Http\\Controllers\\AccountSecurityController::class)->confirm($request);
 $controller->revoke($request,$argv[2]);
 $token = \\Illuminate\\Support\\Facades\\DB::table('integration_tokens')->where('uuid',$argv[2])->first();
@@ -1097,7 +1100,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.2',
+    '0.7.3',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
@@ -1119,6 +1122,140 @@ echo json_encode(['ok'=>true]);
     ])
     const { verifyPackagedExports } = await import('./release-export.browser.mjs')
     await verifyPackagedExports(origin, fixture.project, process.env.RELEASE_BROWSER_QA_DIRECTORY)
+  }
+  if (process.env.RELEASE_SECURITY_BROWSER_QA_DIRECTORY) {
+    // Test the compiled application and production vendor, never source/Vite imports.
+    const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
+    const output = path.resolve(process.env.RELEASE_SECURITY_BROWSER_QA_DIRECTORY)
+    await mkdir(output, { recursive: true })
+    const browser = await chromium.launch({ headless: true })
+    try {
+      const publicOrigin = 'https://brief.web86.site'
+      const context = await browser.newContext({ viewport: { width: 1440, height: 1050 } })
+      await context.route('**/*', async (route) => {
+        const url = new URL(route.request().url())
+        if (url.origin !== publicOrigin) return route.abort()
+        const response = await route.fetch({
+          url: origin + url.pathname + url.search,
+          maxRedirects: 0,
+        })
+        await route.fulfill({ response })
+      })
+      await context.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+      const page = await context.newPage()
+      page.setDefaultTimeout(20000)
+      const errors = []
+      page.on('pageerror', (error) => errors.push(error.message))
+      const cdp = await context.newCDPSession(page)
+      await cdp.send('WebAuthn.enable')
+      await cdp.send('WebAuthn.addVirtualAuthenticator', {
+        options: {
+          protocol: 'ctap2',
+          transport: 'internal',
+          hasResidentKey: true,
+          hasUserVerification: true,
+          isUserVerified: true,
+          automaticPresenceSimulation: true,
+        },
+      })
+      await page.goto(publicOrigin + '/admin/login')
+      await page.locator('#admin-email').fill('release@example.test')
+      await page.locator('#admin-password').fill('Release-only-long-password')
+      await page.locator('form button[type=submit]').click()
+      await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
+      await page.getByLabel('Recovery code', { exact: true }).fill('Release-browser-login')
+      await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+      await page.waitForURL(publicOrigin + '/admin')
+      await page.goto(publicOrigin + '/admin/account/security')
+      await page.getByLabel('Device name', { exact: true }).fill('Packaged virtual authenticator')
+      await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
+      await page
+        .locator('.security-passkeys')
+        .getByText('Packaged virtual authenticator', { exact: true })
+        .waitFor()
+      const readyOptions = page.waitForResponse(
+        (response) =>
+          response.url().endsWith('/api/security/passkey/confirm/options') &&
+          response.status() === 200,
+      )
+      await page.goto(publicOrigin + '/admin/projects/' + fixture.project + '/team')
+      await readyOptions
+      await page.locator('.team-member').first().waitFor()
+      // Wait for the background options response and the UI to commit it.
+      await page.waitForFunction(async () => {
+        const result = await fetch('/api/security/status', {
+          headers: { Accept: 'application/json' },
+        })
+        const status = await result.json()
+        return status.fresh === false && status.passkeys.length === 2
+      })
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      )
+      await page.evaluate(() => {
+        window.packagedGet = []
+        window.packagedDialogs = 0
+        const get = navigator.credentials.get.bind(navigator.credentials)
+        navigator.credentials.get = (options) => {
+          window.packagedGet.push({
+            active: navigator.userActivation.isActive,
+            dialog: !!document.querySelector('dialog[open]'),
+          })
+          return get(options)
+        }
+        const show = HTMLDialogElement.prototype.showModal
+        HTMLDialogElement.prototype.showModal = function () {
+          window.packagedDialogs++
+          return show.call(this)
+        }
+      })
+      const member = page
+        .locator('.team-member')
+        .filter({ hasText: 'package-developer@example.test' })
+      const mutations = []
+      page.on('request', (request) => {
+        if (request.method() === 'PATCH' && request.url().includes('/team/members/'))
+          mutations.push(request.url())
+      })
+      await member.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+      const switches = member.locator('.member-permissions [role="switch"]')
+      for (let i = 1; i < 6; i++) await switches.nth(i).check()
+      await member.getByRole('button', { name: 'Save', exact: true }).dblclick()
+      await page.locator('.toast-success').filter({ hasText: 'Access updated' }).waitFor()
+      await member.locator('.team-edit').waitFor({ state: 'hidden' })
+      assert.equal(mutations.length, 1)
+      assert.deepEqual(await page.evaluate(() => window.packagedGet), [
+        { active: true, dialog: false },
+      ])
+      assert.equal(await page.evaluate(() => window.packagedDialogs), 0)
+      assert.deepEqual(errors, [])
+      await page.screenshot({
+        path: path.join(output, 'packaged-team-success.png'),
+        fullPage: true,
+      })
+      const evidence = {
+        passed: true,
+        compiledAssets: true,
+        productionVendor: true,
+        origin: publicOrigin,
+        rpId: 'brief.web86.site',
+        virtualUV: true,
+        active: true,
+        applicationDialogs: 0,
+        mutations: 1,
+        changedPermissions: 5,
+        browser: browser.version(),
+      }
+      await writeFile(
+        path.join(output, 'packaged-security-results.json'),
+        JSON.stringify(evidence, null, 2) + '\n',
+      )
+      console.log(
+        'PASS: Extracted ZIP compiled UI -> real UV step-up -> team mutation once, without app dialog',
+      )
+    } finally {
+      await browser.close()
+    }
   }
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(

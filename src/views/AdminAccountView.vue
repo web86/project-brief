@@ -1,4 +1,5 @@
 <script setup>
+import { isSecurityCancellation } from '../services/stepUp.js'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from '../services/toast.js'
@@ -57,6 +58,7 @@ async function action(run, key) {
     success.value = t(key)
     toast.success(() => t(key))
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     error.value = message(cause)
     if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
     else toast.error(() => message(cause))
@@ -77,6 +79,7 @@ onMounted(async () => {
         )
       }, 'account.emailConfirmed')
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     error.value = message(cause)
     if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
     else toast.error(() => message(cause))

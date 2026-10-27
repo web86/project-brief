@@ -126,6 +126,7 @@ export function formatApiError(error) {
   if (securityErrors[error.code]) return t(`security.${securityErrors[error.code]}`)
   if (Object.hasOwn(i18n.global.messages.value.en.ai.errors, error.code))
     return t(`ai.errors.${error.code}`)
+  if (error.code === 'security_confirmation_cancelled') return t('security.confirmationCancelled')
   if (error.code === 'security_retry_required') return t('security.retryAction')
   if (error.code === 'security_action_confirmation_required')
     return t('security.confirmResourceAgain')

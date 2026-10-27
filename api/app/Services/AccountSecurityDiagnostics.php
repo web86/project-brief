@@ -54,6 +54,7 @@ class AccountSecurityDiagnostics
 
         return response()->json([
             'message' => trans('security.'.($code === 'security_step_up_required' ? 'step_up_required' : 'operation_failed')),
+            ...($status === 423 && $request->attributes->get('security.mutation_not_started') === true ? ['mutationNotStarted' => true] : []),
             'code' => $code, 'diagnosticId' => $id, 'stage' => $stage,
         ], $status)->withHeaders($exception instanceof HttpExceptionInterface ? $exception->getHeaders() : [])
             ->header('Cache-Control', 'no-store')->header('X-Content-Type-Options', 'nosniff')->header('Referrer-Policy', 'no-referrer');

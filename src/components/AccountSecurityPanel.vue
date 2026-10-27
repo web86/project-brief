@@ -1,4 +1,5 @@
 <script setup>
+import { isSecurityCancellation } from '../services/stepUp.js'
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { api } from '../api/client.js'
 import { t, formatApiError, formatDate } from '../i18n/index.js'
@@ -47,6 +48,7 @@ async function action(run, success, context = 'general') {
     await run()
     if (success) toast.success(() => t(`security.${success}`))
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     error.value = cause
     if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
     else toast.error(() => formatApiError(cause))

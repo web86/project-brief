@@ -1,4 +1,5 @@
 <script setup>
+import { isSecurityCancellation } from '../services/stepUp.js'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from '../services/toast.js'
@@ -52,6 +53,7 @@ onMounted(async () => {
   try {
     await load()
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     error.value = formatApiError(cause)
   }
 })
@@ -67,7 +69,9 @@ async function action(path, method, body, key = 'team.saved') {
     toast.success(() => t(key))
     inviting.value = false
     editing.value = null
+    return true
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     error.value =
       cause.code === 'account_mail_failed' ? t('account.mailFailed') : formatApiError(cause)
     if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
@@ -78,13 +82,13 @@ async function action(path, method, body, key = 'team.saved') {
   }
 }
 async function invite() {
-  await action(
+  const saved = await action(
     '/invitations',
     'POST',
     { email: email.value, name: name.value, projects: projects.value },
     'team.sent',
   )
-  if (!error.value) {
+  if (saved) {
     email.value = ''
     name.value = ''
     projects.value = []

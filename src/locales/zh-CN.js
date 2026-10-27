@@ -1,5 +1,13 @@
 export default {
   security: {
+    confirmPasskey: '使用 Passkey 确认',
+    retryPasskey: '重新使用 Passkey',
+    otherMethod: '其他确认方式',
+    confirmUnavailable: '身份确认未完成',
+    passkeyUnavailable: 'Passkey 确认已取消或此设备无法使用。请重试或选择其他允许的方式。',
+    confirmationCancelled: '确认已取消，修改已保留在草稿中。',
+    contextChanged: '账号、工作区或安全设置已更改。请检查修改后重新提交。',
+
     optional: '可选',
     alternativeRequired:
       '请输入当前密码以确认其他登录方式。如果刚才使用 Passkey 验证且已启用 TOTP，还需输入新的动态验证码或未使用的恢复码。',

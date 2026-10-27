@@ -1,5 +1,15 @@
 export default {
   security: {
+    confirmPasskey: 'Confirm with Passkey',
+    retryPasskey: 'Retry with Passkey',
+    otherMethod: 'Another confirmation method',
+    confirmUnavailable: 'Identity confirmation did not finish',
+    passkeyUnavailable:
+      'Passkey confirmation was cancelled or is unavailable on this device. Retry or use another allowed method.',
+    confirmationCancelled: 'Confirmation cancelled. Your changes are kept.',
+    contextChanged:
+      'Your account, workspace or security settings changed. Review your changes and submit again.',
+
     optional: 'Optional',
     alternativeRequired:
       'Confirm your current password to prove an alternative sign-in method. If your confirmation used a Passkey and TOTP is enabled, also provide a new authenticator code or unused recovery code.',

@@ -1,4 +1,5 @@
 <script setup>
+import { isSecurityCancellation } from '../services/stepUp.js'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '../api/client.js'
 import { toast } from '../services/toast.js'
@@ -87,6 +88,7 @@ const activeTokens = computed(() =>
   ),
 )
 function reportError(cause, current = revision) {
+  if (isSecurityCancellation(cause)) return
   if (current !== revision) return
   validation.value =
     cause.status === 422 || cause.messageKey === 'integrations.selectProjectRequired' ? cause : null
@@ -113,6 +115,7 @@ async function retryLoad() {
   try {
     await load(current)
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     if (current === revision) loadFailed.value = true
     reportError(cause, current)
   } finally {
@@ -169,6 +172,7 @@ watch(
     try {
       if (allowed.value) await load(current)
     } catch (cause) {
+      if (isSecurityCancellation(cause)) return
       if (current === revision) loadFailed.value = true
       reportError(cause, current)
     } finally {
@@ -211,6 +215,7 @@ async function action(
       return result
     }
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     reportError(cause, current)
     if (result && current === revision) loadFailed.value = true
     return current === revision ? result : undefined
@@ -322,6 +327,7 @@ async function history(hook, targetPage = 1) {
   try {
     await loadHistory(hook, targetPage, current)
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     if (!deletedIds.has(hook.id)) reportError(cause, current)
   } finally {
     if (current === revision) historyBusy.value = false

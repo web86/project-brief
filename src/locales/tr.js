@@ -1,5 +1,15 @@
 export default {
   security: {
+    confirmPasskey: 'Passkey ile doğrula',
+    retryPasskey: 'Passkey ile yeniden dene',
+    otherMethod: 'Başka bir doğrulama yöntemi',
+    confirmUnavailable: 'Kimlik doğrulaması tamamlanamadı',
+    passkeyUnavailable:
+      'Passkey doğrulaması iptal edildi veya bu cihazda kullanılamıyor. Yeniden deneyin veya izin verilen başka bir yöntemi seçin.',
+    confirmationCancelled: 'Doğrulama iptal edildi. Değişiklikleriniz taslakta tutuluyor.',
+    contextChanged:
+      'Hesabınız, çalışma alanınız veya güvenlik ayarlarınız değişti. Değişiklikleri inceleyip yeniden gönderin.',
+
     optional: 'İsteğe bağlı',
     alternativeRequired:
       'Alternatif giriş yöntemini doğrulamak için mevcut parolanızı girin. Passkey ile doğrulama yaptıysanız ve TOTP açıksa yeni bir doğrulayıcı kodu veya kullanılmamış kurtarma kodu da girin.',

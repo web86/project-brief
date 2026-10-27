@@ -1,4 +1,5 @@
 <script setup>
+import { isSecurityCancellation } from '../services/stepUp.js'
 import { toast } from '../services/toast.js'
 import LoadingButton from './LoadingButton.vue'
 import { t, formatApiError } from '../i18n/index.js'
@@ -30,6 +31,7 @@ async function action(operation) {
   try {
     await operation()
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     error.value = cause
     notify(cause, cause.code === 'security_retry_required' ? 'info' : 'error')
   } finally {

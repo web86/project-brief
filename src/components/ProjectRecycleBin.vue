@@ -1,4 +1,5 @@
 <script setup>
+import { isSecurityCancellation } from '../services/stepUp.js'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { toast } from '../services/toast.js'
 import { api } from '../api/client.js'
@@ -32,6 +33,7 @@ async function refresh() {
     const result = await api.request('/api/admin/projects/trash')
     if (current() && requestRevision === revision) projects.value = result.data
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     if (current() && requestRevision === revision) error.value = cause
   } finally {
     if (requestRevision === revision) loading.value = false
@@ -51,6 +53,7 @@ async function restore(project) {
     if (!current()) return
     await Promise.all([refresh(), nav.refreshProjects()])
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     if (current()) error.value = cause
   } finally {
     busy.value = false
@@ -81,6 +84,7 @@ async function remove() {
     action.value = null
     await refresh()
   } catch (cause) {
+    if (isSecurityCancellation(cause)) return
     if (current()) {
       if (cause.code === 'security_retry_required') toast.info(() => formatApiError(cause))
       else toast.error(() => formatApiError(cause))

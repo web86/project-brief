@@ -113,7 +113,7 @@ class AccountSecurity
     public function requireFresh(Request $request): void
     {
         if (! $this->fresh($request)) {
-            throw new HttpResponseException(response()->json(['code' => 'security_step_up_required', 'message' => trans('security.step_up_required')], 423)->header('Cache-Control', 'no-store'));
+            throw new HttpResponseException(response()->json(['code' => 'security_step_up_required', 'mutationNotStarted' => true, 'message' => trans('security.step_up_required')], 423)->header('Cache-Control', 'no-store'));
         }
     }
 

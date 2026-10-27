@@ -1,4 +1,4 @@
-import { requestStepUp } from '../services/stepUp.js'
+import { stepUp, isSensitiveMutation } from '../services/stepUp.js'
 import { t, locale } from '../i18n/index.js'
 export class ApiError extends Error {
   constructor(status, message, errors = {}, code = null) {
@@ -32,10 +32,27 @@ export function createApiClient({
   fetchImpl = (...args) => fetch(...args),
   baseUrl = '',
   timeoutMs = 20000,
+  securityFlow = stepUp,
 } = {}) {
   let csrf = null
   let csrfRequest = null
-  async function request(
+  const sensitiveRequests = new Map()
+  function request(path, options = {}) {
+    const method = options.method || 'GET'
+    const key =
+      options.securityRetry !== false &&
+      isSensitiveMutation(path, method) &&
+      !(options.body instanceof FormData)
+        ? JSON.stringify([path, method, options.body])
+        : null
+    if (key && sensitiveRequests.has(key)) return sensitiveRequests.get(key)
+    const operation = send(path, options)
+    if (!key) return operation
+    const tracked = operation.finally(() => sensitiveRequests.delete(key))
+    sensitiveRequests.set(key, tracked)
+    return tracked
+  }
+  async function send(
     path,
     {
       method = 'GET',
@@ -47,6 +64,18 @@ export function createApiClient({
     } = {},
   ) {
     externalSignal?.throwIfAborted()
+    // Snapshot before confirmation so edits during a native prompt cannot alter the saved intent.
+    if (body && !(body instanceof FormData)) body = JSON.parse(JSON.stringify(body))
+    if (securityRetry) {
+      const confirmation = securityFlow.preflight(path, method)
+      if (confirmation && !(await waitForRequest(confirmation, externalSignal)))
+        throw new ApiError(
+          423,
+          t('security.confirmationCancelled'),
+          {},
+          'security_confirmation_cancelled',
+        )
+    }
     if (method !== 'GET' && !csrf) {
       csrfRequest ||= request('/api/csrf')
         .then((data) => (csrf = data.token))
@@ -105,16 +134,35 @@ export function createApiClient({
       clearTimeout(timer)
       externalSignal?.removeEventListener('abort', abortExternal)
     }
+    securityFlow.observe(path, method, data, response.status)
     if (
       response.status === 423 &&
       data.code === 'security_step_up_required' &&
       securityRetry &&
       !/^\/api\/security\/(?:confirm|challenge|passkey\/(?:login|confirm)(?:\/|$))/.test(path)
     ) {
-      if (await requestStepUp()) {
+      if (await waitForRequest(securityFlow.ensure(true), externalSignal)) {
         csrf = null
+        if (
+          data.mutationNotStarted === true &&
+          (isSensitiveMutation(path, method) || method === 'GET')
+        )
+          return request(path, {
+            method,
+            body,
+            responseType,
+            timeoutMs: requestTimeoutMs,
+            signal: externalSignal,
+            securityRetry: false,
+          })
         throw new ApiError(423, t('security.retryAction'), {}, 'security_retry_required')
       }
+      throw new ApiError(
+        423,
+        t('security.confirmationCancelled'),
+        {},
+        'security_confirmation_cancelled',
+      )
     }
     if (!response.ok) {
       if ([401, 419].includes(response.status)) csrf = null

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\AccountSecurityFailure;
 use App\Models\User;
 use App\Services\AccountSecurity;
+use App\Services\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,7 @@ class AccountSecurityController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = $request->user()?->fresh();
+        $fresh = $this->security->fresh($request);
 
         return response()->json([
             'state' => $this->security->state($request),
@@ -39,10 +41,12 @@ class AccountSecurityController extends Controller
             'owner' => $user?->isWorkspaceOwner() ?? false,
             'totp' => $user?->hasEnabledTwoFactorAuthentication() ?? false,
             'recoverySaved' => (bool) $user?->recovery_codes_acknowledged_at,
-            'fresh' => $this->security->fresh($request),
+            'fresh' => $fresh,
+            'freshFor' => $fresh ? max(0, min(300, (int) $request->session()->get('security.step_up.at') + 300 - now()->timestamp)) : 0,
+            'confirmationContext' => $user ? hash_hmac('sha256', json_encode([$user->id, (int) $user->auth_session_version, $request->session()->get(CurrentWorkspace::SESSION_KEY), $this->security->policyFingerprint($user)], JSON_THROW_ON_ERROR), (string) config('app.key')) : null,
             'setupFresh' => $this->security->setupFresh($request),
             'recoveryFresh' => $this->security->recoveryFresh($request),
-            'confirmationMethod' => $this->security->fresh($request) ? $request->session()->get('security.step_up.method') : null,
+            'confirmationMethod' => $fresh ? $request->session()->get('security.step_up.method') : null,
             'recommendationsPending' => $user ? $this->security->recommendationsPending($user) : false,
             'passkeys' => $user ? $user->passkeys()->orderBy('id')->get()->map(fn (Passkey $key) => ['id' => $key->id, 'name' => $key->name, 'createdAt' => $key->created_at?->toISOString(), 'lastUsedAt' => $key->last_used_at?->toISOString()]) : [],
         ])->header('Cache-Control', 'no-store');
@@ -88,6 +92,14 @@ class AccountSecurityController extends Controller
         return $this->show($request);
     }
 
+    private function requireConfirmation(Request $request, bool $valid): void
+    {
+        if (! $valid) {
+            $request->attributes->set('security.mutation_not_started', true);
+            abort(423, trans('security.step_up_required'));
+        }
+    }
+
     private function factorInput(Request $request): array
     {
         return $request->validate(['code' => ['nullable', 'string', 'regex:/^\d{6}$/D'], 'recovery_code' => ['nullable', 'string', 'max:100']]);
@@ -95,10 +107,10 @@ class AccountSecurityController extends Controller
 
     public function setupTotp(Request $request, TwoFactorAuthenticationProvider $provider): JsonResponse
     {
-        abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
+        $this->requireConfirmation($request, $this->security->setupFresh($request));
         $user = DB::transaction(function () use ($request, $provider): User {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
+            $this->requireConfirmation($request, $this->security->setupFresh($request));
             if (! $user->pending_two_factor_secret) {
                 $user->forceFill(['pending_two_factor_secret' => Fortify::currentEncrypter()->encrypt($provider->generateSecretKey(32))])->save();
             }
@@ -113,11 +125,11 @@ class AccountSecurityController extends Controller
 
     public function confirmTotp(Request $request): JsonResponse
     {
-        abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
+        $this->requireConfirmation($request, $this->security->setupFresh($request));
         $request->validate(['code' => ['required', 'string', 'regex:/^\d{6}$/D']]);
         $codes = DB::transaction(function () use ($request): array {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($this->security->setupFresh($request), 423, trans('security.step_up_required'));
+            $this->requireConfirmation($request, $this->security->setupFresh($request));
             $this->security->valid($user->pending_two_factor_secret && $this->security->verifyTotp($user, $user->pending_two_factor_secret, $request->input('code'), true));
             $user->forceFill(['two_factor_secret' => $user->pending_two_factor_secret, 'pending_two_factor_secret' => null, 'two_factor_confirmed_at' => now()])->save();
             $codes = $this->security->recoveryCodes($user);
@@ -137,10 +149,10 @@ class AccountSecurityController extends Controller
 
     public function recovery(Request $request): JsonResponse
     {
-        abort_unless($request->isMethod('POST') ? $this->security->fresh($request) : $this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
+        $this->requireConfirmation($request, $request->isMethod('POST') ? $this->security->fresh($request) : $this->security->recoveryFresh($request));
         $codes = DB::transaction(function () use ($request): array {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($request->isMethod('POST') ? $this->security->fresh($request) : $this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
+            $this->requireConfirmation($request, $request->isMethod('POST') ? $this->security->fresh($request) : $this->security->recoveryFresh($request));
             abort_unless($user->hasEnabledTwoFactorAuthentication(), 403);
             if ($request->isMethod('POST')) {
                 $codes = $this->security->recoveryCodes($user);
@@ -158,10 +170,10 @@ class AccountSecurityController extends Controller
 
     public function acknowledgeRecovery(Request $request): JsonResponse
     {
-        abort_unless($this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
+        $this->requireConfirmation($request, $this->security->recoveryFresh($request));
         DB::transaction(function () use ($request): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            abort_unless($this->security->recoveryFresh($request), 423, trans('security.step_up_required'));
+            $this->requireConfirmation($request, $this->security->recoveryFresh($request));
             abort_unless($user->hasEnabledTwoFactorAuthentication() && count($user->recoveryCodes()) > 0, 403);
             $user->forceFill(['recovery_codes_acknowledged_at' => now(), 'security_recovery_token_hash' => null, 'security_recovery_expires_at' => null])->save();
             DB::table('account_security_challenges')->where('id', $request->session()->get('security.recovery_grant.id'))->where('user_id', $user->id)->where('purpose', 'recovery_enrollment')->delete();

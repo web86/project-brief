@@ -187,6 +187,11 @@ try {
   assert.equal((await request('/api/admin/projects')).status, 200)
   await page.getByRole('button', { name: 'Later — continue to workspace', exact: true }).waitFor()
   results.push('Owner with saved TOTP recovery has full access without a Passkey')
+  await page.evaluate(() => {
+    globalThis.m7OriginalCreate = navigator.credentials.create
+    navigator.credentials.create = () =>
+      Promise.reject(new DOMException('User cancelled', 'NotAllowedError'))
+  })
   await page.getByLabel('Device name', { exact: true }).fill('Virtual authenticator')
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   const stepUp = page.getByRole('dialog')
@@ -197,17 +202,11 @@ try {
   await stepUp.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[7])
   await stepUp.getByRole('button', { name: 'Confirm identity', exact: true }).click()
   await stepUp.waitFor({ state: 'hidden' })
-  await page.locator('.toast-info').filter({ hasText: 'submit it again' }).waitFor()
+  await page.locator('.toast-error').filter({ hasText: 'cancelled or timed out' }).waitFor()
   assert.equal((await request('/api/security/status')).body.passkeys.length, 0)
   results.push(
-    'TOTP/recovery step-up needs no password and never automatically retries registration',
+    'Compact TOTP/recovery step-up needs no password and safely continues registration options once',
   )
-  await page.evaluate(() => {
-    globalThis.m7OriginalCreate = navigator.credentials.create
-    navigator.credentials.create = () =>
-      Promise.reject(new DOMException('User cancelled', 'NotAllowedError'))
-  })
-  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page
     .locator('form:has(#passkey-name) [role="alert"]')
     .filter({ hasText: 'cancelled or timed out' })
@@ -312,6 +311,8 @@ try {
         },
         { lang: language.code, scheme },
       )
+      // Locale/theme reloads are independent visual cases; keep the production throttle unchanged.
+      php(['tests/account-security-fixture.php', 'reset-limiter'])
       await page.reload()
       await page.locator('.team-member').first().waitFor()
       const text = await page.locator('.team-member').first().textContent()
@@ -333,6 +334,158 @@ try {
   results.push(
     'Owner team: textual factor indicators, RU/EN/TR/ZH-CN, desktop/mobile and light/dark without overflow',
   )
+  php(['tests/account-security-fixture.php', 'reset-limiter'])
+  await page.reload()
+  await page.locator('.team-member').first().waitFor()
+  await page.locator('#bootstrap-splash').waitFor({ state: 'detached' })
+  await page.evaluate(async () => {
+    const { stepUp } = await import('/src/services/stepUp.js')
+    await stepUp.prepare()
+    globalThis.m721Assertions = []
+    globalThis.m721Dialogs = 0
+    globalThis.m721RealGet = navigator.credentials.get.bind(navigator.credentials)
+    navigator.credentials.get = (options) => {
+      globalThis.m721Assertions.push({
+        active: navigator.userActivation.isActive,
+        dialog: !!document.querySelector('dialog[open]'),
+      })
+      return globalThis.m721RealGet(options)
+    }
+    const show = HTMLDialogElement.prototype.showModal
+    HTMLDialogElement.prototype.showModal = function () {
+      globalThis.m721Dialogs++
+      return show.call(this)
+    }
+  })
+  const teamMember = page
+    .locator('.team-member')
+    .filter({ hasText: 'security-developer@example.test' })
+  const teamMutations = []
+  page.on('request', (incoming) => {
+    if (incoming.method() === 'PATCH' && incoming.url().includes('/team/members/'))
+      teamMutations.push(incoming.url())
+  })
+  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  const switches = teamMember.locator('.member-permissions [role="switch"]')
+  for (let i = 1; i < 6; i++) await switches.nth(i).check()
+  await teamMember.getByRole('button', { name: 'Save', exact: true }).dblclick()
+  await page.locator('.toast-success').filter({ hasText: 'Access updated' }).waitFor()
+  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  assert.equal(teamMutations.length, 1)
+  assert.deepEqual(await page.evaluate(() => globalThis.m721Assertions), [
+    { active: true, dialog: false },
+  ])
+  assert.equal(await page.evaluate(() => globalThis.m721Dialogs), 0)
+  const savedTeam = (await request('/api/admin/projects/' + fixture.project + '/team')).body
+  const savedPermissions = savedTeam.members.find(
+    (member) => member.user.email === 'security-developer@example.test',
+  ).projectPermissions[fixture.project]
+  assert.equal(Object.values(savedPermissions).filter(Boolean).length, 6)
+  results.push(
+    'Team Save -> synchronous user-activated real UV assertion -> exactly one PATCH with five changed permissions; no application dialog, including double click',
+  )
+  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  await switches.nth(5).uncheck()
+  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
+  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  assert.equal(teamMutations.length, 2)
+  assert.equal(await page.evaluate(() => globalThis.m721Assertions.length), 1)
+  results.push('Existing five-minute proof saves immediately without another ceremony')
+  php(['tests/account-security-fixture.php', 'expire-proof'])
+  await page.evaluate(async () => {
+    const { stepUp } = await import('/src/services/stepUp.js')
+    stepUp.invalidate()
+    await stepUp.prepare()
+    navigator.credentials.get = () =>
+      Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
+  })
+  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  await switches.nth(4).uncheck()
+  const draft = await switches.evaluateAll((items) => items.map((item) => item.checked))
+  const criticalBefore = await page.locator('.toast-error').count()
+  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
+  const fallback = page.getByRole('dialog')
+  await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).waitFor()
+  assert.equal(teamMutations.length, 2)
+  assert.equal(await page.locator('.toast-error').count(), criticalBefore)
+  for (const language of LANGUAGE_CATALOG) {
+    for (const [width, scheme] of [
+      [1440, 'light'],
+      [390, 'dark'],
+    ]) {
+      await page.setViewportSize({ width, height: 1050 })
+      await page.emulateMedia({ colorScheme: scheme })
+      await page.evaluate(
+        async ({ lang, scheme }) => {
+          const { setManualLocale } = await import('/src/i18n/index.js')
+          const { theme } = await import('/src/services/theme.js')
+          setManualLocale(lang)
+          theme.select(scheme)
+        },
+        { lang: language.code, scheme },
+      )
+      assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), scheme)
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      )
+      await page.screenshot({
+        path: path.join(output, `fallback-${language.code}-${width}-${scheme}.png`),
+        fullPage: true,
+      })
+    }
+  }
+  await page.evaluate(async () => {
+    const { setManualLocale } = await import('/src/i18n/index.js')
+    setManualLocale('en')
+  })
+  await fallback.getByRole('button', { name: 'Cancel', exact: true }).click()
+  assert.deepEqual(await switches.evaluateAll((items) => items.map((item) => item.checked)), draft)
+  assert.equal(teamMutations.length, 2)
+  results.push(
+    'Cancelled Passkey: no mutation or critical toast; fallback in four locales/themes, Cancel retains exact permission draft',
+  )
+  await page.evaluate(() => {
+    navigator.credentials.get = () =>
+      Promise.reject(new DOMException('Unavailable', 'NotSupportedError'))
+  })
+  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
+  await fallback.getByRole('button', { name: 'Another confirmation method', exact: true }).click()
+  assert.equal(await fallback.locator('input[type="password"]').count(), 0)
+  await fallback.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
+  await fallback.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[6])
+  await fallback.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  assert.equal(teamMutations.length, 3)
+  await page.evaluate(() => {
+    navigator.credentials.get = globalThis.m721RealGet
+  })
+  results.push(
+    'Unavailable Passkey uses allowed compact recovery alternative and continues the exact draft once',
+  )
+  php(['tests/account-security-fixture.php', 'reset-limiter'])
+  php(['tests/account-security-fixture.php', 'expire-proof'])
+  await page.evaluate(async () => {
+    const { stepUp } = await import('/src/services/stepUp.js')
+    stepUp.invalidate()
+    await stepUp.prepare()
+    navigator.credentials.get = () =>
+      Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
+  })
+  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  await switches.nth(4).check()
+  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
+  await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).waitFor()
+  assert.equal(teamMutations.length, 3)
+  await page.evaluate(() => {
+    navigator.credentials.get = globalThis.m721RealGet
+  })
+  await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).click()
+  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  assert.equal(teamMutations.length, 4)
+  results.push('Explicit Retry with Passkey invokes a new real UV assertion and continues once')
+
+  php(['tests/account-security-fixture.php', 'reset-limiter'])
   await request('/api/admin/logout', 'POST')
   await page.goto(origin + '/admin/login')
   await page.getByRole('button', { name: 'Sign in with a Passkey', exact: true }).click()
@@ -366,9 +519,22 @@ try {
   await page.waitForURL(origin + '/admin')
   assert.equal((await request('/api/security/status')).body.totp, false)
   results.push('Developer password remains usable without TOTP or Passkey')
+  php(['tests/account-security-fixture.php', 'expire-proof', 'developer'])
   await page.goto(origin + '/admin/account/security')
   await page.getByRole('button', { name: 'Set up authenticator', exact: true }).click()
+  await page
+    .getByRole('dialog')
+    .getByLabel('Current password', { exact: true })
+    .fill('Developer-test-password!')
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Confirm identity', exact: true })
+    .click()
   await page.locator('#totp-confirm').waitFor()
+  results.push(
+    'Developer without factors gets compact current-password confirmation and setup continues without a second click',
+  )
+
   await page
     .locator('#totp-confirm')
     .fill(php(['tests/account-security-fixture.php', 'code', 'developer'], true).code)
@@ -389,6 +555,7 @@ try {
   await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
   await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
   assert.equal((await request('/api/admin/projects')).status, 200)
+  php(['tests/account-security-fixture.php', 'reset-limiter'])
   await page.goto(origin + '/admin/account/security')
   await page.getByRole('button', { name: 'Turn off authenticator', exact: true }).click()
   await page.locator('#disable-totp-password').fill('Developer-test-password!')
@@ -480,6 +647,69 @@ try {
       assert.equal(serialized.credential.response.clientDataJSON, 'AgME')
       results.push(
         `${engine}: real engine serializer compatibility with minimal WebAuthn API shape (mock authenticator; no hardware assertion)`,
+      )
+      // A separate real-engine session validates activation and unavailable-device fallback.
+      // The provider deliberately cancels; signed resident UV is exercised by Chromium above.
+      php(['tests/account-security-fixture.php', 'reset-limiter'])
+      await compatibilityPage.goto(origin + '/admin/login')
+      await compatibilityPage
+        .getByLabel('Email', { exact: true })
+        .fill('security-owner@example.test')
+      await compatibilityPage.getByLabel('Password', { exact: true }).fill('Owner-test-password!')
+      await compatibilityPage.getByRole('button', { name: 'Sign in', exact: true }).click()
+      await compatibilityPage.waitForURL('**/admin/security')
+      await compatibilityPage
+        .getByRole('button', { name: 'Use a recovery code', exact: true })
+        .click()
+      await compatibilityPage.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[5])
+      await compatibilityPage.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+      await compatibilityPage
+        .getByRole('button', { name: 'Continue to workspace', exact: true })
+        .waitFor()
+      await compatibilityPage.goto(origin + '/admin/projects/' + fixture.project + '/team')
+      await compatibilityPage.locator('.team-member').first().waitFor()
+      php(['tests/account-security-fixture.php', 'expire-proof'])
+      await compatibilityPage.evaluate(async () => {
+        const { stepUp } = await import('/src/services/stepUp.js')
+        stepUp.invalidate()
+        await stepUp.prepare()
+        navigator.credentials.get = () => {
+          globalThis.m721EngineActivation = {
+            active: navigator.userActivation.isActive,
+            dialog: !!document.querySelector('dialog[open]'),
+          }
+          return Promise.reject(new DOMException('Device unavailable', 'NotAllowedError'))
+        }
+      })
+      const employee = compatibilityPage
+        .locator('.team-member')
+        .filter({ hasText: 'security-developer@example.test' })
+      await employee.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+      const permission = employee.locator('.member-permissions [role="switch"]').nth(5)
+      await permission.setChecked(!(await permission.isChecked()))
+      await employee.getByRole('button', { name: 'Save', exact: true }).click()
+      const engineFallback = compatibilityPage.getByRole('dialog')
+      await engineFallback
+        .getByRole('button', { name: 'Another confirmation method', exact: true })
+        .waitFor()
+      assert.deepEqual(await compatibilityPage.evaluate(() => globalThis.m721EngineActivation), {
+        active: true,
+        dialog: false,
+      })
+      await engineFallback
+        .getByRole('button', { name: 'Another confirmation method', exact: true })
+        .click()
+      assert.equal(await engineFallback.locator('input[type="password"]').count(), 0)
+      await engineFallback.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
+      await engineFallback.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[4])
+      await engineFallback.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+      await employee.locator('.team-edit').waitFor({ state: 'hidden' })
+      await compatibilityPage
+        .locator('.toast-success')
+        .filter({ hasText: 'Access updated' })
+        .waitFor()
+      results.push(
+        `${engine}: native get invoked with real user activation and no app dialog; cancelled provider -> compact recovery -> original team draft saved (mock provider, real server)`,
       )
     } finally {
       await compatibilityBrowser.close()

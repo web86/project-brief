@@ -6,9 +6,9 @@ import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.
 import LoadingButton from './LoadingButton.vue'
 import SecurityError from './SecurityError.vue'
 import { toast } from '../services/toast.js'
-const props = defineProps({ pending: Boolean })
+const props = defineProps({ pending: Boolean, compact: Boolean, initialStatus: Object })
 const emit = defineEmits(['confirmed'])
-const status = ref(null),
+const status = ref(props.initialStatus || null),
   password = ref(''),
   code = ref(''),
   recovery = ref(false),
@@ -16,6 +16,7 @@ const status = ref(null),
   error = ref(null)
 onMounted(async () => {
   try {
+    if (status.value) return
     status.value = await api.request('/api/security/status')
   } catch (cause) {
     error.value = cause
@@ -62,7 +63,10 @@ async function confirm(passkey = false) {
 <template>
   <form class="admin-form" @submit.prevent="confirm()">
     <p>{{ t(pending ? 'security.challengeHelp' : 'security.stepUpHelp') }}</p>
-    <div v-if="status && !status.totp && (!pending || status.signedIn)" class="field">
+    <div
+      v-if="status && !status.totp && (!compact || !status.owner) && (!pending || status.signedIn)"
+      class="field"
+    >
       <label for="security-password">{{ t('account.currentPassword') }}</label>
       <input
         id="security-password"
@@ -97,13 +101,15 @@ async function confirm(passkey = false) {
       t('security.confirm')
     }}</LoadingButton>
     <button
-      v-if="status && passkeysSupported()"
+      v-if="
+        !compact && status && passkeysSupported() && (!status.signedIn || status.passkeys?.length)
+      "
       class="button secondary"
       type="button"
       :disabled="busy || !status"
       @click="confirm(true)"
     >
-      {{ t('security.signInPasskey') }}
+      {{ t(pending && !status?.signedIn ? 'security.signInPasskey' : 'security.confirmPasskey') }}
     </button>
   </form>
 </template>
