@@ -92,7 +92,7 @@ class BrandImage
             $this->invalid();
         }
         $max = $kind === 'favicon' ? 256 : 1024;
-        $scale = min(1, $max / max($info[0], $info[1]));
+        $scale = $kind === 'favicon' ? $max / max($info[0], $info[1]) : min(1, $max / max($info[0], $info[1]));
         $width = max(1, (int) round($info[0] * $scale));
         $height = max(1, (int) round($info[1] * $scale));
         $canvas = imagecreatetruecolor($kind === 'favicon' ? 256 : $width, $kind === 'favicon' ? 256 : $height);

@@ -2,7 +2,7 @@
 
 ## Выполнено до production-сборки
 
-- `php artisan test --compact --filter='WorkspaceBrandingTest|ProjectPaginationTest'`: 10 tests, 104 assertions, PASS. Роли/чужой и сменившийся workspace, section merge, валидация, приватность, raster/SVG normalization, durable file cleanup, reset, экспортные флаги, письма и системный fallback, Unicode, пагинация/фильтры/сортировка/права.
+- `php artisan test --compact --filter='WorkspaceBrandingTest|ProjectPaginationTest'`: 11 tests, 110 assertions, PASS. Роли/чужой и сменившийся workspace, section merge, валидация, приватность, raster/SVG normalization и подгонка малого favicon без искажения пропорций, durable file cleanup, reset, экспортные флаги, письма и системный fallback, Unicode, пагинация/фильтры/сортировка/права.
 - `npm test`: 308 tests, PASS. Включая шесть новых проверок контрастности, сохранения in-flight черновиков, ошибок/stale response, URL allowlist, отложенной sidebar-страницы после удаления и сброса с сохранением бизнес-черновиков.
 - `node tests/branding-pagination.browser.mjs`: 6 admin-комбинаций 390/768/1440 × light/dark с RU/TR/EN/ZH, плюс 2 client portal/exit сценария, PASS. Реальные Vue/router/stores, API fixture. Проверены все шесть секций, SVG→canvas→multipart, retry после ошибки, dirty leave/reset, 20 карточек, page2, debounce/URL/возврат, короткий drawer600px, touch gesture, Shift+Tab/focus, masks, load more, профиль, client color/logo/favicon и возврат к платформенному виду.
 - [BROWSER-RESULTS.json](BROWSER-RESULTS.json), 62 screenshots в screenshots/.

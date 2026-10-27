@@ -91,6 +91,17 @@ class WorkspaceBrandingTest extends TestCase
         $this->assertDatabaseHas('project_file_deletions', ['path' => $path]);
     }
 
+    public function test_small_favicon_fills_its_canvas_without_changing_aspect_ratio(): void
+    {
+        $response = $this->post($this->root().'/assets/favicon', ['file' => UploadedFile::fake()->image('icon.png', 32, 16)], ['Accept' => 'application/json'])->assertOk();
+        $image = imagecreatefromstring($this->get(parse_url($response->json('data.assets.favicon'), PHP_URL_PATH))->assertOk()->getContent());
+        $this->assertSame(256, imagesx($image));
+        $this->assertSame(256, imagesy($image));
+        $this->assertSame(127, imagecolorsforindex($image, imagecolorat($image, 128, 0))['alpha']);
+        $this->assertSame(0, imagecolorsforindex($image, imagecolorat($image, 0, 128))['alpha']);
+        imagedestroy($image);
+    }
+
     public function test_svg_sanitization_removes_active_content_external_resources_and_entities(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" onload="alert(1)"><script>alert(1)</script><foreignObject><div>bad</div></foreignObject><image href="https://attacker.test/x"/><path d="M0 0L40 40" style="fill:red" onclick="bad()" fill="url(https://attacker.test/x)"/><rect width="40" height="40" fill="#17695d"/><text x="10" y="20">Studio Çığ<?xml-stylesheet href="https://attacker.test/text"?></text></svg>';
