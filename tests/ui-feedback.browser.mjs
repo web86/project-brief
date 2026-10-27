@@ -127,6 +127,31 @@ try {
                   },
                 }),
               )
+              const clients = [
+                {
+                  id: 'anna',
+                  name: 'Анна Смирнова — представитель международной команды',
+                  email: 'anna.long.client.contact.address@example.test',
+                  active: true,
+                  lastUsedAt: '2026-10-27',
+                  accessLinks: [{ id: 1, active: true }],
+                },
+                {
+                  id: 'john',
+                  name: 'John Smith',
+                  email: 'john@example.test',
+                  active: false,
+                  accessLinks: [],
+                },
+              ]
+              await context.route(`**/api/admin/projects/${uuid}/clients/*/access-links`, (route) =>
+                route.fulfill({
+                  json: { url: 'https://example.test/access/test-only-manual-link' },
+                }),
+              )
+              await context.route(`**/api/admin/projects/${uuid}/clients/*/invitation`, (route) =>
+                route.fulfill({ json: { data: clients, invitation: 'failed' } }),
+              )
               await context.route(
                 `**/api/admin/projects/${uuid}/clients`,
                 (route) => (
@@ -136,23 +161,7 @@ try {
                   route.fulfill({
                     json: {
                       invitation: route.request().method() === 'POST' ? 'failed' : 'not_requested',
-                      data: [
-                        {
-                          id: 'anna',
-                          name: 'Анна Смирнова — представитель международной команды',
-                          email: 'anna.long.client.contact.address@example.test',
-                          active: true,
-                          lastUsedAt: '2026-10-27',
-                          accessLinks: [{ id: 1, active: true }],
-                        },
-                        {
-                          id: 'john',
-                          name: 'John Smith',
-                          email: 'john@example.test',
-                          active: false,
-                          accessLinks: [],
-                        },
-                      ],
+                      data: clients,
                     },
                   })
                 ),
@@ -211,6 +220,13 @@ try {
             await f.screenshot(`${before ? 'before' : 'after'}-${section}-${width}-${mode}`)
             assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
             if (!before && section === 'clients') {
+              const card = page.locator('.managed-client').first()
+              await card.locator('.order-actions .button.primary').click()
+              await card.locator('.client-secret input').waitFor()
+              page.once('dialog', (dialog) => dialog.accept())
+              await card.locator('.order-actions .button.secondary').first().click()
+              await card.locator('.client-secret').waitFor({ state: 'detached' })
+
               await page.locator('.management-heading button').click()
               await page.locator('#new-client-name').fill('New invited client')
               await page.locator('.client-invitation-option input').check()

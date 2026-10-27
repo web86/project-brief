@@ -72,7 +72,11 @@ function invitationResult(status) {
 }
 function invite(client) {
   if (activeLinks(client).length && !window.confirm(t('feedback.invitationReplace'))) return
-  action(async () => invitationResult((await store.inviteClient(client.id)).invitation))
+  action(async () => {
+    const result = await store.inviteClient(client.id)
+    delete secrets.value[client.id]
+    invitationResult(result.invitation)
+  })
 }
 function toggle(client) {
   action(async () => {

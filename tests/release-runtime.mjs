@@ -790,6 +790,9 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo json_encode(["reviews"=>App\\Models\\ProjectFeedback::whereNotNull("submitted_at")->count(), "rating"=>App\\Models\\ProjectFeedback::whereNotNull("submitted_at")->value("rating"), "mail"=>App\\Models\\NotificationDelivery::where("event", "client.feedback_submitted")->count()]);',
   ])
   assert.deepEqual(JSON.parse(feedbackStats), { reviews: 1, rating: 5, mail: 1 })
+  console.log(
+    'PASS: Packaged client invitation creation/replay, completed-project feedback request, single prompt claim/dismissal, feedback HTTP replay, foreign-project denial and durable owner mail intent',
+  )
 
   // Check the shipped v1 implementation without browser session/CSRF, using a disposable token.
   const integrationFixture = path.join(fixtureRoot, 'integration-fixture.php')
