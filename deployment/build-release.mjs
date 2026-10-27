@@ -154,6 +154,7 @@ try {
     deploymentGuide,
     (await readFile(deploymentGuide, 'utf8'))
       .replaceAll('(docs/milestone-7/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/project-trash/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-6-2/PRODUCTION.md)', '(PRODUCTION.md)'),
   )
   await writeFile(

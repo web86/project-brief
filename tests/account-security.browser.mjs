@@ -163,6 +163,20 @@ try {
   assert.equal(recoveryCodes.length, 8)
   await page.getByRole('button', { name: 'I have saved my recovery codes', exact: true }).click()
   await page.getByLabel('Device name', { exact: true }).fill('Virtual authenticator')
+  await page.evaluate(() => {
+    globalThis.m7OriginalCreate = navigator.credentials.create
+    navigator.credentials.create = () =>
+      Promise.reject(new DOMException('User cancelled', 'NotAllowedError'))
+  })
+  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
+  await page.getByRole('alert').filter({ hasText: 'Passkey verification did not finish' }).waitFor()
+  assert.equal((await request('/api/security/status')).body.state, 'enrollment_required')
+  assert.equal((await request('/api/security/status')).body.passkeys.length, 0)
+  await page.evaluate(() => {
+    navigator.credentials.create = globalThis.m7OriginalCreate
+    delete globalThis.m7OriginalCreate
+  })
+  results.push('Cancelled WebAuthn returns to restricted setup and permits retry')
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
   assert.equal((await request('/api/admin/projects')).status, 200)
@@ -199,7 +213,16 @@ try {
     }
   }
   results.push('RU/EN/TR/ZH-CN security UI: 1440px light + 390px dark; no horizontal overflow')
-  await page.evaluate(() => localStorage.setItem('projectbrief.locale', 'en'))
+  await page.evaluate(() => {
+    localStorage.setItem('projectbrief.locale', 'en')
+    localStorage.setItem('projectbrief.theme', 'system')
+  })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.reload()
+  await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.waitForFunction(() => document.documentElement.dataset.theme === 'light')
+  results.push('System theme follows dark/light device changes on the security screen')
   await request('/api/admin/logout', 'POST')
   await page.goto(origin + '/admin/login')
   await page.getByRole('button', { name: 'Sign in with a Passkey', exact: true }).click()

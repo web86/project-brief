@@ -21,12 +21,13 @@ class AdminAuthController extends Controller
         $credentials = $request->only('email', 'password');
         $registeredEmail = User::whereRaw('LOWER(TRIM(email)) = ?', [DeveloperInvitations::normalizeEmail($credentials['email'])])->value('email');
         $credentials['email'] = $registeredEmail ?? $credentials['email'];
-        $provider = Auth::getProvider();
-        $user = $provider->retrieveByCredentials($credentials);
+        $validCredentials = Auth::validate($credentials);
+        $user = Auth::getLastAttempted();
         $eligible = $user && ($user->workspaceMembers()->active()->exists() || DeveloperInvitation::where('token_hash', hash('sha256', (string) $request->input('invitation_token')))->whereRaw('LOWER(email) = ?', [DeveloperInvitations::normalizeEmail($user->email)])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->exists());
-        if (! $user || ! $provider->validateCredentials($user, $credentials) || ! $eligible) {
+        if (! $validCredentials || ! $eligible) {
             return response()->json(['code' => 'invalid_credentials', 'errors' => ['email' => [trans('interface.invalid_credentials')]]], 422);
         }
+        Auth::getProvider()->rehashPasswordIfRequired($user, $credentials);
         $state = app(AccountSecurity::class)->passwordLogin($request, $user);
         if ($state !== 'authenticated') {
             return response()->json(['state' => $state])->header('Cache-Control', 'no-store');

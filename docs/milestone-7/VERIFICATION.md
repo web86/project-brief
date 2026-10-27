@@ -6,12 +6,12 @@ Branch: `codex/milestone-7-account-security-passkeys`; base `caa03a95cfb5f6e6bcd
 
 | Check                                                 | Result                                                                                                                                                                    |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Complete PHP 8.5.10 suite                             | 714 tests, 8555 assertions, all passed                                                                                                                                    |
-| Dedicated security protocol suite                     | 22 tests, 306 assertions, passed on PHP 8.3.36 and 8.4.26                                                                                                                 |
+| Complete PHP 8.5.10 suite                             | 715 tests, 8556 assertions, all passed                                                                                                                                    |
+| Dedicated security protocol suite                     | 23 tests, 307 assertions, passed on PHP 8.3.36 and 8.4.26                                                                                                                 |
 | Complete frontend Node suite                          | 259 tests, all passed, including 7 new security-flow tests                                                                                                                |
-| Local HTTPS Chromium + WebAuthn virtual authenticator | 7 scenario groups passed; real Laravel cookies, CSRF, TOTP confirmation, discoverable UV registration/login, recovery challenge, developer password, existing client link |
+| Local HTTPS Chromium + WebAuthn virtual authenticator | 9 scenario groups passed; real Laravel cookies, CSRF, TOTP confirmation, discoverable UV registration/login, recovery challenge, developer password, existing client link |
 | MariaDB 11.8.9 concurrent workers                     | 4 groups, 6 simultaneous PHP processes per group; exactly one TOTP/recovery/challenge accepted; one credential deletion accepted and one owner Passkey always retained    |
-| UI matrix                                             | RU/EN/TR/ZH-CN, 1440px light and 390px dark; no horizontal overflow; existing theme/system controls retained                                                              |
+| UI matrix                                             | RU/EN/TR/ZH-CN, 1440px light and 390px dark; no horizontal overflow; system theme responds to dark/light device changes                                                   |
 | Production frontend compilation                       | Vite build passed                                                                                                                                                         |
 | PHP formatter                                         | `vendor/bin/pint --dirty --format agent`, fixed changed PHP files                                                                                                         |
 | Default auth routes                                   | No Fortify/Passkeys vendor auth routes; only existing custom API contracts                                                                                                |
@@ -42,9 +42,17 @@ PHP 8.3/8.4 checks used existing local containers, mounted source and the locked
 ## Boundaries
 
 - No live Jino deployment, physical FIDO2 key, real biometric UI, real mail transport, existing production proxy topology, or production owner recovery was exercised.
-- The browser checks run Chromium's virtual authenticator. Other browser/device behavior requires staging smoke with the intended hardware. System theme uses the existing application implementation; the new security UI matrix explicitly checked light and dark.
-- Full-repository Prettier reports pre-existing generated documentation JSON formatting. Only files changed for this milestone are formatted; unrelated historical reports are retained.
+- The browser checks run Chromium's virtual authenticator. Other browser/device behavior requires staging smoke with the intended hardware. The browser suite checks explicit light/dark layouts and system theme changes; cancellation is simulated by the browser credential API rejecting with NotAllowedError, followed by a real successful retry.
+- Full-repository Prettier reports pre-existing historical documentation formatting. Only files changed for this milestone are formatted; unrelated historical reports are retained.
 - The broad packaged HTTP regression uses a clearly labelled enrollment-presence Passkey fixture and recovery codes to exercise account assurance around existing business APIs. It does not claim a WebAuthn ceremony over HTTP. The dedicated local HTTPS E2E and signed protocol suite provide that evidence.
 - Initial owner setup on incompatible devices remains restricted. This is intentional and does not provide a privileged fallback. Operator recovery requires independent verification and host CLI access.
 
 - `npm audit` reports one pre-existing high-severity Vite 7.3.6 development-server dependency entry (including launch-editor advisories). No new Passkeys package advisory was reported. Vite/Node and development servers are not included in the production ZIP; no unrelated dependency upgrade was made in this milestone.
+
+## Changed areas
+
+- Backend: `AccountSecurity`, `AccountSecurityController`, global security middleware, User traits/hidden fields, routes/config, additive migration, operator recovery command; login/session/invitation/reset/account session invalidation hooks.
+- Frontend: security/onboarding panel, second-factor and step-up forms, Passkey client, login/account/invitation/reset/router integration, RU/EN/TR/ZH-CN messages.
+- Dependencies and delivery: Composer/NPM locks, 0.7.0 release builder and packaged runtime checks; PHP signed protocol tests, FE flow tests, real HTTPS browser harness, MariaDB process-race harness, deployment/recovery/rollback documentation.
+
+The exact list is reproducible with `git diff --name-status caa03a95cfb5f6e6bcd989aa911d70bac633329f HEAD`. Existing migration files, ProjectClient, AccessLinkController and the bearer integration authentication/routes have no changes.

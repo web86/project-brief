@@ -52,7 +52,7 @@ class AccountSecurityTest extends TestCase
         $codes = $this->postJson('/api/security/totp/confirm', ['code' => $code])->assertOk()->json('codes');
         $this->postJson('/api/security/recovery-codes/acknowledge')->assertOk();
 
-        return [$secret, $codes];
+        return [$secret, $codes, $code];
     }
 
     private function register(?WebAuthnDevice $device = null): WebAuthnDevice
@@ -93,7 +93,7 @@ class AccountSecurityTest extends TestCase
     public function test_real_passkey_registration_unlocks_owner_and_password_requires_second_factor(): void
     {
         $user = $this->owner();
-        [$secret, $codes] = $this->enrollTotp($user);
+        [$secret, $codes, $enrollmentCode] = $this->enrollTotp($user);
         $this->getJson('/api/admin/projects')->assertForbidden();
         $device = $this->register();
         $this->getJson('/api/admin/me')->assertOk();
@@ -102,7 +102,7 @@ class AccountSecurityTest extends TestCase
         $this->assertGuest();
         $this->getJson('/api/admin/projects')->assertForbidden();
         $this->postJson('/api/security/challenge', ['code' => '000000'])->assertUnprocessable();
-        $this->postJson('/api/security/challenge', ['code' => app(Google2FA::class)->getCurrentOtp($secret)])->assertUnprocessable();
+        $this->postJson('/api/security/challenge', ['code' => $enrollmentCode])->assertUnprocessable();
         $this->postJson('/api/security/challenge', ['recovery_code' => $codes[0]])->assertOk()->assertJsonPath('state', 'authenticated');
         $this->getJson('/api/admin/projects')->assertOk();
         $this->postJson('/api/admin/logout')->assertOk();
@@ -311,5 +311,11 @@ class AccountSecurityTest extends TestCase
         $this->postJson('/api/security/passkey/register', ['name' => 'Bad UV', 'credential' => $device->registration($options, uv: false)])->assertUnprocessable();
         $this->postJson('/api/security/passkey/register', ['name' => 'Replayed', 'credential' => $device->registration($options)])->assertUnprocessable();
         $this->assertDatabaseCount('passkeys', 0);
+    }
+
+    public function test_production_passkeys_refuse_http_origins(): void
+    {
+        $this->app->instance('env', 'production');
+        $this->getJson('/api/security/passkey/login/options')->assertStatus(503);
     }
 }

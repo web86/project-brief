@@ -26,7 +26,7 @@ class WebAuthnDevice
     public function registration(array $options, string $origin = 'http://localhost', bool $uv = true): array
     {
         $details = openssl_pkey_get_details($this->key)['ec'];
-        $cose = (new Encoder)->encode([1 => 2, 3 => -7, -1 => 1, -2 => ByteStringObject::create($details['x']), -3 => ByteStringObject::create($details['y'])]);
+        $cose = (new Encoder)->encode([1 => 2, 3 => -7, -1 => 1, -2 => ByteStringObject::create(str_pad($details['x'], 32, "\0", STR_PAD_LEFT)), -3 => ByteStringObject::create(str_pad($details['y'], 32, "\0", STR_PAD_LEFT))]);
         $auth = hash('sha256', $options['rp']['id'], true).chr($uv ? 0x45 : 0x41).pack('N', 0).str_repeat("\0", 16).pack('n', strlen($this->id)).$this->id.$cose;
         $attestation = (new Encoder)->encode(['fmt' => 'none', 'attStmt' => MapObject::create(), 'authData' => ByteStringObject::create($auth)]);
 
