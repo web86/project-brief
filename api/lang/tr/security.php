@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'operation_failed' => 'Güvenlik işlemi tamamlanamadı. Lütfen tekrar deneyin.',
     'invalid' => 'Doğrulama geçersiz veya süresi dolmuş. Tekrar deneyin.',
     'step_up_required' => 'Devam etmek için kimliğinizi doğrulayın.',
     'enrollment_required' => 'Hesap güvenliği kurulumunu tamamlayın.',

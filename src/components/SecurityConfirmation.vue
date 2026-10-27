@@ -4,6 +4,8 @@ import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
 import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
 import LoadingButton from './LoadingButton.vue'
+import SecurityError from './SecurityError.vue'
+import { toast } from '../services/toast.js'
 const props = defineProps({ pending: Boolean })
 const emit = defineEmits(['confirmed'])
 const status = ref(null),
@@ -17,6 +19,7 @@ onMounted(async () => {
     status.value = await api.request('/api/security/status')
   } catch (cause) {
     error.value = cause
+    toast.error(() => formatApiError(cause))
   }
 })
 function switchRecovery() {
@@ -45,9 +48,11 @@ async function confirm(passkey = false) {
     api.resetCsrf()
     password.value = ''
     code.value = ''
+    toast.success(() => t('security.identityConfirmed'))
     emit('confirmed', result)
   } catch (cause) {
-    error.value = passkey ? { messageKey: 'security.passkeyFailed' } : cause
+    error.value = cause
+    toast.error(() => formatApiError(cause))
   } finally {
     busy.value = false
   }
@@ -86,7 +91,7 @@ async function confirm(passkey = false) {
         {{ t(recovery ? 'security.useTotp' : 'security.useRecovery') }}
       </button>
     </template>
-    <p v-if="error" class="field-error" role="alert">{{ formatApiError(error) }}</p>
+    <SecurityError :error="error" />
     <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
       t('security.confirm')
     }}</LoadingButton>

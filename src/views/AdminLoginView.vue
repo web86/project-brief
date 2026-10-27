@@ -2,6 +2,7 @@
 import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
 import LoadingButton from '../components/LoadingButton.vue'
 import { t, formatApiError } from '../i18n/index.js'
+import { toast } from '../services/toast.js'
 
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -60,10 +61,12 @@ async function loginPasskey() {
   error.value = ''
   try {
     const result = await passkeyCeremony('login')
+    toast.success(() => t('security.identityConfirmed'))
     useAdminNavigationStore().clear()
     await router.replace(result.state === 'authenticated' ? '/admin' : '/admin/security')
-  } catch {
-    error.value = { messageKey: 'security.passkeyFailed' }
+  } catch (cause) {
+    error.value = cause
+    toast.error(() => formatApiError(cause))
   } finally {
     pending.value = false
   }

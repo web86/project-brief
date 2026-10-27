@@ -7,12 +7,14 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { createServer } from 'vite'
 import { LANGUAGE_CATALOG } from '../src/i18n/catalog.js'
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const { chromium, firefox, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(import.meta.dirname, '..')
 const temporary = await mkdtemp(path.join(tmpdir(), 'm7-security-'))
 const output = process.env.M7_EVIDENCE_DIRECTORY || path.join(tmpdir(), 'project-brief-m7-evidence')
 await mkdir(output, { recursive: true })
-const origin = 'https://localhost:5199'
+const transportOrigin = 'https://localhost:5199'
+const origin =
+  process.env.M7_TEST_PRODUCTION_ORIGIN === '1' ? 'https://brief.web86.site' : transportOrigin
 const env = {
   ...process.env,
   APP_ENV: 'local',
@@ -21,7 +23,7 @@ const env = {
   APP_URL: origin,
   FRONTEND_URL: origin,
   PASSKEY_ORIGIN: origin,
-  PASSKEY_RP_ID: 'localhost',
+  PASSKEY_RP_ID: new URL(origin).hostname,
   DB_CONNECTION: 'sqlite',
   DB_DATABASE: path.join(temporary, 'database.sqlite'),
   DB_URL: '',
@@ -88,6 +90,7 @@ const vite = await createServer({
 let browser, activePage
 const apiResponses = []
 const results = []
+const limitations = []
 try {
   await vite.listen()
   browser = await chromium.launch({ headless: true })
@@ -96,6 +99,18 @@ try {
     viewport: { width: 1440, height: 1050 },
     locale: 'en-GB',
   })
+  if (origin !== transportOrigin) {
+    // Browser origin/RP are exact production values; all traffic terminates in disposable local fixtures.
+    await context.route('**/*', async (route) => {
+      const url = new URL(route.request().url())
+      if (url.origin !== origin) return route.abort()
+      const response = await route.fetch({
+        url: transportOrigin + url.pathname + url.search,
+        maxRedirects: 0,
+      })
+      await route.fulfill({ response })
+    })
+  }
   await context.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
   const page = await context.newPage()
   activePage = page
@@ -169,7 +184,11 @@ try {
       Promise.reject(new DOMException('User cancelled', 'NotAllowedError'))
   })
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
-  await page.getByRole('alert').filter({ hasText: 'Passkey verification did not finish' }).waitFor()
+  await page
+    .locator('form:has(#passkey-name) [role="alert"]')
+    .filter({ hasText: 'cancelled or timed out' })
+    .waitFor()
+  await page.locator('.toast-error').filter({ hasText: 'cancelled or timed out' }).waitFor()
   assert.equal((await request('/api/security/status')).body.state, 'enrollment_required')
   assert.equal((await request('/api/security/status')).body.passkeys.length, 0)
   await page.evaluate(() => {
@@ -177,8 +196,37 @@ try {
     delete globalThis.m7OriginalCreate
   })
   results.push('Cancelled WebAuthn returns to restricted setup and permits retry')
+  // The authenticator creates a credential but an expired server challenge prevents storage.
+  // Retrying must create a new challenge and must not reuse the accepted enrollment TOTP.
+  let rejectOnce = true
+  await page.route('**/api/security/passkey/register', async (route) => {
+    if (!rejectOnce) return route.fallback()
+    rejectOnce = false
+    await page.evaluate(async () => {
+      const { api } = await import('/src/api/client.js')
+      await api.request('/api/security/passkey/register/options')
+    })
+    await route.fallback()
+  })
+  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
+  await page
+    .locator('form:has(#passkey-name) [role="alert"]')
+    .filter({ hasText: 'PK_CHALLENGE_MISMATCH' })
+    .waitFor()
+  await page.locator('.toast-error').filter({ hasText: 'expired or was replaced' }).waitFor()
+  const afterFailure = (await request('/api/security/status')).body
+  assert.equal(afterFailure.state, 'enrollment_required')
+  assert.equal(afterFailure.passkeys.length, 0)
+  assert.equal(afterFailure.fresh, true)
+  assert.equal(afterFailure.totp, true)
+  assert.equal(afterFailure.recoverySaved, true)
+  await page.unroute('**/api/security/passkey/register')
+  results.push(
+    'Created but unsaved credential: real challenge rejection, toast + form reference, restricted state and safe fresh retry',
+  )
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
+  await page.locator('.toast-success').filter({ hasText: 'Passkey registered.' }).waitFor()
   assert.equal((await request('/api/admin/projects')).status, 200)
   results.push(
     'Owner password: restricted enrollment, reload, real TOTP, saved recovery, real UV Passkey, unlocked workspace',
@@ -240,12 +288,11 @@ try {
   await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
   await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
   results.push('Password requires recovery challenge before workspace access')
-  const csrf = (
-    await context.request.post(origin + '/api/security/totp/setup', {
-      headers: { Accept: 'application/json' },
-    })
-  ).status()
-  assert.equal(csrf, 419)
+  const csrfResponse = await context.request.post(transportOrigin + '/api/security/totp/setup', {
+    headers: { Accept: 'application/json' },
+  })
+  assert.equal(csrfResponse.status(), 419)
+  assert.equal((await csrfResponse.json()).code, 'SEC_CSRF_EXPIRED')
   results.push('CSRF enforced on security mutation over real HTTP')
   await request('/api/admin/logout', 'POST')
   await page.goto(origin + '/admin/login')
@@ -261,11 +308,100 @@ try {
   assert.equal((await request('/api/client/tasks')).status, 200)
   results.push('Existing client link and client task session unchanged')
   assert.deepEqual(errors, [])
+  const compatibilityEngines = [['Firefox', firefox]]
+  // The bundled mac14-special WebKit rejects PushAPIEnabled before opening a page.
+  // Enable its real-engine check on a compatible Playwright host.
+  if (process.env.M7_TEST_WEBKIT === '1') compatibilityEngines.push(['WebKit', webkit])
+  else
+    limitations.push(
+      'Real WebKit not run: use M7_TEST_WEBKIT=1 on a compatible host. Safari API shapes covered by frontend tests; physical Touch ID not tested.',
+    )
+  for (const [engine, browserType] of compatibilityEngines) {
+    const compatibilityBrowser = await browserType.launch({ headless: true })
+    try {
+      const compatibility = await compatibilityBrowser.newContext({ ignoreHTTPSErrors: true })
+      await compatibility.route('**/*', async (route) => {
+        const url = new URL(route.request().url())
+        if (url.origin !== origin) return route.abort()
+        const response = await route.fetch({
+          url: transportOrigin + url.pathname + url.search,
+          maxRedirects: 0,
+        })
+        await route.fulfill({ response })
+      })
+      const compatibilityPage = await compatibility.newPage()
+      await compatibilityPage.goto(origin + '/admin/login')
+      const serialized = await compatibilityPage.evaluate(async () => {
+        const { createPasskeyClient } = await import('/src/services/accountSecurity.js')
+        const bytes = (...values) => new Uint8Array(values).buffer
+        Object.defineProperty(navigator, 'credentials', {
+          configurable: true,
+          value: {
+            async create({ publicKey }) {
+              if (
+                !(publicKey.challenge instanceof ArrayBuffer) ||
+                publicKey.authenticatorSelection.userVerification !== 'required'
+              )
+                throw Error('Invalid binary options or UV')
+              return {
+                id: '-_8B',
+                rawId: bytes(251, 255, 1),
+                type: 'public-key',
+                response: { attestationObject: bytes(251, 255, 1), clientDataJSON: bytes(2, 3, 4) },
+                getClientExtensionResults: () => ({}),
+              }
+            },
+          },
+        })
+        const ceremony = createPasskeyClient({
+          client: {
+            resetCsrf() {},
+            async request(url, input) {
+              return input
+                ? JSON.parse(JSON.stringify(input.body))
+                : {
+                    options: {
+                      challenge: 'AQID',
+                      rp: { id: location.hostname, name: 'Project Brief' },
+                      user: { id: 'BAUG', name: 'owner', displayName: 'Owner' },
+                      pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                      authenticatorSelection: {
+                        userVerification: 'required',
+                        residentKey: 'required',
+                      },
+                    },
+                  }
+            },
+          },
+        })
+        return ceremony('register', 'Compatibility')
+      })
+      assert.equal(serialized.credential.rawId, '-_8B')
+      assert.equal(serialized.credential.response.attestationObject, '-_8B')
+      assert.equal(serialized.credential.response.clientDataJSON, 'AgME')
+      results.push(
+        `${engine}: real engine serializer compatibility with minimal WebAuthn API shape (mock authenticator; no hardware assertion)`,
+      )
+    } finally {
+      await compatibilityBrowser.close()
+    }
+  }
   await writeFile(
     path.join(output, 'browser-results.json'),
-    JSON.stringify({ results, errors }, null, 2),
+    JSON.stringify(
+      {
+        origin,
+        rpId: env.PASSKEY_RP_ID,
+        isolatedLocalTransport: true,
+        results,
+        errors,
+        limitations,
+      },
+      null,
+      2,
+    ),
   )
-  console.log(JSON.stringify({ passed: results.length, results }))
+  console.log(JSON.stringify({ passed: results.length, results, limitations }))
 } catch (error) {
   await writeFile(path.join(output, 'server.log'), serverLog)
   await activePage

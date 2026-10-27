@@ -1,5 +1,24 @@
 export default {
   security: {
+    passkeyCancelled: 'Passkey 创建或验证已取消或超时，请重试。',
+    passkeyExists: '此 Passkey 已注册。请刷新设备列表或选择其他验证器。',
+    passkeyChallenge: 'Passkey 请求已过期或被替换。请仅保留一个设置标签页，然后重试。',
+    passkeyOrigin: 'Passkey 的网站配置不匹配。请将诊断编号提供给管理员。',
+    passkeyUv: '请使用 Touch ID、设备 PIN 或其他受支持的方式验证身份。',
+    passkeyPayload: '无法读取浏览器响应。请更新浏览器后重试；如果问题仍然存在，请联系管理员。',
+    factorInvalid: '验证码无效、已过期或已使用。请等待新的动态验证码，或使用尚未使用的恢复码。',
+    securityServer: '服务器无法完成安全操作。请刷新状态后重试。如果问题仍然存在，请联系管理员。',
+    passkeyRetryHelp:
+      '设备可能已创建 Passkey，但服务器尚未保存。请刷新页面并检查设备列表。如果列表中没有，请再次点击添加 Passkey 以创建新请求。请勿删除现有可用的 Passkey。',
+    diagnostic: '诊断编号：',
+    setupReady: '验证器设置已就绪。',
+    totpConfirmed: '验证器已确认。',
+    recoveryShown: '恢复码已显示，请妥善保密。',
+    recoverySaved: '已确认保存恢复码。',
+    passkeyAdded: 'Passkey 已注册。',
+    securityUpdated: '安全设置已更新。',
+    identityConfirmed: '身份已验证。',
+
     resetOwnerHelp: '已启用验证器的所有者还需输入验证器代码或恢复代码。',
     title: '账户安全',
     signInPasskey: '使用 Passkey 登录',

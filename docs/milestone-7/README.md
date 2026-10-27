@@ -1,8 +1,10 @@
 # Milestone 7 — Account Security & Passkeys
 
+0.7.1 hotfix: [investigation and verification](PASSKEY-FIX.md), [update and safe Jino diagnostics](PRODUCTION.md#070--071-passkey-diagnostics-and-retry-hotfix). The original 0.7.0 artifact report remains historical.
+
 Issue: https://github.com/web86/projects-manager/issues/6. Implementation branch: `codex/milestone-7-account-security-passkeys`, based on verified GitHub `main` `caa03a95cfb5f6e6bcd989aa911d70bac633329f` (0.6.3). Local implementation only; no push, merge or deployment is authorized.
 
-Laravel 13.34 uses Fortify **1.41.0**, Laravel Passkeys **0.2.1**, webauthn-lib **5.3.9**, Google2FA **9.1.0**, and the official `@laravel/passkeys` **0.4.0** browser client, pinned by Composer/NPM locks. The Laravel 13 documentation describes the framework version; Fortify has its own 1.x versioning. Sources inspected before implementation: [official Fortify documentation](https://github.com/laravel/docs/blob/13.x/fortify.md), installed package source for these exact versions.
+Laravel 13.34 uses Fortify **1.41.0**, Laravel Passkeys **0.2.1**, webauthn-lib **5.3.9**, Google2FA **9.1.0**, and `@laravel/passkeys` **0.4.0**, pinned by Composer/NPM locks. The 0.7.1 frontend uses its installed `@simplewebauthn/browser` **13.3.0** serializer directly with the existing application API transport to retain HTTP diagnostics; dependency manifests/locks are unchanged. The Laravel 13 documentation describes the framework version; Fortify has its own 1.x versioning. Sources inspected before implementation: [official Fortify documentation](https://github.com/laravel/docs/blob/13.x/fortify.md), installed package source for these exact versions.
 
 ## Policy and state
 

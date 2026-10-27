@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
 use App\Http\Middleware\EnsureProjectPermission;
 use App\Http\Middleware\SetRequestLocale;
+use App\Services\AccountSecurityDiagnostics;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -33,7 +34,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias(['admin' => EnsureAdmin::class, 'client' => EnsureClientProjectAccess::class, 'project.permission' => EnsureProjectPermission::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (Throwable $e) {
+            if (request()->is('api/security/*')) {
+                return false;
+            }
+        });
         $exceptions->render(function (Throwable $e, Request $request) {
+            if ($request->is('api/security/*')) {
+                return app(AccountSecurityDiagnostics::class)->render($e, $request);
+            }
             if (! $request->is('api/v1/*')) {
                 return null;
             }

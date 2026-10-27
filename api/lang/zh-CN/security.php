@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'operation_failed' => '无法完成安全操作，请重试。',
     'invalid' => '验证无效或已过期。请重试。',
     'step_up_required' => '请验证身份以继续。',
     'enrollment_required' => '请完成账户安全设置。',

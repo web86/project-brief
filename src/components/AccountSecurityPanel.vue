@@ -5,6 +5,8 @@ import { t, formatApiError, formatDate } from '../i18n/index.js'
 import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
 import SecurityConfirmation from './SecurityConfirmation.vue'
 import LoadingButton from './LoadingButton.vue'
+import SecurityError from './SecurityError.vue'
+import { toast } from '../services/toast.js'
 const props = defineProps({ onboarding: Boolean })
 const emit = defineEmits(['ready'])
 const state = ref(null),
@@ -16,7 +18,8 @@ const state = ref(null),
   error = ref(null)
 const renaming = ref(null),
   rename = ref(''),
-  deleting = ref(null)
+  deleting = ref(null),
+  errorContext = ref('general')
 async function load() {
   state.value = await api.request('/api/security/status')
   if (!state.value.fresh) {
@@ -29,15 +32,25 @@ onBeforeUnmount(() => {
   codes.value = []
   setup.value = null
 })
-async function action(run) {
+async function action(run, success, context = 'general') {
   if (busy.value) return
   busy.value = true
   error.value = null
+  errorContext.value = context
   try {
     await run()
+    if (success) toast.success(() => t(`security.${success}`))
   } catch (cause) {
     error.value = cause
-    if (cause.status === 423) await load()
+    toast.error(() => formatApiError(cause))
+    if ([401, 419, 423].includes(cause.status) || cause.credentialCreated) {
+      try {
+        await load()
+        if (state.value.state === 'guest' || !state.value.fresh) errorContext.value = 'general'
+      } catch {
+        /* Keep the original operation error visible. */
+      }
+    }
   } finally {
     busy.value = false
   }
@@ -47,76 +60,100 @@ async function refreshed(result) {
   api.resetCsrf()
 }
 function startTotp() {
-  return action(async () => {
-    setup.value = await api.request('/api/security/totp/setup', { method: 'POST' })
-    api.resetCsrf()
-  })
+  return action(
+    async () => {
+      setup.value = await api.request('/api/security/totp/setup', { method: 'POST' })
+      api.resetCsrf()
+    },
+    'setupReady',
+    'totp',
+  )
 }
 function confirmTotp() {
-  return action(async () => {
-    const result = await api.request('/api/security/totp/confirm', {
-      method: 'POST',
-      body: { code: code.value },
-    })
-    codes.value = result.codes
-    setup.value = null
-    code.value = ''
-    api.resetCsrf()
-    await load()
-  })
+  return action(
+    async () => {
+      const result = await api.request('/api/security/totp/confirm', {
+        method: 'POST',
+        body: { code: code.value },
+      })
+      codes.value = result.codes
+      setup.value = null
+      code.value = ''
+      api.resetCsrf()
+      await load()
+    },
+    'totpConfirmed',
+    'totp',
+  )
 }
 function recovery(regenerate = false) {
-  return action(async () => {
-    codes.value = (
-      await api.request('/api/security/recovery-codes', { method: regenerate ? 'POST' : 'GET' })
-    ).codes
-    api.resetCsrf()
-    await load()
-  })
+  return action(
+    async () => {
+      codes.value = (
+        await api.request('/api/security/recovery-codes', { method: regenerate ? 'POST' : 'GET' })
+      ).codes
+      api.resetCsrf()
+      await load()
+    },
+    regenerate ? 'securityUpdated' : 'recoveryShown',
+    'totp',
+  )
 }
 function acknowledge() {
-  return action(async () => {
-    await refreshed(
-      await api.request('/api/security/recovery-codes/acknowledge', { method: 'POST' }),
-    )
-    codes.value = []
-  })
+  return action(
+    async () => {
+      await refreshed(
+        await api.request('/api/security/recovery-codes/acknowledge', { method: 'POST' }),
+      )
+      codes.value = []
+    },
+    'recoverySaved',
+    'totp',
+  )
 }
 function register() {
-  return action(async () => {
-    try {
+  return action(
+    async () => {
       await refreshed(await passkeyCeremony('register', name.value))
       name.value = ''
-    } catch {
-      throw { messageKey: 'security.passkeyFailed' }
-    }
-  })
+    },
+    'passkeyAdded',
+    'passkey',
+  )
 }
 function beginRename(key) {
   renaming.value = key.id
   rename.value = key.name
 }
 function update(key) {
-  return action(async () => {
-    await refreshed(
-      await api.request('/api/security/passkeys/' + key.id, {
-        method: 'PATCH',
-        body: { name: rename.value },
-      }),
-    )
-    renaming.value = null
-  })
+  return action(
+    async () => {
+      await refreshed(
+        await api.request('/api/security/passkeys/' + key.id, {
+          method: 'PATCH',
+          body: { name: rename.value },
+        }),
+      )
+      renaming.value = null
+    },
+    'securityUpdated',
+    'passkey',
+  )
 }
 function remove(key) {
-  return action(async () => {
-    await refreshed(await api.request('/api/security/passkeys/' + key.id, { method: 'DELETE' }))
-    deleting.value = null
-  })
+  return action(
+    async () => {
+      await refreshed(await api.request('/api/security/passkeys/' + key.id, { method: 'DELETE' }))
+      deleting.value = null
+    },
+    'securityUpdated',
+    'passkey',
+  )
 }
 </script>
 <template>
   <section class="account-security-panel" :aria-busy="busy">
-    <p v-if="error" class="field-error" role="alert">{{ formatApiError(error) }}</p>
+    <SecurityError v-if="errorContext === 'general'" :error="error" />
     <button v-if="!state && !busy" class="button secondary" @click="action(load)">
       {{ t('ui.tryAgain') }}
     </button>
@@ -132,10 +169,11 @@ function remove(key) {
         :pending="state.state === 'pending_2fa'"
         @confirmed="refreshed"
       />
-      <template v-else>
+      <template v-else-if="state.state !== 'guest'">
         <section v-if="state.owner" class="surface admin-form">
           <h2>{{ t('security.authenticator') }}</h2>
           <p>{{ t(state.totp ? 'security.totpActive' : 'security.totpHelp') }}</p>
+          <SecurityError v-if="errorContext === 'totp'" :error="error" />
           <button v-if="!setup" class="button secondary" :disabled="busy" @click="startTotp">
             {{ t(state.totp ? 'security.rotateTotp' : 'security.setupTotp') }}
           </button>
@@ -198,6 +236,7 @@ function remove(key) {
             {{ t('security.finishTotp') }}
           </p>
           <form v-else-if="passkeysSupported()" class="admin-form" @submit.prevent="register">
+            <SecurityError v-if="errorContext === 'passkey'" :error="error" />
             <div class="field">
               <label for="passkey-name">{{ t('security.deviceName') }}</label
               ><input id="passkey-name" v-model="name" maxlength="100" required />

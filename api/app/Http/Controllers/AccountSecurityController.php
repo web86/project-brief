@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\AccountSecurityFailure;
 use App\Models\User;
 use App\Services\AccountSecurity;
 use Illuminate\Http\JsonResponse;
@@ -14,9 +15,12 @@ use Laravel\Passkeys\Actions\GenerateRegistrationOptions;
 use Laravel\Passkeys\Actions\GenerateVerificationOptions;
 use Laravel\Passkeys\Actions\StorePasskey;
 use Laravel\Passkeys\Actions\VerifyPasskey;
+use Laravel\Passkeys\Exceptions\InvalidPasskeyException;
 use Laravel\Passkeys\Passkey;
 use Laravel\Passkeys\Support\WebAuthn;
-use Throwable;
+use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializationException;
+use Webauthn\Exception\AuthenticatorResponseVerificationException;
+use Webauthn\Exception\WebauthnException;
 use Webauthn\PublicKeyCredential;
 use Webauthn\PublicKeyCredentialCreationOptions;
 use Webauthn\PublicKeyCredentialRequestOptions;
@@ -158,6 +162,7 @@ class AccountSecurityController extends Controller
 
     public function options(Request $request, string $purpose): JsonResponse
     {
+        $request->attributes->set('security.stage', 'options');
         $this->transport();
         $user = $request->user()?->fresh();
         if ($purpose !== 'login') {
@@ -177,6 +182,7 @@ class AccountSecurityController extends Controller
 
     public function passkey(Request $request, string $purpose): JsonResponse
     {
+        $request->attributes->set('security.stage', 'request');
         $this->transport();
         $request->validate(['credential' => ['required', 'array'], 'credential.rawId' => ['required', 'string', 'max:2048'], 'name' => [$purpose === 'register' ? 'required' : 'nullable', 'string', 'max:100']]);
         if ($purpose !== 'login') {
@@ -187,17 +193,20 @@ class AccountSecurityController extends Controller
         }
         $row = $this->security->consume($request, 'passkey_'.$purpose, $request->session()->pull('security.passkey_'.$purpose));
         try {
+            $request->attributes->set('security.stage', 'deserialize');
             $credential = WebAuthn::fromJson(json_encode($request->input('credential'), JSON_THROW_ON_ERROR), PublicKeyCredential::class);
+            $request->attributes->set('security.stage', 'verify_store');
             if ($purpose === 'register') {
                 $user = DB::transaction(function () use ($request, $row, $credential): User {
                     $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-                    $this->security->valid((int) $row->user_id === $user->id && (int) $row->session_version === (int) $user->auth_session_version);
+                    $this->security->valid((int) $row->user_id === $user->id && (int) $row->session_version === (int) $user->auth_session_version, 'PK_SESSION_CHANGED');
                     abort_if($user->isWorkspaceOwner() && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->recovery_codes_acknowledged_at), 403);
                     abort_if($user->passkeys()->count() >= 20, 422);
                     app(StorePasskey::class)($user, $request->input('name'), $credential, WebAuthn::fromJson($row->options, PublicKeyCredentialCreationOptions::class));
                     if ($this->security->enrolled($user)) {
                         $user->forceFill(['security_recovery_token_hash' => null, 'security_recovery_expires_at' => null])->save();
                     }
+                    $request->attributes->set('security.stage', 'session_update');
                     $this->security->changed($user, $request, 'passkey_registered');
 
                     return $user;
@@ -205,20 +214,39 @@ class AccountSecurityController extends Controller
             } else {
                 $user = DB::transaction(function () use ($request, $row, $credential, $purpose): User {
                     $key = Passkey::where('credential_id', $request->input('credential.rawId'))->first();
-                    $this->security->valid((bool) $key);
+                    $this->security->valid((bool) $key, 'PK_VERIFY_FAILED');
                     $user = User::whereKey($key->user_id)->lockForUpdate()->firstOrFail();
                     if ($purpose === 'confirm') {
-                        $this->security->valid($user->id === $request->user()->id && (int) $row->user_id === $user->id && (int) $row->session_version === (int) $user->auth_session_version);
+                        $this->security->valid($user->id === $request->user()->id && (int) $row->user_id === $user->id && (int) $row->session_version === (int) $user->auth_session_version, 'PK_VERIFY_FAILED');
                     }
-                    $this->security->valid($user->workspaceMembers()->active()->exists());
-                    $this->security->valid((string) ($credential->response->userHandle ?? '') === $user->getPasskeyUserHandle());
+                    $this->security->valid($user->workspaceMembers()->active()->exists(), 'PK_VERIFY_FAILED');
+                    $this->security->valid((string) ($credential->response->userHandle ?? '') === $user->getPasskeyUserHandle(), 'PK_VERIFY_FAILED');
                     app(VerifyPasskey::class)($credential, WebAuthn::fromJson($row->options, PublicKeyCredentialRequestOptions::class), $user);
 
                     return $user;
                 });
             }
-        } catch (Throwable) {
-            $this->security->valid(false);
+        } catch (AuthenticatorResponseVerificationException $exception) {
+            $code = match ($exception->getMessage()) {
+                'Invalid challenge.' => 'PK_CHALLENGE_MISMATCH',
+                'rpId hash mismatch.' => 'PK_RP_MISMATCH',
+                'User authentication required.' => 'PK_UV_REQUIRED',
+                'Invalid origin.', 'Invalid scheme. HTTPS required.', 'Invalid origin. Subdomains are not allowed.', 'Invalid origin. Not in the list of allowed origins.', 'Invalid origin. Unable to parse the origin.', 'Invalid origin. Unable to determine the facet ID.' => 'PK_ORIGIN_MISMATCH',
+                default => 'PK_VERIFY_FAILED',
+            };
+            throw new AccountSecurityFailure($code);
+        } catch (InvalidPasskeyException) {
+            throw new AccountSecurityFailure($request->attributes->get('security.stage') === 'uniqueness' ? 'PK_ALREADY_REGISTERED' : 'PK_VERIFY_FAILED');
+        } catch (WebauthnException) {
+            throw new AccountSecurityFailure($request->attributes->get('security.stage') === 'deserialize' ? 'PK_PAYLOAD_INVALID' : 'PK_VERIFY_FAILED', $request->attributes->get('security.stage') === 'deserialize' ? 400 : 422);
+        } catch (SerializationException|\JsonException|\InvalidArgumentException $exception) {
+            if ($exception instanceof \InvalidArgumentException && $request->attributes->get('security.stage') === 'verify_store' && str_starts_with($exception->getMessage(), 'Invalid data.')) {
+                throw new AccountSecurityFailure('PK_VERIFY_FAILED');
+            }
+            if ($request->attributes->get('security.stage') !== 'deserialize') {
+                throw $exception;
+            }
+            throw new AccountSecurityFailure('PK_PAYLOAD_INVALID', 400);
         }
         if ($purpose === 'login') {
             $this->security->complete($request, $user, 'passkey_uv');

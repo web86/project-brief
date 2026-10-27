@@ -1,0 +1,29 @@
+{
+  "passed": 4,
+  "results": [
+    {
+      "kind": "recovery",
+      "workers": 6,
+      "statuses": [422, 422, 200, 422, 422, 422],
+      "state": { "passkeys": 1, "recoveryCodes": 0 }
+    },
+    {
+      "kind": "totp",
+      "workers": 6,
+      "statuses": [422, 200, 422, 422, 422, 422],
+      "state": { "passkeys": 1, "recoveryCodes": 1 }
+    },
+    {
+      "kind": "challenge",
+      "workers": 6,
+      "statuses": [422, 422, 422, 422, 200, 422],
+      "state": { "passkeys": 1, "recoveryCodes": 1 }
+    },
+    {
+      "kind": "delete",
+      "workers": 6,
+      "statuses": [200, 409, 404, 409, 404, 409],
+      "state": { "passkeys": 1, "recoveryCodes": 1 }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "origin": "https://brief.web86.site",
+  "rpId": "brief.web86.site",
+  "isolatedLocalTransport": true,
+  "results": [
+    "Cancelled WebAuthn returns to restricted setup and permits retry",
+    "Created but unsaved credential: real challenge rejection, toast + form reference, restricted state and safe fresh retry",
+    "Owner password: restricted enrollment, reload, real TOTP, saved recovery, real UV Passkey, unlocked workspace",
+    "RU/EN/TR/ZH-CN security UI: 1440px light + 390px dark; no horizontal overflow",
+    "System theme follows dark/light device changes on the security screen",
+    "Real discoverable UV Passkey login without password or TOTP",
+    "Password requires recovery challenge before workspace access",
+    "CSRF enforced on security mutation over real HTTP",
+    "Developer password remains usable without TOTP or Passkey",
+    "Existing client link and client task session unchanged",
+    "Firefox: real engine serializer compatibility with minimal WebAuthn API shape (mock authenticator; no hardware assertion)"
+  ],
+  "errors": [],
+  "limitations": [
+    "Real WebKit not run: use M7_TEST_WEBKIT=1 on a compatible host. Safari API shapes covered by frontend tests; physical Touch ID not tested."
+  ]
+}

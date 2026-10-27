@@ -1,5 +1,31 @@
 export default {
   security: {
+    passkeyCancelled: 'Passkey creation or verification was cancelled or timed out. Try again.',
+    passkeyExists:
+      'This Passkey is already registered. Refresh the device list or choose another authenticator.',
+    passkeyChallenge:
+      'The Passkey request expired or was replaced. Keep one setup tab open and try again.',
+    passkeyOrigin:
+      'The Passkey site configuration does not match. Contact the administrator with the diagnostic reference.',
+    passkeyUv:
+      'Confirm your identity with Touch ID, a device PIN or another supported verification method.',
+    passkeyPayload:
+      'The browser response could not be read. Update your browser and retry; contact the administrator if it persists.',
+    factorInvalid:
+      'The code is invalid, expired or already used. Wait for a new authenticator code, or use an unused recovery code.',
+    securityServer:
+      'The server could not finish the security operation. Refresh the status before trying again. Contact the administrator if it persists.',
+    passkeyRetryHelp:
+      'Your device may have created a Passkey that the server has not saved. Refresh this page and check the device list. If it is missing, use Add Passkey again: a new request is created. Do not delete existing working Passkeys.',
+    diagnostic: 'Diagnostic reference:',
+    setupReady: 'Authenticator setup is ready.',
+    totpConfirmed: 'Authenticator confirmed.',
+    recoveryShown: 'Recovery codes are displayed. Keep them private.',
+    recoverySaved: 'Recovery codes marked as saved.',
+    passkeyAdded: 'Passkey registered.',
+    securityUpdated: 'Security settings updated.',
+    identityConfirmed: 'Identity confirmed.',
+
     resetOwnerHelp:
       'Owners with an authenticator must also enter an authenticator code or a recovery code.',
     title: 'Account security',

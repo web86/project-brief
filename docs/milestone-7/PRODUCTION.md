@@ -1,4 +1,4 @@
-# Production 0.7.0: Account Security & Passkeys
+# Production 0.7.1: Account Security & Passkeys
 
 Deployment is a separate authorized action. This repository task does not upload, merge, push, or alter the live installation. Read `DEPLOY-JINO.md` and preserve all 0.6.3 project-trash and 6.2 PDF/DOCX prerequisites. This release includes additive migration `2026_10_26_210728_add_account_security_and_passkeys.php`; the earlier `2026_10_26_200540_add_project_trash_lifecycle.php` and all prior migrations remain byte-for-byte intact.
 
@@ -69,3 +69,57 @@ php artisan migrate:rollback --step=1 --force --no-interaction
 ```
 
 Never run the command blindly if later migrations exist. It drops Passkeys/challenges and the new user columns. Restore the matched old code/vendor, clear/rebuild caches, keep the access restriction, and smoke disposable data before resuming background work. Earlier project-trash rollback requirements still apply if downgrading below 0.6.3: recover projects from trash and drain `project_file_deletions` before reverting its schema.
+
+## 0.7.0 → 0.7.1: Passkey diagnostics and retry hotfix
+
+The observed Jino 422 has **not** been attributed to a specific production check. In 0.7.0 `AccountSecurityController::passkey()` converted every WebAuthn/storage exception into `AccountSecurity::valid(false)`, producing the same `errors.code` as an invalid TOTP. The registration route never calls `verifyFactor()`; confirmed TOTP supplies a version-bound ten-minute server proof, retained through recovery acknowledgement. Do not re-enter the enrollment TOTP at step 3. A genuinely expired proof requires a fresh code or unused recovery code in the confirmation form. TOTP replay protection remains active.
+
+The hotfix preserves HTTP status and returns `code`, `stage`, `diagnosticId`. Logs named `account_security_failure` contain only those values, exception class, presence/match booleans and, for a DB failure, SQLSTATE/numeric driver code. No credential, challenge, cookie, password, TOTP/recovery code, SQL query/binding, raw exception message or stack is recorded by this handler. Keep `APP_DEBUG=false`; do not export HAR, request bodies, cookies, setup QR/URI, `.env`, or complete exception logs for troubleshooting.
+
+### Upgrade (operator action, not executed by this task)
+
+1. Back up the database, private storage and matched code/public/vendor. Put the site in maintenance with `php artisan down` from the real private application directory, using the hosting PHP **8.4** binary.
+2. Replace code/vendor/public assets from the verified 0.7.1 ZIP using the existing Jino deployment procedure. Preserve the installed `.env`, `APP_KEY`, optional `PASSKEY_USER_HANDLE_SECRET`, database credentials, private storage and host-specific entrypoint paths. **Do not run first-install, key:generate, seeding or account:recover-security.** No new migration is introduced by this hotfix; use `php artisan migrate:status --no-interaction` to verify the existing Milestone 7 migration is applied.
+3. Run `php artisan optimize:clear`, then `php artisan config:cache`. Run the read-only diagnostic command below. If schema or origin/RP checks fail, keep maintenance and investigate the existing configuration; do not regenerate secrets.
+4. Run `php artisan up`. Close duplicate setup tabs, reload the updated application/PWA and continue the existing enrollment. Existing TOTP and recovery codes remain valid under their existing replay rules. Check the server device list before retrying: if a device credential was created but is absent from the list, Add Passkey starts a new challenge. Never resend captured credential JSON or delete working credentials to bypass a failure.
+
+### Safe Jino diagnosis
+
+Run from the installed private application folder, with the same PHP 8.4 binary used by the website (CLI and PHP-FPM can load different extensions/configuration):
+
+```sh
+php -v
+php --ini
+php artisan migrate:status --no-interaction
+php artisan account:security-diagnostics
+```
+
+This read-only command prints PHP/SAPI/time, required extension booleans, config-cache state, schema checks, session flags and matches for **exactly** `PASSKEY_ORIGIN=https://brief.web86.site` and `PASSKEY_RP_ID=brief.web86.site`. It deliberately exports neither configured secrets nor database contents. All schema booleans and both expected-origin/RP booleans should be true. Confirm the website runtime is also PHP 8.4 with OpenSSL; ask hosting support to compare its FPM extension list and clock without publishing phpinfo.
+
+Reproduce once with DevTools Network open. Record only method/path, HTTP status, `code`, `stage`, `diagnosticId`, elapsed seconds from options to submit, browser/OS versions, and whether Touch ID completed. Match the reference locally:
+
+```sh
+rg 'account_security_failure' storage/logs/laravel*.log | tail -n 20
+```
+
+If the site uses stderr/syslog instead of file logging, find the same event in the configured host log. Do not publish unrelated log lines. No cookie values or credential/challenge data are needed. The relevant failure codes are:
+
+| HTTP / code                                                 | Meaning / next check                                                                                                                                                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400 `PK_PAYLOAD_INVALID`                                    | Credential deserialization failed. Browser version, extension/password-manager interception and fresh clean-browser retry.                                                                           |
+| 401 `SEC_SESSION_EXPIRED`                                   | Account session absent/revoked. Check cookie **presence and attributes**, not its value; sign in again.                                                                                              |
+| 403 `SEC_FORBIDDEN`                                         | Enrollment prerequisites/authorization not satisfied. Status should show confirmed TOTP and saved recovery codes. Do not change roles.                                                               |
+| 419 `SEC_CSRF_EXPIRED`                                      | Session/CSRF changed. Refresh; check cookie domain/path, Secure, HttpOnly, SameSite, and duplicate applications/cookies.                                                                             |
+| 422 `PK_CHALLENGE_MISSING/INVALID/SESSION/EXPIRED/MISMATCH` | Missing, consumed, different-session, expired or replaced request. Only one setup tab; options and submit must use the same session, within two minutes. Start a new ceremony, never replay JSON.    |
+| 422 `PK_SESSION_CHANGED`                                    | Security version changed during registration. Refresh status and confirm identity again.                                                                                                             |
+| 422 `PK_ORIGIN_MISMATCH` / `PK_RP_MISMATCH`                 | Compare effective cached configuration and actual browser origin. Exact HTTPS domain; no scheme/path in RP ID. Do not relax either validator.                                                        |
+| 422 `PK_UV_REQUIRED` / `PK_VERIFY_FAILED`                   | UV or another WebAuthn validation failed. Keep UV required; try a supported authenticator.                                                                                                           |
+| 422 `SEC_FACTOR_INVALID`                                    | Actual password/TOTP/recovery confirmation failed. It must come from a factor endpoint, never Passkey validation. An already used TOTP must remain rejected.                                         |
+| 423 `security_step_up_required`                             | Ten-minute proof expired. Confirm again using a new factor code, then create a new Passkey request.                                                                                                  |
+| 429 `SEC_RATE_LIMITED`                                      | Wait for the existing limit; do not remove throttling.                                                                                                                                               |
+| 500 `PK_PERSIST_FAILED` / `SEC_SERVER_ERROR`                | Use stage, exception type and safe SQLSTATE/driver code to distinguish database/schema/permission/JSON problems from session update or runtime failures. Do not share the SQL statement or bindings. |
+| 503 `PK_UNAVAILABLE`                                        | Configured transport origin is invalid/insecure. Correct deployment configuration, retaining HTTPS validation.                                                                                       |
+
+For the Jino reverse proxy, verify the domain certificate, forwarded public Host, HTTPS termination, `X-Forwarded-Proto`, and documented proxy source addresses with hosting support. Failure records show `request_secure`, `forwarded_https`, `request_origin_matches`, `session_cookie_present` as booleans only. `request_secure=false` behind TLS termination is a configuration clue, **not proof of the WebAuthn failure**: this application validates against the configured RP ID and allowed origin, not a forwarded Host. Do not add wildcard trusted proxies or trust arbitrary forwarded headers. Secure host-only cookies and same-origin CSRF remain required. Also check DB/session write permissions, no stale config cache/mixed release assets, and no old tab replacing the pending challenge.
+
+Verified locally: exact production origin/RP with a Chromium virtual resident UV authenticator and real Laravel cookies/CSRF/database, plus protocol rejection and storage-failure regression tests. This is not a production smoke, physical Touch ID test, or confirmation of the currently installed Jino configuration.

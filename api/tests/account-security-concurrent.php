@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\AccountSecurityFailure;
 use App\Http\Controllers\AccountSecurityController;
 use App\Models\User;
 use App\Services\AccountSecurity;
@@ -33,7 +34,7 @@ if ($argv[1] === 'prepare') {
         $user->passkeys()->create(['name' => 'Second', 'credential_id' => bin2hex(random_bytes(32)), 'credential' => []]);
     }
     $code = app(Google2FA::class)->getCurrentOtp(Fortify::currentEncrypter()->decrypt($user->two_factor_secret));
-    $challenge = $security->challenge($request, 'race', '{}', $user);
+    $challenge = $security->challenge($request, $kind === 'challenge' ? 'passkey_register' : 'race', '{}', $user);
     echo json_encode(['id' => $user->id, 'keys' => $user->passkeys()->pluck('id'), 'code' => $code, 'challenge' => $challenge]);
 } elseif ($argv[1] === 'worker') {
     $user = User::findOrFail(getenv('M7_RACE_USER'));
@@ -47,7 +48,7 @@ if ($argv[1] === 'prepare') {
             $response = app(AccountSecurityController::class)->deletePasskey($request, (int) $argv[3]);
             $result = $response->getStatusCode();
         } elseif ($kind === 'challenge') {
-            $security->consume($request, 'race', getenv('M7_RACE_CHALLENGE'));
+            $security->consume($request, 'passkey_register', getenv('M7_RACE_CHALLENGE'));
             $result = 200;
         } else {
             $result = DB::transaction(function () use ($security, $kind): int {
@@ -62,6 +63,8 @@ if ($argv[1] === 'prepare') {
         $result = $error->getStatusCode();
     } catch (ValidationException) {
         $result = 422;
+    } catch (AccountSecurityFailure $error) {
+        $result = $error->status;
     }
     echo json_encode(['status' => $result]);
 } elseif ($argv[1] === 'inspect') {

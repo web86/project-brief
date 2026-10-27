@@ -2,18 +2,21 @@
 
 namespace App\Providers;
 
+use App\Services\StoreAccountPasskey;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Fortify;
+use Laravel\Passkeys\Actions\StorePasskey;
 use Laravel\Passkeys\Passkeys;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(StorePasskey::class, StoreAccountPasskey::class);
         Fortify::ignoreRoutes();
         Passkeys::ignoreRoutes();
     }

@@ -102,6 +102,28 @@ export function formatCurrency(value, project) {
 export function formatApiError(error) {
   if (!error) return ''
   if (typeof error === 'string') return error
+  if (['SEC_REQUEST_INVALID', 'SEC_FIELDS_INVALID'].includes(error.code))
+    return t('ui.checkTheFields')
+  const securityErrors = {
+    PK_CHALLENGE_MISSING: 'passkeyChallenge',
+    PK_CHALLENGE_INVALID: 'passkeyChallenge',
+    PK_CHALLENGE_SESSION: 'passkeyChallenge',
+    PK_CHALLENGE_EXPIRED: 'passkeyChallenge',
+    PK_CHALLENGE_MISMATCH: 'passkeyChallenge',
+    PK_SESSION_CHANGED: 'stepUpHelp',
+    PK_ORIGIN_MISMATCH: 'passkeyOrigin',
+    PK_RP_MISMATCH: 'passkeyOrigin',
+    PK_UV_REQUIRED: 'passkeyUv',
+    PK_PAYLOAD_INVALID: 'passkeyPayload',
+    PK_VERIFY_FAILED: 'passkeyFailed',
+    PK_ALREADY_REGISTERED: 'passkeyExists',
+    PK_UNAVAILABLE: 'unsupported',
+    SEC_FACTOR_INVALID: 'factorInvalid',
+    SEC_SERVER_ERROR: 'securityServer',
+    PK_PERSIST_FAILED: 'securityServer',
+    SEC_CONFLICT: 'lastPasskey',
+  }
+  if (securityErrors[error.code]) return t(`security.${securityErrors[error.code]}`)
   if (Object.hasOwn(i18n.global.messages.value.en.ai.errors, error.code))
     return t(`ai.errors.${error.code}`)
   if (error.code === 'account_security_required') return t('security.enrollmentHelp')
@@ -114,6 +136,7 @@ export function formatApiError(error) {
     return t(error.messageKey, error.params || {})
   const messages = {
     0: 'ui.weCouldNotConnectToTheServerCheck',
+    400: 'ui.checkTheFields',
     401: 'ui.yourSessionHasEndedSignInAgainOr',
     403: 'ui.thisActionIsUnavailableDiscussChangesInThe',
     404: 'ui.thisRecordWasNotFoundOrIsUnavailable',

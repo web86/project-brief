@@ -126,6 +126,7 @@ export function createApiClient({
     if (!response.ok) {
       if ([401, 419].includes(response.status)) csrf = null
       const messages = {
+        400: t('ui.checkTheFields'),
         401: t('ui.yourSessionHasEndedSignInAgainOr'),
         403: t('ui.thisActionIsUnavailableDiscussChangesInThe'),
         404: t('ui.thisRecordWasNotFoundOrIsUnavailable'),
@@ -134,12 +135,17 @@ export function createApiClient({
         422: t('ui.checkTheFields'),
         429: t('ui.tooManyRequestsPleaseWaitALittle'),
       }
-      throw new ApiError(
+      const error = new ApiError(
         response.status,
         messages[response.status] || t('ui.weCouldNotCompleteThisActionPleaseTry'),
         data.errors || {},
         data.code || null,
       )
+      if (typeof data.diagnosticId === 'string' && /^[a-f0-9-]{36}$/.test(data.diagnosticId))
+        error.diagnosticId = data.diagnosticId
+      if (typeof data.stage === 'string' && /^[a-z_]{1,32}$/.test(data.stage))
+        error.stage = data.stage
+      throw error
     }
     return data
   }

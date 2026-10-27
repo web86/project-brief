@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\AccountSecurityFailure;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -122,6 +123,20 @@ class AccountSecurity
 
     public function consume(Request $request, string $purpose, ?string $id): object
     {
+        if (str_starts_with($purpose, 'passkey_')) {
+            $request->attributes->set('security.stage', 'challenge');
+            $this->valid((bool) $id, 'PK_CHALLENGE_MISSING');
+            $row = DB::table('account_security_challenges')->where('id', $id)->where('purpose', $purpose)->first();
+            $this->valid((bool) $row, 'PK_CHALLENGE_INVALID');
+            $this->valid(hash_equals($row->session_hash, $this->sessionHash($request)), 'PK_CHALLENGE_SESSION');
+            $this->valid($row->expires_at > now()->toDateTimeString(), 'PK_CHALLENGE_EXPIRED');
+            $this->valid(DB::table('account_security_challenges')->where('id', $row->id)->delete() === 1, 'PK_CHALLENGE_INVALID');
+            if ($row->user_id) {
+                $this->valid((int) User::whereKey($row->user_id)->value('auth_session_version') === (int) $row->session_version, 'PK_SESSION_CHANGED');
+            }
+
+            return $row;
+        }
         $row = DB::table('account_security_challenges')->where('id', $id)->where('purpose', $purpose)->where('session_hash', $this->sessionHash($request))->where('expires_at', '>', now())->first();
         $this->valid($row && DB::table('account_security_challenges')->where('id', $row->id)->delete() === 1);
         if ($row->user_id) {
@@ -196,9 +211,12 @@ class AccountSecurity
         Log::notice('account_security', ['user_id' => $user->id, 'event' => $event]);
     }
 
-    public function valid(bool $condition): void
+    public function valid(bool $condition, ?string $diagnosticCode = null): void
     {
         if (! $condition) {
+            if ($diagnosticCode) {
+                throw new AccountSecurityFailure($diagnosticCode);
+            }
             throw ValidationException::withMessages(['code' => [trans('security.invalid')]]);
         }
     }

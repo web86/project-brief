@@ -4,8 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\StoreAccountPasskey;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Testing\TestResponse;
 use Laravel\Fortify\Fortify;
@@ -102,12 +106,116 @@ class AccountSecurityTest extends TestCase
         $this->assertGuest();
         $this->getJson('/api/admin/projects')->assertForbidden();
         $this->postJson('/api/security/challenge', ['code' => '000000'])->assertUnprocessable();
-        $this->postJson('/api/security/challenge', ['code' => $enrollmentCode])->assertUnprocessable();
+        $this->postJson('/api/security/challenge', ['code' => $enrollmentCode])->assertUnprocessable()->assertJsonPath('code', 'SEC_FACTOR_INVALID');
         $this->postJson('/api/security/challenge', ['recovery_code' => $codes[0]])->assertOk()->assertJsonPath('state', 'authenticated');
         $this->getJson('/api/admin/projects')->assertOk();
         $this->postJson('/api/admin/logout')->assertOk();
         $this->password($user)->assertOk();
         $this->postJson('/api/security/challenge', ['recovery_code' => $codes[0]])->assertUnprocessable();
+    }
+
+    public function test_production_origin_enrollment_keeps_mfa_proof_without_reusing_totp(): void
+    {
+        config(['fortify.passkeys.allowed_origins' => ['https://brief.web86.site'], 'fortify.passkeys.relying_party_id' => 'brief.web86.site', 'passkeys.allowed_origins' => ['https://brief.web86.site'], 'passkeys.relying_party_id' => 'brief.web86.site']);
+        $user = $this->owner();
+        [, , $code] = $this->enrollTotp($user);
+        $step = $user->fresh()->last_totp_step;
+        $this->getJson('/api/security/status')->assertJsonPath('fresh', true)->assertJsonPath('recoverySaved', true);
+        $options = $this->getJson('/api/security/passkey/register/options')->assertOk()->json('options');
+        $this->assertSame('brief.web86.site', $options['rp']['id']);
+        $device = new WebAuthnDevice;
+        $this->postJson('/api/security/passkey/register', ['name' => 'Mac', 'credential' => $device->registration($options, 'https://brief.web86.site')])->assertOk()->assertJsonPath('state', 'authenticated');
+        $this->assertSame($step, $user->fresh()->last_totp_step);
+        $this->postJson('/api/security/confirm', ['current_password' => 'Owner-password!', 'code' => $code])->assertUnprocessable();
+    }
+
+    public static function registrationFailures(): array
+    {
+        return [['origin', 'PK_ORIGIN_MISMATCH'], ['rp', 'PK_RP_MISMATCH'], ['uv', 'PK_UV_REQUIRED'], ['challenge', 'PK_CHALLENGE_MISMATCH'], ['expired', 'PK_CHALLENGE_EXPIRED'], ['payload', 'PK_PAYLOAD_INVALID']];
+    }
+
+    #[DataProvider('registrationFailures')]
+    public function test_registration_diagnostics_identify_the_rejecting_gate_and_require_new_challenge(string $failure, string $expected): void
+    {
+        $user = $this->owner();
+        $this->enrollTotp($user);
+        $device = new WebAuthnDevice;
+        $options = $this->getJson('/api/security/passkey/register/options')->assertOk()->json('options');
+        if ($failure === 'challenge') {
+            $options['challenge'] = $device->b64(random_bytes(32));
+        }
+        if ($failure === 'rp') {
+            $options['rp']['id'] = 'evil.test';
+        }
+        if ($failure === 'expired') {
+            DB::table('account_security_challenges')->update(['expires_at' => now()->subSecond()]);
+        }
+        $credential = $device->registration($options, origin: $failure === 'origin' ? 'https://evil.test' : 'http://localhost', uv: $failure !== 'uv');
+        if ($failure === 'payload') {
+            unset($credential['response']['attestationObject']);
+        }
+        $response = $this->postJson('/api/security/passkey/register', ['name' => 'Mac', 'credential' => $credential]);
+        $response->assertStatus($failure === 'payload' ? 400 : 422)->assertJsonPath('code', $expected)->assertJsonStructure(['diagnosticId', 'stage']);
+        $this->assertStringNotContainsString($options['challenge'], $response->getContent());
+        $this->assertDatabaseCount('passkeys', 0);
+        $this->getJson('/api/security/status')->assertJsonPath('state', 'enrollment_required')->assertJsonPath('fresh', true);
+        $this->postJson('/api/security/passkey/register', ['name' => 'Replay', 'credential' => $credential])->assertUnprocessable()->assertJsonPath('code', 'PK_CHALLENGE_MISSING');
+        $this->register();
+        $this->getJson('/api/security/status')->assertJsonPath('state', 'authenticated');
+    }
+
+    public function test_database_failure_is_not_reported_as_totp_failure_and_retry_preserves_secrets(): void
+    {
+        $user = $this->owner();
+        $this->enrollTotp($user);
+        $before = $user->fresh();
+        $device = new WebAuthnDevice;
+        $options = $this->getJson('/api/security/passkey/register/options')->assertOk()->json('options');
+        $credential = $device->registration($options);
+        Log::spy();
+        // Real database error containing a credential binding; it must never reach logs or JSON.
+        $this->partialMock(StoreAccountPasskey::class, function ($mock) use ($credential): void {
+            $mock->shouldReceive('createPasskey')->once()->andReturnUsing(function () use ($credential): never {
+                request()->attributes->set('security.stage', 'persist');
+                DB::table('missing_passkey_table')->insert(['credential' => json_encode($credential)]);
+                throw new \LogicException('Unreachable');
+            });
+        });
+        $this->postJson('/api/security/passkey/register', ['name' => 'Mac', 'credential' => $credential])->assertStatus(500)->assertJsonPath('code', 'PK_PERSIST_FAILED')->assertJsonPath('stage', 'persist');
+        $this->assertDatabaseCount('passkeys', 0);
+        $this->assertDatabaseCount('account_security_challenges', 0);
+        $after = $user->fresh();
+        foreach (['two_factor_secret', 'two_factor_recovery_codes', 'last_totp_step', 'auth_session_version', 'recovery_codes_acknowledged_at'] as $field) {
+            $this->assertEquals($before->$field, $after->$field);
+        }
+        Log::shouldHaveReceived('warning')->once()->withArgs(function ($event, $context) use ($credential, $options): bool {
+            $encoded = json_encode($context);
+            $this->assertSame('account_security_failure', $event);
+            $this->assertSame('PK_PERSIST_FAILED', $context['code']);
+            $this->assertStringNotContainsString($credential['rawId'], $encoded);
+            $this->assertStringNotContainsString($options['challenge'], $encoded);
+            $this->assertStringNotContainsString('missing_passkey_table', $encoded);
+            $this->assertArrayHasKey('sqlstate', $context);
+
+            return true;
+        });
+        Log::shouldNotHaveReceived('error');
+        $this->app->forgetInstance(StoreAccountPasskey::class);
+        $this->register();
+    }
+
+    public function test_diagnostics_command_never_exports_application_or_factor_secrets(): void
+    {
+        $user = $this->owner();
+        $this->enrollTotp($user);
+        $this->assertSame(0, Artisan::call('account:security-diagnostics'));
+        $output = Artisan::output();
+        $data = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertTrue($data['schema']['passkeys']);
+        $this->assertFalse($data['origin_matches_expected']);
+        foreach ([(string) config('app.key'), $user->fresh()->two_factor_secret, $user->fresh()->two_factor_recovery_codes] as $secret) {
+            $this->assertStringNotContainsString($secret, $output);
+        }
     }
 
     public function test_totp_expiry_replay_and_login_challenge_expiry(): void
@@ -317,5 +425,16 @@ class AccountSecurityTest extends TestCase
     {
         $this->app->instance('env', 'production');
         $this->getJson('/api/security/passkey/login/options')->assertStatus(503);
+    }
+
+    public function test_http_statuses_and_fresh_confirmation_expiry_remain_distinct(): void
+    {
+        $this->getJson('/api/security/passkey/register/options')->assertUnauthorized()->assertJsonPath('code', 'SEC_SESSION_EXPIRED');
+        $user = $this->owner();
+        $this->password($user)->assertOk();
+        $this->getJson('/api/security/passkey/register/options')->assertForbidden()->assertJsonPath('code', 'SEC_FORBIDDEN');
+        $this->travel(601)->seconds();
+        $this->postJson('/api/security/totp/setup')->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
+        $this->getJson('/api/security/passkey/register/options')->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
     }
 }

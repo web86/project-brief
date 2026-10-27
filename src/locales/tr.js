@@ -1,5 +1,31 @@
 export default {
   security: {
+    passkeyCancelled:
+      'Passkey oluşturma veya doğrulama iptal edildi ya da zaman aşımına uğradı. Tekrar deneyin.',
+    passkeyExists:
+      'Bu Passkey zaten kayıtlı. Cihaz listesini yenileyin veya başka bir doğrulayıcı seçin.',
+    passkeyChallenge:
+      'Passkey isteğinin süresi doldu veya başka bir istekle değiştirildi. Tek bir kurulum sekmesi açık tutup tekrar deneyin.',
+    passkeyOrigin: 'Passkey site yapılandırması eşleşmiyor. Tanılama kodunu yöneticiye iletin.',
+    passkeyUv:
+      'Touch ID, cihaz PIN kodu veya desteklenen başka bir yöntemle kimliğinizi doğrulayın.',
+    passkeyPayload:
+      'Tarayıcı yanıtı okunamadı. Tarayıcıyı güncelleyip tekrar deneyin; sorun sürerse yöneticiye başvurun.',
+    factorInvalid:
+      'Kod geçersiz, süresi dolmuş veya kullanılmış. Yeni bir doğrulayıcı kodunu bekleyin ya da kullanılmamış bir kurtarma kodu girin.',
+    securityServer:
+      'Sunucu güvenlik işlemini tamamlayamadı. Tekrar denemeden önce durumu yenileyin. Sorun sürerse yöneticiye başvurun.',
+    passkeyRetryHelp:
+      'Cihazınız sunucunun kaydetmediği bir Passkey oluşturmuş olabilir. Sayfayı yenileyip cihaz listesini kontrol edin. Listede yoksa yeni bir istek oluşturmak için Passkey ekle düğmesine tekrar basın. Çalışan Passkey kayıtlarını silmeyin.',
+    diagnostic: 'Tanılama kodu:',
+    setupReady: 'Doğrulayıcı kurulumu hazır.',
+    totpConfirmed: 'Doğrulayıcı onaylandı.',
+    recoveryShown: 'Kurtarma kodları gösteriliyor. Gizli tutun.',
+    recoverySaved: 'Kurtarma kodlarının kaydedildiği onaylandı.',
+    passkeyAdded: 'Passkey kaydedildi.',
+    securityUpdated: 'Güvenlik ayarları güncellendi.',
+    identityConfirmed: 'Kimlik doğrulandı.',
+
     resetOwnerHelp: 'Doğrulayıcısı olan sahipler doğrulayıcı veya kurtarma kodunu da girmelidir.',
     title: 'Hesap güvenliği',
     signInPasskey: 'Passkey ile giriş yap',
