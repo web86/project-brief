@@ -8,10 +8,13 @@
 - Новый `DocumentPresentationTest`: **6 PASS / 2356 assertions**. Проверены 16 комбинаций status/priority/hours/price × all/approved/done, все дополнительные поля выключены/включены, RU/EN/TR/ZH, клиентская приватность и изоляция workspace, формальное и workflow-согласование, null/zero/partial/full prices, branding flags, SVG/fallback, alpha/размер PNG, OOXML и переносы.
 - Реальный интерфейс экспорта: **20 PASS** — Chromium/Firefox × 1440/390 × четыре языка, пустой проект, tablet/font retry и экспорт 500 задач. Настоящие HTTP JSON/PDF/DOCX, PHP `memory_limit=128M`; PDF остаётся в Worker. [Результаты](BROWSER-RESULTS.json).
 - Реальный Worker: восемь PDF матрицы и отдельный SVG. SVG PDF: 40 990 байт, 0 растровых XObject; нет PNG-дубликата.
+- Дополнительный реальный PDF с выключенным упоминанием платформы: ProjectBrief отсутствует в тексте и author/creator; одна страница также отрендерена и просмотрена. [Результат](PLATFORM-OFF-RESULT.json).
 - Проверена передача внутреннего renderer header, безопасный повтор после step-up и сохранность защищённых заголовков API.
-- Каноническая сборка, полный backend и проверка распакованного ZIP: результат фиксируется после сборки в `RELEASE-ARTIFACT.json`.
+- Каноническая `./bin/build-release`: **PASS**, backend **813/813 / 12 193 assertions**, frontend **318/318**, brand check, Vite build, production Composer/platform requirements, secret/artifact scan, внутренние checksums, signed WebAuthn и HTTP runtime из настоящего распакованного ZIP. Дополнительно проверен полный CRC архива и каждая запись checksums.txt. [Манифест](RELEASE-ARTIFACT.json), [результат сборки](BUILD-RESULTS.txt).
 
 При первом полном прогоне новые тяжёлые CJK-фикстуры исчерпали общий лимит 128 МБ PHPUnit. Два теста рендера изолированы в отдельных процессах по существующему примеру ChineseLocalizationTest; между документами освобождаются циклы PHPWord. Лимит PHP и production-код ради тестов не повышались.
+
+При проверке пакета также актуализированы точные assertions новой таблицы итогов и сохранено напоминание о prerequisite-миграции предыдущих версий в инструкции обновления. Финальный канонический прогон завершён успешно.
 
 ## Содержание и страницы
 

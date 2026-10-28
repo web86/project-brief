@@ -1,0 +1,83 @@
+{
+  "version": "0.7.7",
+  "branch": "codex/milestone-7-7-document-export",
+  "baseCommit": "7a5fdfab1c0230177bc2d22ddfef7b54c8fa5691",
+  "sourceCommit": "f2495b6f72ebd6e53a7827b54ff8c0d112001037",
+  "builtAt": "2026-10-28T14:09:00.675Z",
+  "archive": "release/project-brief-v0.7.7-f2495b6.zip",
+  "bytes": 39202799,
+  "sha256": "cac13c360bfdf82e678d0b479d4b84908a1cdc33bcdd06df2131ddea52e8c5e2",
+  "fileCount": 8837,
+  "archiveEntries": 10082,
+  "phpRuntime": "8.5.10",
+  "phpTarget": "8.4",
+  "phpMemoryLimitMiB": 128,
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 813,
+    "passed": 813,
+    "assertions": 12193,
+    "duration_ms": 66297
+  },
+  "nodeTests": {
+    "tests": 318,
+    "passed": 318,
+    "failed": 0
+  },
+  "browser": {
+    "realUiResultsPassed": 20,
+    "engines": ["Chromium", "Firefox"],
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "widths": [390, 768, 1440],
+    "realHttp500Tasks": true
+  },
+  "documents": {
+    "syntheticDataOnly": true,
+    "newPdf": 8,
+    "newDocx": 8,
+    "baselinePdf": 8,
+    "baselineDocx": 8,
+    "pdfPagesReviewed": 90,
+    "docxPagesReviewed": 95,
+    "docxRenderer": "bundled QA LibreOffice",
+    "pageRenderer": "Poppler",
+    "sampleManifest": "SAMPLE-MANIFEST.json"
+  },
+  "largePdf": {
+    "tasks": 500,
+    "pagesBefore": 106,
+    "pagesAfter": 64,
+    "bytesBefore": 631969,
+    "bytesAfter": 543557,
+    "medianRenderMsBefore": 789.4,
+    "medianRenderMsAfter": 755.9
+  },
+  "checks": {
+    "canonicalBuilder": true,
+    "cleanSourceCommit": true,
+    "archiveFullCrc": true,
+    "internalChecksums": true,
+    "productionVendorOnly": true,
+    "secretAndArtifactScan": true,
+    "packagedRuntimeHttp": true,
+    "packagedSignedWebAuthn": true,
+    "packagedSvgBrandingExport": true,
+    "pint": true,
+    "changedFilePrettier": true,
+    "diffCheck": true,
+    "platformOffMetadataAndContent": true
+  },
+  "migrationsAdded": [],
+  "dependenciesChanged": false,
+  "limitations": [
+    "Local SQLite/PHP 8.5; Jino/PHP 8.4/MariaDB not verified",
+    "No physical print or Microsoft Word/Safari verification",
+    "CJK DOCX fonts retained; mixed-script fixtures remain approximately 12.7 MB",
+    "Local benchmark is not a device-independent SLA"
+  ],
+  "productionVerified": false,
+  "pushed": false,
+  "merged": false,
+  "deployed": false
+}
