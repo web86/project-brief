@@ -1,0 +1,13 @@
+{
+  "passed": 8,
+  "results": [
+    "Pre-Vue delayed entry, admin/client hard reload, 1440/390/320px, light/dark, RU/EN, reduced motion and mobile drawer",
+    "Initial /admin, client project, /app, login and invitation mount and dismiss splash",
+    "Saved light/dark, system and absent preference; OS changes before and after Vue",
+    "JS load error, contrast in dark theme, localized recovery and retry current URL",
+    "API failure mounts recoverable /app without endless fullscreen spinner",
+    "25-second recovery timeout, normal CSS animation and late successful startup",
+    "Internal navigation retains previous page, dims with one indicator and never recreates fullscreen splash",
+    "Favicon, manifest, PNG/Apple assets return 200; 16/32px favicon and circular maskable visual preview"
+  ]
+}

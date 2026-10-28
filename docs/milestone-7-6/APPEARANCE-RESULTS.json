@@ -1,0 +1,16 @@
+{
+  "results": [
+    "Default system mode, OS changes, manual override, persistence, keyboard access and project/API isolation",
+    "Real language select, native names, immediate HTML lang, persisted manual override and current-client PATCH",
+    "Existing AI button only: empty-description guard, RU/EN focus tooltip, description-only opening, reduced motion, explicit consent and editable local-only application",
+    "AI pending state prevents duplicate requests; closing allows draft editing, late responses are discarded and errors preserve text without technical details",
+    "desktop light: project, task/comments/history, create/edit, AI dialog, admin/sidebar, settings, export, notifications/toasts, login; no overflow, touch controls and text contrast",
+    "desktop dark: project, task/comments/history, create/edit, AI dialog, admin/sidebar, settings, export, notifications/toasts, login; no overflow, touch controls and text contrast",
+    "mobile light: project, task/comments/history, create/edit, AI dialog, admin/sidebar, settings, export, notifications/toasts, login; no overflow, touch controls and text contrast",
+    "mobile dark: project, task/comments/history, create/edit, AI dialog, admin/sidebar, settings, export, notifications/toasts, login; no overflow, touch controls and text contrast",
+    "Both selectors work at 320, 360 and 390px in RU/EN without horizontal overflow; no runtime errors",
+    "Corrupt, getter-blocked and quota-blocked localStorage: fallback and live selectors remain usable",
+    "Dark splash, native color scheme and theme-color apply while the Vue entry is blocked"
+  ],
+  "passed": 11
+}

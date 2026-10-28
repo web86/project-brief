@@ -72,6 +72,14 @@ async function fixture(options = {}) {
       else if (path === '/api/admin/workspaces') payload = { data: [workspace] }
       else if (path === '/api/admin/projects/trash') payload = { data: [] }
       else if (path === '/api/admin/projects') payload = { data: [project] }
+      else if (path.endsWith('/feedback'))
+        payload = {
+          eligible: false,
+          requested: false,
+          shown: false,
+          dismissed: false,
+          submitted: false,
+        }
       else if (path.endsWith('/activity/read') || path.endsWith('/discussions/read'))
         payload = { unreadCount: 0 }
       else if (path.endsWith('/push/status')) payload = { available: false }

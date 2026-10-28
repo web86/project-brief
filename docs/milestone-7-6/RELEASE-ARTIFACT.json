@@ -1,0 +1,79 @@
+{
+  "version": "0.7.6",
+  "branch": "codex/milestone-7-6-ux-refinements",
+  "sourceCommit": "1daca1c1f3d38f078d471625cb0938d37e0a34c1",
+  "builtAt": "2026-10-28T09:32:32.702Z",
+  "archive": "release/project-brief-v0.7.6-1daca1c.zip",
+  "bytes": 39201686,
+  "sha256": "a068689374d49abe94f73ecab9acd817235b2ef01526337883dc9e31e55bd42d",
+  "fileCount": 8837,
+  "phpRuntime": "8.5.10",
+  "phpTarget": "8.4",
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 807,
+    "passed": 807,
+    "assertions": 9777,
+    "duration_ms": 53433
+  },
+  "nodeTests": {
+    "tests": 314,
+    "passed": 314,
+    "failed": 0
+  },
+  "browser": {
+    "uxMatrixPassed": 8,
+    "signedSecurityAndBrandingPassed": 27,
+    "appearanceRegressionPassed": 11,
+    "widths": [390, 768, 1440],
+    "additionalNarrowWidths": [320, 360],
+    "shortSidebarHeights": [480, 600],
+    "themes": ["light", "dark"],
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "uxScreenshots": 74,
+    "realBrandingScreenshots": 6,
+    "touch": "Chromium CDP synthetic gesture",
+    "physicalDevicesTested": false,
+    "webkitTested": false,
+    "platformBrandingRegressionPassed": 8
+  },
+  "exports": {
+    "newPdfDocxPairs": 1,
+    "jpegSourceWithFinalPng": true,
+    "unicode": ["ru", "tr", "zh-CN"],
+    "wordRenderedBy": "LibreOffice",
+    "pdfRenderedBy": "Poppler",
+    "previousExportBackendRegression": true
+  },
+  "checks": {
+    "canonicalBuilder": true,
+    "cleanSourceCommit": true,
+    "archiveFullCrc": true,
+    "internalChecksums": true,
+    "productionVendorOnly": true,
+    "secretAndArtifactScan": true,
+    "packagedAtomicBrandingCas": true,
+    "packagedPrivateBankExportFlags": true,
+    "publicSvgStatelessCsp": true,
+    "publicPngCompatibility": true,
+    "packagedPagination": true,
+    "packagedFeedbackAndInvitationsHttp": true,
+    "packagedSignedWebAuthn": true,
+    "packagedExportsAndIntegrations": true,
+    "pint": true,
+    "changedFilePrettier": true,
+    "diffCheck": true
+  },
+  "migrationsAdded": [],
+  "limitations": [
+    "PHP 8.4/MariaDB/Jino not run",
+    "SMTP delivery and email client matrix not tested live",
+    "Firefox provider partly mocked; Chromium real signed virtual UV authenticator",
+    "No physical Touch ID or installed PWA icon replacement"
+  ],
+  "productionVerified": false,
+  "pushed": false,
+  "merged": false,
+  "deployed": false
+}

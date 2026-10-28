@@ -6,7 +6,10 @@ import { createDemoData } from '../src/data/demo.js'
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const baseline = process.env.BRANDING_BASELINE === '1'
-const directory = new URL('../docs/milestone-4-9-1/screenshots/', import.meta.url)
+const directory = new URL(
+  process.env.BRANDING_OUTPUT_DIR || '../docs/milestone-4-9-1/screenshots/',
+  import.meta.url,
+)
 await mkdir(directory, { recursive: true })
 const server = await createServer({
   mode: 'test',
@@ -65,6 +68,14 @@ async function fixture({ mode = 'system', language = 'ru', guest = false, ...opt
         json = { data: [{ id: 'studio', name: 'Studio workspace' }] }
       else if (path === '/api/admin/projects/trash') json = { data: [] }
       else if (path === '/api/admin/projects') json = { data: [project] }
+      else if (path.endsWith('/feedback'))
+        json = {
+          eligible: false,
+          requested: false,
+          shown: false,
+          dismissed: false,
+          submitted: false,
+        }
       else if (path.endsWith('/tasks')) json = { data: demo.tasks }
       else if (path.endsWith('/sections')) json = { data: demo.sections }
       else if (path === `/api/admin/projects/${id}` || path === `/api/client/project/${id}`)
