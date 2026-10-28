@@ -29,11 +29,13 @@ class WorkspaceBranding
             'assets' => $stored['assets'] ?? []];
     }
 
-    public function assetUrl(Workspace $workspace, string $kind): ?string
+    public function assetUrl(Workspace $workspace, string $kind, bool $browser = true): ?string
     {
         $asset = $workspace->branding['assets'][$kind] ?? null;
 
-        return $asset ? rtrim(config('app.url'), '/').'/branding-assets/'.$workspace->uuid.'/'.$asset['token'].'.png' : null;
+        $extension = $browser && ! empty($asset['svgPath']) ? 'svg' : ($asset['extension'] ?? 'png');
+
+        return $asset ? rtrim(config('app.url'), '/').'/branding-assets/'.$workspace->uuid.'/'.$asset['token'].'.'.$extension : null;
     }
 
     public function ownerState(Workspace $workspace): array
@@ -41,14 +43,22 @@ class WorkspaceBranding
         $settings = $this->settings($workspace);
         $settings['assets'] = ['logo' => $this->assetUrl($workspace, 'logo'), 'favicon' => $this->assetUrl($workspace, 'favicon')];
 
+        $settings['versions'] = $this->versions($workspace);
+        $settings['assetInfo'] = array_map(fn (array $asset): array => ['originalBytes' => $asset['originalBytes'] ?? null, 'bytes' => $asset['browserBytes'] ?? $asset['bytes'] ?? null, 'mime' => ! empty($asset['svgPath']) ? 'image/svg+xml' : ($asset['mime'] ?? 'image/png'), 'fallbackBytes' => $asset['bytes'] ?? null], $workspace->branding['assets'] ?? []);
+
         return $settings;
+    }
+
+    public function versions(Workspace $workspace): array
+    {
+        return array_map(fn (array $values): string => hash('sha256', json_encode($values, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), array_intersect_key($this->settings($workspace), array_flip(['visual', 'business', 'contact', 'export', 'email'])));
     }
 
     public function portal(Workspace $workspace): array
     {
         $visual = $this->settings($workspace)['visual'];
 
-        return ['companyName' => $visual['companyName'], 'primaryColor' => $visual['primaryColor'], 'logoUrl' => $this->assetUrl($workspace, 'logo'), 'faviconUrl' => $this->assetUrl($workspace, 'favicon')];
+        return ['companyName' => $visual['companyName'], 'primaryColor' => $visual['primaryColor'], 'logoUrl' => $this->assetUrl($workspace, 'logo'), 'faviconUrl' => $this->assetUrl($workspace, 'favicon'), 'faviconType' => ! empty($workspace->branding['assets']['favicon']['svgPath']) ? 'image/svg+xml' : ($workspace->branding['assets']['favicon']['mime'] ?? 'image/png')];
     }
 
     public function contact(array $values, bool $address): array
@@ -78,7 +88,7 @@ class WorkspaceBranding
         }
 
         return ['name' => $flags['companyName'] ? $settings['visual']['companyName'] : '',
-            'logoUrl' => $flags['logo'] ? $this->assetUrl($workspace, 'logo') : null,
+            'logoUrl' => $flags['logo'] ? $this->assetUrl($workspace, 'logo', false) : null,
             'color' => $color, 'textColor' => $textColor, 'onColor' => $luminance($color) > 0.179 ? '#000000' : '#ffffff',
             'contact' => $flags['contact'] ? $this->contact($settings['contact'], false) : []];
     }
@@ -88,7 +98,7 @@ class WorkspaceBranding
         $settings = $this->settings($workspace);
         $flags = $settings['export'];
         $asset = $workspace->branding['assets']['logo'] ?? null;
-        $logo = $flags['logo'] && $asset && Storage::disk('local')->exists($asset['path']) ? 'data:image/png;base64,'.base64_encode(Storage::disk('local')->get($asset['path'])) : null;
+        $logo = $flags['logo'] && $asset && Storage::disk('local')->exists($asset['path']) ? 'data:'.($asset['mime'] ?? 'image/png').';base64,'.base64_encode(Storage::disk('local')->get($asset['path'])) : null;
         $rows = [];
         if ($flags['business']) {
             foreach ($settings['business'] as $key => $value) {

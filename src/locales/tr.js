@@ -1,5 +1,17 @@
 export default {
   branding: {
+    newDraft: 'Değişiklikler kaydedildi. Daha yeni düzenlemeler taslakta kaldı.',
+    retryUpload: 'Seçili dosyayı yeniden yükle',
+    uploading: 'Dosya yükleniyor',
+    sanitizing: 'SVG doğrulama için yükleniyor',
+    processing: 'Görsel işleniyor',
+    confirming: 'Kimliğinizi doğrulayın',
+    optimizedSize: 'İşlem sonrası: {size}',
+    conflict:
+      'Ayarlar başka pencerede değişti. Taslağınız korundu. Yeniden yükleyip gözden geçirin.',
+    reloadDraft: 'Yenile ve taslağı koru',
+    reviewDraft: 'Ayarlar yenilendi. Kaydetmeden önce taslağı gözden geçirin.',
+
     title: 'Markalama',
     hint: 'Stüdyonuz, müşterinizin deneyimi. Ayarlar yalnızca çalışma alanı sahibine açıktır.',
     visual: 'Şirket ve stil',
@@ -19,7 +31,7 @@ export default {
     previewTitle: 'İyi bir proje burada başlar',
     previewAction: 'Projeyi aç',
     default: 'Varsayılan tema',
-    save: 'Bölümü kaydet',
+    save: 'Tüm değişiklikleri kaydet',
     saved: 'Değişiklikler kaydedildi',
     unsaved: 'Kaydedilmemiş marka değişiklikleri var. Vazgeçilsin mi?',
     reset: 'Görünümü sıfırla',
@@ -48,7 +60,7 @@ export default {
     invalid_image:
       'En fazla 2 MB geçerli PNG, JPEG, WebP veya statik SVG kullanın (en fazla 4096 × 4096).',
     results: '{total} proje bulundu',
-    search: 'Proje ara',
+    search: 'Proje, müşteri veya e-posta ara',
     allStatuses: 'Tüm durumlar',
     clientSearch: 'Müşteri adı veya e-posta',
     updated: 'Son güncellenen',

@@ -1,16 +1,8 @@
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
 import BrandLogo from './BrandLogo.vue'
-import { useProjectStore } from '../stores/project.js'
+import { useWorkspaceAppearance } from '../services/workspaceAppearance.js'
 defineProps({ compact: Boolean })
-const store = useProjectStore(),
-  route = useRoute()
-const brand = computed(() =>
-  !store.isDeveloper && store.currentClient && route.meta.apiProject && !route.meta.admin
-    ? store.project.branding
-    : null,
-)
+const { brand } = useWorkspaceAppearance()
 </script>
 <template>
   <span

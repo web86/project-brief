@@ -251,7 +251,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     'Content-Type': 'application/json',
     'X-CSRF-TOKEN': workspaceCsrf.token,
   }
-  // Milestone 7.5: execute shipped migration/controllers, private storage and both export paths.
+  // Milestone 7.6: exercise atomic CAS updates, safe SVG, private storage and both export paths.
   const brandingRoot = `/api/admin/workspaces/${fixture.workspace}/branding`
   const brandCall = (suffix = '', method = 'GET', body) =>
     request(brandingRoot + suffix, {
@@ -267,32 +267,43 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     (await request(`/api/admin/workspaces/${fixture.foreignWorkspace}/branding`)).status,
     404,
   )
+  const changes = {
+    visual: { companyName: 'Packaged Studio Çığ 中文', primaryColor: '#17695d' },
+    business: { account: 'PRIVATE_PACKAGED_BANK' },
+    contact: { email: 'studio@example.test' },
+  }
   assert.equal(
-    (
-      await brandCall('', 'PATCH', {
-        section: 'visual',
-        values: { companyName: 'Packaged Studio Çığ 中文', primaryColor: '#17695d' },
-      })
-    ).status,
+    (await brandCall('', 'PATCH', { sections: changes, versions: defaults.data.versions })).status,
     200,
   )
   assert.equal(
     (
       await brandCall('', 'PATCH', {
-        section: 'business',
-        values: { account: 'PRIVATE_PACKAGED_BANK' },
+        sections: { visual: { companyName: 'STALE' }, business: { account: 'STALE' } },
+        versions: defaults.data.versions,
       })
     ).status,
-    200,
+    409,
   )
+  let currentBrand = (await (await brandCall()).json()).data
+  assert.equal(currentBrand.visual.companyName, changes.visual.companyName)
+  assert.equal(currentBrand.business.account, changes.business.account)
+  assert.equal(currentBrand.contact.email, changes.contact.email)
   assert.equal(
     (
       await brandCall('', 'PATCH', {
-        section: 'contact',
-        values: { website: 'javascript:alert(1)' },
+        sections: {
+          visual: { companyName: 'NOT_COMMITTED' },
+          contact: { website: 'javascript:alert(1)' },
+        },
+        versions: currentBrand.versions,
       })
     ).status,
     422,
+  )
+  assert.equal(
+    (await (await brandCall()).json()).data.visual.companyName,
+    changes.visual.companyName,
   )
   const logoUpload = new FormData()
   logoUpload.set(
@@ -329,7 +340,35 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     body: svgUpload,
   })
   assert.equal(cleanSvgResponse.status, 200)
-  assert.doesNotMatch((await cleanSvgResponse.json()).svg, /script|onload|unsafe/)
+  const cleanSvg = (await cleanSvgResponse.json()).svg
+  assert.doesNotMatch(cleanSvg, /script|onload|unsafe/)
+  const vectorUpload = new FormData()
+  vectorUpload.set('file', new Blob([cleanSvg], { type: 'image/svg+xml' }), 'brand.svg')
+  vectorUpload.set(
+    'raster',
+    new Blob([Buffer.from(fixture.png, 'base64')], { type: 'image/png' }),
+    'fallback.png',
+  )
+  const vectorResponse = await request(brandingRoot + '/assets/logo', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': workspaceCsrf.token },
+    body: vectorUpload,
+  })
+  assert.equal(vectorResponse.status, 200)
+  currentBrand = (await vectorResponse.json()).data
+  const vectorUrl = new URL(currentBrand.assets.logo)
+  assert.ok(vectorUrl.pathname.endsWith('.svg'))
+  const publicVector = await request(vectorUrl.pathname)
+  assert.equal(publicVector.status, 200)
+  assert.equal(publicVector.headers.get('content-type'), 'image/svg+xml')
+  assert.match(publicVector.headers.get('content-security-policy'), /sandbox/)
+  assert.equal(publicVector.headers.getSetCookie().length, 0)
+  assert.doesNotMatch(await publicVector.text(), /script|onload|unsafe/)
+  assert.equal(
+    (await request(vectorUrl.pathname.replace('.svg', '.png'))).headers.get('content-type'),
+    'image/png',
+  )
+  assert.equal((await request(new URL(logoUrl).pathname)).status, 404)
   const brandedExport = async () =>
     request(`/api/admin/projects/${fixture.project}/export-data`, {
       method: 'POST',
@@ -348,7 +387,8 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.ok(exportedBrand.business.some((row) => row.value === 'PRIVATE_PACKAGED_BANK'))
   assert.equal((await brandCall('/reset', 'POST', {})).status, 200)
   assert.equal((await (await brandCall()).json()).data.business.account, 'PRIVATE_PACKAGED_BANK')
-  assert.equal((await request(new URL(logoUrl).pathname)).status, 404)
+  assert.equal((await request(vectorUrl.pathname)).status, 404)
+  assert.equal((await request(vectorUrl.pathname.replace('.svg', '.png'))).status, 404)
   // Reset counters only in this disposable installation between independent QA phases.
   // Production keeps its five-PDF/minute budget; branding checks must not spend the regression phase's quota.
   command(['artisan', 'cache:clear'])
@@ -1285,7 +1325,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.5',
+    '0.7.6',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

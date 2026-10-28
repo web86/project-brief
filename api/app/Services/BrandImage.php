@@ -80,6 +80,38 @@ class BrandImage
         return $document->saveXML($root);
     }
 
+    /** Keep the existing PNG compatibility contract; bound unusually heavy rasters without reducing ordinary logos. */
+    public function optimized(UploadedFile $file, string $kind): array
+    {
+        $bytes = $this->png($file, $kind);
+        $image = imagecreatefromstring($bytes);
+        imagealphablending($image, false);
+        imagesavealpha($image, true);
+        try {
+            do {
+                ob_start();
+                imagepng($image, null, 9);
+                $bytes = ob_get_clean();
+                $maximum = max(imagesx($image), imagesy($image));
+                if (strlen($bytes) <= 512 * 1024 || $maximum <= 512 || $kind === 'favicon') {
+                    break;
+                }
+                $scale = max(512 / $maximum, 0.8);
+                $smaller = imagecreatetruecolor(max(1, (int) (imagesx($image) * $scale)), max(1, (int) (imagesy($image) * $scale)));
+                imagealphablending($smaller, false);
+                imagesavealpha($smaller, true);
+                imagefill($smaller, 0, 0, imagecolorallocatealpha($smaller, 0, 0, 0, 127));
+                imagecopyresampled($smaller, $image, 0, 0, 0, 0, imagesx($smaller), imagesy($smaller), imagesx($image), imagesy($image));
+                imagedestroy($image);
+                $image = $smaller;
+            } while (true);
+
+            return ['bytes' => $bytes, 'mime' => 'image/png', 'extension' => 'png'];
+        } finally {
+            imagedestroy($image);
+        }
+    }
+
     /** Decode and re-encode raster images, stripping metadata and limiting memory/dimensions. */
     public function png(UploadedFile $file, string $kind): string
     {

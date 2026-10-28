@@ -6314,3 +6314,247 @@ button.attachment-item:hover {
   border: 0;
   border-radius: 4px;
 }
+
+/* Milestone 7.6 — one navigation source and compact workspace controls. */
+.toast-info {
+  background: #164373;
+  color: #f0f7ff;
+  border-color: #4f8ac2;
+}
+.toast-warning {
+  background: #713f12;
+  color: #fffbeb;
+  border-color: #c68c25;
+}
+.app-toast button {
+  color: inherit;
+}
+.global-project-navigation {
+  flex: 1 1 0;
+  min-height: 44px;
+  overflow-y: auto;
+}
+.sidebar-all-projects {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.sidebar-all-projects[aria-current='page'] {
+  background: var(--selected-bg);
+  color: var(--link);
+}
+.personal-settings-group {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  flex-shrink: 0;
+}
+.personal-settings-group h2,
+.settings-group-toggle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+.personal-settings-nav {
+  display: grid;
+  gap: 4px;
+  min-height: 0;
+  overflow: hidden;
+}
+.personal-settings-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  min-height: 40px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+}
+.personal-settings-nav a[aria-current='page'] {
+  background: var(--selected-bg);
+  color: var(--link);
+  font-weight: 600;
+}
+.personal-settings-nav a:hover {
+  background: var(--surface-hover);
+}
+.settings-group-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 36px;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+.settings-group-toggle svg {
+  transition: transform 180ms ease;
+}
+.is-expanded .settings-group-toggle svg {
+  transform: rotate(90deg);
+}
+.settings-group-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 180ms ease,
+    visibility 180ms;
+}
+.is-collapsible:not(.is-expanded) .settings-group-collapse {
+  grid-template-rows: 0fr;
+  visibility: hidden;
+}
+.project-personal-navigation .personal-settings-nav {
+  padding-top: 8px;
+}
+.project-personal-navigation .personal-settings-group {
+  padding-top: 8px;
+}
+.project-personal-navigation .task-account {
+  margin-top: 12px;
+}
+.project-list-controls {
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 10px 14px;
+  margin-bottom: 20px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.project-filters-extra {
+  margin: 0;
+  gap: 10px;
+}
+.project-filters-extra select {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 200px;
+}
+.project-list-results {
+  grid-column: 1 / -1;
+  margin-top: 0;
+  min-height: 20px;
+}
+.project-query-loading {
+  pointer-events: none;
+  background: transparent;
+}
+.brand-upload-progress {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  margin: 12px 0;
+}
+.brand-upload-progress progress {
+  width: 100%;
+  height: 5px;
+}
+.brand-image-size {
+  margin: 10px 0;
+  font-size: 11px;
+}
+@media (max-width: 760px) {
+  .project-list-controls {
+    display: block;
+  }
+  .project-search-row {
+    display: flex;
+    align-items: stretch;
+  }
+  .project-filter-trigger {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+  }
+  .project-filter-trigger.has-active::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--link);
+  }
+  .project-filters-extra {
+    display: none;
+    margin-top: 10px;
+    flex-direction: row;
+  }
+  .project-filters-extra.is-open {
+    display: flex;
+  }
+  .project-filters-extra select {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+  }
+  .project-list-results {
+    margin-top: 10px;
+  }
+}
+@media (max-height: 650px) {
+  .personal-settings-group {
+    padding-top: 10px;
+  }
+  .personal-settings-group h2 {
+    margin-bottom: 8px;
+  }
+  .personal-settings-nav {
+    gap: 1px;
+  }
+  .personal-settings-nav a {
+    min-height: 34px;
+    padding-block: 6px;
+  }
+}
+@media (max-height: 500px) {
+  .admin-sidebar-content {
+    gap: 6px;
+  }
+  .admin-sidebar-content .sidebar-workspace-label {
+    display: none;
+  }
+  .admin-sidebar-content .task-account {
+    margin-top: 0;
+    padding-top: 8px;
+  }
+  .personal-settings-group h2 {
+    margin-bottom: 5px;
+  }
+  .personal-settings-nav a {
+    min-height: 30px;
+    padding-block: 4px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-group-collapse,
+  .settings-group-toggle svg {
+    transition: none;
+  }
+}
+.brand-upload-progress {
+  width: 100%;
+}
+.brand-upload-progress > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}

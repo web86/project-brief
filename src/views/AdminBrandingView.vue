@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, ref, onBeforeUnmount } from 'vue'
+import { computed, watch, ref, onBeforeUnmount, onMounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useWorkspaceBrandingStore } from '../stores/workspaceBranding.js'
@@ -8,6 +8,7 @@ import { theme } from '../services/theme.js'
 import { brandingFields, brandTokens, brandPresets } from '../services/branding.js'
 import { toast } from '../services/toast.js'
 import AppIcon from '../components/AppIcon.vue'
+import { isSecurityCancellation } from '../services/stepUp.js'
 import LoadingButton from '../components/LoadingButton.vue'
 import NotificationToggle from '../components/NotificationToggle.vue'
 import BrandLogo from '../components/BrandLogo.vue'
@@ -45,11 +46,52 @@ const toggles = {
     accent: 'emailAccent',
   },
 }
-async function save(section) {
-  if (await store.save(section)) toast.success(() => t('branding.saved'))
+function beforeUnload(event) {
+  if (store.dirty || store.busy) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
 }
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+watch(
+  () => store.settings,
+  (settings) => {
+    if (settings) nav.adoptBranding(store.workspaceId, settings)
+  },
+  { deep: true },
+)
+watch(
+  () => store.error,
+  (cause) => {
+    if (!cause || isSecurityCancellation(cause)) return
+    if (cause.code === 'branding_conflict') toast.warning(() => t('branding.conflict'))
+    else if (cause.code === 'security_retry_required') toast.info(() => t('security.retryAction'))
+    else toast.error(() => formatApiError(cause))
+  },
+)
+async function save() {
+  if (await store.save()) {
+    if (store.dirty) toast.info(() => t('branding.newDraft'))
+    else toast.success(() => t('branding.saved'))
+  } else {
+    const section = Object.keys(store.error?.errors || {})
+      .map((key) => key.split('.')[1])
+      .find((key) => tabs.includes(key))
+    if (section) tab.value = section
+  }
+}
+async function rebase() {
+  if (await store.rebase()) toast.info(() => t('branding.reviewDraft'))
+}
+const imageSize = (kind) => store.settings?.assetInfo?.[kind]?.bytes
+const sizeLabel = (bytes) =>
+  new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(bytes / 1024) + ' KB'
 async function reset() {
   if (await store.reset()) toast.success(() => t('branding.saved'))
+}
+async function retryUpload() {
+  if (await store.retryAsset()) toast.success(() => t('branding.saved'))
 }
 async function remove(kind) {
   if (await store.asset(kind, null)) toast.success(() => t('branding.saved'))
@@ -79,13 +121,39 @@ const changed = (section) =>
       </button>
     </div>
     <p v-if="store.loading" role="status">{{ t('nav.loading') }}</p>
-    <p v-if="store.error" class="field-error" role="alert">{{ formatApiError(store.error) }}</p>
+    <p v-if="store.error && !store.draft" class="field-error" role="alert">
+      {{ formatApiError(store.error) }}
+    </p>
+    <button
+      v-if="store.error?.code === 'branding_conflict'"
+      class="button secondary"
+      :disabled="!!store.busy"
+      @click="rebase"
+    >
+      {{ t('branding.reloadDraft') }}
+    </button>
     <button
       v-if="!store.draft && !store.loading"
       class="button secondary"
       @click="store.load(nav.workspace.id)"
     >
       {{ t('ui.tryAgain') }}
+    </button>
+    <button
+      v-if="store.pendingAsset && !store.busy"
+      type="button"
+      class="button secondary"
+      @click="retryUpload"
+    >
+      {{ t('branding.retryUpload') }}
+    </button>
+    <button
+      v-if="store.pendingAsset && !store.busy"
+      type="button"
+      class="text-button"
+      @click="store.discardAsset()"
+    >
+      {{ t('ui.cancel') }}
     </button>
     <template v-if="store.draft">
       <nav class="branding-tabs" :aria-label="t('branding.title')">
@@ -103,7 +171,7 @@ const changed = (section) =>
       <div class="branding-layout">
         <section class="surface branding-editor">
           <h2>{{ t('branding.' + tab) }}</h2>
-          <form v-if="brandingFields[tab]" :key="tab" @submit.prevent="save(tab)">
+          <form v-if="brandingFields[tab]" :key="tab" @submit.prevent="save()">
             <p class="small muted">{{ t('branding.optional') }}</p>
             <div class="branding-fields">
               <div
@@ -177,6 +245,33 @@ const changed = (section) =>
                       :alt="t('branding.' + kind)"
                     /><AppIcon v-else name="file" :size="28" />
                   </div>
+                  <div
+                    v-if="store.upload?.kind === kind"
+                    class="brand-upload-progress"
+                    role="status"
+                  >
+                    <span
+                      >{{ t('branding.' + store.upload.phase)
+                      }}<strong v-if="store.upload.percent !== null">
+                        {{ store.upload.percent }}%</strong
+                      ></span
+                    >
+                    <progress
+                      :value="store.upload.percent ?? undefined"
+                      max="100"
+                      :aria-label="t('branding.' + store.upload.phase)"
+                    />
+                  </div>
+                  <p v-if="imageSize(kind)" class="small muted brand-image-size">
+                    {{ t('branding.optimizedSize', { size: sizeLabel(imageSize(kind)) }) }} ·
+                    {{
+                      store.settings.assetInfo[kind].mime === 'image/svg+xml'
+                        ? 'SVG'
+                        : store.settings.assetInfo[kind].mime === 'image/jpeg'
+                          ? 'JPEG'
+                          : 'PNG'
+                    }}
+                  </p>
                   <label class="button secondary brand-upload"
                     >{{ t('branding.upload')
                     }}<input
@@ -202,13 +297,13 @@ const changed = (section) =>
               <LoadingButton
                 type="submit"
                 class="button primary"
-                :busy="store.busy === tab"
-                :disabled="!!store.busy || !changed(tab)"
+                :busy="store.busy === 'save'"
+                :disabled="!!store.busy || !!store.pendingAsset || !store.hasChanges"
                 >{{ t('branding.save') }}</LoadingButton
               >
             </div>
           </form>
-          <form v-else-if="toggles[tab]" :key="tab" @submit.prevent="save(tab)">
+          <form v-else-if="toggles[tab]" :key="tab" @submit.prevent="save()">
             <p class="muted">
               {{ t('branding.' + (tab === 'export' ? 'exportHint' : 'emailHint')) }}
             </p>
@@ -225,8 +320,8 @@ const changed = (section) =>
               <LoadingButton
                 type="submit"
                 class="button primary"
-                :busy="store.busy === tab"
-                :disabled="!!store.busy || !changed(tab)"
+                :busy="store.busy === 'save'"
+                :disabled="!!store.busy || !!store.pendingAsset || !store.hasChanges"
                 >{{ t('branding.save') }}</LoadingButton
               >
             </div>

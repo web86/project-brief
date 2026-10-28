@@ -52,7 +52,7 @@ async function restore(project) {
   try {
     await api.request(`/api/admin/projects/${project.id}/restore`, { method: 'POST' })
     if (!current()) return
-    await Promise.all([refresh(), nav.refreshProjects()])
+    await refresh()
     emit('changed')
   } catch (cause) {
     if (isSecurityCancellation(cause)) return

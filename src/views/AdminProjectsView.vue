@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onBeforeUnmount } from 'vue'
+import { ref, watch, computed, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectListingStore, listQuery } from '../stores/projectListing.js'
 import { canCreateProjects, hasProjectPermission } from '../services/projectPermissions.js'
@@ -7,6 +7,7 @@ import UnreadBadge from '../components/UnreadBadge.vue'
 import AppIcon from '../components/AppIcon.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import LoadingButton from '../components/LoadingButton.vue'
+import LoadingOverlay from '../components/LoadingOverlay.vue'
 import ProjectRecycleBin from '../components/ProjectRecycleBin.vue'
 import FeedbackRequestButton from '../components/FeedbackRequestButton.vue'
 import { api } from '../api/client.js'
@@ -18,11 +19,12 @@ const listing = useProjectListingStore(),
   route = useRoute(),
   router = useRouter()
 const search = ref(''),
-  client = ref(''),
-  filtersOpen = ref(false)
+  filtersOpen = ref(false),
+  filterTrigger = ref(null)
 let timer
 const activeFilters = computed(
-  () => !!(route.query.q || route.query.client || route.query.status || route.query.sort),
+  () =>
+    !!(String(route.query.q || '').trim().length >= 3 || route.query.status || route.query.sort),
 )
 const pages = computed(() =>
   Array.from(
@@ -34,22 +36,28 @@ function filters(patch = {}) {
   clearTimeout(timer)
   router.replace({
     path: '/admin',
-    query: listQuery({ ...route.query, q: search.value, client: client.value, ...patch, page: 1 }),
+    query: listQuery({ ...route.query, q: search.value, ...patch, page: 1 }),
   })
 }
 function resetFilters() {
   search.value = ''
-  client.value = ''
-  filters({ q: '', client: '', status: '', sort: '' })
+  filters({ q: '', status: '', sort: '' })
 }
 function debounce() {
   clearTimeout(timer)
-  timer = setTimeout(() => filters(), 300)
+  listing.cancel()
+  timer = setTimeout(() => filters(), 480)
 }
 function page(number) {
   router.push({ path: '/admin', query: listQuery({ ...route.query, page: number }) })
 }
-async function reload() {
+async function closeFilters() {
+  filtersOpen.value = false
+  await nextTick()
+  filterTrigger.value?.focus()
+}
+async function reload(force = false) {
+  if (force) listing.refresh()
   if (!nav.workspace) return
   const id = nav.workspace.id
   const ok = await listing.load(id, route.query)
@@ -64,7 +72,6 @@ watch(
   () => {
     if (route.path !== '/admin') return
     search.value = String(route.query.q || '')
-    client.value = String(route.query.client || '')
     nav.projectsPath = route.fullPath
     reload()
   },
@@ -101,7 +108,7 @@ async function trash() {
     if (nav.workspace?.id !== workspaceId) return
     nav.removeProject(project.id)
     candidate.value = null
-    await Promise.all([bin.value?.refresh(), nav.refreshProjects(), reload()])
+    await Promise.all([bin.value?.refresh(), reload(true)])
   } catch (cause) {
     if (nav.workspace?.id === workspaceId) error.value = cause
   } finally {
@@ -123,7 +130,7 @@ async function trash() {
         >{{ t('ui.newProject') }}</RouterLink
       >
     </div>
-    <div class="surface project-list-controls">
+    <div class="project-list-controls">
       <div class="project-search-row">
         <label class="project-search"
           ><AppIcon name="search" :size="18" /><span class="sr-only">{{
@@ -138,17 +145,22 @@ async function trash() {
         ><button
           type="button"
           class="button secondary project-filter-trigger"
+          ref="filterTrigger"
+          :class="{ 'has-active': activeFilters }"
+          :aria-label="t('branding.filters')"
+          @keydown.esc.stop.prevent="closeFilters"
           :aria-expanded="filtersOpen"
           aria-controls="project-list-filters"
           @click="filtersOpen = !filtersOpen"
         >
-          <AppIcon name="settings" :size="18" />{{ t('branding.filters') }}
+          <AppIcon name="settings" :size="20" />
         </button>
       </div>
       <div
         id="project-list-filters"
         class="project-filters-extra"
         :class="{ 'is-open': filtersOpen }"
+        @keydown.esc.stop.prevent="closeFilters"
       >
         <select
           :value="route.query.status || ''"
@@ -168,15 +180,6 @@ async function trash() {
           <option value="created">{{ t('branding.created') }}</option>
           <option value="name">{{ t('branding.nameSort') }}</option>
         </select>
-        <input
-          v-if="nav.user?.membershipRole === 'owner'"
-          v-model="client"
-          type="search"
-          maxlength="150"
-          :aria-label="t('branding.clientSearch')"
-          :placeholder="t('branding.clientSearch')"
-          @input="debounce"
-        />
       </div>
       <div class="project-list-results">
         <span role="status">{{ t('branding.results', { total: listing.meta.total }) }}</span
@@ -185,14 +188,14 @@ async function trash() {
         </button>
       </div>
     </div>
-    <p v-if="listing.loading" role="status" class="small muted">{{ t('nav.loading') }}</p>
+    <LoadingOverlay :active="listing.loading" class="navigation-loading project-query-loading" />
     <div v-if="listing.error" role="alert">
       <p class="field-error">{{ formatApiError(listing.error) }}</p>
-      <button class="button secondary" @click="reload()">
+      <button class="button secondary" @click="reload(true)">
         {{ t('ui.tryAgain') }}
       </button>
     </div>
-    <div v-else-if="!listing.projects.length" class="empty-state">
+    <div v-else-if="!listing.projects.length && !listing.loading" class="empty-state">
       <h2>
         {{
           t(
@@ -341,7 +344,12 @@ async function trash() {
         {{ t('branding.next') }}
       </button>
     </nav>
-    <ProjectRecycleBin v-if="nav.workspace" :key="nav.workspace.id" ref="bin" @changed="reload()" />
+    <ProjectRecycleBin
+      v-if="nav.workspace"
+      :key="nav.workspace.id"
+      ref="bin"
+      @changed="reload(true)"
+    />
     <BaseDialog
       :open="!!candidate"
       :title="t('projectList.moveToTrash')"

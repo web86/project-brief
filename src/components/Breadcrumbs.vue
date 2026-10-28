@@ -15,10 +15,14 @@ const items = computed(() => {
       { label: t('account.title'), to: '/admin/account' },
       { label: t(route.path.endsWith('/security') ? 'account.security' : 'account.profile') },
     ]
-  if (route.meta.personalSettings)
+  if (route.path === '/admin/settings/branding' || route.meta.personalSettings)
     return [
-      { label: t('centralNotifications.mySettings'), to: '/admin/settings/notifications' },
-      { label: t('nav.notifications') },
+      { label: t('account.title'), to: '/admin/account' },
+      {
+        label: t(
+          route.path === '/admin/settings/branding' ? 'branding.title' : 'nav.notifications',
+        ),
+      },
     ]
   const projects = { label: t('nav.projects'), to: '/admin' }
   if (route.path === '/admin/projects/new') return [projects, { label: t('nav.newProject') }]

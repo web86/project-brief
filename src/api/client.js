@@ -28,11 +28,58 @@ function waitForRequest(promise, signal) {
   })
 }
 
+export function uploadRequest(
+  url,
+  { method, headers, body, signal },
+  { xhrFactory, onUploadProgress, onUploadComplete, onUploadStart },
+) {
+  return new Promise((resolve, reject) => {
+    const xhr = xhrFactory()
+    const abort = () => xhr.abort()
+    const cleanup = () => signal?.removeEventListener('abort', abort)
+    xhr.open(method, url)
+    xhr.withCredentials = false // Same-origin cookies still apply, matching fetch credentials: same-origin.
+    for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value)
+    xhr.upload.onprogress = (event) =>
+      onUploadProgress?.({
+        loaded: event.loaded,
+        total: event.lengthComputable ? event.total : null,
+      })
+    xhr.upload.onload = () => onUploadComplete?.()
+    xhr.onload = () => {
+      cleanup()
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        headers: { get: (name) => xhr.getResponseHeader(name) },
+        json: async () => JSON.parse(xhr.responseText),
+      })
+    }
+    xhr.onerror = () => {
+      cleanup()
+      reject(new Error('upload_failed'))
+    }
+    xhr.onabort = () => {
+      cleanup()
+      reject(new DOMException('Cancelled', 'AbortError'))
+    }
+    signal?.addEventListener('abort', abort, { once: true })
+    if (signal?.aborted) {
+      cleanup()
+      reject(signal.reason)
+      return
+    }
+    onUploadStart?.()
+    xhr.send(body)
+  })
+}
+
 export function createApiClient({
   fetchImpl = (...args) => fetch(...args),
   baseUrl = '',
   timeoutMs = 20000,
   securityFlow = stepUp,
+  xhrFactory = () => new XMLHttpRequest(),
 } = {}) {
   let csrf = null
   let csrfRequest = null
@@ -61,6 +108,10 @@ export function createApiClient({
       timeoutMs: requestTimeoutMs = timeoutMs,
       signal: externalSignal,
       securityRetry = true,
+      onUploadProgress,
+      onUploadComplete,
+      onUploadStart,
+      onSecurityRequired,
     } = {},
   ) {
     externalSignal?.throwIfAborted()
@@ -68,6 +119,7 @@ export function createApiClient({
     if (body && !(body instanceof FormData)) body = JSON.parse(JSON.stringify(body))
     if (securityRetry) {
       const confirmation = securityFlow.preflight(path, method)
+      if (confirmation) onSecurityRequired?.()
       if (confirmation && !(await waitForRequest(confirmation, externalSignal)))
         throw new ApiError(
           423,
@@ -97,7 +149,17 @@ export function createApiClient({
       hasFiles || responseType === 'blob' ? Math.max(requestTimeoutMs, 120000) : requestTimeoutMs,
     )
     try {
-      response = await fetchImpl(`${baseUrl}${path}`, {
+      const transport =
+        multipart && onUploadProgress
+          ? (url, options) =>
+              uploadRequest(url, options, {
+                xhrFactory,
+                onUploadProgress,
+                onUploadComplete,
+                onUploadStart,
+              })
+          : fetchImpl
+      response = await transport(`${baseUrl}${path}`, {
         method,
         credentials: 'same-origin',
         signal: controller.signal,
@@ -141,6 +203,7 @@ export function createApiClient({
       securityRetry &&
       !/^\/api\/security\/(?:confirm|challenge|passkey\/(?:login|confirm)(?:\/|$))/.test(path)
     ) {
+      onSecurityRequired?.()
       if (await waitForRequest(securityFlow.ensure(true), externalSignal)) {
         csrf = null
         if (
@@ -154,6 +217,10 @@ export function createApiClient({
             timeoutMs: requestTimeoutMs,
             signal: externalSignal,
             securityRetry: false,
+            onUploadProgress,
+            onUploadComplete,
+            onUploadStart,
+            onSecurityRequired,
           })
         throw new ApiError(423, t('security.retryAction'), {}, 'security_retry_required')
       }

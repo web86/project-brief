@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "source": "1,588,650-byte JPEG normalized to 362,399-byte PNG by real branding controller",
+  "pdfBytes": 373526,
+  "docxBytes": 13052976,
+  "pdfPages": 1,
+  "docxMedia": ["word/media/section_image1.png"],
+  "unicode": ["Кириллица", "Çığ", "中文需求", "Müşteri", "客户账户"],
+  "visualReview": "PDF Poppler and DOCX LibreOffice: one page each; images, text, footer and pagination inspected",
+  "renderPreviews": ["export-previews/pdf.png", "export-previews/docx.png"]
+}

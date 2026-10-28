@@ -111,7 +111,6 @@ test('export route uses summary only, normal project shell and accessible Export
   assert.deepEqual(calls, [
     '/api/admin/me',
     '/api/admin/workspaces',
-    '/api/admin/projects',
     '/api/admin/projects/project?summary=1',
   ])
   const Shell = (await server.ssrLoadModule('/src/views/AdminProjectShell.vue')).default

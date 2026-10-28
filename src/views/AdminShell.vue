@@ -1,7 +1,8 @@
 <script setup>
-import BrandLogo from '../components/BrandLogo.vue'
+import BrandLogo from '../components/PortalBrandLogo.vue'
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useWorkspaceAppearance } from '../services/workspaceAppearance.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectStore } from '../stores/project.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
@@ -28,6 +29,7 @@ const route = useRoute(),
   nav = useAdminNavigationStore(),
   store = useProjectStore(),
   workspace = useTaskWorkspaceStore()
+const { brand: activeBrand } = useWorkspaceAppearance()
 const project = computed(() => nav.projectForRoute(route.params.uuid))
 const trash = ref(null)
 const trashOpening = ref(false)
@@ -189,7 +191,7 @@ async function logout() {
           <BrandLogo compact />
         </RouterLink>
         <span v-if="!route.meta.taskDetail" class="admin-toolbar-workspace">{{
-          nav.workspace?.name
+          activeBrand?.companyName || nav.workspace?.name
         }}</span>
         <div class="admin-toolbar-controls">
           <div class="appearance-controls"><ThemeSwitcher /><LanguageSwitcher /></div>

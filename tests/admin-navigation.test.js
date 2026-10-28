@@ -190,7 +190,7 @@ const renderer = createRenderer({
   patchProp() {},
 })
 
-test('workspace startup loads me/workspaces/projects once in parallel and renders localized shell navigation', async () => {
+test('workspace startup loads only context and workspace choices, without a sidebar project list and renders localized shell navigation', async () => {
   const { calls, request } = backend()
   const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
   await router.push('/admin')
@@ -198,7 +198,7 @@ test('workspace startup loads me/workspaces/projects once in parallel and render
   assert.equal(nav.ready, true)
   assert.deepEqual(
     calls.map(({ path }) => path),
-    ['/api/admin/me', '/api/admin/workspaces', '/api/admin/projects'],
+    ['/api/admin/me', '/api/admin/workspaces'],
   )
   for (const [lang, labels] of [
     ['en', ['Workspace', 'New project', 'All projects', 'Owner', 'Open navigation menu']],
@@ -210,13 +210,10 @@ test('workspace startup loads me/workspaces/projects once in parallel and render
     i18n.global.locale.value = lang
     const html = await renderToString(createSSRApp(Shell).use(nav._p).use(router).use(i18n))
     for (const label of labels) assert.ok(html.includes(label), label)
-    assert.ok(html.includes('alpha project'))
     assert.ok(html.includes('aria-expanded="false"'))
     assert.ok(html.includes('<dialog'))
     assert.ok(html.includes('aria-controls="admin-drawer"'))
-    assert.ok(
-      html.includes('3 new client activities') || html.includes('3 новых события от клиента'),
-    )
+    assert.equal(html.includes('sidebar-project'), false)
   }
 })
 
@@ -294,7 +291,7 @@ test('successful brief/task loading precedes explicit read POST and clears the s
   assert.ok(read > calls.findIndex(({ path }) => path.endsWith('/tasks')))
   assert.equal(calls[read].method, 'POST')
   assert.equal(navStore().projects[0].unreadCount, 0)
-  assert.equal(calls.filter(({ path }) => path === '/api/admin/projects').length, 1)
+  assert.equal(calls.filter(({ path }) => path === '/api/admin/projects').length, 0)
   await router.push(`/admin/projects/${uuid}/brief/task/task`)
   assert.equal(calls.filter(({ path }) => path.endsWith('/activity/read')).length, 1)
   assert.equal(calls.filter(({ path }) => path.endsWith('/tasks')).length, 1)
@@ -351,7 +348,7 @@ test('workspace switch confirms dirty draft, clears all previous data before POS
   assert.equal(await nav.switchWorkspace('beta', router, () => true), true)
   assert.equal(nav.workspace.id, 'beta')
   assert.equal(nav.user.membershipRole, 'admin')
-  assert.equal(nav.projects[0].name, 'beta project')
+  assert.deepEqual(nav.projects, [])
   assert.equal(router.currentRoute.value.path, '/admin')
   assert.equal(
     calls.some(({ method }) => method === 'PATCH'),
@@ -499,6 +496,7 @@ test('read failure retains unread badge and gives global toast without replaying
   const { request, calls } = backend()
   const nav = navStore()
   await nav.bootstrap(request)
+  nav.updateProject({ id: uuid, unreadCount: 3 })
   const failed = async (path, options) => {
     calls.push({ path, ...options })
     throw { status: 0, message: 'Offline' }
@@ -520,7 +518,7 @@ test('server selection that succeeded but lost its response is recovered from au
   }
   assert.equal(await navStore().switchWorkspace('beta', router), false)
   assert.equal(navStore().workspace.id, 'beta')
-  assert.equal(navStore().projects[0].name, 'beta project')
+  assert.deepEqual(navStore().projects, [])
   assert.equal(toast.items.value[0].type, 'error')
 })
 
@@ -556,28 +554,13 @@ test('new project refreshes sidebar and navigates directly to its work context',
     await instance.$.setupState.create()
     assert.equal(router.currentRoute.value.path, `/admin/projects/${uuid}/brief`)
     assert.ok(calls.some(({ path, method }) => path === '/api/admin/projects' && method === 'POST'))
-    assert.ok(calls.filter(({ path }) => path === '/api/admin/projects').length >= 2)
+    assert.equal(
+      calls.filter(({ path }) => path === '/api/admin/projects' && !path.includes('?')).length,
+      1,
+    )
   } finally {
     app.unmount()
   }
-})
-
-test('an older list response cannot resurrect the badge after marking a project seen', async () => {
-  const { request } = backend()
-  const nav = navStore()
-  await nav.bootstrap(request)
-  let resolve
-  const refresh = nav.refreshProjects(
-    async () =>
-      new Promise((done) => {
-        resolve = done
-      }),
-  )
-  await nav.markRead(uuid, request)
-  resolve({ data: [{ id: uuid, unreadCount: 3 }] })
-  await refresh
-  assert.equal(nav.projects[0].unreadCount, 0)
-  assert.equal(nav.refreshing, false)
 })
 
 test('project context disappears on workspace clear and never accepts a different route project', async () => {
@@ -614,26 +597,6 @@ test('a revoked project clears its sidebar context, task data and stale project-
   )
   assert.equal(projectStore().tasks.length, 0)
   assert.equal(managementStore().project, null)
-})
-
-test('discarding a revoked project invalidates an older pending sidebar refresh', async () => {
-  const { request } = backend()
-  const nav = navStore()
-  await nav.bootstrap(request)
-  let release
-  const refreshing = nav.refreshProjects(
-    () =>
-      new Promise((resolve) => {
-        release = resolve
-      }),
-  )
-  nav.removeProject(uuid)
-  release({ data: [{ id: uuid, name: 'Stale revoked project' }] })
-  await refreshing
-  assert.equal(
-    nav.projects.some((project) => project.id === uuid),
-    false,
-  )
 })
 
 test('direct protected routes explain denial, keep project context and recheck revoked capabilities', async () => {

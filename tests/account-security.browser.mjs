@@ -18,6 +18,7 @@ const origin =
 const env = {
   ...process.env,
   APP_ENV: 'local',
+  LARAVEL_STORAGE_PATH: path.join(temporary, 'storage'),
   APP_DEBUG: 'false',
   APP_KEY: `base64:${randomBytes(32).toString('base64')}`,
   APP_URL: origin,
@@ -42,6 +43,14 @@ function php(args, json = false) {
   if (result.status !== 0) throw new Error(result.stderr || result.stdout)
   return json ? JSON.parse(result.stdout) : result.stdout
 }
+for (const directory of [
+  'app/private',
+  'framework/cache/data',
+  'framework/sessions',
+  'framework/views',
+  'logs',
+])
+  await mkdir(path.join(env.LARAVEL_STORAGE_PATH, directory), { recursive: true })
 await writeFile(env.DB_DATABASE, '')
 php(['artisan', 'migrate', '--force', '--no-interaction'])
 const fixture = php(['tests/account-security-fixture.php'], true)
@@ -83,7 +92,11 @@ const vite = await createServer({
     strictPort: true,
     hmr: { host: 'localhost', clientPort: 5199, protocol: 'wss' },
     https: { key: await readFile(key), cert: await readFile(cert) },
-    proxy: { '/api': 'http://127.0.0.1:8099', '/access/': 'http://127.0.0.1:8099' },
+    proxy: {
+      '/api': 'http://127.0.0.1:8099',
+      '/access/': 'http://127.0.0.1:8099',
+      '/branding-assets/': 'http://127.0.0.1:8099',
+    },
   },
   define: { 'import.meta.env.VITE_DATA_SOURCE': '"api"' },
   logLevel: 'error',
@@ -572,6 +585,21 @@ try {
     'Actual settings/integrations route prepares a confirmation challenge without opening an application dialog',
   )
 
+  if (process.env.M76_BRANDING_QA === '1') {
+    const { verifyBrandingRefinements } = await import('./ux-refinements-security.browser.mjs')
+    results.push(
+      ...(await verifyBrandingRefinements({
+        page,
+        context,
+        cdp,
+        origin,
+        php,
+        request,
+        output: process.env.M76_EVIDENCE_DIRECTORY || output,
+        root,
+      })),
+    )
+  }
   php(['tests/account-security-fixture.php', 'reset-limiter'])
   await request('/api/admin/logout', 'POST')
   await page.goto(origin + '/admin/login')

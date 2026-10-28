@@ -41,7 +41,7 @@ class AdminAuthController extends Controller
         $context = app(CurrentWorkspace::class);
         $member = $context->resolve($request);
 
-        return response()->json(['securityRecommended' => app(AccountSecurity::class)->recommendationsPending($request->user()), 'user' => [...app(AccountProfile::class)->state($request->user()), 'membershipRole' => $member->role, 'canCreateProjects' => ProjectPermissions::canCreateProjects($member)], 'workspace' => $context->state($member)])->header('Cache-Control', 'no-store');
+        return response()->json(['securityRecommended' => app(AccountSecurity::class)->recommendationsPending($request->user()), 'user' => [...app(AccountProfile::class)->state($request->user()), 'membershipRole' => $member->role, 'canCreateProjects' => ProjectPermissions::canCreateProjects($member)], 'workspace' => $context->state($member, true)])->header('Cache-Control', 'no-store');
     }
 
     public function logout(Request $request): JsonResponse

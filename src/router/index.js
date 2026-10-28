@@ -501,13 +501,6 @@ export function createProjectRouter({
         } finally {
           nav.pageLoading = false
         }
-      } else if (
-        to.path === '/admin' &&
-        from.path !== '/admin' &&
-        from.meta.adminShell &&
-        !nav.switching
-      ) {
-        await nav.refreshProjects(request)
       }
       return true
     }

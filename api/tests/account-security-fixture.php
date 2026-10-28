@@ -2,7 +2,9 @@
 
 use App\Models\Project;
 use App\Models\User;
+use App\Models\Workspace;
 use App\Services\OwnerProvisioning;
+use App\Services\WorkspaceBranding;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,19 @@ if (($argv[1] ?? '') === 'expire-proof') {
 }
 if (($argv[1] ?? '') === 'reset-limiter') {
     Artisan::call('cache:clear');
+    exit;
+}
+if (($argv[1] ?? '') === 'branding-workspaces') {
+    $owner = User::where('email', 'security-owner@example.test')->firstOrFail();
+    $workspace = $owner->workspaceMembers()->orderBy('workspace_id')->firstOrFail()->workspace;
+    $settings = app(WorkspaceBranding::class)->settings($workspace);
+    $settings['visual'] = ['companyName' => 'ASTER Studio', 'primaryColor' => '#17695d'];
+    $workspace->update(['branding' => $settings]);
+    $other = Workspace::create(['name' => 'North Workspace']);
+    $other->members()->create(['user_id' => $owner->id, 'role' => 'owner', 'status' => 'active', 'joined_at' => now()]);
+    $settings['visual'] = ['companyName' => 'North Studio', 'primaryColor' => '#7354a3'];
+    $other->update(['branding' => $settings]);
+    echo json_encode(['first' => $workspace->uuid, 'second' => $other->uuid]);
     exit;
 }
 if (($argv[1] ?? '') === 'code') {

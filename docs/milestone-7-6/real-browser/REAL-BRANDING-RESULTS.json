@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "signedWebAuthn": true,
+  "resumedMutationOnce": true,
+  "atomicThreeSectionsAndReload": true,
+  "uploadProgress": "real XMLHttpRequest bytes under Chromium network throttle",
+  "originalBytes": 1588650,
+  "optimizedBytes": 362399,
+  "svgDirectNavigationSafe": true,
+  "workspaceSwitchAndPersonalReset": true,
+  "responses": [
+    {
+      "path": "/api/admin/workspaces/01a181cb-47f5-73c3-aaac-34fac92806c9/branding/sanitize-svg",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "path": "/api/admin/workspaces/01a181cb-47f5-73c3-aaac-34fac92806c9/branding/assets/favicon",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "path": "/api/admin/workspaces/01a181cb-47f5-73c3-aaac-34fac92806c9/branding/sanitize-svg",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "path": "/api/admin/workspaces/01a181cb-47f5-73c3-aaac-34fac92806c9/branding/assets/logo",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "path": "/api/admin/workspaces/01a181cb-47f5-73c3-aaac-34fac92806c9/branding",
+      "status": 200,
+      "method": "PATCH"
+    },
+    {
+      "path": "/api/admin/workspaces/01a181cb-47f5-73c3-aaac-34fac92806c9/branding/assets/logo",
+      "status": 200,
+      "method": "POST"
+    }
+  ]
+}

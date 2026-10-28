@@ -22,8 +22,16 @@ class ProjectController extends Controller
         $member = app(CurrentWorkspace::class)->resolve($request);
         abort_if(! empty($data['client']) && $member->role !== 'owner', 403);
         $query = ProjectAccess::forMember($member);
-        if (! empty($data['q'])) {
-            $query->where('title', 'like', '%'.$data['q'].'%');
+        $search = trim($data['q'] ?? '');
+        if (mb_strlen($search) >= 3) {
+            $query->where(function ($match) use ($search, $member): void {
+                $match->where('title', 'like', '%'.$search.'%')->orWhere(function ($clients) use ($search, $member): void {
+                    if ($member->role !== 'owner') {
+                        $clients->whereHas('members', fn ($assignment) => $assignment->where('workspace_member_id', $member->id)->where('permissions->manage_clients', true));
+                    }
+                    $clients->whereHas('clients', fn ($client) => $client->where(fn ($fields) => $fields->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%')));
+                });
+            });
         }
         if (! empty($data['status'])) {
             $query->where('status', $data['status']);

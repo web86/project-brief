@@ -10,6 +10,17 @@ export const projectMenu = [
 ]
 export const accountMenu = [
   { to: '/admin/account', label: 'account.profile', icon: 'user' },
-  { to: '/admin/account/security', label: 'account.security', icon: 'settings' },
+  { to: '/admin/account/security', label: 'account.security', icon: 'shield' },
   { to: '/admin/settings/notifications', label: 'account.notifications', icon: 'bell' },
+]
+
+export const settingsMenu = [
+  ...accountMenu,
+  {
+    to: '/admin/settings/integrations',
+    label: 'integrations.title',
+    icon: 'settings',
+    owner: true,
+  },
+  { to: '/admin/settings/branding', label: 'branding.title', icon: 'palette', owner: true },
 ]

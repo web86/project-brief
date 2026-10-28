@@ -259,6 +259,6 @@ Route::middleware('admin')->prefix('/api/admin/workspaces/{brandingWorkspace}/br
     Route::delete('/assets/{kind}', 'asset');
     Route::post('/reset', 'reset');
 });
-Route::get('/branding-assets/{workspace}/{token}.png', [WorkspaceBrandingController::class, 'image'])->where('token', '[a-f0-9]{48}')
+Route::get('/branding-assets/{workspace}/{token}.{extension}', [WorkspaceBrandingController::class, 'image'])->where('token', '[a-f0-9]{48}')->whereIn('extension', ['png', 'svg'])
     ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class]);
 Route::any('/{fallbackPlaceholder}', SpaController::class)->where('fallbackPlaceholder', '.*')->fallback();

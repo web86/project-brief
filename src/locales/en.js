@@ -1,5 +1,17 @@
 export default {
   branding: {
+    newDraft: 'Changes saved. Your newer edits remain in the draft.',
+    retryUpload: 'Retry selected file',
+    uploading: 'Uploading file',
+    sanitizing: 'Uploading SVG for validation',
+    processing: 'Processing image',
+    confirming: 'Confirm your identity',
+    optimizedSize: 'Optimized: {size}',
+    conflict:
+      'Settings changed in another window. Your draft is kept. Reload and review your changes.',
+    reloadDraft: 'Reload and keep draft',
+    reviewDraft: 'Settings reloaded. Review your draft before saving.',
+
     title: 'Branding',
     hint: 'Your studio, your client experience. Workspace settings are visible only to its owner.',
     visual: 'Company & style',
@@ -19,7 +31,7 @@ export default {
     previewTitle: 'A thoughtful project starts here',
     previewAction: 'Open project',
     default: 'Default theme',
-    save: 'Save section',
+    save: 'Save all changes',
     saved: 'Changes saved',
     unsaved: 'You have unsaved branding changes. Discard them?',
     reset: 'Reset appearance',
@@ -47,7 +59,7 @@ export default {
       'A verified domain, SPF, DKIM and DMARC will be required. Custom sending is not enabled.',
     invalid_image: 'Use a valid PNG, JPEG, WebP or static SVG up to 2 MB (max 4096 × 4096).',
     results: '{total} projects found',
-    search: 'Search projects',
+    search: 'Search project, client or email',
     allStatuses: 'Any activity',
     clientSearch: 'Client name or email',
     updated: 'Recently updated',

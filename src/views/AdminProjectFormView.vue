@@ -21,7 +21,6 @@ async function create() {
     const result = await api.request('/api/admin/projects', { method: 'POST', body: data.value })
     const nav = useAdminNavigationStore()
     nav.updateProject(result.data)
-    await nav.refreshProjects()
     await router.push(`/admin/projects/${result.data.id}/brief`)
   } catch (cause) {
     errors.value = cause.errors || {}

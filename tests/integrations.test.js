@@ -99,8 +99,8 @@ test('general and project navigation keep one return link and integrations under
   const router = routerFactory({ history: createMemoryHistory(), apiMode: true })
   await router.push('/admin')
   const html = await renderToString(createSSRApp(Sidebar).use(router).use(i18n))
-  assert.equal((html.match(/sidebar-project-heading/g) || []).length, 1)
-  const heading = html.match(/<a[^>]*sidebar-project-heading[^>]*>/)[0]
+  assert.equal((html.match(/sidebar-all-projects/g) || []).length, 1)
+  const heading = html.match(/<a[^>]*sidebar-all-projects[^>]*>/)[0]
   assert.match(heading, /href="\/admin"/)
   assert.match(heading, /aria-current="page"/)
   assert.equal((html.match(/All projects|Все проекты/g) || []).length, 1)
@@ -117,9 +117,12 @@ test('general and project navigation keep one return link and integrations under
     )
     assert.equal((projectHtml.match(/project-all-projects/g) || []).length, 1)
     assert.equal(projectHtml.includes('href="/admin/settings/integrations"'), role === 'owner')
+    assert.equal(projectHtml.includes('href="/admin/settings/branding"'), role === 'owner')
+    assert.ok(projectHtml.includes('href="/admin/account/security"'))
+    assert.ok(projectHtml.includes('aria-expanded="false"'))
     if (role === 'owner')
       assert.ok(
-        projectHtml.indexOf('project-personal-heading') <
+        projectHtml.indexOf('settings-group-toggle') <
           projectHtml.indexOf('href="/admin/settings/integrations"'),
       )
   }

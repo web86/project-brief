@@ -46,8 +46,8 @@ class CurrentWorkspace
     }
 
     /** @return array{id: string, name: string} */
-    public function state(WorkspaceMember $member): array
+    public function state(WorkspaceMember $member, bool $withBrand = false): array
     {
-        return ['id' => $member->workspace->uuid, 'name' => $member->workspace->name];
+        return ['id' => $member->workspace->uuid, 'name' => $member->workspace->name, ...($withBrand ? ['branding' => app(WorkspaceBranding::class)->portal($member->workspace)] : [])];
     }
 }

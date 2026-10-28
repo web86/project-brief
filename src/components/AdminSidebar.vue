@@ -1,13 +1,12 @@
 <script setup>
-import BrandLogo from './BrandLogo.vue'
-import SidebarScroll from './SidebarScroll.vue'
+import BrandLogo from './PortalBrandLogo.vue'
+import PersonalSettingsNav from './PersonalSettingsNav.vue'
 import { canCreateProjects } from '../services/projectPermissions.js'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
-import { t, formatApiError } from '../i18n/index.js'
+import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
-import UnreadBadge from './UnreadBadge.vue'
 import ProjectSidebar from './ProjectSidebar.vue'
 import AdminAccount from './AdminAccount.vue'
 defineProps({ busy: Boolean, trashBusy: Boolean, trashOpen: Boolean })
@@ -15,7 +14,6 @@ const emit = defineEmits(['navigate', 'logout', 'trash'])
 const nav = useAdminNavigationStore(),
   router = useRouter(),
   route = useRoute()
-const activeProject = computed(() => route.params.uuid)
 const project = computed(() => nav.projectForRoute(route.params.uuid))
 async function select(event) {
   const id = event.target.value
@@ -76,93 +74,19 @@ async function select(event) {
     <p v-if="!nav.workspace && nav.ready" class="small muted">
       {{ t('centralNotifications.chooseWorkspace') }}
     </p>
-    <SidebarScroll v-if="nav.workspace">
-      <div class="sidebar-project-group">
-        <nav
-          class="sidebar-projects"
-          :aria-label="t('nav.projects')"
-          :aria-busy="nav.loading || nav.refreshing"
-        >
-          <h2>
-            <RouterLink
-              :to="nav.projectsPath"
-              class="sidebar-project-heading"
-              :aria-current="route.path === '/admin' ? 'page' : undefined"
-              @click="emit('navigate')"
-              ><AppIcon name="arrow" :size="16" /><span>{{
-                t('nav.allProjects')
-              }}</span></RouterLink
-            >
-          </h2>
-          <div
-            v-if="nav.loading && !nav.projects.length"
-            class="sidebar-skeleton"
-            role="status"
-            :aria-label="t('nav.loading')"
-          >
-            <span v-for="n in 4" :key="n" />
-          </div>
-          <p v-else-if="!nav.projects.length" class="small muted">{{ t('nav.noProjects') }}</p>
-          <RouterLink
-            v-for="project in nav.projects"
-            :key="project.id"
-            :to="`/admin/projects/${project.id}/brief`"
-            class="sidebar-project"
-            :class="{ active: activeProject === project.id }"
-            :aria-current="activeProject === project.id ? 'page' : undefined"
-            @click="emit('navigate')"
-          >
-            <AppIcon name="grid" :size="20" /><span class="sidebar-project-name">{{
-              project.name
-            }}</span
-            ><UnreadBadge :count="project.unreadCount || 0" />
-          </RouterLink>
-          <div v-if="nav.listError" class="sidebar-error" role="alert">
-            <p>{{ formatApiError(nav.listError) }}</p>
-            <button type="button" class="text-button" @click="nav.refreshProjects()">
-              {{ t('ui.tryAgain') }}
-            </button>
-          </div>
-          <button
-            v-if="nav.sidebarPage < nav.sidebarLastPage"
-            type="button"
-            class="text-button sidebar-more"
-            :disabled="nav.refreshing"
-            @click="nav.moreProjects()"
-          >
-            {{ t('branding.more') }}
-          </button>
-        </nav>
-      </div>
-    </SidebarScroll>
-    <nav
-      class="sidebar-general personal-settings-nav"
-      :aria-label="t('centralNotifications.mySettings')"
-    >
-      <h2>{{ t('centralNotifications.mySettings') }}</h2>
+    <nav v-if="nav.workspace" class="global-project-navigation" :aria-label="t('nav.projects')">
       <RouterLink
-        v-if="nav.workspace && nav.user?.membershipRole === 'owner'"
-        to="/admin/settings/integrations"
-        :aria-current="route.path === '/admin/settings/integrations' ? 'page' : undefined"
+        :to="nav.projectsPath"
+        class="sidebar-all-projects"
+        :aria-current="route.path === '/admin' ? 'page' : undefined"
         @click="emit('navigate')"
-        ><AppIcon name="settings" :size="20" /><span>{{
-          t('integrations.title')
-        }}</span></RouterLink
       >
-      <RouterLink
-        v-if="nav.workspace && nav.user?.membershipRole === 'owner'"
-        to="/admin/settings/branding"
-        :aria-current="route.path === '/admin/settings/branding' ? 'page' : undefined"
-        @click="emit('navigate')"
-        ><AppIcon name="palette" :size="20" /><span>{{ t('branding.title') }}</span></RouterLink
-      >
-      <RouterLink
-        to="/admin/settings/notifications"
-        :aria-current="route.path === '/admin/settings/notifications' ? 'page' : undefined"
-        @click="emit('navigate')"
-        ><AppIcon name="bell" :size="20" /><span>{{ t('nav.notifications') }}</span></RouterLink
-      >
+        <AppIcon :name="route.path === '/admin' ? 'grid' : 'arrow'" :size="20" /><span>{{
+          t('nav.allProjects')
+        }}</span>
+      </RouterLink>
     </nav>
+    <PersonalSettingsNav @navigate="emit('navigate')" />
     <AdminAccount
       v-if="nav.user"
       :user="nav.user"
