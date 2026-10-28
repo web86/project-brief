@@ -90,6 +90,7 @@ class DocumentPresentationTest extends TestCase
 
     public function test_reproducible_document_matrix_preserves_scope_content_and_generates_real_docx(): void
     {
+        gc_collect_cycles();
         $this->travelTo(now()->setDate(2026, 10, 28)->setTime(12, 0));
         $cases = ['small-en' => [8, 'en'], 'studio-ru' => [11, 'ru'], 'medium-ru' => [75, 'ru'], 'large-en' => [500, 'en'], 'long-tr' => [8, 'tr', true, true], 'chinese' => [10, 'zh-CN'], 'section-breaks' => [11, 'ru'], 'minimal' => [8, 'en', false]];
         $directory = getenv('DOCUMENT_EXPORT_QA_DIRECTORY');
@@ -114,6 +115,8 @@ class DocumentPresentationTest extends TestCase
                 file_put_contents($directory.'/'.$name.'.json', json_encode(['schemaVersion' => 1, 'filename' => $name.'.pdf', 'document' => $document], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
                 file_put_contents($directory.'/'.$name.'.docx', $bytes);
             }
+            unset($bytes, $document, $project);
+            gc_collect_cycles();
         }
         if ($directory) {
             file_put_contents($directory.'/docx-metrics.json', json_encode($metrics, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
