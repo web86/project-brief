@@ -22,6 +22,8 @@
 
    С актуальной 0.7.6 pending migrations не ожидается. `.env` примером не заменяйте. HTTP_BOOTSTRAP_LIMIT_ENABLED и native ErrorDocument оставьте в прежнем согласованном состоянии; до Jino proxy/NAT/AllowOverride preflight новые host-dependent меры не включайте.
 
+   Если установленная база старше 0.7.6, сначала выполните предусмотренную предыдущим релизом процедуру обновления. В `migrate:status` должны быть завершены прежние миграции, включая `2026_10_26_200540_add_project_trash_lifecycle`; Milestone 7.7 не заменяет и не отменяет их. Для актуальной 0.7.6 это проверка уже применённой схемы.
+
 6. Проверьте smoke ниже. После разрешения на запуск выполните `php artisan up` и возобновите прежний scheduler/cleanup/feedback/webhooks.
 
 ## Smoke на staging
