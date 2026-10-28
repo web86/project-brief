@@ -65,4 +65,4 @@
 
 ## Отчёт и визуальные материалы
 
-`README.md`, `TESTS.md`, `PRODUCTION.md`, `CHANGED-FILES.md`, `COMPARISONS.md`, JSON результатов/нагрузки/SQL, 12 пар сравнительных PNG, `feedback-review.png`, `website-invalid.png`, `RELEASE-ARTIFACT.json`.
+`README.md`, `TESTS.md`, `PRODUCTION.md`, `CHANGED-FILES.md`, `COMPARISONS.md`, JSON результатов/нагрузки/SQL, 12 пар сравнительных PNG, `feedback-review.png`, `website-invalid.png`, `RELEASE-ARTIFACT.json`, `SHA256SUMS.txt`.

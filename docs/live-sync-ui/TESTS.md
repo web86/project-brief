@@ -2,7 +2,7 @@
 
 ## Автоматические проверки
 
-Итоговые числа полного Laravel/frontend набора и проверок распакованного ZIP указаны в `RELEASE-ARTIFACT.json`. Канонический `./bin/build-release` запускает оба набора, brand check, Vite build, production Composer install, проверку секретов/allowlist/checksums и HTTP runtime распакованного пакета.
+Каноническая сборка исходного коммита `5b999c2`: **819/819 Laravel-тестов, 12 302 assertions; 333/333 frontend-тестов**. Успешны brand check, Vite build, подписанный WebAuthn и HTTP runtime распакованного ZIP, включая новый sync endpoint. Полные метаданные указаны в `RELEASE-ARTIFACT.json`. Канонический `./bin/build-release` запускает оба набора, brand check, Vite build, production Composer install, проверку секретов/allowlist/checksums и HTTP runtime распакованного пакета.
 
 Новые Laravel feature-проверки: обычный bootstrap с cursor, единственный ограниченный запрос журнала, scope owner/developer/client, чужие workspace/project и cursor, rollback, переполнение и истечение cursor, stale editVersion и изменение названия раздела, цикл завершения и повторного предложения, единичная отправка отзыва, owner-only API, общий набор URL и сохранение сайта через прежний API.
 
