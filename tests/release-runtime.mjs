@@ -626,8 +626,17 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       ])
       assert.match(xml, /Кириллица: задача/)
       assert.match(xml, /План работ/)
-      assert.match(xml, /Общая оценка: 6 ч/)
-      assert.match(xml, /Общая стоимость: 18\u00a0000\u00a0₽/)
+      const summaryRows = [...xml.matchAll(/<w:tr>[\s\S]*?<\/w:tr>/g)].map(([row]) =>
+        row.replace(/<[^>]*>/g, ''),
+      )
+      assert.equal(
+        summaryRows.find((row) => row.startsWith('Общая оценка')),
+        'Общая оценка6 ч',
+      )
+      assert.equal(
+        summaryRows.find((row) => row.startsWith('Общая стоимость')),
+        'Общая стоимостьСтоимость указана для 1 из 2 задач18\u00a0000\u00a0₽',
+      )
       assert.match(xml, /Стоимость указана для 1 из 2 задач/)
       assert.match(xml, /requirements.pdf/)
       assert.match(xml, /18.10.2026/)
