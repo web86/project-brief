@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CommentRequest;
 use App\Models\Project;
 use App\Services\CommentSubmission;
+use App\Services\LiveSync;
 use App\Services\ProjectDiscussions;
 use App\Services\TaskAccess;
 use Illuminate\Http\JsonResponse;
@@ -63,7 +64,9 @@ class ProjectDiscussionController extends Controller
             $query->whereIn('uuid', $data['ids']);
             abort_if((clone $query)->count() !== count(array_unique($data['ids'])), 404);
         }
-        $discussions->mark($query, TaskAccess::recipient($request));
+        if ($discussions->mark($query, TaskAccess::recipient($request)) > 0) {
+            app(LiveSync::class)->record($project->workspace_id, $project->id, 'read');
+        }
 
         $counts = $discussions->counts($project, TaskAccess::recipient($request));
 

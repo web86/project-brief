@@ -1,4 +1,11 @@
 export default {
+  liveSync: {
+    viewFeedback: '查看反馈',
+    checkMessages: '检查新消息',
+    conflict: '其他成员已修改此任务。您的草稿已保留。请在保存前检查新版本。',
+    rebase: '将我的草稿应用到新版本',
+    websiteInvalid: '请输入有效的网站，例如 company.com 或 https://company.com。',
+  },
   branding: {
     newDraft: '更改已保存，较新的编辑仍保留在草稿中。',
     retryUpload: '重试所选文件',

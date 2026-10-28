@@ -13,6 +13,7 @@ use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DeveloperInvitationController;
 use App\Http\Controllers\IntegrationController;
+use App\Http\Controllers\LiveSyncController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\ProjectActivityController;
@@ -94,6 +95,7 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::post('/account/avatar', [AccountController::class, 'avatar'])->middleware('throttle:uploads');
     Route::get('/avatars/{key}', [AccountController::class, 'image']);
 
+    Route::get('/sync', LiveSyncController::class)->middleware('throttle:live-sync');
     Route::get('/notifications', [AdminNotificationController::class, 'show']);
     Route::patch('/notifications', [AdminNotificationController::class, 'update'])->middleware('throttle:notification-update');
     Route::post('/notifications/email/verify', [AdminNotificationController::class, 'verify'])->middleware('throttle:notification-verify');
@@ -134,6 +136,7 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
+    Route::get('/feedback', [ProjectFeedbackController::class, 'review']);
     Route::post('/feedback/request', [ProjectFeedbackController::class, 'request']);
     Route::get('/team', [ProjectTeamController::class, 'index']);
     Route::post('/team/invitations', [ProjectTeamController::class, 'invite'])->middleware('throttle:account-security');
@@ -162,6 +165,7 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
 });
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
+    Route::get('/project/{project}/sync', LiveSyncController::class)->middleware('throttle:live-sync');
     Route::get('/project/{project}/feedback', [ProjectFeedbackController::class, 'show']);
     Route::post('/project/{project}/feedback/invitation', [ProjectFeedbackController::class, 'invitation']);
     Route::post('/project/{project}/feedback', [ProjectFeedbackController::class, 'store'])->middleware('throttle:comments');

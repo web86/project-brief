@@ -1,4 +1,12 @@
 export default {
+  liveSync: {
+    viewFeedback: 'View feedback',
+    checkMessages: 'Check new messages',
+    conflict:
+      'Another participant changed this task. Your draft is retained. Review the new version before saving.',
+    rebase: 'Use my draft over the new version',
+    websiteInvalid: 'Enter a valid website, such as company.com or https://company.com.',
+  },
   branding: {
     newDraft: 'Changes saved. Your newer edits remain in the draft.',
     retryUpload: 'Retry selected file',

@@ -29,6 +29,10 @@ class TaskRequest extends FormRequest
             $rules += AttachmentRequest::fileRules();
         }
 
+        if (! $this->isMethod('POST')) {
+            $rules['editVersion'] = ['sometimes', 'string', 'regex:/^[a-f0-9]{64}$/D'];
+        }
+
         return $rules;
     }
 
@@ -53,7 +57,7 @@ class TaskRequest extends FormRequest
         $map = ['expectedResult' => 'expected_result', 'estimateHours' => 'estimate_hours', 'developerNotes' => 'developer_notes'];
         $result = [];
         foreach ($this->validated() as $key => $value) {
-            if (! in_array($key, ['attachments', 'section'])) {
+            if (! in_array($key, ['attachments', 'section', 'editVersion'])) {
                 $result[$map[$key] ?? $key] = $value;
             }
         }

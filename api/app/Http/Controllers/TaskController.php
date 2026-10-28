@@ -53,6 +53,9 @@ class TaskController extends Controller
             ProjectStructure::lock($owner);
             $model = TaskAccess::task($request, $task, true);
             abort_unless(TaskAccess::isAdmin($request) || $model->isClientEditable(), 403, 'Эта идея уже в работе. Обсудите изменения в комментариях.');
+            if ($request->has('editVersion') && ! hash_equals($model->editVersion(TaskAccess::isAdmin($request)), $request->validated('editVersion'))) {
+                abort(response()->json(['code' => 'task_conflict'], 409));
+            }
             $name = $request->validated('section') ?? (! TaskAccess::isAdmin($request) ? $request->validated('location') : null);
             $sectionChanged = false;
             if ($name !== null) {

@@ -100,6 +100,7 @@ export function formatCurrency(value, project) {
   return new Intl.NumberFormat(intlLocale(), { style: 'currency', currency }).format(value)
 }
 export function formatApiError(error) {
+  if (error?.code === 'task_conflict') return t('liveSync.conflict')
   if (!error) return ''
   if (typeof error === 'string') return error
   if (['SEC_REQUEST_INVALID', 'SEC_FIELDS_INVALID'].includes(error.code))

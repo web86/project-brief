@@ -430,3 +430,47 @@ test('late save response cannot restore private task cache after logout or a dif
     assert.deepEqual(store.developerDrafts, {})
   }
 })
+
+test('external refresh retains private drafts, detects conflicts and requires an explicit rebase', async () => {
+  const { store } = setup()
+  const original = { ...task(), editVersion: 'a'.repeat(64) }
+  const remote = {
+    ...task(),
+    developerNotes: 'Remote technical notes',
+    editVersion: 'b'.repeat(64),
+  }
+  store.tasks = [original]
+  store.updateDeveloperData('task', { developerNotes: 'My unsaved draft' })
+  const patches = []
+  api.request = async (path, options) => {
+    if (options?.method === 'PATCH') {
+      patches.push(options.body)
+      if (options.body.editVersion !== remote.editVersion)
+        throw { code: 'task_conflict', status: 409 }
+      return { data: { ...remote, ...options.body, editVersion: 'c'.repeat(64) } }
+    }
+    return { data: path.endsWith('/tasks') ? [remote] : { id: 'project', sections: [] } }
+  }
+  await store.refreshApiProject()
+  assert.equal(store.developerTask('task').developerNotes, 'My unsaved draft')
+  assert.equal(store.draftConflicts.task, true)
+  assert.equal(await store.saveDeveloperData('task'), false)
+  assert.equal(patches[0].editVersion, original.editVersion)
+  assert.equal(store.hasDeveloperChanges('task'), true)
+  store.rebaseDeveloperDraft('task')
+  assert.equal(await store.saveDeveloperData('task'), true)
+  assert.equal(patches[1].editVersion, remote.editVersion)
+  assert.equal(store.hasDeveloperChanges('task'), false)
+})
+
+test('a remotely deleted task keeps its unsaved editor draft accessible without resurrecting server data', async () => {
+  const { store } = setup()
+  store.updateDeveloperData('task', { developerNotes: 'Retained deletion draft' })
+  api.request = async (path) => ({
+    data: path.endsWith('/tasks') ? [] : { id: 'project', sections: [] },
+  })
+  await store.refreshApiProject({ preserveTaskId: 'task' })
+  assert.equal(store.findTask('task').syncRemoved, true)
+  assert.equal(store.developerTask('task').developerNotes, 'Retained deletion draft')
+  assert.equal(store.hasDeveloperChanges('task'), true)
+})

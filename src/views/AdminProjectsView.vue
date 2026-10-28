@@ -275,7 +275,6 @@ async function trash() {
           </div>
         </div>
         <div class="admin-project-actions">
-          <FeedbackRequestButton :project="project" />
           <RouterLink :to="`/admin/projects/${project.id}/brief`" class="button primary">{{
             t('ui.open')
           }}</RouterLink
@@ -305,6 +304,15 @@ async function trash() {
           >
             <AppIcon name="trash-2" />
           </button>
+        </div>
+        <div
+          v-if="
+            nav.user?.membershipRole === 'owner' &&
+            (project.feedback?.eligible || project.feedback?.submitted)
+          "
+          class="project-card-feedback"
+        >
+          <FeedbackRequestButton :project="project" />
         </div>
       </article>
     </div>

@@ -50,12 +50,12 @@ test('large idea threads retain every comment and demo comments use stable inser
   assert.deepEqual(newestComments(), [])
 })
 
-test('feedback request buttons follow server completion and become disabled once requested or submitted', async () => {
+test('feedback request buttons follow server completion and disable pending requests while submitted reviews remain viewable', async () => {
   for (const [feedback, visible, text, disabled] of [
     [{ eligible: false }, false],
     [{ eligible: true }, true, 'Request feedback', false],
     [{ eligible: true, requested: true }, true, 'Request sent', true],
-    [{ eligible: false, submitted: true }, true, 'Feedback sent', true],
+    [{ eligible: false, submitted: true }, true, 'View feedback', false],
   ]) {
     const html = await renderToString(
       createSSRApp(RequestButton, { project: { id: 'project', feedback } }),

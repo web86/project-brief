@@ -45,12 +45,13 @@ class ProjectDiscussions
         return ['general' => (int) $counts->general, 'tasks' => (int) $counts->tasks];
     }
 
-    public function mark(Builder $query, User|ProjectClient $user): void
+    public function mark(Builder $query, User|ProjectClient $user): int
     {
         // One INSERT SELECT snapshots the selected comments; concurrent newer comments remain unread.
         $client = $user instanceof ProjectClient;
         $key = $client ? 'project_client_id' : 'user_id';
-        DB::table($client ? 'client_comment_reads' : 'comment_reads')->insertOrIgnoreUsing([$key, 'comment_id'],
+
+        return DB::table($client ? 'client_comment_reads' : 'comment_reads')->insertOrIgnoreUsing([$key, 'comment_id'],
             $this->unread($query, $user)->selectRaw('? as '.$key.', comments.id', [$user->id])->toBase());
     }
 

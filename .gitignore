@@ -83,3 +83,5 @@ Desktop.ini
 *.bak
 *.orig
 *.rej
+
+/artifacts/live-sync-ui/

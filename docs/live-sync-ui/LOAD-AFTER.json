@@ -1,0 +1,180 @@
+{
+  "baseline": false,
+  "results": [
+    {
+      "test": "15-minutes-minute-by-minute-real-HTTP",
+      "virtualMinutes": 15,
+      "clockStepSeconds": 60,
+      "initialExtraSyncRequests": 0,
+      "totalRequests": 25,
+      "syncRequests": 3,
+      "decodedResponseBytes": 8894,
+      "endpoints": {
+        "/api/security/status": {
+          "requests": 15,
+          "decodedResponseBytes": 6165
+        },
+        "/api/security/passkey/confirm/options": {
+          "requests": 7,
+          "decodedResponseBytes": 1757
+        },
+        "/api/admin/sync": {
+          "requests": 3,
+          "decodedResponseBytes": 972
+        }
+      },
+      "passed": true
+    }
+  ],
+  "requests": [
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    }
+  ],
+  "errors": []
+}

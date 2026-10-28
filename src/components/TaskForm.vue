@@ -17,6 +17,12 @@ import AppIcon from './AppIcon.vue'
 const props = defineProps({ task: Object })
 const store = useProjectStore()
 const router = useRouter()
+const editVersion = ref(props.task?.editVersion)
+const conflict = computed(
+  () =>
+    !!props.task?.syncRemoved ||
+    (!!editVersion.value && props.task?.editVersion !== editVersion.value),
+)
 const title = ref(props.task?.title || '')
 const initialSection = props.task
   ? store.taskSection(props.task)?.name || getTaskLocation(props.task)
@@ -73,6 +79,7 @@ async function submit() {
   saving.value = true
   try {
     const input = {
+      ...(editVersion.value ? { editVersion: editVersion.value } : {}),
       title: title.value,
       section: location.value.trim(),
       location: detailLocation.value.trim() || location.value.trim(),
@@ -83,8 +90,13 @@ async function submit() {
     if (props.task) {
       if (!store.isDeveloper && !canEditClientTask(store.findTask(props.task.id)))
         throw new Error(t('flow.briefLocked'))
-      if (!(await store.updateTask(props.task.id, input)))
+      if (!(await store.updateTask(props.task.id, input))) {
+        if (store.apiError?.code === 'task_conflict') {
+          await store.refreshApiProject({ preserveTaskId: props.task.id })
+          throw { messageKey: 'liveSync.conflict' }
+        }
         throw new Error(t('ui.weCouldNotCompleteThisActionPleaseTry'))
+      }
       if (
         attachments.value.length &&
         store.apiMode &&
@@ -101,7 +113,7 @@ async function submit() {
       await router.push(store.projectPath)
     }
   } catch (cause) {
-    error.value = cause
+    error.value = cause.messageKey === 'liveSync.conflict' && conflict.value ? null : cause
   } finally {
     saving.value = false
   }
@@ -109,6 +121,16 @@ async function submit() {
 </script>
 <template>
   <form class="idea-form" novalidate @submit.prevent="submit">
+    <p v-if="conflict" class="field-error" role="alert">{{ t('liveSync.conflict') }}</p>
+    <button
+      v-if="conflict && !task?.syncRemoved"
+      type="button"
+      class="button secondary"
+      @click="editVersion = task.editVersion"
+    >
+      {{ t('liveSync.rebase') }}
+    </button>
+
     <div class="field">
       <label for="idea-title"
         >{{ t('ui.whatWouldYouLikeToChange') }}

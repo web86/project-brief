@@ -1,0 +1,667 @@
+{
+  "baseline": false,
+  "results": [
+    {
+      "test": "push-permission-environment",
+      "permission": "denied",
+      "systemDeliveryVerified": false
+    },
+    {
+      "test": "real-HTTP-three-personas-poll-push-drafts",
+      "passed": true,
+      "phpMemoryMiB": 128
+    },
+    {
+      "test": "manual-conversation-check-independent-of-poll-timer",
+      "passed": true
+    },
+    {
+      "test": "client-idea-draft-retained-conflict-explicit-rebase",
+      "passed": true
+    },
+    {
+      "test": "website-prefix-save-and-visible-dangerous-scheme-error",
+      "passed": true
+    },
+    {
+      "test": "owner-review-dialog",
+      "passed": true
+    },
+    {
+      "test": "real-SW-BroadcastChannel-Web-Locks-two-tabs-one-check",
+      "passed": true
+    },
+    {
+      "test": "new-client-idea-appears-in-open-admin-brief",
+      "passed": true
+    },
+    {
+      "test": "general-and-latest-discussions-live-with-retained-draft",
+      "passed": true
+    },
+    {
+      "test": "15-minutes-idle",
+      "polls": 3,
+      "intervalSeconds": 300,
+      "initialExtraPolls": 0,
+      "requests": [
+        {
+          "url": "/api/admin/sync",
+          "method": "GET"
+        },
+        {
+          "url": "/api/security/status",
+          "method": "GET"
+        },
+        {
+          "url": "/api/admin/sync",
+          "method": "GET"
+        },
+        {
+          "url": "/api/security/passkey/confirm/options",
+          "method": "GET"
+        },
+        {
+          "url": "/api/admin/sync",
+          "method": "GET"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "requests": [
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/feedback",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/activity/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/activity/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/discussions/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks/01a18423-359e-7250-8588-f86607f02950",
+      "method": "PATCH"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks/01a18423-359e-7250-8588-f86607f02950",
+      "method": "PATCH"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a18422-f2ac-7338-9803-97a293ac327f/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a18422-f2ac-7338-9803-97a293ac327f/branding",
+      "method": "PATCH"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4cb-71e8-9579-cadc519e3cd9/feedback",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/activity/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/activity/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/01a18422-f4b7-70cc-bb67-137209bb5f8f/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a18422-f4b7-70cc-bb67-137209bb5f8f/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/sync",
+      "method": "GET"
+    }
+  ],
+  "errors": []
+}

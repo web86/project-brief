@@ -1,0 +1,32 @@
+{
+  "requestQueries": 9,
+  "journalQueries": 1,
+  "journalSql": "select \"events\".\"id\", \"events\".\"kind\", \"events\".\"project_id\", \"projects\".\"uuid\" from \"project_sync_events\" as \"events\" left join \"projects\" on \"projects\".\"id\" = \"events\".\"project_id\" where \"events\".\"workspace_id\" = ? and \"events\".\"id\" > ? and (\"events\".\"project_id\" is null or exists (select 1 from \"projects\" where \"workspace_id\" = ? and \"projects\".\"id\" = \"events\".\"project_id\")) order by \"events\".\"id\" asc limit 101",
+  "plan": [
+    {
+      "id": 6,
+      "parent": 0,
+      "notused": 51,
+      "detail": "SEARCH events USING INDEX project_sync_events_workspace_id_id_index (workspace_id=? AND id>?)"
+    },
+    {
+      "id": 18,
+      "parent": 0,
+      "notused": 0,
+      "detail": "CORRELATED SCALAR SUBQUERY 1"
+    },
+    {
+      "id": 22,
+      "parent": 18,
+      "notused": 33,
+      "detail": "SEARCH projects USING INTEGER PRIMARY KEY (rowid=?)"
+    },
+    {
+      "id": 31,
+      "parent": 0,
+      "notused": 45,
+      "detail": "SEARCH projects USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN"
+    }
+  ],
+  "responseBytes": 370
+}

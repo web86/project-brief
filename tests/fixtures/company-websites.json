@@ -1,0 +1,122 @@
+[
+  {
+    "input": "",
+    "normalized": "",
+    "valid": true
+  },
+  {
+    "input": "company.com",
+    "normalized": "https://company.com",
+    "valid": true
+  },
+  {
+    "input": "www.company.com",
+    "normalized": "https://www.company.com",
+    "valid": true
+  },
+  {
+    "input": "https://company.com",
+    "normalized": "https://company.com",
+    "valid": true
+  },
+  {
+    "input": "http://company.com",
+    "normalized": "http://company.com",
+    "valid": true
+  },
+  {
+    "input": "  www.company.com/path?q=1#part  ",
+    "normalized": "https://www.company.com/path?q=1#part",
+    "valid": true
+  },
+  {
+    "input": "https://пример.рф/путь",
+    "normalized": "https://пример.рф/путь",
+    "valid": true
+  },
+  {
+    "input": "https://127.0.0.1:8080/path",
+    "normalized": "https://127.0.0.1:8080/path",
+    "valid": true
+  },
+  {
+    "input": "https://[::1]/a",
+    "normalized": "https://[::1]/a",
+    "valid": true
+  },
+  {
+    "input": "javascript:alert(1)",
+    "normalized": "javascript:alert(1)",
+    "valid": false
+  },
+  {
+    "input": "data:text/html,hi",
+    "normalized": "data:text/html,hi",
+    "valid": false
+  },
+  {
+    "input": "ftp://company.com",
+    "normalized": "ftp://company.com",
+    "valid": false
+  },
+  {
+    "input": "//company.com",
+    "normalized": "//company.com",
+    "valid": false
+  },
+  {
+    "input": "not a site",
+    "normalized": "https://not a site",
+    "valid": false
+  },
+  {
+    "input": "https://-company.com",
+    "normalized": "https://-company.com",
+    "valid": false
+  },
+  {
+    "input": "https://company",
+    "normalized": "https://company",
+    "valid": false
+  },
+  {
+    "input": "https://company..com",
+    "normalized": "https://company..com",
+    "valid": false
+  },
+  {
+    "input": "https://user:pass@company.com",
+    "normalized": "https://user:pass@company.com",
+    "valid": false
+  },
+  {
+    "input": "https://company.com\\@bad.com",
+    "normalized": "https://company.com\\@bad.com",
+    "valid": false
+  },
+  {
+    "input": "https://company.com:99999",
+    "normalized": "https://company.com:99999",
+    "valid": false
+  },
+  {
+    "input": "https://999.1.1.1",
+    "normalized": "https://999.1.1.1",
+    "valid": false
+  },
+  {
+    "input": "https://001.2.3.4",
+    "normalized": "https://001.2.3.4",
+    "valid": false
+  },
+  {
+    "input": "http:company.com",
+    "normalized": "http:company.com",
+    "valid": false
+  },
+  {
+    "input": "https://xn--e1afmkfd.xn--p1ai",
+    "normalized": "https://xn--e1afmkfd.xn--p1ai",
+    "valid": true
+  }
+]

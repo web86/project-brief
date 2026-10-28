@@ -6,6 +6,7 @@ use App\Models\Workspace;
 use App\Services\AccountSecurity;
 use App\Services\AttachmentStorage;
 use App\Services\BrandImage;
+use App\Services\CompanyWebsite;
 use App\Services\CurrentWorkspace;
 use App\Services\WorkspaceBranding;
 use Illuminate\Http\JsonResponse;
@@ -51,7 +52,11 @@ class WorkspaceBrandingController extends Controller
         }
         if ($section === 'contact') {
             $rules[$prefix.'.email'][] = 'email';
-            $rules[$prefix.'.website'][] = 'url:http,https';
+            $rules[$prefix.'.website'][] = function ($attribute, $value, $fail): void {
+                if (! CompanyWebsite::valid($value)) {
+                    $fail(trans('branding.website_invalid'));
+                }
+            };
         }
 
         return $rules;
@@ -60,6 +65,14 @@ class WorkspaceBrandingController extends Controller
     public function update(Request $request, WorkspaceBranding $branding): JsonResponse
     {
         $this->owner($request);
+        foreach (['values.website', 'sections.contact.website'] as $field) {
+            if ($request->has($field) && ($field !== 'values.website' || $request->input('section') === 'contact')) {
+                $value = CompanyWebsite::normalize($request->input($field));
+                $input = $request->all();
+                data_set($input, $field, $value);
+                $request->replace($input);
+            }
+        }
         $keys = ['visual', 'business', 'contact', 'export', 'email'];
         $atomic = $request->has('sections');
         if ($atomic) {

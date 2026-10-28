@@ -15,7 +15,7 @@ class TaskResource extends JsonResource
         $admin = TaskAccess::isAdmin($request);
         $prefix = $admin ? 'admin' : 'client';
 
-        return ['id' => $this->uuid, 'title' => $this->title, 'location' => $this->location ?? $this->section ?? trans('interface.sections.4'), 'section' => $this->projectSection ? ProjectStructure::sectionData($this->projectSection) : null,
+        return ['editVersion' => $this->resource->editVersion($admin), 'id' => $this->uuid, 'title' => $this->title, 'location' => $this->location ?? $this->section ?? trans('interface.sections.4'), 'section' => $this->projectSection ? ProjectStructure::sectionData($this->projectSection) : null,
             'sectionId' => $this->projectSection?->uuid, 'position' => $this->position, 'displayNumber' => ProjectStructure::number($this->resource), 'display_number' => ProjectStructure::number($this->resource),
             'description' => $this->description, 'expectedResult' => $this->expected_result ?? '', 'priority' => $this->priority, 'status' => $this->status, 'clientApproved' => $this->client_approved,
             'clientEditable' => $this->resource->isClientEditable(),

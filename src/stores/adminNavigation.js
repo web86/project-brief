@@ -13,6 +13,7 @@ import { toast } from '../services/toast.js'
 import { t, formatApiError, applyClientLocale } from '../i18n/index.js'
 
 export const useAdminNavigationStore = defineStore('adminNavigation', () => {
+  const syncCursor = ref(null)
   const user = ref(null),
     workspace = ref(null),
     workspaces = ref([]),
@@ -44,6 +45,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     revision++
     pending = null
     clearProjectState()
+    syncCursor.value = null
     user.value = null
     workspace.value = null
     workspaces.value = []
@@ -65,6 +67,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
           request('/api/admin/workspaces'),
         ])
         if (current !== revision) return false
+        syncCursor.value = me.syncCursor
         user.value = me.user
         workspace.value = me.workspace
         workspaces.value = choices.data
@@ -194,6 +197,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     else projects.value[index] = { ...projects.value[index], ...project }
   }
   return {
+    syncCursor,
     user,
     workspace,
     workspaces,

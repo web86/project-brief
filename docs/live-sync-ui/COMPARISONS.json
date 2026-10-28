@@ -1,0 +1,62 @@
+[
+  {
+    "file": "comparisons/1440-light-ru-projects.png",
+    "before": "artifacts/live-sync-ui/before/1440-light-ru-projects.png",
+    "after": "artifacts/live-sync-ui/after/1440-light-ru-projects.png"
+  },
+  {
+    "file": "comparisons/1440-light-ru-task.png",
+    "before": "artifacts/live-sync-ui/before/1440-light-ru-task.png",
+    "after": "artifacts/live-sync-ui/after/1440-light-ru-task.png"
+  },
+  {
+    "file": "comparisons/1440-light-ru-branding.png",
+    "before": "artifacts/live-sync-ui/before/1440-light-ru-branding.png",
+    "after": "artifacts/live-sync-ui/after/1440-light-ru-branding.png"
+  },
+  {
+    "file": "comparisons/1440-light-ru-notifications.png",
+    "before": "artifacts/live-sync-ui/before/1440-light-ru-notifications.png",
+    "after": "artifacts/live-sync-ui/after/1440-light-ru-notifications.png"
+  },
+  {
+    "file": "comparisons/1440-light-ru-website.png",
+    "before": "artifacts/live-sync-ui/before/1440-light-ru-website.png",
+    "after": "artifacts/live-sync-ui/after/1440-light-ru-website.png"
+  },
+  {
+    "file": "comparisons/1440-light-ru-discussions.png",
+    "before": "artifacts/live-sync-ui/before/1440-light-ru-discussions.png",
+    "after": "artifacts/live-sync-ui/after/1440-light-ru-discussions.png"
+  },
+  {
+    "file": "comparisons/390-light-tr-projects.png",
+    "before": "artifacts/live-sync-ui/before/390-light-tr-projects.png",
+    "after": "artifacts/live-sync-ui/after/390-light-tr-projects.png"
+  },
+  {
+    "file": "comparisons/390-light-tr-task.png",
+    "before": "artifacts/live-sync-ui/before/390-light-tr-task.png",
+    "after": "artifacts/live-sync-ui/after/390-light-tr-task.png"
+  },
+  {
+    "file": "comparisons/390-light-tr-branding.png",
+    "before": "artifacts/live-sync-ui/before/390-light-tr-branding.png",
+    "after": "artifacts/live-sync-ui/after/390-light-tr-branding.png"
+  },
+  {
+    "file": "comparisons/390-light-tr-notifications.png",
+    "before": "artifacts/live-sync-ui/before/390-light-tr-notifications.png",
+    "after": "artifacts/live-sync-ui/after/390-light-tr-notifications.png"
+  },
+  {
+    "file": "comparisons/390-light-tr-website.png",
+    "before": "artifacts/live-sync-ui/before/390-light-tr-website.png",
+    "after": "artifacts/live-sync-ui/after/390-light-tr-website.png"
+  },
+  {
+    "file": "comparisons/390-light-tr-discussions.png",
+    "before": "artifacts/live-sync-ui/before/390-light-tr-discussions.png",
+    "after": "artifacts/live-sync-ui/after/390-light-tr-discussions.png"
+  }
+]

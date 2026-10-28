@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
+
+class LiveSync
+{
+    private bool $ready = false;
+
+    public function record(int $workspaceId, ?int $projectId, string $kind): void
+    {
+        if (! $this->ready && ! ($this->ready = Schema::hasTable('project_sync_events'))) {
+            return;
+        }
+        DB::afterCommit(function () use ($workspaceId, $projectId, $kind): void {
+            // Serial allocation per workspace prevents a later committed ID from skipping an earlier concurrent event.
+            DB::transaction(function () use ($workspaceId, $projectId, $kind): void {
+                if (! DB::table('workspaces')->where('id', $workspaceId)->lockForUpdate()->first(['id'])) {
+                    return;
+                }
+                if ($projectId && ! DB::table('projects')->where('id', $projectId)->exists()) {
+                    $projectId = null;
+                }
+                DB::table('project_sync_events')->insert(['workspace_id' => $workspaceId, 'project_id' => $projectId, 'kind' => $kind, 'created_at' => now()]);
+            }, 3);
+        });
+    }
+
+    private function scope(Request $request): array
+    {
+        if ($client = $request->attributes->get('project_client')) {
+            $project = $request->attributes->get('client_project');
+
+            return [$project->workspace_id, 'client:'.$client->id.':'.$project->id, $project->id, null];
+        }
+        $member = app(CurrentWorkspace::class)->resolve($request);
+
+        return [$member->workspace_id, 'admin:'.$member->user_id.':'.$member->id, null, $member];
+    }
+
+    private function cursor(string $scope, int $id): string
+    {
+        return Crypt::encryptString(json_encode(['scope' => $scope, 'id' => $id, 'at' => now()->timestamp], JSON_THROW_ON_ERROR));
+    }
+
+    public function seed(Request $request): string
+    {
+        [$workspaceId, $scope] = $this->scope($request);
+
+        return $this->cursor($scope, (int) DB::table('project_sync_events')->where('workspace_id', $workspaceId)->max('id'));
+    }
+
+    public function changes(Request $request): array
+    {
+        $data = $request->validate(['cursor' => ['required', 'string', 'max:2048']]);
+        [$workspaceId, $scope, $projectId, $member] = $this->scope($request);
+        try {
+            $cursor = json_decode(Crypt::decryptString($data['cursor']), true, flags: JSON_THROW_ON_ERROR);
+            if (($cursor['scope'] ?? '') !== $scope || ! is_int($cursor['id'] ?? null) || ! is_int($cursor['at'] ?? null) || $cursor['id'] < 0) {
+                throw new DecryptException;
+            }
+        } catch (\Throwable) {
+            throw ValidationException::withMessages(['cursor' => 'Invalid sync cursor.']);
+        }
+        $rows = DB::table('project_sync_events as events')->where('events.workspace_id', $workspaceId)->where('events.id', '>', $cursor['id'])
+            ->when($projectId, fn ($q) => $q->where('events.project_id', $projectId))
+            ->when($member, fn ($q) => $q->where(fn ($q) => $q->whereNull('events.project_id')->orWhereExists(ProjectAccess::forMember($member)->withTrashed()->whereColumn('projects.id', 'events.project_id')->selectRaw('1')->toBase())))
+            ->leftJoin('projects', 'projects.id', '=', 'events.project_id')->orderBy('events.id')->limit(101)->get(['events.id', 'events.kind', 'events.project_id', 'projects.uuid']);
+        $reset = $cursor['at'] < now()->subDays(6)->timestamp || $rows->count() > 100 || $rows->contains(fn ($row) => $row->project_id === null);
+        $id = $rows->isNotEmpty() ? (int) $rows->last()->id : $cursor['id'];
+        if ($reset) {
+            $id = (int) DB::table('project_sync_events')->where('workspace_id', $workspaceId)->max('id');
+        }
+
+        return ['cursor' => $this->cursor($scope, $id), 'reset' => $reset, 'kinds' => $reset ? [] : $rows->pluck('kind')->unique()->values(), 'projects' => $reset ? [] : $rows->pluck('uuid')->filter()->unique()->values(), 'changed' => $reset || $rows->isNotEmpty()];
+    }
+}

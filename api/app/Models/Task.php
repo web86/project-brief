@@ -29,6 +29,18 @@ class Task extends Model
         return 'uuid';
     }
 
+    public function editVersion(bool $admin): string
+    {
+        $fields = ['title', 'location', 'project_section_id', 'description', 'expected_result', 'priority', 'status', 'client_approved'];
+        if ($admin) {
+            $fields = [...$fields, 'estimate_hours', 'price', 'developer_notes'];
+        }
+
+        $values = [...$this->only($fields), 'section_name' => $this->projectSection?->name];
+
+        return hash_hmac('sha256', json_encode($values, JSON_THROW_ON_ERROR), config('app.key'));
+    }
+
     public function isClientEditable(): bool
     {
         return ! $this->client_approved && in_array($this->status, ['new', 'clarification']);

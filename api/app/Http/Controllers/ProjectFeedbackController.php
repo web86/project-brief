@@ -22,6 +22,9 @@ class ProjectFeedbackController extends Controller
             $member = app(CurrentWorkspace::class)->resolve($request, true);
             $project = ProjectAccess::forMember($member)->whereKey($project->id)->lockForUpdate()->firstOrFail();
             abort_unless($feedbacks->eligible($project), 409, trans('feedback.incomplete'));
+            if ($project->feedback()->whereNotNull('submitted_at')->exists()) {
+                return;
+            }
             foreach ($project->clients()->where('active', true)->get() as $client) {
                 $entry = $feedbacks->entry($project, $client);
                 if (! $entry->requested_at && ! $entry->submitted_at) {
@@ -31,6 +34,17 @@ class ProjectFeedbackController extends Controller
         }, 3);
 
         return response()->json(['requested' => true]);
+    }
+
+    public function review(Request $request, Project $project): JsonResponse
+    {
+        $member = app(CurrentWorkspace::class)->resolve($request);
+        abort_unless($member->role === 'owner', 403);
+        ProjectAccess::forMember($member)->whereKey($project->id)->firstOrFail();
+
+        return response()->json(['data' => $project->feedback()->whereNotNull('submitted_at')->with('projectClient')->orderByDesc('submitted_at')->get()->map(fn ($row) => [
+            'rating' => $row->rating, 'text' => $row->text, 'author' => $row->projectClient?->name, 'submittedAt' => $row->submitted_at->toISOString(),
+        ])])->header('Cache-Control', 'no-store');
     }
 
     public function show(Request $request, Project $project, ProjectFeedbacks $feedbacks): JsonResponse
@@ -45,10 +59,10 @@ class ProjectFeedbackController extends Controller
         $autoOpen = DB::transaction(function () use ($project, $client, $data, $feedbacks): bool {
             ProjectStructure::lock($project);
             abort_unless($feedbacks->eligible($project), 409, trans('feedback.incomplete'));
-            $entry = $feedbacks->entry($project, $client);
-            if ($entry->submitted_at) {
+            if (ProjectFeedback::where('project_id', $project->id)->whereNotNull('submitted_at')->exists()) {
                 return false;
             }
+            $entry = $feedbacks->entry($project, $client);
             if ($data['action'] === 'dismiss') {
                 $entry->update(['shown_at' => $entry->shown_at ?? now(), 'dismissed_at' => $entry->dismissed_at ?? now()]);
 
@@ -76,6 +90,7 @@ class ProjectFeedbackController extends Controller
             if ($entry?->submitted_at) {
                 return $entry;
             }
+            abort_if(ProjectFeedback::where('project_id', $project->id)->whereNotNull('submitted_at')->exists(), 409);
             abort_unless($feedbacks->eligible($project), 409, trans('feedback.incomplete'));
             $entry ??= $feedbacks->entry($project, $client);
             $entry->update(['rating' => $data['rating'], 'text' => trim($data['text'] ?? '') ?: null, 'submitted_at' => now(), 'shown_at' => $entry->shown_at ?? now()]);

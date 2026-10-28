@@ -5,7 +5,12 @@ import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useWorkspaceBrandingStore } from '../stores/workspaceBranding.js'
 import { t, formatApiError } from '../i18n/index.js'
 import { theme } from '../services/theme.js'
-import { brandingFields, brandTokens, brandPresets } from '../services/branding.js'
+import {
+  brandingFields,
+  brandTokens,
+  brandPresets,
+  validCompanyWebsite,
+} from '../services/branding.js'
 import { toast } from '../services/toast.js'
 import AppIcon from '../components/AppIcon.vue'
 import { isSecurityCancellation } from '../services/stepUp.js'
@@ -45,6 +50,15 @@ const toggles = {
     contact: 'showContact',
     accent: 'emailAccent',
   },
+}
+function fieldInput(event, key) {
+  event.target.setCustomValidity('')
+  if (
+    key === 'website' &&
+    store.error?.errors?.['sections.contact.website'] &&
+    Object.keys(store.error.errors).length === 1
+  )
+    store.error = null
 }
 function beforeUnload(event) {
   if (store.dirty || store.busy) {
@@ -186,7 +200,7 @@ const changed = (section) =>
                   :id="'brand-' + key"
                   v-model="store.draft[tab][key]"
                   @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
-                  @input="$event.target.setCustomValidity('')"
+                  @input="fieldInput($event, key)"
                   :maxlength="limit"
                   rows="3"
                 />
@@ -195,20 +209,46 @@ const changed = (section) =>
                   :id="'brand-' + key"
                   v-model="store.draft[tab][key]"
                   @invalid="$event.target.setCustomValidity(t('flow.fieldError'))"
-                  @input="$event.target.setCustomValidity('')"
+                  @input="fieldInput($event, key)"
+                  :aria-invalid="
+                    key === 'website'
+                      ? !validCompanyWebsite(store.draft.contact.website) ||
+                        !!store.error?.errors?.['sections.contact.website']
+                      : undefined
+                  "
+                  :aria-describedby="key === 'website' ? 'brand-website-error' : undefined"
+                  :inputmode="key === 'website' ? 'url' : undefined"
                   :maxlength="limit"
                   :type="
                     key === 'email'
                       ? 'email'
                       : key === 'website'
-                        ? 'url'
+                        ? 'text'
                         : key === 'phone'
                           ? 'tel'
                           : 'text'
                   "
                   :pattern="key === 'primaryColor' ? '#[0-9a-fA-F]{6}' : undefined"
-                  :placeholder="key === 'primaryColor' ? '#2454a5' : undefined"
+                  :placeholder="
+                    key === 'primaryColor'
+                      ? '#2454a5'
+                      : key === 'website'
+                        ? 'company.com'
+                        : undefined
+                  "
                 />
+                <p
+                  v-if="
+                    key === 'website' &&
+                    (!validCompanyWebsite(store.draft.contact.website) ||
+                      store.error?.errors?.['sections.contact.website'])
+                  "
+                  id="brand-website-error"
+                  class="field-error"
+                  role="alert"
+                >
+                  {{ t('liveSync.websiteInvalid') }}
+                </p>
               </div>
             </div>
             <template v-if="tab === 'visual'">

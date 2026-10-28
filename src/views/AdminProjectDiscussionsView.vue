@@ -10,6 +10,7 @@ import LoadingButton from '../components/LoadingButton.vue'
 const route = useRoute()
 const client = route.meta.clientSection === 'discussions'
 const discussions = client ? useClientDiscussionsStore() : useDiscussionsStore()
+const checkingMessages = ref(false)
 const pending = ref(false),
   targetError = ref('')
 const kinds = ['general', 'tasks']
@@ -82,6 +83,17 @@ async function run(action) {
     if (active) pending.value = false
   }
 }
+async function checkMessages() {
+  if (pending.value || checkingMessages.value) return
+  checkingMessages.value = true
+  try {
+    await run(() =>
+      discussions.load(route.params.uuid, { selectedFilter: discussions.filter, preserve: true }),
+    )
+  } finally {
+    checkingMessages.value = false
+  }
+}
 function loadMore(kind) {
   const id = route.params.uuid
   return discussions.more(kind).catch((error) => {
@@ -128,6 +140,14 @@ async function send(text, files, submissionId) {
       :tabindex="0"
     >
       <div class="discussion-toolbar">
+        <LoadingButton
+          type="button"
+          class="text-button check-messages"
+          :busy="checkingMessages"
+          :disabled="pending || checkingMessages"
+          @click="checkMessages"
+          >{{ t('liveSync.checkMessages') }}</LoadingButton
+        >
         <h2 class="sr-only">{{ t('discussions.' + kind) }}</h2>
         <button
           v-if="discussions.targetWindows[kind]"

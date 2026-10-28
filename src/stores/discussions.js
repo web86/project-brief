@@ -48,7 +48,10 @@ function createDiscussionsStore(name, persona) {
         if (project.id === id) project.unreadCommentCount = count
       }
     }
-    async function load(id, { defer = false, selectedFilter = 'all', reuse = false } = {}) {
+    async function load(
+      id,
+      { defer = false, selectedFilter = 'all', reuse = false, preserve = false } = {},
+    ) {
       if (reuse && projectId.value === id && filter.value === selectedFilter)
         return defer ? () => true : true
       const current = ++revision
@@ -61,14 +64,41 @@ function createDiscussionsStore(name, persona) {
         ),
       )
       if (current !== revision) return false
-      if (reads !== readVersion(id)) return load(id, { defer, selectedFilter })
+      if (reads !== readVersion(id)) return load(id, { defer, selectedFilter, preserve })
       const commit = () => {
         if (current !== revision || reads !== readVersion(id)) return false
+        const retain = preserve && projectId.value === id && filter.value === selectedFilter
+        const windows = retain ? { ...targetWindows.value } : { general: false, tasks: false }
+        const cursors = { ...next.value }
+        const merge = (fresh, old) => [
+          ...fresh,
+          ...old.filter((item) => !fresh.some((next) => next.id === item.id)),
+        ]
+        const keepTasks = retain && selectedFilter === 'all'
+        const oldTaskLength = tasks.value.length,
+          oldGeneralLength = general.value.length
         projectId.value = id
-        tasks.value = feed.data
-        general.value = messages.data
-        next.value = { tasks: feed.nextCursor, general: messages.nextCursor }
-        targetWindows.value = { general: false, tasks: false }
+        tasks.value = windows.tasks
+          ? tasks.value
+          : keepTasks
+            ? merge(feed.data, tasks.value)
+            : feed.data
+        general.value = windows.general
+          ? general.value
+          : keepTasks
+            ? merge(messages.data, general.value)
+            : messages.data
+        next.value = {
+          tasks:
+            windows.tasks || (keepTasks && oldTaskLength > feed.data.length)
+              ? cursors.tasks
+              : feed.nextCursor,
+          general:
+            windows.general || (keepTasks && oldGeneralLength > messages.data.length)
+              ? cursors.general
+              : messages.nextCursor,
+        }
+        targetWindows.value = windows
         loadingMore.value = {}
         morePending = {}
         targetsPending = new Map()

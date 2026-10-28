@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '../api/client.js'
 import { t } from '../i18n/index.js'
-import { svgRaster } from '../services/branding.js'
+import { svgRaster, normalizeCompanyWebsite, validCompanyWebsite } from '../services/branding.js'
 const sections = ['visual', 'business', 'contact', 'export', 'email']
 const copy = (value) => JSON.parse(JSON.stringify(value))
 export const useWorkspaceBrandingStore = defineStore('workspaceBranding', () => {
@@ -67,9 +67,25 @@ export const useWorkspaceBrandingStore = defineStore('workspaceBranding', () => 
     const current = revision,
       path = root(),
       snapshot = copy(draft.value)
+    if (!validCompanyWebsite(snapshot.contact.website)) {
+      error.value = {
+        errors: { 'sections.contact.website': [t('liveSync.websiteInvalid')] },
+        message: t('liveSync.websiteInvalid'),
+        status: 422,
+      }
+      return false
+    }
+    if (Object.hasOwn(snapshot.contact, 'website')) {
+      snapshot.contact.website = normalizeCompanyWebsite(snapshot.contact.website)
+      draft.value.contact.website = snapshot.contact.website
+    }
     const changed = sections.filter(
       (key) => JSON.stringify(snapshot[key]) !== JSON.stringify(settings.value[key]),
     )
+    if (!changed.length) {
+      error.value = null
+      return true
+    }
     const values = Object.fromEntries(changed.map((key) => [key, snapshot[key]]))
     const versions = Object.fromEntries(changed.map((key) => [key, settings.value.versions[key]]))
     controller = new AbortController()

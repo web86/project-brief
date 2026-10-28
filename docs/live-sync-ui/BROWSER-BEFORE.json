@@ -1,0 +1,1230 @@
+{
+  "baseline": true,
+  "results": [
+    {
+      "test": "ui-matrix",
+      "width": 1440,
+      "mode": "light",
+      "locale": "ru",
+      "passed": true
+    },
+    {
+      "test": "ui-matrix",
+      "width": 1440,
+      "mode": "dark",
+      "locale": "en",
+      "passed": true
+    },
+    {
+      "test": "ui-matrix",
+      "width": 1280,
+      "mode": "light",
+      "locale": "tr",
+      "passed": true
+    },
+    {
+      "test": "ui-matrix",
+      "width": 1280,
+      "mode": "dark",
+      "locale": "zh-CN",
+      "passed": true
+    },
+    {
+      "test": "ui-matrix",
+      "width": 768,
+      "mode": "light",
+      "locale": "ru",
+      "passed": true
+    },
+    {
+      "test": "ui-matrix",
+      "width": 768,
+      "mode": "dark",
+      "locale": "en",
+      "passed": true
+    },
+    {
+      "test": "baseline-known-overflow",
+      "screenshot": "390-light-tr-discussions"
+    },
+    {
+      "test": "ui-matrix",
+      "width": 390,
+      "mode": "light",
+      "locale": "tr",
+      "passed": true
+    },
+    {
+      "test": "baseline-known-overflow",
+      "screenshot": "390-dark-zh-CN-discussions"
+    },
+    {
+      "test": "ui-matrix",
+      "width": 390,
+      "mode": "dark",
+      "locale": "zh-CN",
+      "passed": true
+    },
+    {
+      "test": "ui-matrix",
+      "width": 360,
+      "mode": "light",
+      "locale": "ru",
+      "passed": true
+    },
+    {
+      "test": "ui-matrix",
+      "width": 360,
+      "mode": "dark",
+      "locale": "en",
+      "passed": true
+    }
+  ],
+  "requests": [
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions/read",
+      "method": "POST"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/login",
+      "method": "POST"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/projects/trash",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/notifications",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/push/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/telegram",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a1841e-966e-7191-b606-24cdaffa6ac8/branding",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/me",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/tasks",
+      "method": "GET"
+    },
+    {
+      "url": "/api/csrf",
+      "method": "GET"
+    },
+    {
+      "url": "/api/client/project/01a1841e-9874-7396-b161-0c2db3bb9462/discussions/read",
+      "method": "POST"
+    }
+  ],
+  "errors": []
+}

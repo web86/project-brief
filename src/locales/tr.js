@@ -1,4 +1,12 @@
 export default {
+  liveSync: {
+    viewFeedback: 'Geri bildirimi görüntüle',
+    checkMessages: 'Yeni mesajları kontrol et',
+    conflict:
+      'Başka bir katılımcı bu görevi değiştirdi. Taslağınız korundu. Kaydetmeden önce yeni sürümü inceleyin.',
+    rebase: 'Taslağımı yeni sürümün üzerine uygula',
+    websiteInvalid: 'company.com veya https://company.com gibi geçerli bir site girin.',
+  },
   branding: {
     newDraft: 'Değişiklikler kaydedildi. Daha yeni düzenlemeler taslakta kaldı.',
     retryUpload: 'Seçili dosyayı yeniden yükle',

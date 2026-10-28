@@ -236,6 +236,13 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(factor.status, 200)
   assert.equal((await factor.json()).state, 'authenticated')
   const ownerState = await (await request('/api/admin/me')).json()
+  const liveSeed = await request(
+    '/api/admin/sync?cursor=' + encodeURIComponent(ownerState.syncCursor),
+  )
+  assert.equal(liveSeed.status, 200)
+  assert.match(liveSeed.headers.get('cache-control'), /no-store/)
+  assert.equal((await liveSeed.json()).changed, false)
+  assert.equal((await request('/api/admin/sync?cursor=invalid')).status, 422)
   assert.equal(ownerState.user.role, 'admin')
   assert.equal(ownerState.user.membershipRole, 'owner')
   assert.equal(ownerState.user.canCreateProjects, true)
@@ -1336,7 +1343,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.7',
+    '0.7.8',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

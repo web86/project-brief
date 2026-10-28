@@ -50,10 +50,13 @@ class ProjectUnread
         DB::transaction(function () use ($request, $project): void {
             $maximum = (int) ($this->relevant()->where('tasks.project_id', $project->id)->max('task_history.id') ?? 0);
             $key = ['user_id' => $request->user()->id, 'project_id' => $project->id];
-            DB::table('project_reads')->insertOrIgnore([...$key, 'last_seen_history_id' => $maximum, 'created_at' => now(), 'updated_at' => now()]);
+            $inserted = DB::table('project_reads')->insertOrIgnore([...$key, 'last_seen_history_id' => $maximum, 'created_at' => now(), 'updated_at' => now()]);
             // Conditional update is atomic and never lowers a marker under concurrent requests/deletion.
-            DB::table('project_reads')->where($key)->where('last_seen_history_id', '<', $maximum)
+            $changed = DB::table('project_reads')->where($key)->where('last_seen_history_id', '<', $maximum)
                 ->update(['last_seen_history_id' => $maximum, 'updated_at' => now()]);
+            if ($changed || $inserted && $maximum > 0) {
+                app(LiveSync::class)->record($project->workspace_id, $project->id, 'read');
+            }
         });
 
         return $this->state($request, $project);

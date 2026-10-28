@@ -2,7 +2,18 @@
 
 namespace App\Providers;
 
+use App\Models\Attachment;
+use App\Models\Comment;
 use App\Models\Project;
+use App\Models\ProjectFeedback;
+use App\Models\ProjectMember;
+use App\Models\ProjectRead;
+use App\Models\ProjectSection;
+use App\Models\Task;
+use App\Models\Workspace;
+use App\Models\WorkspaceMember;
+use App\Observers\LiveSyncObserver;
+use App\Services\LiveSync;
 use App\Services\StoreAccountPasskey;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -24,7 +35,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        foreach (['invitation-resolve' => 20, 'invitation-accept' => 10, 'profile-update' => 30, 'notification-update' => 30, 'notification-verify' => 10, 'notification-test' => 5, 'integration-settings' => 30, 'integration-test' => 5, 'integration-retry' => 5, 'push-subscribe' => 30, 'project-notification-test' => 5] as $name => $maximum) {
+        foreach ([Project::class, Task::class, Comment::class, Attachment::class, ProjectSection::class, ProjectFeedback::class, ProjectRead::class, Workspace::class, WorkspaceMember::class, ProjectMember::class] as $model) {
+            $model::observe(LiveSyncObserver::class);
+        }
+        $this->app->singleton(LiveSync::class);
+
+        foreach (['live-sync' => 30, 'invitation-resolve' => 20, 'invitation-accept' => 10, 'profile-update' => 30, 'notification-update' => 30, 'notification-verify' => 10, 'notification-test' => 5, 'integration-settings' => 30, 'integration-test' => 5, 'integration-retry' => 5, 'push-subscribe' => 30, 'project-notification-test' => 5] as $name => $maximum) {
             RateLimiter::for($name, function (Request $request) use ($maximum) {
                 $client = $request->attributes->get('project_client');
                 $actor = $client ? 'client:'.$client->id : ($request->user() ? 'user:'.$request->user()->id : 'ip:'.$request->ip());

@@ -73,6 +73,18 @@ watch([dirty, () => store.isDeveloper], () => editor?.sync(), { flush: 'sync' })
 onUnmounted(() => editor?.dispose())
 const commentForm = ref(null)
 const approving = ref(false)
+const checkingMessages = ref(false)
+async function checkMessages() {
+  if (checkingMessages.value) return
+  checkingMessages.value = true
+  try {
+    await store.refreshApiProject({ preserveTaskId: route.params.id })
+  } catch (error) {
+    toast.error(() => formatApiError(error))
+  } finally {
+    checkingMessages.value = false
+  }
+}
 const editable = computed(() => !store.isDeveloper && canEditClientTask(task.value))
 const deletion = useDraftDeletion({ store, task, router: storeRouter })
 const deleteOpen = deletion.open
@@ -89,6 +101,7 @@ function focusClarification() {
 </script>
 <template>
   <div v-if="task" class="task-workspace">
+    <p v-if="task.syncRemoved" class="field-error" role="alert">{{ t('liveSync.conflict') }}</p>
     <div class="task-page" :key="task.id">
       <div class="task-context-row">
         <div class="task-context-left">
@@ -175,6 +188,14 @@ function focusClarification() {
             <h2>
               {{ t('ui.comments2') }} <span class="count-pill">{{ task.comments.length }}</span>
             </h2>
+            <LoadingButton
+              type="button"
+              class="text-button check-messages"
+              :busy="checkingMessages"
+              :disabled="checkingMessages"
+              @click="checkMessages"
+              >{{ t('liveSync.checkMessages') }}</LoadingButton
+            >
             <CommentForm ref="commentForm" :task-id="task.id" />
             <CommentList :comments="comments" :target="route.hash.slice(1)" @seen="seenComment" />
           </section>

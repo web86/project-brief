@@ -156,7 +156,7 @@ class ProjectFeedbackTest extends TestCase
         $this->postJson($root, ['rating' => 3])->assertOk();
         $second = ProjectClient::factory()->for($project)->create();
         $this->client($project, $second);
-        $this->getJson($root)->assertJsonPath('submitted', false)->assertJsonMissingPath('rating')->assertJsonMissingPath('text');
+        $this->getJson($root)->assertJsonPath('submitted', true)->assertJsonMissingPath('rating')->assertJsonMissingPath('text');
         $tokenId = session('client_access_token_id');
         DB::table('project_access_tokens')->where('id', $tokenId)->update(['expires_at' => now()->subMinute()]);
         $this->postJson($root, ['rating' => 5])->assertUnauthorized();

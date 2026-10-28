@@ -165,6 +165,10 @@ export const useProjectStore = defineStore('project', () => {
   const storageError = ref('')
   const storageBlocked = ref(false)
   const initialized = ref(false)
+  const draftVersions = ref({}),
+    draftConflicts = ref({})
+  let syncPending = null,
+    mutationRevision = 0
   let loading = false
   let apiRevision = 0
 
@@ -200,11 +204,13 @@ export const useProjectStore = defineStore('project', () => {
     return task
   }
   function serialize(id, operation) {
+    mutationRevision++
     const previous = writes.get(id) || Promise.resolve()
     const next = previous.catch(() => {}).then(operation)
     writes.set(id, next)
     next
       .finally(() => {
+        mutationRevision++
         if (writes.get(id) === next) writes.delete(id)
       })
       .catch(() => {})
@@ -227,15 +233,19 @@ export const useProjectStore = defineStore('project', () => {
   }
   function clearApiState() {
     apiRevision++
+    syncPending = null
     project.value = { id: '', name: '', website: '', description: '', currency: 'RUB' }
     tasks.value = []
     trash.value = []
     sections.value = []
     developerDrafts.value = {}
+    draftVersions.value = {}
+    draftConflicts.value = {}
     currentClient.value = null
     apiLoading.value = false
   }
   async function loadApiProject(id, asAdmin, { skipAdmin = false, defer = false } = {}) {
+    syncPending = null
     const current = ++apiRevision
     apiLoading.value = true
     apiError.value = ''
@@ -268,6 +278,8 @@ export const useProjectStore = defineStore('project', () => {
         if (nextClient) {
           applyClientLocale(nextClient.preferredLocale)
           developerDrafts.value = {}
+          draftVersions.value = {}
+          draftConflicts.value = {}
         }
         project.value = details.data
         sections.value = details.data.sections
@@ -287,13 +299,66 @@ export const useProjectStore = defineStore('project', () => {
       if (current === apiRevision) apiLoading.value = false
     }
   }
+  function refreshApiProject({ preserveTaskId } = {}) {
+    if (syncPending) return syncPending
+    const id = project.value.id,
+      asAdmin = !!admin.value,
+      current = apiRevision
+    if (!id) return Promise.resolve(false)
+    const operation = (async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await Promise.allSettled([...writes.values()])
+        const mutations = mutationRevision
+        const [details, list] = await Promise.all([
+          api.request(asAdmin ? `/api/admin/projects/${id}` : `/api/client/project/${id}`),
+          api.request(asAdmin ? `/api/admin/projects/${id}/tasks` : '/api/client/tasks'),
+        ])
+        if (current !== apiRevision || id !== project.value.id) return false
+        if (mutations !== mutationRevision || writes.size) continue
+        const incoming = list.data
+        for (const previous of tasks.value) {
+          if (
+            !incoming.some((item) => item.id === previous.id) &&
+            (hasDeveloperChanges(previous.id) || previous.id === preserveTaskId)
+          )
+            incoming.push({ ...previous, syncRemoved: true })
+        }
+        project.value = details.data
+        sections.value = details.data.sections
+        tasks.value = incoming
+        for (const task of incoming) {
+          if (hasDeveloperChanges(task.id) && draftVersions.value[task.id] !== task.editVersion)
+            draftConflicts.value[task.id] = true
+        }
+        return true
+      }
+      throw new Error('sync_mutation_in_progress')
+    })().finally(() => {
+      if (syncPending === operation) syncPending = null
+    })
+    syncPending = operation
+    return operation
+  }
+  function rebaseDeveloperDraft(id) {
+    draftVersions.value[id] = findTask(id)?.editVersion
+    delete draftConflicts.value[id]
+  }
   const hasDeveloperChanges = (id) => !!Object.keys(developerDrafts.value[id] || {}).length
   function developerTask(id) {
     const task = findTask(id)
     return task ? { ...task, ...(developerDrafts.value[id] || {}) } : null
   }
+  function pruneRemoteTasks(preserveId) {
+    const retained = tasks.value.filter(
+      (task) => !task.syncRemoved || task.id === preserveId || hasDeveloperChanges(task.id),
+    )
+    if (retained.length !== tasks.value.length) tasks.value = retained
+  }
   function discardDeveloperChanges() {
     developerDrafts.value = {}
+    draftVersions.value = {}
+    draftConflicts.value = {}
+    pruneRemoteTasks()
   }
   async function saveDeveloperData(id) {
     if (!isDeveloper.value || savingDeveloper.value || !hasDeveloperChanges(id)) return false
@@ -307,7 +372,10 @@ export const useProjectStore = defineStore('project', () => {
         await serialize(id, async () => {
           const { data } = await api.request(`/api/admin/tasks/${id}`, {
             method: 'PATCH',
-            body: draft,
+            body: {
+              ...draft,
+              ...(draftVersions.value[id] ? { editVersion: draftVersions.value[id] } : {}),
+            },
           })
           if (
             project.value.id !== savingProject ||
@@ -315,6 +383,8 @@ export const useProjectStore = defineStore('project', () => {
           )
             return
           replaceTask(data)
+          draftVersions.value[id] = data.editVersion
+          delete draftConflicts.value[id]
           for (const [key, value] of Object.entries(developerDrafts.value[id] || {})) {
             if (data[key] === value) delete developerDrafts.value[id][key]
           }
@@ -356,7 +426,13 @@ export const useProjectStore = defineStore('project', () => {
       return true
     } catch (error) {
       // Keep the editor and its draft available even when a save fails with an expired session.
-      toast.error(() => formatApiError(error))
+      if (error.code === 'task_conflict') {
+        draftConflicts.value[id] = true
+        await refreshApiProject().catch(() => {})
+      }
+      toast.error(() =>
+        error.code === 'task_conflict' ? t('liveSync.conflict') : formatApiError(error),
+      )
       return false
     } finally {
       savingDeveloper.value = false
@@ -856,6 +932,7 @@ export const useProjectStore = defineStore('project', () => {
   function updateDeveloperData(id, data) {
     const task = findTask(id)
     if (!isDeveloper.value || !task || storageBlocked.value) return false
+    if (!hasDeveloperChanges(id)) draftVersions.value[id] = task.editVersion
     const draft = { ...(developerDrafts.value[id] || {}) }
     let accepted = false
     for (const [key, value] of Object.entries(data)) {
@@ -974,6 +1051,10 @@ export const useProjectStore = defineStore('project', () => {
     newTaskPath,
     taskPath,
     loadApiProject,
+    refreshApiProject,
+    pruneRemoteTasks,
+    rebaseDeveloperDraft,
+    draftConflicts,
     clearApiState,
     uploadAttachments,
     developerDrafts,

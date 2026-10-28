@@ -7,7 +7,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
 import { toast } from '../services/toast.js'
-import AccountTabs from '../components/AccountTabs.vue'
 import PushControls from '../components/PushControls.vue'
 import TelegramSettings from '../components/TelegramSettings.vue'
 import LoadingButton from '../components/LoadingButton.vue'
@@ -158,7 +157,6 @@ onMounted(async () => {
 })
 </script>
 <template>
-  <AccountTabs />
   <div class="personal-notifications">
     <div class="page-heading">
       <h1>{{ t('centralNotifications.myNotifications') }}</h1>

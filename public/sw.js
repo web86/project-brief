@@ -8,13 +8,22 @@ self.addEventListener('push', (event) => {
   }
   if (!payload || typeof payload.title !== 'string') return
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: typeof payload.body === 'string' ? payload.body : '',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: typeof payload.tag === 'string' ? payload.tag : 'projectbrief',
-      data: { url: safeUrl(payload.url) },
-    }),
+    Promise.all([
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+        for (const client of windows)
+          client.postMessage({
+            type: 'projectbrief-sync',
+            id: typeof payload.tag === 'string' ? payload.tag : 'projectbrief-push',
+          })
+      }),
+      self.registration.showNotification(payload.title, {
+        body: typeof payload.body === 'string' ? payload.body : '',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: typeof payload.tag === 'string' ? payload.tag : 'projectbrief',
+        data: { url: safeUrl(payload.url) },
+      }),
+    ]),
   )
 })
 function safeUrl(value) {

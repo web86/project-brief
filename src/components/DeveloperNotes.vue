@@ -10,6 +10,21 @@ const store = useProjectStore()
 
 <template>
   <section class="surface developer-notes">
+    <div
+      v-if="store.draftConflicts[task.id] || task.syncRemoved"
+      class="surface sync-conflict"
+      role="alert"
+    >
+      <p>{{ t('liveSync.conflict') }}</p>
+      <button
+        v-if="!task.syncRemoved"
+        type="button"
+        class="button secondary"
+        @click="store.rebaseDeveloperDraft(task.id)"
+      >
+        {{ t('liveSync.rebase') }}
+      </button>
+    </div>
     <details :key="task.id" class="notes-disclosure">
       <summary class="notes-heading">
         <span class="notes-title"

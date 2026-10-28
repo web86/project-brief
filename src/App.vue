@@ -7,7 +7,7 @@ import { usePersonalNotificationsStore } from './stores/personalNotifications.js
 import TaskHeaderNavigation from './components/TaskHeaderNavigation.vue'
 import TaskNavigator from './components/TaskNavigator.vue'
 import { useTaskWorkspaceStore } from './stores/taskWorkspace.js'
-import { useClientDiscussionsStore } from './stores/discussions.js'
+import { useDiscussionsStore, useClientDiscussionsStore } from './stores/discussions.js'
 import ClientDrawer from './components/ClientDrawer.vue'
 import ClientPageNavigation from './components/ClientPageNavigation.vue'
 import ToastViewport from './components/ToastViewport.vue'
@@ -15,7 +15,9 @@ import { toast } from './services/toast.js'
 import { confirmDeveloperLeave } from './utils/developerEditor.js'
 import { t, locale, formatApiError } from './i18n/index.js'
 
-import { computed, nextTick, watch } from 'vue'
+import { computed, nextTick, watch, onBeforeUnmount } from 'vue'
+import { createLiveSync } from './services/liveSync.js'
+import { useProjectListingStore } from './stores/projectListing.js'
 import { useWorkspaceAppearance } from './services/workspaceAppearance.js'
 import { theme } from './services/theme.js'
 import { useRoute, useRouter } from 'vue-router'
@@ -85,6 +87,74 @@ watch(
   ([persona, id]) => personal.setIdentity(persona, id),
   { immediate: true, flush: 'sync' },
 )
+const liveNav = useAdminNavigationStore()
+const live = createLiveSync({
+  request: api.request,
+  refresh: async (result) => {
+    if (!result.changed) return
+    const id = store.project.id
+    const affected = result.reset || result.projects.includes(id)
+    const work = []
+    if (affected && id && route.meta.apiProject)
+      work.push(
+        store.refreshApiProject({
+          preserveTaskId: route.meta.editTask ? route.params.id : undefined,
+        }),
+      )
+    const discussions = route.meta.adminShell ? useDiscussionsStore() : useClientDiscussionsStore()
+    if (
+      discussions.projectId &&
+      route.params.uuid === discussions.projectId &&
+      (route.meta.apiProject || route.meta.projectSection === 'discussions') &&
+      (result.reset || result.projects.includes(discussions.projectId))
+    )
+      work.push(
+        discussions.load(discussions.projectId, {
+          selectedFilter: discussions.filter,
+          preserve:
+            !result.reset && result.kinds?.every((kind) => ['comments', 'read'].includes(kind)),
+        }),
+      )
+    if (route.path === '/admin' && liveNav.workspace) {
+      const listing = useProjectListingStore()
+      listing.refresh()
+      work.push(listing.load(liveNav.workspace.id, route.query))
+    }
+    await Promise.all(work)
+  },
+})
+watch(
+  () => {
+    if (!store.apiMode || store.sessionLost) return null
+    if (
+      route.meta.adminShell &&
+      liveNav.ready &&
+      liveNav.workspace &&
+      liveNav.user &&
+      liveNav.syncCursor
+    )
+      return {
+        key: `admin:${liveNav.user.notificationPreferenceId}:${liveNav.workspace.id}`,
+        cursor: liveNav.syncCursor,
+        url: '/api/admin/sync',
+      }
+    if (
+      route.meta.apiProject &&
+      !route.meta.admin &&
+      store.currentClient &&
+      store.project.syncCursor
+    )
+      return {
+        key: `client:${store.currentClient.id}:${store.project.id}`,
+        cursor: store.project.syncCursor,
+        url: `/api/client/project/${store.project.id}/sync`,
+      }
+    return null
+  },
+  (identity) => live.start(identity),
+  { immediate: true },
+)
+onBeforeUnmount(() => live.stop())
 async function logout() {
   if (!confirmDeveloperLeave(store)) return
   try {
@@ -135,6 +205,7 @@ watch(
   () => route.fullPath,
   async () => {
     await nextTick()
+    store.pruneRemoteTasks(route.meta.taskDetail || route.meta.editTask ? route.params.id : null)
     document.getElementById('main-content')?.focus({ preventScroll: true })
   },
 )

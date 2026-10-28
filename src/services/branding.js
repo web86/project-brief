@@ -73,3 +73,33 @@ export async function svgRaster(svg) {
     URL.revokeObjectURL(url)
   }
 }
+
+export function normalizeCompanyWebsite(value = '') {
+  value = value.trim()
+  return value && !/^[a-z][a-z0-9+.-]*:/i.test(value) && !value.startsWith('//')
+    ? 'https://' + value
+    : value
+}
+export function validCompanyWebsite(value = '') {
+  value = normalizeCompanyWebsite(value)
+  if (!value) return true
+  if (/[\s\\]/u.test(value)) return false
+  try {
+    const url = new URL(value)
+    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) return false
+    // Read the entered host too: URL() otherwise silently repairs malformed authority/IPv4.
+    const authority = /^https?:\/\/([^/?#]+)/i.exec(value)?.[1]
+    if (!authority) return false
+    const host = authority.replace(/:\d+$/, '')
+    return (
+      /^(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?\.)+(?:[\p{L}]{2,}|xn--[a-zA-Z0-9-]{2,})\.?$/u.test(
+        host,
+      ) ||
+      (/^(?:0|[1-9]\d{0,2})(?:\.(?:0|[1-9]\d{0,2})){3}$/.test(host) &&
+        host.split('.').every((v) => Number(v) <= 255)) ||
+      (host.startsWith('[') && host.endsWith(']'))
+    )
+  } catch {
+    return false
+  }
+}

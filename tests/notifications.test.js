@@ -149,7 +149,8 @@ test('worker shows safe payload and clicking focuses a matching tab without cach
   const listeners = {},
     notifications = [],
     opened = [],
-    focused = []
+    focused = [],
+    signalled = []
   const self = {
     location: { origin: 'https://brief.example.test' },
     addEventListener: (name, handler) => {
@@ -160,6 +161,7 @@ test('worker shows safe payload and clicking focuses a matching tab without cach
       matchAll: async () => [
         {
           url: 'https://brief.example.test/project/11111111-1111-1111-1111-111111111111',
+          postMessage: (data) => signalled.push(data),
           navigate: async (url) => focused.push(url),
           focus: async () => focused.push('focus'),
         },
@@ -182,6 +184,8 @@ test('worker shows safe payload and clicking focuses a matching tab without cach
   })
   await work
   assert.equal(notifications[0][1].data.url, url)
+  assert.equal(signalled.length, 1)
+  assert.equal(signalled[0].type, 'projectbrief-sync')
   assert.equal(listeners.fetch, undefined)
   listeners.notificationclick({
     notification: { close() {}, data: { url } },

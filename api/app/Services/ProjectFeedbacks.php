@@ -6,8 +6,10 @@ use App\Models\NotificationDelivery;
 use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\ProjectFeedback;
+use App\Models\Task;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class ProjectFeedbacks
@@ -27,10 +29,24 @@ class ProjectFeedbacks
     public function clientState(Project $project, ProjectClient $client): array
     {
         $feedback = ProjectFeedback::where('project_id', $project->id)->where('project_client_id', $client->id)->first();
+        $submitted = ProjectFeedback::where('project_id', $project->id)->whereNotNull('submitted_at')->exists();
 
         return ['eligible' => $this->eligible($project), 'requested' => (bool) $feedback?->requested_at,
             'shown' => (bool) $feedback?->shown_at, 'dismissed' => (bool) $feedback?->dismissed_at,
-            'submitted' => (bool) $feedback?->submitted_at];
+            'submitted' => $submitted];
+    }
+
+    /** An incomplete cycle invalidates only the previous prompt, never a submitted review. */
+    public function invalidatePrompt(Task $task): void
+    {
+        if (! Schema::hasTable('project_feedback')) {
+            return;
+        }
+        if ((! $task->trashed() && $task->status !== 'done') || ! Task::where('project_id', $task->project_id)->exists()) {
+            ProjectFeedback::where('project_id', $task->project_id)->whereNull('submitted_at')
+                ->where(fn ($q) => $q->whereNotNull('shown_at')->orWhereNotNull('dismissed_at'))
+                ->update(['shown_at' => null, 'dismissed_at' => null]);
+        }
     }
 
     public function entry(Project $project, ProjectClient $client): ProjectFeedback
