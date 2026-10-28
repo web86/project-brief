@@ -112,6 +112,29 @@ class BrandImage
         }
     }
 
+    /** Target 300 DPI at 86 × 28 pt; retain already compact rasters if resampling would increase bytes. */
+    public function documentPng(string $bytes): string
+    {
+        $size = getimagesizefromstring($bytes);
+        if (! $size || ($size[0] <= 360 && $size[1] <= 117)) {
+            return $bytes;
+        }
+        $image = imagecreatefromstring($bytes);
+        $scale = min(360 / $size[0], 117 / $size[1]);
+        $canvas = imagecreatetruecolor(max(1, (int) round($size[0] * $scale)), max(1, (int) round($size[1] * $scale)));
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        imagefill($canvas, 0, 0, imagecolorallocatealpha($canvas, 0, 0, 0, 127));
+        imagecopyresampled($canvas, $image, 0, 0, 0, 0, imagesx($canvas), imagesy($canvas), $size[0], $size[1]);
+        ob_start();
+        imagepng($canvas, null, 9);
+        $result = ob_get_clean();
+        imagedestroy($canvas);
+        imagedestroy($image);
+
+        return strlen($result) < strlen($bytes) ? $result : $bytes;
+    }
+
     /** Decode and re-encode raster images, stripping metadata and limiting memory/dimensions. */
     public function png(UploadedFile $file, string $kind): string
     {

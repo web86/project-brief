@@ -18,6 +18,8 @@ class BrowserProjectExportController extends Controller
         $document = $builder->build($project, $options['scope'], $options['locale'], $options['fields'] ?? [], [
             'documentTitle' => $options['documentTitle'] ?? null,
             'pageBreakBySection' => $options['pageBreakBySection'] ?? false,
+            // Cached older workers only understand PNG; advertise SVG support explicitly.
+            'preferVectorLogo' => $request->header('X-ProjectBrief-Pdf-Renderer') === '2',
         ], $request->attributes->has('project_client'), config('browser_pdf.max_tasks'), config('browser_pdf.max_text_bytes'));
         $slug = substr(Str::slug($project->title), 0, 100) ?: 'project';
         $json = json_encode([

@@ -1,0 +1,162 @@
+[
+  {
+    "file": "artifacts/milestone-7-7/before/small-en.pdf",
+    "bytes": 72337,
+    "sha256": "f669aad0d7e64033ee179142789d5f871b001525dfbf49c3f9328f81b78d3964"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/small-en.docx",
+    "bytes": 12717100,
+    "sha256": "eb12f421c5f41368aa182cf36301d33535eb0e28859db9207115f6c5bd9dab20"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/small-en.pdf",
+    "bytes": 71606,
+    "sha256": "9eeeffc025664aa5405dbe42e142c3ed7017e3dc7b93b3c696b1e2c7bec9733b"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/small-en.docx",
+    "bytes": 12716986,
+    "sha256": "afc82419c6b93fd95682276590af9cc4c738fc9803840cf1c1644049b4c338de"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/studio-ru.pdf",
+    "bytes": 79683,
+    "sha256": "3e66c5b4acf618bbf1b5a506f85f5b3aff6b9d330dddcd2e3073a593c55cb238"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/studio-ru.docx",
+    "bytes": 12717574,
+    "sha256": "c5236acc788df36493ef6b36af25d2091b060bc635b8b717cceec9ca12a7d3cc"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/studio-ru.pdf",
+    "bytes": 78365,
+    "sha256": "64cafa6b37cba563bae0c4e96ca37ac12a4cffa293d174a080a03b883ae59c50"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/studio-ru.docx",
+    "bytes": 12717447,
+    "sha256": "2f73a561423fb980d7810b28f5100776a5463fa17bad427c7d402ebcc64e4bfc"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/medium-ru.pdf",
+    "bytes": 155203,
+    "sha256": "1da6afdc29a90d6853664028108447efb93c0d4ecfdb99fc1d301bcbd75f5d17"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/medium-ru.docx",
+    "bytes": 12719915,
+    "sha256": "9c8b520d5e28bfbe2051a7ce2623d623b5e10a7b57c040b829298ed9b7458493"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/medium-ru.pdf",
+    "bytes": 141926,
+    "sha256": "1fc27ce7e3b2161952a27de5a0efe909121832b0dfadda046c6b063263179b6d"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/medium-ru.docx",
+    "bytes": 12719158,
+    "sha256": "cf0a51aab41bd35f34f37c7fe9096bd09ab4d785ae844ef1df34201daa6be8c3"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/large-en.pdf",
+    "bytes": 631969,
+    "sha256": "ee64f511bb2186ff95a1e1ebf173be4e6b4b12b11f3831e16438ce57da2a474f"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/large-en.docx",
+    "bytes": 12731637,
+    "sha256": "8552e0c477683db1b8847130162e619db711de19fe2738cd32e09800a5ec4629"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/large-en.pdf",
+    "bytes": 543557,
+    "sha256": "69de00e747e0a0edf6fba50a32f979dd3cac91fdb306ca18ee301e14827cf164"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/large-en.docx",
+    "bytes": 12726886,
+    "sha256": "e940d226adcf422f6a06ab3b2941a8a1d5f617196214b039744b0799218d83d3"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/long-tr.pdf",
+    "bytes": 92272,
+    "sha256": "0f5b7c36e7cd14b62fb6363410b4dd6f19f5699b633149c0e9fe307d36ae6a17"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/long-tr.docx",
+    "bytes": 12717555,
+    "sha256": "728484e70d6c0917cdedee971b47cf2c0aad789024454c4882f9e7140124a4bc"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/long-tr.pdf",
+    "bytes": 95929,
+    "sha256": "636fbfe3225fafb139e87d78f20e05eec61c7fbab1a8919b3823c5edf8253f04"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/long-tr.docx",
+    "bytes": 12717623,
+    "sha256": "78feee11fc65d94d3c5c0dab7036091f1e85f97c31099cdefc678e6d7e95c103"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/chinese.pdf",
+    "bytes": 109136,
+    "sha256": "4b936912baf68f6ce37dacbc372ce75fc8bd981bf234553979657af8752d4efe"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/chinese.docx",
+    "bytes": 12717408,
+    "sha256": "f6e5ab72d01a262aa6f6d526e50654601189029452342b3b5bfa54b683e32ed6"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/chinese.pdf",
+    "bytes": 104833,
+    "sha256": "a0fdee6f981ec71d1fa346738f80962d7390e3017c350cd7383f1bc6db575ec5"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/chinese.docx",
+    "bytes": 12717266,
+    "sha256": "dbd60e69ee4a7e71302b3239b8081b9f297887d52803f032d66ca71e78a48e9b"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/section-breaks.pdf",
+    "bytes": 81400,
+    "sha256": "f3a41a6a3b2e7181990e0ac91aa1cb313b1d0019ea7d9c7e7946fd2ec58cc34a"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/section-breaks.docx",
+    "bytes": 12717568,
+    "sha256": "6b6eb1a27e46a6179ad33ea2462a66c202d2011a3d456e093d713e212d1f54de"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/section-breaks.pdf",
+    "bytes": 80485,
+    "sha256": "307b63f577d4db181447abe8ab4aa820b1305f8f92971708c993a448854ed9ec"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/section-breaks.docx",
+    "bytes": 12717458,
+    "sha256": "872e163f90a6e6783a8d03309487512e225753d161bc8d560cd89511efdadbe1"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/minimal.pdf",
+    "bytes": 20915,
+    "sha256": "fc88199be9d351e023d6fe51a8b3cc4fc40fbe6adf40446c744bde87ddf113c1"
+  },
+  {
+    "file": "artifacts/milestone-7-7/before/minimal.docx",
+    "bytes": 9042,
+    "sha256": "78f12b5bfc76540a9751f9d31081f4c228a8dffe5be47a7c6893bf62445afad4"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/minimal.pdf",
+    "bytes": 22987,
+    "sha256": "8cf45a57119019dc1feb997434d184420201c124091fba496f521052ae619eb7"
+  },
+  {
+    "file": "artifacts/milestone-7-7/after/minimal.docx",
+    "bytes": 9414,
+    "sha256": "9bc690187015181d25ab17c5979c736ba75e30e09e9c35de99b560fe84307d5c"
+  }
+]

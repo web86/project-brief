@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { mkdtemp, mkdir, writeFile, cp, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, cp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,12 +9,16 @@ import net from 'node:net'
 import { preview } from 'vite'
 const { chromium, firefox } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = fileURLToPath(new URL('..', import.meta.url))
-const output = path.join(root, 'docs/milestone-6-2')
+const output = path.resolve(
+  process.env.EXPORT_QA_DIRECTORY || path.join(root, 'docs/milestone-6-2'),
+)
 const scratch = await mkdtemp(path.join(tmpdir(), 'milestone62-'))
 const app = path.join(scratch, 'app')
 await mkdir(app)
 await mkdir(output, { recursive: true })
-let backend, frontend
+let backend,
+  frontend,
+  loginCounter = 0
 const errors = [],
   results = []
 async function port() {
@@ -50,6 +54,7 @@ const environment = {
   BCRYPT_ROUNDS: '4',
   AI_ENABLED: 'false',
   BROWSER_PDF_RATE_LIMIT: '10000',
+  EXPORT_LARGE_QA: process.env.EXPORT_LARGE_QA || '',
   PHP_INI_SCAN_DIR: `:${root}/api/dev-php`,
 }
 function php(args) {
@@ -71,6 +76,13 @@ async function login(page) {
   await page.locator('#admin-email').fill('owner@example.test')
   await page.locator('#admin-password').fill('Local-test-password!')
   await page.locator('form button[type=submit]').click()
+  await page.waitForURL(origin + '/admin/security')
+  const verified = await request(page.context(), '/api/security/challenge', {
+    recovery_code: `Export-browser-code-${loginCounter++}`,
+  })
+  assert.equal(verified.status(), 200)
+  assert.equal((await verified.json()).state, 'authenticated')
+  await page.goto(origin + '/admin')
   await page.waitForURL(origin + '/admin')
 }
 async function capture(page, name) {
@@ -276,6 +288,23 @@ try {
         )
         await capture(page, 'tablet-768-tr-dark-export')
         results.push({ test: 'tablet-768-single-column', status: 'passed' })
+        if (fixture.largeProject) {
+          await page.goto(origin + `/admin/projects/${fixture.largeProject}/export`)
+          await page.locator('.export-form').waitFor()
+          const started = performance.now()
+          await download(page, 'real-http-500')
+          await download(page, 'real-http-500', 'docx')
+          const payload = JSON.parse(
+            await readFile(path.join(output, 'real-http-500.json'), 'utf8'),
+          )
+          assert.equal(payload.totals.taskCount, 500)
+          results.push({
+            test: '500-task-real-http-pdf-docx',
+            status: 'passed',
+            phpMemoryLimitMiB: 128,
+            elapsedMs: performance.now() - started,
+          })
+        }
         await context.close()
       }
       for (const width of [1440, 390])

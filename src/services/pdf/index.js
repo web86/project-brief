@@ -14,6 +14,7 @@ export function createBrowserPdfAdapter({
         : `/api/admin/projects/${projectId}/export-data`,
       {
         method: 'POST',
+        headers: { 'X-ProjectBrief-Pdf-Renderer': '2' },
         body: { ...options, format: 'pdf' },
         signal,
       },

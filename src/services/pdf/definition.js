@@ -1,7 +1,7 @@
 const cjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303f\uff01-\uff60]/u
 export const needsCjk = (document) => cjk.test(JSON.stringify(document))
 
-// pdfmake has no automatic per-glyph fallback. Keep original codepoints and group adjacent runs.
+// pdfmake has no automatic per-glyph fallback. Preserve codepoints and group adjacent runs.
 export function textRuns(value) {
   const runs = []
   for (const character of String(value)) {
@@ -17,169 +17,293 @@ export function textRuns(value) {
   return runs.length ? runs : [{ text: '', font: 'DejaVu' }]
 }
 
+// Conservative content limits only decide which short groups may stay together.
+// Long text always remains in the normal, measured page flow.
+export function compactGroup(value, maximum = 650) {
+  return (
+    [...value].length <= maximum &&
+    !value.includes('\t') &&
+    (value.match(/\r\n|[\r\n\u000b\u000c\u0085\u2028\u2029]/g) || []).length <= 8
+  )
+}
+
 export function documentDefinition(document) {
-  const brand = document.branding || {}
+  const brand = document.branding || {},
+    accent = brand.color || '#344054'
   let bodyId = 0
   const text = (value, options = {}) => ({
     text: textRuns(value),
-    ...(!options.headlineLevel ? { id: `body-${bodyId++}` } : {}),
+    id: `body-${bodyId++}`,
     ...options,
   })
-  const content = [
-    ...(brand.logo || brand.name || brand.address?.length || brand.contact?.length
-      ? [
-          {
-            columns: [
-              ...(brand.logo ? [{ image: brand.logo, fit: [130, 60], width: 145 }] : []),
+  const inline = (label, value, options = {}) => ({
+    text: [
+      ...(label ? textRuns(label + ': ').map((run) => ({ ...run, bold: true })) : []),
+      ...textRuns(value || ' '),
+    ],
+    id: `body-${bodyId++}`,
+    ...options,
+  })
+  const content = []
+  const hasBrand =
+    brand.logoSvg || brand.logo || brand.name || brand.address?.length || brand.contact?.length
+  if (hasBrand) {
+    content.push({
+      columns: [
+        ...(brand.logoSvg || brand.logo
+          ? [
               {
-                width: '*',
-                stack: [
-                  ...(brand.name
-                    ? [text(brand.name, { fontSize: 14, bold: true, margin: [0, 0, 0, 6] })]
-                    : []),
-                  ...[...(brand.address || []), ...(brand.contact || [])].map((line) =>
-                    text(line, { fontSize: 9, margin: [0, 0, 0, 3] }),
-                  ),
-                ],
+                ...(brand.logoSvg ? { svg: brand.logoSvg, font: 'DejaVu' } : { image: brand.logo }),
+                fit: [86, 28],
+                width: 98,
               },
-            ],
-            margin: [0, 0, 0, 20],
-          },
-        ]
-      : []),
-    text(document.title, { style: 'title' }),
-    text(`${document.labels.project}: ${document.project.name}`, { style: 'project' }),
-    ...(document.project.website
-      ? [text(`${document.labels.website}: ${document.project.website}`, { style: 'project' })]
-      : []),
-    text(`${document.labels.generated}: ${document.generated.date}`, {
-      style: 'project',
-      margin: [0, 0, 0, 8],
-    }),
-  ]
-  for (const [index, section] of document.sections.entries()) {
-    content.push(
-      text(`${section.number}. ${section.name}`, {
-        style: 'section',
-        headlineLevel: 1,
-        ...(index && document.presentation.pageBreakBySection ? { pageBreak: 'before' } : {}),
+            ]
+          : []),
+        {
+          width: brand.logoSvg || brand.logo ? 400.88 : 498.88,
+          stack: [
+            ...(brand.name
+              ? [text(brand.name, { fontSize: 11.5, bold: true, margin: [0, 0, 0, 2] })]
+              : []),
+            ...[brand.address || [], brand.contact || []]
+              .filter((lines) => lines.length)
+              .map((lines) =>
+                text(lines.join(' · '), { fontSize: 8.25, color: '#525866', margin: [0, 0, 0, 1] }),
+              ),
+          ],
+        },
+      ],
+      columnGap: 0,
+      margin: [0, 0, 0, 7],
+    })
+    content.push({
+      canvas: [
+        { type: 'line', x1: 0, y1: 0, x2: 498.88, y2: 0, lineWidth: 0.5, lineColor: '#cbd0d8' },
+      ],
+      margin: [0, 0, 0, 7],
+    })
+  }
+  content.push(text(document.title, { style: 'title' }))
+  content.push(text(document.project.name, { fontSize: 10, bold: true, margin: [0, 0, 0, 3] }))
+  content.push({
+    columns: [
+      ...(document.project.website
+        ? [
+            text(document.project.website, {
+              width: 291.88,
+              link: /^https?:\/\//i.test(document.project.website)
+                ? document.project.website
+                : undefined,
+            }),
+          ]
+        : []),
+      text(`${document.labels.generated}: ${document.generated.date}`, {
+        width: document.project.website ? 195 : 498.88,
+        alignment: document.project.website ? 'right' : 'left',
       }),
-    )
-    for (const task of section.tasks) {
-      content.push(text(`${task.number} ${task.title}`, { style: 'task', headlineLevel: 2 }))
-      for (const field of task.content.filter((field) => field.block)) {
-        content.push(text(field.label, { style: 'label', headlineLevel: 3 }))
-        content.push(text(field.value, { margin: [0, 0, 0, 5] }))
-      }
-      if (task.attachments.length) {
-        content.push(text(document.labels.attachments, { style: 'label', headlineLevel: 3 }))
-        content.push({
-          ul: task.attachments.map((name) => text(name)),
-          fontSize: 9,
-          margin: [0, 0, 0, 5],
-        })
-      }
-      if (task.metadata) content.push(text(task.metadata, { style: 'metadata' }))
-    }
-  }
-  content.push(text(document.labels.summary, { style: 'summary', headlineLevel: 1 }))
-  for (const row of document.summary) {
-    content.push(text(`${row.label}: ${row.value}`, { bold: true, margin: [0, 0, 0, 4] }))
-    if (row.coverage) content.push(text(row.coverage, { style: 'metadata' }))
-  }
-  if (brand.business?.length) {
-    const value = brand.business.map((row) => `${row.label}: ${row.value}`).join('\n')
-    const compact =
-      [...value].length <= 800 &&
-      (value.match(/[\n\r\u000b\u000c\u0085\u2028\u2029]/g) || []).length <= 12
-    const block = [
-      text(brand.businessTitle, { style: 'section', ...(!compact ? { headlineLevel: 1 } : {}) }),
-      ...brand.business.map((row) =>
-        text(`${row.label}: ${row.value}`, { fontSize: 9, margin: [0, 0, 0, 4] }),
-      ),
+    ],
+    columnGap: 12,
+    fontSize: 8.25,
+    color: '#525866',
+    margin: [0, 0, 0, 6],
+  })
+
+  for (const [sectionIndex, section] of document.sections.entries()) {
+    const heading = text('', {
+      style: 'section',
+      headlineLevel: 1,
+      id: `section-${sectionIndex}`,
+      ...(sectionIndex && document.presentation.pageBreakBySection ? { pageBreak: 'before' } : {}),
+    })
+    heading.text = [
+      ...textRuns(`${section.number}. `).map((run) => ({ ...run, color: accent })),
+      ...textRuns(section.name),
     ]
-    if (compact) content.push({ stack: block, unbreakable: true })
-    else content.push(...block)
-  }
-  // Keep short heading/first-paragraph groups together in one layout pass. Never make
-  // arbitrary user text unbreakable: pdfmake cannot split an oversized unbreakable stack.
-  const grouped = []
-  for (let index = 0; index < content.length; index++) {
-    if (!content[index].headlineLevel) {
-      grouped.push(content[index])
-      continue
-    }
-    const group = [content[index]]
-    while (content[index + 1]?.headlineLevel) group.push(content[++index])
-    if (content[index + 1]) group.push(content[++index])
-    const strings = group
-      .flatMap((node) =>
-        node.text
-          ? node.text.map((run) => run.text)
-          : node.ul?.flatMap((item) => item.text.map((run) => run.text)) || [],
-      )
-      .join('')
-    if (
-      [...strings].length <= 600 &&
-      !strings.includes('\t') &&
-      (strings.match(/[\n\r\u000b\u000c\u0085\u2028\u2029]/g) || []).length <= 8
-    ) {
-      const pageBreak = group[0].pageBreak
-      for (const node of group) {
-        delete node.headlineLevel
-        delete node.pageBreak
+    const sectionNodes = []
+    for (const [taskIndex, task] of section.tasks.entries()) {
+      const nodes = [
+        text(`${task.number} ${task.title}`, {
+          style: 'task',
+          headlineLevel: 2,
+          margin: [0, taskIndex ? 8 : 0, 0, 3],
+        }),
+      ]
+      for (const field of task.content.filter((field) => field.block)) {
+        const paragraphs = field.value.split(/\r\n|[\r\n\u000b\u000c\u0085\u2028\u2029]/u)
+        for (const [index, paragraph] of paragraphs.entries()) {
+          nodes.push(
+            inline(index === 0 && field.key !== 'description' ? field.label : '', paragraph, {
+              margin: [0, 0, 0, index === paragraphs.length - 1 ? 2 : 0],
+            }),
+          )
+        }
       }
-      grouped.push({ stack: group, unbreakable: true, ...(pageBreak ? { pageBreak } : {}) })
-    } else grouped.push(...group)
+      if (task.attachments.length)
+        nodes.push(
+          inline(document.labels.attachments, task.attachments.join(' · '), {
+            fontSize: 8.5,
+            margin: [0, 0, 0, 2],
+          }),
+        )
+      if (task.metadata) nodes.push(text(task.metadata, { style: 'metadata' }))
+      const original = [
+        task.title,
+        ...task.content.filter((field) => field.block).map((field) => field.value),
+        ...task.attachments,
+        task.metadata,
+      ].join('\n')
+      if (compactGroup(original)) {
+        for (const node of nodes) delete node.headlineLevel
+        sectionNodes.push({ stack: nodes, unbreakable: true, id: `body-task-${bodyId++}` })
+      } else {
+        // Attach a bounded first paragraph to the heading, never the rest of a long task.
+        if (
+          nodes[1] &&
+          compactGroup(task.title + nodes[1].text.map((run) => run.text).join(''), 450)
+        ) {
+          delete nodes[0].headlineLevel
+          sectionNodes.push({
+            stack: nodes.splice(0, 2),
+            unbreakable: true,
+            id: `body-task-${bodyId++}`,
+          })
+        }
+        for (const node of nodes) {
+          const value = node.text.map((run) => run.text).join('')
+          if (!node.headlineLevel && value.trim() && compactGroup(value, 350))
+            node.unbreakable = true
+        }
+        sectionNodes.push(...nodes)
+      }
+    }
+    if (sectionNodes[0]?.unbreakable && compactGroup(section.name, 180)) {
+      const pageBreak = heading.pageBreak
+      delete heading.pageBreak
+      delete heading.headlineLevel
+      content.push({
+        stack: [heading, sectionNodes.shift()],
+        unbreakable: true,
+        ...(pageBreak ? { pageBreak } : {}),
+      })
+    } else content.push(heading)
+    content.push(...sectionNodes)
+  }
+
+  content.push({
+    stack: [
+      text(document.labels.summary, { style: 'summary' }),
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: document.summary.map((row) => [
+            {
+              stack: [
+                text(row.label),
+                ...(row.coverage
+                  ? [text(row.coverage, { fontSize: 8, color: '#525866', margin: [0, 1, 0, 0] })]
+                  : []),
+              ],
+            },
+            text(row.value, { bold: true, alignment: 'right' }),
+          ]),
+        },
+        layout: {
+          hLineWidth: () => 0,
+          vLineWidth: () => 0,
+          paddingLeft: () => 0,
+          paddingRight: () => 0,
+          paddingTop: () => 2,
+          paddingBottom: () => 2,
+        },
+      },
+    ],
+    unbreakable: true,
+  })
+  if (brand.business?.length) {
+    const leftKeys = ['legalName', 'payee', 'taxId'],
+      rightKeys = ['bankName', 'account', 'bic']
+    const left = [],
+      right = [],
+      notes = []
+    for (const [index, row] of brand.business.entries()) {
+      const target =
+        row.key === 'note'
+          ? notes
+          : leftKeys.includes(row.key)
+            ? left
+            : rightKeys.includes(row.key)
+              ? right
+              : index % 2
+                ? right
+                : left
+      target.push(inline(row.label, row.value, { fontSize: 8.5, margin: [0, 0, 0, 3] }))
+    }
+    const nodes = [
+      text(brand.businessTitle, { style: 'summary', headlineLevel: 1 }),
+      {
+        columns: [
+          { width: 240.44, stack: left },
+          { width: 240.44, stack: right },
+        ],
+        columnGap: 18,
+        id: `body-${bodyId++}`,
+      },
+      ...notes,
+    ]
+    if (compactGroup(brand.business.map((row) => row.label + row.value).join('\n'), 700)) {
+      delete nodes[0].headlineLevel
+      content.push({ stack: nodes, unbreakable: true })
+    } else content.push(...nodes)
   }
   return {
     pageSize: 'A4',
-    pageMargins: [56.7, 56.7, 56.7, 62.4],
+    pageMargins: [48.2, 48.2, 48.2, 55],
     info: {
       title: document.title,
-      author: brand.name || 'ProjectBrief',
-      creator: 'ProjectBrief browser PDF',
+      author: brand.name || (brand.platform === false ? document.project.name : 'ProjectBrief'),
+      creator: brand.platform === false ? document.title : 'ProjectBrief browser PDF',
     },
-    defaultStyle: { font: 'DejaVu', fontSize: 10, color: '#243044', lineHeight: 1.2 },
+    defaultStyle: { font: 'DejaVu', fontSize: 9.25, color: '#20242b', lineHeight: 1.23 },
     styles: {
-      title: { fontSize: 20, bold: true, margin: [0, 0, 0, 14] },
-      project: { fontSize: 9, margin: [0, 0, 0, 3] },
-      section: { fontSize: 14, bold: true, margin: [0, 16, 0, 7] },
-      task: { fontSize: 11.5, bold: true, margin: [0, 11, 0, 5] },
-      label: { fontSize: 9.5, bold: true, margin: [0, 4, 0, 2] },
-      metadata: { fontSize: 8.5, color: '#586174', margin: [0, 5, 0, 8] },
-      summary: { fontSize: 12, bold: true, margin: [0, 16, 0, 6] },
+      title: { fontSize: 17, bold: true, margin: [0, 0, 0, 4] },
+      section: { fontSize: 12.5, bold: true, margin: [0, 12, 0, 5] },
+      task: { fontSize: 10.25, bold: true },
+      metadata: { fontSize: 8.25, color: '#525866', margin: [0, 1, 0, 0] },
+      summary: { fontSize: 12, bold: true, margin: [0, 12, 0, 5] },
     },
-    content: grouped,
+    content,
     footer: (page, pages) => ({
       columns: [
         {
           text: [
-            ...textRuns((brand.contact || []).slice(0, 3).join(' · ').slice(0, 140)),
-            ...((brand.contact || []).length ? textRuns(' · ') : []),
+            ...textRuns(brand.name || document.project.name),
             ...(brand.platform === false
               ? []
               : [
+                  ...textRuns(' · '),
                   ...textRuns(document.labels.footer).map((run) => ({
                     ...run,
                     link: brand.platformUrl,
                   })),
-                  ...textRuns(' · '),
                 ]),
-            ...textRuns(document.generated.date),
           ],
-          width: '*',
+          width: 444.88,
           id: 'footer',
         },
-        text(`${page} / ${pages}`, { alignment: 'right', width: 50, id: 'page-number' }),
+        { text: textRuns(`${page} / ${pages}`), alignment: 'right', width: 42, id: 'page-number' },
       ],
-      margin: [56.7, 16, 56.7, 0],
+      columnGap: 12,
+      margin: [48.2, 12, 48.2, 0],
       fontSize: 7.5,
-      color: '#667085',
+      color: '#656b75',
     }),
-    pageBreakBefore: (node, container) =>
-      !!node.headlineLevel &&
-      !container.getFollowingNodesOnPage().some((following) => following.id?.startsWith('body-')),
+    pageBreakBefore: (node, container) => {
+      if (!node.headlineLevel) return false
+      const body = container
+        .getFollowingNodesOnPage()
+        .find((following) => following.id?.startsWith('body-'))
+      return !body || !!(body.startPosition && body.startPosition.top > 841.89 - 55 - 23)
+    },
     compress: true,
   }
 }

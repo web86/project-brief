@@ -74,6 +74,10 @@ class ProjectExportData
         $tasks = $tasks->groupBy('project_section_id');
         $sections = [];
         $totals = ['taskCount' => 0, 'approvedCount' => 0];
+        $workflowCounts = ['workflowApprovedCount' => 'approved', 'clarificationCount' => 'clarification', 'doneCount' => 'done'];
+        if ($fields['status']) {
+            $totals += array_fill_keys(array_keys($workflowCounts), 0);
+        }
         foreach (['estimateHours', 'price'] as $key) {
             if ($fields[$key]) {
                 $totals[$key] = ['minorUnits' => '0', 'providedTaskCount' => 0];
@@ -85,6 +89,11 @@ class ProjectExportData
                 $task->setRelation('projectSection', $section);
                 $totals['taskCount']++;
                 $totals['approvedCount'] += (int) $task->client_approved;
+                if ($fields['status']) {
+                    foreach ($workflowCounts as $key => $status) {
+                        $totals[$key] += (int) ($task->status === $status);
+                    }
+                }
                 $content = [];
                 foreach ($source as $key => $column) {
                     if (! $fields[$key] || $task->$column === null || trim((string) $task->$column) === '') {
@@ -101,10 +110,10 @@ class ProjectExportData
                         $totals[$key]['minorUnits'] = $this->addMinorUnits($totals[$key]['minorUnits'], $this->minorUnits($task->getRawOriginal($column)));
                         $totals[$key]['providedTaskCount']++;
                     }
-                    $content[] = ['label' => $labels[$key], 'value' => $value, 'block' => in_array($key, ['description', 'expectedResult', 'developerNotes'], true)];
+                    $content[] = ['key' => $key, 'label' => $labels[$key], 'value' => $value, 'block' => in_array($key, ['description', 'expectedResult', 'developerNotes'], true)];
                 }
                 if ($fields['approvalDate'] && $task->client_approved && $task->client_approved_at) {
-                    $content[] = ['label' => $labels['approvedOn'], 'value' => $task->client_approved_at->locale($locale)->isoFormat(SupportedLocales::settings($locale)['approval_date']), 'block' => false];
+                    $content[] = ['key' => 'approvalDate', 'label' => $labels['approvedOn'], 'value' => $task->client_approved_at->locale($locale)->isoFormat(SupportedLocales::settings($locale)['approval_date']), 'block' => false];
                 }
                 $filenames = [];
                 if ($fields['attachments']) {
@@ -115,7 +124,14 @@ class ProjectExportData
                         }
                     }
                 }
-                $metadata = array_map(fn (array $field): string => $field['label'].': '.$field['value'], array_filter($content, fn (array $field): bool => ! $field['block']));
+                $byKey = array_column($content, null, 'key');
+                $metadata = [];
+                foreach (['status', 'priority', 'estimateHours', 'price', 'approvalDate'] as $key) {
+                    if (isset($byKey[$key])) {
+                        $field = $byKey[$key];
+                        $metadata[] = (in_array($key, ['priority', 'approvalDate'], true) ? $field['label'].': ' : '').$field['value'];
+                    }
+                }
                 $items[] = ['number' => ProjectStructure::number($task), 'title' => $task->title, 'content' => $content, 'metadata' => implode(' · ', $metadata), 'attachments' => $filenames];
             }
             if ($items !== []) {
@@ -125,10 +141,13 @@ class ProjectExportData
         if ($sections === []) {
             throw ValidationException::withMessages(['scope' => $labels['empty']]);
         }
-        $summary = [
-            ['label' => $labels['taskCount'], 'value' => (string) $totals['taskCount'], 'coverage' => null],
-            ['label' => $labels['approvedCount'], 'value' => (string) $totals['approvedCount'], 'coverage' => null],
-        ];
+        $summary = [['label' => $labels['taskCount'], 'value' => (string) $totals['taskCount'], 'coverage' => null]];
+        foreach (array_keys($workflowCounts) as $key) {
+            if (($totals[$key] ?? 0) > 0) {
+                $summary[] = ['label' => $labels[$key], 'value' => (string) $totals[$key], 'coverage' => null];
+            }
+        }
+        $summary[] = ['label' => $labels['approvedCount'], 'value' => (string) $totals['approvedCount'], 'coverage' => null];
         foreach (['estimateHours', 'price'] as $key) {
             if (! isset($totals[$key])) {
                 continue;
@@ -136,6 +155,9 @@ class ProjectExportData
             $total = &$totals[$key];
             $total['value'] = substr(str_pad($total['minorUnits'], 3, '0', STR_PAD_LEFT), 0, -2).'.'.substr(str_pad($total['minorUnits'], 3, '0', STR_PAD_LEFT), -2);
             $total['formatted'] = $key === 'price' ? $this->money($total['minorUnits'], $project->currency, $locale) : $this->formatAmount($total['minorUnits'], $locale).' '.$labels['hours'];
+            if ($key === 'price' && $total['providedTaskCount'] === 0) {
+                $total['formatted'] = $labels['notCalculated'];
+            }
             $total['coverage'] = $total['providedTaskCount'] < $totals['taskCount']
                 ? trans_choice('exports.'.$key.'Coverage', $totals['taskCount'], ['provided' => $total['providedTaskCount'], 'total' => $totals['taskCount']], $locale) : null;
             $summary[] = ['label' => $labels[$key.'Total'], 'value' => $total['formatted'], 'coverage' => $total['coverage']];
@@ -143,7 +165,7 @@ class ProjectExportData
         }
 
         return [
-            'branding' => app(WorkspaceBranding::class)->document($project->workspace, $locale),
+            'branding' => app(WorkspaceBranding::class)->document($project->workspace, $locale, $options['preferVectorLogo'] ?? false),
             'title' => $title,
             'project' => ['name' => $project->title, 'website' => $project->website_url],
             'generated' => ['date' => $generatedAt->isoFormat(SupportedLocales::settings($locale)['generated_date'] ?? 'D MMMM YYYY'), 'isoDate' => $generatedAt->toDateString(), 'locale' => $locale],

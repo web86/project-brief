@@ -41,6 +41,29 @@ test('validation errors remain available and server details from 500 are hidden'
   await assert.rejects(failing.request('/api/test'), (error) => !error.message.includes('Secret'))
 })
 
+test('renderer capability survives safe security replay without overriding session headers', async () => {
+  const calls = []
+  const client = createApiClient({
+    securityFlow: { preflight: () => null, observe() {}, ensure: async () => true },
+    fetchImpl: async (_url, options) => {
+      calls.push(options)
+      return calls.length === 1
+        ? response(423, { code: 'security_step_up_required', mutationNotStarted: true })
+        : response(200, {})
+    },
+  })
+  await client.request('/api/test', {
+    headers: { 'X-ProjectBrief-Pdf-Renderer': '2', accept: 'bad', 'x-csrf-token': 'bad' },
+  })
+  assert.equal(calls.length, 2)
+  for (const { headers } of calls) {
+    assert.equal(headers['X-ProjectBrief-Pdf-Renderer'], '2')
+    assert.equal(headers.Accept, 'application/json')
+    assert.equal(headers.accept, undefined)
+    assert.equal(headers['x-csrf-token'], undefined)
+  }
+})
+
 test('expired CSRF does not automatically replay a mutation and resets for next attempt', async () => {
   let mutations = 0
   let tokens = 0

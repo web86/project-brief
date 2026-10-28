@@ -372,12 +372,14 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const brandedExport = async () =>
     request(`/api/admin/projects/${fixture.project}/export-data`, {
       method: 'POST',
-      headers: personalHeaders,
+      headers: { ...personalHeaders, 'X-ProjectBrief-Pdf-Renderer': '2' },
       body: JSON.stringify({ scope: 'all', locale: 'tr', format: 'pdf' }),
     })
   let exportedBrand = (await (await brandedExport()).json()).document.branding
   assert.equal(exportedBrand.name, 'Packaged Studio Çığ 中文')
-  assert.match(exportedBrand.logo, /^data:image\/png;base64,/)
+  assert.equal(exportedBrand.logo, null)
+  assert.match(exportedBrand.logoSvg, /<rect/)
+  assert.doesNotMatch(exportedBrand.logoSvg, /<script|onload|unsafe/)
   assert.deepEqual(exportedBrand.business, [])
   assert.equal(
     (await brandCall('', 'PATCH', { section: 'export', values: { business: true } })).status,
@@ -1325,7 +1327,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.6',
+    '0.7.7',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

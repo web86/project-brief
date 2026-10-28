@@ -1,0 +1,138 @@
+{
+  "results": [
+    {
+      "test": "empty-project-ui-manual-section-client-and-preservation",
+      "status": "passed"
+    },
+    {
+      "test": "tablet-768-single-column",
+      "status": "passed"
+    },
+    {
+      "test": "500-task-real-http-pdf-docx",
+      "status": "passed",
+      "phpMemoryLimitMiB": 128,
+      "elapsedMs": 2943.7123599999977
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "test": "font-error-retry-and-cancel",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 1440,
+      "locale": "zh-CN",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "width": 390,
+      "locale": "zh-CN",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 1440,
+      "locale": "zh-CN",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "ru",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "en",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "tr",
+      "status": "passed"
+    },
+    {
+      "engine": "firefox",
+      "version": "153.0",
+      "width": 390,
+      "locale": "zh-CN",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "safari": "not tested",
+  "physicalMobile": "not tested",
+  "productionBuild": true
+}

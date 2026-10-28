@@ -90,7 +90,7 @@ export function createApiClient({
       options.securityRetry !== false &&
       isSensitiveMutation(path, method) &&
       !(options.body instanceof FormData)
-        ? JSON.stringify([path, method, options.body])
+        ? JSON.stringify([path, method, options.body, options.headers])
         : null
     if (key && sensitiveRequests.has(key)) return sensitiveRequests.get(key)
     const operation = send(path, options)
@@ -104,6 +104,7 @@ export function createApiClient({
     {
       method = 'GET',
       body,
+      headers: requestHeaders = {},
       responseType = 'json',
       timeoutMs: requestTimeoutMs = timeoutMs,
       signal: externalSignal,
@@ -164,6 +165,14 @@ export function createApiClient({
         credentials: 'same-origin',
         signal: controller.signal,
         headers: {
+          ...Object.fromEntries(
+            Object.entries(requestHeaders).filter(
+              ([name]) =>
+                !['accept', 'accept-language', 'content-type', 'x-csrf-token'].includes(
+                  name.toLowerCase(),
+                ),
+            ),
+          ),
           Accept: 'application/json',
           'Accept-Language': locale.value,
           ...(body && !multipart ? { 'Content-Type': 'application/json' } : {}),
@@ -213,6 +222,7 @@ export function createApiClient({
           return request(path, {
             method,
             body,
+            headers: requestHeaders,
             responseType,
             timeoutMs: requestTimeoutMs,
             signal: externalSignal,

@@ -1,0 +1,72 @@
+[
+  {
+    "file": "comparisons/pdf-first.png",
+    "case": "studio-ru",
+    "oldPage": 1,
+    "newPage": 1,
+    "format": "pdf"
+  },
+  {
+    "file": "comparisons/pdf-middle.png",
+    "case": "medium-ru",
+    "oldPage": 9,
+    "newPage": 6,
+    "format": "pdf"
+  },
+  {
+    "file": "comparisons/pdf-last.png",
+    "case": "studio-ru",
+    "oldPage": 4,
+    "newPage": 2,
+    "format": "pdf"
+  },
+  {
+    "file": "comparisons/pdf-long-start.png",
+    "case": "long-tr",
+    "oldPage": 2,
+    "newPage": 2,
+    "format": "pdf"
+  },
+  {
+    "file": "comparisons/pdf-long-continued.png",
+    "case": "long-tr",
+    "oldPage": 3,
+    "newPage": 3,
+    "format": "pdf"
+  },
+  {
+    "file": "comparisons/docx-first.png",
+    "case": "studio-ru",
+    "oldPage": 1,
+    "newPage": 1,
+    "format": "docx"
+  },
+  {
+    "file": "comparisons/docx-middle.png",
+    "case": "medium-ru",
+    "oldPage": 8,
+    "newPage": 6,
+    "format": "docx"
+  },
+  {
+    "file": "comparisons/docx-last.png",
+    "case": "studio-ru",
+    "oldPage": 3,
+    "newPage": 2,
+    "format": "docx"
+  },
+  {
+    "file": "comparisons/docx-long-start.png",
+    "case": "long-tr",
+    "oldPage": 2,
+    "newPage": 2,
+    "format": "docx"
+  },
+  {
+    "file": "comparisons/docx-long-continued.png",
+    "case": "long-tr",
+    "oldPage": 3,
+    "newPage": 3,
+    "format": "docx"
+  }
+]

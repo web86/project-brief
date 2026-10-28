@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
@@ -12,6 +12,14 @@ const server = await createServer({
   plugins: [
     {
       name: 'isolated-export-qa-page',
+      enforce: 'pre',
+      async load(id) {
+        if (
+          process.env.BRANDING_EXPORT_BASELINE_DEFINITION &&
+          id === fileURLToPath(new URL('../src/services/pdf/definition.js', import.meta.url))
+        )
+          return readFile(process.env.BRANDING_EXPORT_BASELINE_DEFINITION, 'utf8')
+      },
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
           if (request.url === '/qa-export') {
@@ -40,6 +48,7 @@ try {
     })
   })
   await page.goto('http://127.0.0.1:5197/qa-export')
+  const measurements = []
   for (const name of process.env.BRANDING_EXPORT_NAMES?.split(',') || [
     'branded-ru',
     'branded-en',
@@ -61,7 +70,32 @@ try {
     const bytes = Buffer.from(result.bytes)
     assert.equal(bytes.subarray(0, 5).toString(), '%PDF-')
     await writeFile(new URL(name + '.pdf', directory), bytes)
+    measurements.push({ name, bytes: bytes.length, ...result.metrics })
     console.log('PASS', name, bytes.length, 'bytes; actual browser PDF worker')
+  }
+  await writeFile(
+    new URL('pdf-metrics.json', directory),
+    JSON.stringify(measurements, null, 2) + '\n',
+  )
+  if (process.env.DOCUMENT_VECTOR_QA === '1') {
+    const payload = JSON.parse(await readFile(new URL('small-en.json', directory), 'utf8'))
+    payload.document.branding.logo = null
+    payload.document.branding.logoSvg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="30" viewBox="0 0 100 30"><path fill="#17695d" d="M0 0h100v30H0z"/></svg>'
+    const values = await page.evaluate(async (payload) => {
+      const { createBrowserPdfAdapter } = await import('/src/services/pdf/index.js')
+      const file = await createBrowserPdfAdapter({ request: async () => payload })({
+        projectId: 'qa',
+      })
+      return Array.from(new Uint8Array(await file.blob.arrayBuffer()))
+    }, payload)
+    const vector = Buffer.from(values)
+    assert.equal(vector.subarray(0, 5).toString(), '%PDF-')
+    assert.doesNotMatch(vector.toString('latin1'), /\/Subtype\s*\/Image/)
+    await writeFile(
+      new URL('vector-result.json', directory),
+      JSON.stringify({ passed: true, bytes: vector.length, imageXObjects: 0 }) + '\n',
+    )
   }
 } finally {
   await browser?.close()

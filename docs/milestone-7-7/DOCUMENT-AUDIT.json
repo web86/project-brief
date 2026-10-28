@@ -1,0 +1,1503 @@
+{
+  "chinese": {
+    "tasks": 10,
+    "pdf": {
+      "pages": 2,
+      "bytes": 104833,
+      "fontStreamBytes": 45804,
+      "fontStreams": 4,
+      "images": [
+        {
+          "width": 1024,
+          "height": 320,
+          "compressedBytes": 30397
+        }
+      ],
+      "contentChecks": 70,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 50.1,
+          "bodyBottom": 731.2,
+          "characters": 1120
+        },
+        {
+          "page": 2,
+          "bodyTop": 60.3,
+          "bodyBottom": 717.8,
+          "characters": 942
+        }
+      ]
+    },
+    "docx": {
+      "pages": 3,
+      "bytes": 12717266,
+      "fontStreamBytes": 90888,
+      "fontStreams": 20,
+      "images": [
+        {
+          "width": 359,
+          "height": 112,
+          "compressedBytes": 5231
+        }
+      ],
+      "contentChecks": 70,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 764.0,
+          "characters": 904
+        },
+        {
+          "page": 2,
+          "bodyTop": 55.8,
+          "bodyBottom": 621.5,
+          "characters": 828
+        },
+        {
+          "page": 3,
+          "bodyTop": 57.3,
+          "bodyBottom": 409.5,
+          "characters": 362
+        }
+      ],
+      "embeddedFontBytes": 21181416,
+      "compressedFontBytes": 12678146,
+      "media": [
+        {
+          "name": "word/media/section_image1.png",
+          "bytes": 30511
+        }
+      ]
+    },
+    "beforePdf": {
+      "pages": 4,
+      "bytes": 109136
+    },
+    "beforeDocx": {
+      "pages": 4,
+      "bytes": 12717408
+    }
+  },
+  "large-en": {
+    "tasks": 500,
+    "pdf": {
+      "pages": 64,
+      "bytes": 543557,
+      "fontStreamBytes": 21311,
+      "fontStreams": 3,
+      "images": [
+        {
+          "width": 1024,
+          "height": 320,
+          "compressedBytes": 30397
+        }
+      ],
+      "contentChecks": 1908,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 50.1,
+          "bodyBottom": 765.9,
+          "characters": 2116
+        },
+        {
+          "page": 2,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2384
+        },
+        {
+          "page": 3,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2227
+        },
+        {
+          "page": 4,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2430
+        },
+        {
+          "page": 5,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2394
+        },
+        {
+          "page": 6,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2225
+        },
+        {
+          "page": 7,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2430
+        },
+        {
+          "page": 8,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2387
+        },
+        {
+          "page": 9,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2232
+        },
+        {
+          "page": 10,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2433
+        },
+        {
+          "page": 11,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2386
+        },
+        {
+          "page": 12,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2233
+        },
+        {
+          "page": 13,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2441
+        },
+        {
+          "page": 14,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2423
+        },
+        {
+          "page": 15,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2264
+        },
+        {
+          "page": 16,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2455
+        },
+        {
+          "page": 17,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2423
+        },
+        {
+          "page": 18,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2257
+        },
+        {
+          "page": 19,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2462
+        },
+        {
+          "page": 20,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2425
+        },
+        {
+          "page": 21,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 22,
+          "bodyTop": 62.3,
+          "bodyBottom": 718.4,
+          "characters": 2276
+        },
+        {
+          "page": 23,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 24,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2423
+        },
+        {
+          "page": 25,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2464
+        },
+        {
+          "page": 26,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 27,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2425
+        },
+        {
+          "page": 28,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2455
+        },
+        {
+          "page": 29,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2262
+        },
+        {
+          "page": 30,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2425
+        },
+        {
+          "page": 31,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2455
+        },
+        {
+          "page": 32,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2264
+        },
+        {
+          "page": 33,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2416
+        },
+        {
+          "page": 34,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2462
+        },
+        {
+          "page": 35,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2264
+        },
+        {
+          "page": 36,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2416
+        },
+        {
+          "page": 37,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2464
+        },
+        {
+          "page": 38,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 39,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2423
+        },
+        {
+          "page": 40,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2464
+        },
+        {
+          "page": 41,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 42,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2425
+        },
+        {
+          "page": 43,
+          "bodyTop": 62.3,
+          "bodyBottom": 672.8,
+          "characters": 2064
+        },
+        {
+          "page": 44,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2464
+        },
+        {
+          "page": 45,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2423
+        },
+        {
+          "page": 46,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 47,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2464
+        },
+        {
+          "page": 48,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2416
+        },
+        {
+          "page": 49,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2264
+        },
+        {
+          "page": 50,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2462
+        },
+        {
+          "page": 51,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2416
+        },
+        {
+          "page": 52,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2264
+        },
+        {
+          "page": 53,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2455
+        },
+        {
+          "page": 54,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2425
+        },
+        {
+          "page": 55,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2262
+        },
+        {
+          "page": 56,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2455
+        },
+        {
+          "page": 57,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2425
+        },
+        {
+          "page": 58,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 59,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2464
+        },
+        {
+          "page": 60,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2423
+        },
+        {
+          "page": 61,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2255
+        },
+        {
+          "page": 62,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2464
+        },
+        {
+          "page": 63,
+          "bodyTop": 57.9,
+          "bodyBottom": 645.9,
+          "characters": 2041
+        },
+        {
+          "page": 64,
+          "bodyTop": 62.2,
+          "bodyBottom": 324.7,
+          "characters": 541
+        }
+      ]
+    },
+    "docx": {
+      "pages": 68,
+      "bytes": 12726886,
+      "fontStreamBytes": 77255,
+      "fontStreams": 13,
+      "images": [
+        {
+          "width": 359,
+          "height": 112,
+          "compressedBytes": 5231
+        }
+      ],
+      "contentChecks": 1908,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 748.5,
+          "characters": 1892
+        },
+        {
+          "page": 2,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2199
+        },
+        {
+          "page": 3,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2360
+        },
+        {
+          "page": 4,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2007
+        },
+        {
+          "page": 5,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2200
+        },
+        {
+          "page": 6,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2204
+        },
+        {
+          "page": 7,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2366
+        },
+        {
+          "page": 8,
+          "bodyTop": 48.2,
+          "bodyBottom": 648.3,
+          "characters": 1915
+        },
+        {
+          "page": 9,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2194
+        },
+        {
+          "page": 10,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2211
+        },
+        {
+          "page": 11,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2361
+        },
+        {
+          "page": 12,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2008
+        },
+        {
+          "page": 13,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2201
+        },
+        {
+          "page": 14,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2224
+        },
+        {
+          "page": 15,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2397
+        },
+        {
+          "page": 16,
+          "bodyTop": 48.2,
+          "bodyBottom": 648.3,
+          "characters": 1941
+        },
+        {
+          "page": 17,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2223
+        },
+        {
+          "page": 18,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 19,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2391
+        },
+        {
+          "page": 20,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2034
+        },
+        {
+          "page": 21,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2229
+        },
+        {
+          "page": 22,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2234
+        },
+        {
+          "page": 23,
+          "bodyTop": 48.2,
+          "bodyBottom": 707.4,
+          "characters": 2118
+        },
+        {
+          "page": 24,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 25,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2223
+        },
+        {
+          "page": 26,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 27,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2391
+        },
+        {
+          "page": 28,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2034
+        },
+        {
+          "page": 29,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2229
+        },
+        {
+          "page": 30,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2234
+        },
+        {
+          "page": 31,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2397
+        },
+        {
+          "page": 32,
+          "bodyTop": 48.2,
+          "bodyBottom": 648.3,
+          "characters": 1941
+        },
+        {
+          "page": 33,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2223
+        },
+        {
+          "page": 34,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 35,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2391
+        },
+        {
+          "page": 36,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2034
+        },
+        {
+          "page": 37,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2229
+        },
+        {
+          "page": 38,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2234
+        },
+        {
+          "page": 39,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2397
+        },
+        {
+          "page": 40,
+          "bodyTop": 48.2,
+          "bodyBottom": 648.3,
+          "characters": 1941
+        },
+        {
+          "page": 41,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2223
+        },
+        {
+          "page": 42,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 43,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2391
+        },
+        {
+          "page": 44,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2034
+        },
+        {
+          "page": 45,
+          "bodyTop": 48.2,
+          "bodyBottom": 761.0,
+          "characters": 2246
+        },
+        {
+          "page": 46,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2234
+        },
+        {
+          "page": 47,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2397
+        },
+        {
+          "page": 48,
+          "bodyTop": 48.2,
+          "bodyBottom": 648.3,
+          "characters": 1941
+        },
+        {
+          "page": 49,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2223
+        },
+        {
+          "page": 50,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 51,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2391
+        },
+        {
+          "page": 52,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2034
+        },
+        {
+          "page": 53,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2229
+        },
+        {
+          "page": 54,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2234
+        },
+        {
+          "page": 55,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2397
+        },
+        {
+          "page": 56,
+          "bodyTop": 48.2,
+          "bodyBottom": 648.3,
+          "characters": 1941
+        },
+        {
+          "page": 57,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2223
+        },
+        {
+          "page": 58,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 59,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2391
+        },
+        {
+          "page": 60,
+          "bodyTop": 48.2,
+          "bodyBottom": 679.3,
+          "characters": 2034
+        },
+        {
+          "page": 61,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2229
+        },
+        {
+          "page": 62,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2234
+        },
+        {
+          "page": 63,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2397
+        },
+        {
+          "page": 64,
+          "bodyTop": 48.2,
+          "bodyBottom": 648.3,
+          "characters": 1941
+        },
+        {
+          "page": 65,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2223
+        },
+        {
+          "page": 66,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2240
+        },
+        {
+          "page": 67,
+          "bodyTop": 48.2,
+          "bodyBottom": 608.3,
+          "characters": 1813
+        },
+        {
+          "page": 68,
+          "bodyTop": 48.2,
+          "bodyBottom": 316.7,
+          "characters": 533
+        }
+      ],
+      "embeddedFontBytes": 21181416,
+      "compressedFontBytes": 12678146,
+      "media": [
+        {
+          "name": "word/media/section_image1.png",
+          "bytes": 30511
+        }
+      ]
+    },
+    "beforePdf": {
+      "pages": 106,
+      "bytes": 631969
+    },
+    "beforeDocx": {
+      "pages": 95,
+      "bytes": 12731637
+    }
+  },
+  "long-tr": {
+    "tasks": 8,
+    "pdf": {
+      "pages": 5,
+      "bytes": 95929,
+      "fontStreamBytes": 22829,
+      "fontStreams": 3,
+      "images": [
+        {
+          "width": 1024,
+          "height": 320,
+          "compressedBytes": 30397
+        }
+      ],
+      "contentChecks": 63,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 50.1,
+          "bodyBottom": 770.1,
+          "characters": 2708
+        },
+        {
+          "page": 2,
+          "bodyTop": 49.7,
+          "bodyBottom": 774.2,
+          "characters": 3648
+        },
+        {
+          "page": 3,
+          "bodyTop": 63.0,
+          "bodyBottom": 734.4,
+          "characters": 3393
+        },
+        {
+          "page": 4,
+          "bodyTop": 49.7,
+          "bodyBottom": 709.1,
+          "characters": 2671
+        },
+        {
+          "page": 5,
+          "bodyTop": 62.3,
+          "bodyBottom": 684.4,
+          "characters": 2424
+        }
+      ]
+    },
+    "docx": {
+      "pages": 5,
+      "bytes": 12717623,
+      "fontStreamBytes": 78562,
+      "fontStreams": 13,
+      "images": [
+        {
+          "width": 359,
+          "height": 112,
+          "compressedBytes": 5231
+        }
+      ],
+      "contentChecks": 63,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 727.9,
+          "characters": 2437
+        },
+        {
+          "page": 2,
+          "bodyTop": 48.2,
+          "bodyBottom": 782.7,
+          "characters": 3364
+        },
+        {
+          "page": 3,
+          "bodyTop": 62.7,
+          "bodyBottom": 739.2,
+          "characters": 3112
+        },
+        {
+          "page": 4,
+          "bodyTop": 48.2,
+          "bodyBottom": 783.8,
+          "characters": 3050
+        },
+        {
+          "page": 5,
+          "bodyTop": 48.2,
+          "bodyBottom": 745.9,
+          "characters": 2735
+        }
+      ],
+      "embeddedFontBytes": 21181416,
+      "compressedFontBytes": 12678146,
+      "media": [
+        {
+          "name": "word/media/section_image1.png",
+          "bytes": 30511
+        }
+      ]
+    },
+    "beforePdf": {
+      "pages": 6,
+      "bytes": 92272
+    },
+    "beforeDocx": {
+      "pages": 7,
+      "bytes": 12717555
+    }
+  },
+  "medium-ru": {
+    "tasks": 75,
+    "pdf": {
+      "pages": 11,
+      "bytes": 141926,
+      "fontStreamBytes": 26304,
+      "fontStreams": 3,
+      "images": [
+        {
+          "width": 1024,
+          "height": 320,
+          "compressedBytes": 30397
+        }
+      ],
+      "contentChecks": 314,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 50.1,
+          "bodyBottom": 765.9,
+          "characters": 2117
+        },
+        {
+          "page": 2,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2400
+        },
+        {
+          "page": 3,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2236
+        },
+        {
+          "page": 4,
+          "bodyTop": 57.9,
+          "bodyBottom": 718.4,
+          "characters": 2256
+        },
+        {
+          "page": 5,
+          "bodyTop": 57.9,
+          "bodyBottom": 712.9,
+          "characters": 2242
+        },
+        {
+          "page": 6,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2402
+        },
+        {
+          "page": 7,
+          "bodyTop": 57.9,
+          "bodyBottom": 672.8,
+          "characters": 2058
+        },
+        {
+          "page": 8,
+          "bodyTop": 57.9,
+          "bodyBottom": 758.5,
+          "characters": 2437
+        },
+        {
+          "page": 9,
+          "bodyTop": 57.9,
+          "bodyBottom": 741.4,
+          "characters": 2409
+        },
+        {
+          "page": 10,
+          "bodyTop": 57.9,
+          "bodyBottom": 711.1,
+          "characters": 1907
+        },
+        {
+          "page": 11,
+          "bodyTop": 62.2,
+          "bodyBottom": 162.1,
+          "characters": 404
+        }
+      ]
+    },
+    "docx": {
+      "pages": 11,
+      "bytes": 12719158,
+      "fontStreamBytes": 84286,
+      "fontStreams": 13,
+      "images": [
+        {
+          "width": 359,
+          "height": 112,
+          "compressedBytes": 5231
+        }
+      ],
+      "contentChecks": 314,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 748.5,
+          "characters": 1913
+        },
+        {
+          "page": 2,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2227
+        },
+        {
+          "page": 3,
+          "bodyTop": 48.2,
+          "bodyBottom": 781.3,
+          "characters": 2398
+        },
+        {
+          "page": 4,
+          "bodyTop": 48.2,
+          "bodyBottom": 707.4,
+          "characters": 2051
+        },
+        {
+          "page": 5,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2237
+        },
+        {
+          "page": 6,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2232
+        },
+        {
+          "page": 7,
+          "bodyTop": 48.2,
+          "bodyBottom": 707.4,
+          "characters": 2119
+        },
+        {
+          "page": 8,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2238
+        },
+        {
+          "page": 9,
+          "bodyTop": 48.2,
+          "bodyBottom": 732.9,
+          "characters": 2231
+        },
+        {
+          "page": 10,
+          "bodyTop": 48.2,
+          "bodyBottom": 750.3,
+          "characters": 2239
+        },
+        {
+          "page": 11,
+          "bodyTop": 48.2,
+          "bodyBottom": 422.7,
+          "characters": 942
+        }
+      ],
+      "embeddedFontBytes": 21181416,
+      "compressedFontBytes": 12678151,
+      "media": [
+        {
+          "name": "word/media/section_image1.png",
+          "bytes": 30511
+        }
+      ]
+    },
+    "beforePdf": {
+      "pages": 18,
+      "bytes": 155203
+    },
+    "beforeDocx": {
+      "pages": 15,
+      "bytes": 12719915
+    }
+  },
+  "minimal": {
+    "tasks": 8,
+    "pdf": {
+      "pages": 1,
+      "bytes": 22987,
+      "fontStreamBytes": 14454,
+      "fontStreams": 2,
+      "images": [],
+      "contentChecks": 18,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 51.0,
+          "bodyBottom": 462.0,
+          "characters": 640
+        }
+      ]
+    },
+    "docx": {
+      "pages": 1,
+      "bytes": 9414,
+      "fontStreamBytes": 45054,
+      "fontStreams": 9,
+      "images": [],
+      "contentChecks": 18,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 446.9,
+          "characters": 627
+        }
+      ],
+      "embeddedFontBytes": 0,
+      "compressedFontBytes": 0,
+      "media": []
+    },
+    "beforePdf": {
+      "pages": 1,
+      "bytes": 20915
+    },
+    "beforeDocx": {
+      "pages": 1,
+      "bytes": 9042
+    }
+  },
+  "section-breaks": {
+    "tasks": 11,
+    "pdf": {
+      "pages": 3,
+      "bytes": 80485,
+      "fontStreamBytes": 25747,
+      "fontStreams": 3,
+      "images": [
+        {
+          "width": 1024,
+          "height": 320,
+          "compressedBytes": 30397
+        }
+      ],
+      "contentChecks": 73,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 50.1,
+          "bodyBottom": 519.3,
+          "characters": 1274
+        },
+        {
+          "page": 2,
+          "bodyTop": 62.3,
+          "bodyBottom": 414.9,
+          "characters": 1116
+        },
+        {
+          "page": 3,
+          "bodyTop": 62.3,
+          "bodyBottom": 581.0,
+          "characters": 1322
+        }
+      ]
+    },
+    "docx": {
+      "pages": 3,
+      "bytes": 12717458,
+      "fontStreamBytes": 81971,
+      "fontStreams": 13,
+      "images": [
+        {
+          "width": 359,
+          "height": 112,
+          "compressedBytes": 5231
+        }
+      ],
+      "contentChecks": 73,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 552.9,
+          "characters": 1269
+        },
+        {
+          "page": 2,
+          "bodyTop": 60.2,
+          "bodyBottom": 440.4,
+          "characters": 1114
+        },
+        {
+          "page": 3,
+          "bodyTop": 60.2,
+          "bodyBottom": 600.8,
+          "characters": 1320
+        }
+      ],
+      "embeddedFontBytes": 21181416,
+      "compressedFontBytes": 12678147,
+      "media": [
+        {
+          "name": "word/media/section_image1.png",
+          "bytes": 30511
+        }
+      ]
+    },
+    "beforePdf": {
+      "pages": 5,
+      "bytes": 81400
+    },
+    "beforeDocx": {
+      "pages": 3,
+      "bytes": 12717568
+    }
+  },
+  "small-en": {
+    "tasks": 8,
+    "pdf": {
+      "pages": 2,
+      "bytes": 71606,
+      "fontStreamBytes": 21262,
+      "fontStreams": 3,
+      "images": [
+        {
+          "width": 1024,
+          "height": 320,
+          "compressedBytes": 30397
+        }
+      ],
+      "contentChecks": 63,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 50.1,
+          "bodyBottom": 725.8,
+          "characters": 1933
+        },
+        {
+          "page": 2,
+          "bodyTop": 62.3,
+          "bodyBottom": 514.0,
+          "characters": 1021
+        }
+      ]
+    },
+    "docx": {
+      "pages": 2,
+      "bytes": 12716986,
+      "fontStreamBytes": 75129,
+      "fontStreams": 13,
+      "images": [
+        {
+          "width": 359,
+          "height": 112,
+          "compressedBytes": 5231
+        }
+      ],
+      "contentChecks": 63,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 776.5,
+          "characters": 1911
+        },
+        {
+          "page": 2,
+          "bodyTop": 48.2,
+          "bodyBottom": 517.8,
+          "characters": 1007
+        }
+      ],
+      "embeddedFontBytes": 21181416,
+      "compressedFontBytes": 12678145,
+      "media": [
+        {
+          "name": "word/media/section_image1.png",
+          "bytes": 30511
+        }
+      ]
+    },
+    "beforePdf": {
+      "pages": 3,
+      "bytes": 72337
+    },
+    "beforeDocx": {
+      "pages": 3,
+      "bytes": 12717100
+    }
+  },
+  "studio-ru": {
+    "tasks": 11,
+    "pdf": {
+      "pages": 2,
+      "bytes": 78365,
+      "fontStreamBytes": 25753,
+      "fontStreams": 3,
+      "images": [
+        {
+          "width": 1024,
+          "height": 320,
+          "compressedBytes": 30397
+        }
+      ],
+      "contentChecks": 73,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 50.1,
+          "bodyBottom": 725.8,
+          "characters": 1846
+        },
+        {
+          "page": 2,
+          "bodyTop": 57.9,
+          "bodyBottom": 743.4,
+          "characters": 1815
+        }
+      ]
+    },
+    "docx": {
+      "pages": 2,
+      "bytes": 12717447,
+      "fontStreamBytes": 81743,
+      "fontStreams": 13,
+      "images": [
+        {
+          "width": 359,
+          "height": 112,
+          "compressedBytes": 5231
+        }
+      ],
+      "contentChecks": 73,
+      "pageGeometry": [
+        {
+          "page": 1,
+          "bodyTop": 48.2,
+          "bodyBottom": 776.5,
+          "characters": 1841
+        },
+        {
+          "page": 2,
+          "bodyTop": 48.2,
+          "bodyBottom": 765.8,
+          "characters": 1811
+        }
+      ],
+      "embeddedFontBytes": 21181416,
+      "compressedFontBytes": 12678148,
+      "media": [
+        {
+          "name": "word/media/section_image1.png",
+          "bytes": 30511
+        }
+      ]
+    },
+    "beforePdf": {
+      "pages": 4,
+      "bytes": 79683
+    },
+    "beforeDocx": {
+      "pages": 3,
+      "bytes": 12717574
+    }
+  }
+}

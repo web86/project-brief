@@ -221,7 +221,7 @@ class ProjectExportTest extends TestCase
         $this->assertSame('0.00', $missing['totals']['price']['value']);
         $this->assertSame('Price provided for 0 of 3 tasks', $missing['totals']['price']['coverage']);
         $default = $builder->build($project, 'all', 'en');
-        $this->assertSame(['taskCount' => 3, 'approvedCount' => 2], $default['totals']);
+        $this->assertSame(['taskCount' => 3, 'approvedCount' => 2, 'workflowApprovedCount' => 0, 'clarificationCount' => 0, 'doneCount' => 0], $default['totals']);
         $this->assertCount(2, $default['summary']);
         $project->tasks()->where('id', '!=', $ordered[0]->id)->delete();
         $this->assertSame('Estimate provided for 0 of 1 task', $builder->build($project, 'all', 'en', $fields)['totals']['estimateHours']['coverage']);
@@ -271,8 +271,8 @@ class ProjectExportTest extends TestCase
                         $found = false;
                         foreach ($metadataNodes as $node) {
                             if ($node->textContent === $task['metadata']) {
-                                $this->assertSame('18', $xpath->evaluate('string(w:r/w:rPr/w:sz/@w:val)', $node));
-                                $this->assertSame('586174', $xpath->evaluate('string(w:r/w:rPr/w:color/@w:val)', $node));
+                                $this->assertSame('17', $xpath->evaluate('string(w:r/w:rPr/w:sz/@w:val)', $node));
+                                $this->assertSame('525866', $xpath->evaluate('string(w:r/w:rPr/w:color/@w:val)', $node));
                                 $found = true;
                                 break;
                             }
@@ -281,7 +281,10 @@ class ProjectExportTest extends TestCase
                     }
                 }
                 foreach ($data['summary'] as $row) {
-                    $this->assertStringContainsString($row['label'].': '.$row['value'], $xml);
+                    $label = $row['label'];
+                    $tableRow = $xpath->query('//w:tr[w:tc[1]//w:t[text()="'.$label.'"]]')->item(0);
+                    $this->assertNotNull($tableRow);
+                    $this->assertSame($row['value'], $xpath->evaluate('string(w:tc[2])', $tableRow));
                     if ($row['coverage']) {
                         $this->assertStringContainsString($row['coverage'], $xml);
                     }
@@ -297,7 +300,7 @@ class ProjectExportTest extends TestCase
         $this->assertSame('', $bare['sections'][0]['tasks'][0]['metadata']);
         $financialOnly = app(ProjectExportData::class)->build($project, 'all', 'en', [...$fields, 'estimateHours' => true, 'price' => true]);
         $metadata = $financialOnly['sections'][1]['tasks'][0]['metadata'];
-        $this->assertSame("Estimate: 23.5 h · Price: 987.25\u{00A0}₽", $metadata);
+        $this->assertSame("23.5 h · 987.25\u{00A0}₽", $metadata);
     }
 
     public function test_optional_filenames_dates_and_custom_title_are_safe_in_docx(): void
@@ -396,9 +399,12 @@ class ProjectExportTest extends TestCase
             if ($format === 'docx') {
                 $xml = $this->xml($response->streamedContent());
                 $this->assertStringNotContainsString('Каталог товаров', $xml);
-                $this->assertStringContainsString('Tasks: 2', $xml);
-                $this->assertStringContainsString('Approved: 1', $xml);
-                $this->assertStringContainsString("Total price: 18,000\u{00A0}₽", $xml);
+                $xpath = $this->documentXPath($xml);
+                foreach (['Tasks' => '2', 'Confirmed by client' => '1', 'Total price' => "18,000\u{00A0}₽"] as $label => $value) {
+                    $row = $xpath->query('//w:tr[w:tc[1]//w:t[text()="'.$label.'"]]')->item(0);
+                    $this->assertNotNull($row);
+                    $this->assertSame($value, $xpath->evaluate('string(w:tc[2])', $row));
+                }
             }
         }
         $project->tasks()->where('status', 'done')->update(['status' => 'new']);

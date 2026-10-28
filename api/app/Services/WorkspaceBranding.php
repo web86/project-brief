@@ -93,24 +93,58 @@ class WorkspaceBranding
             'contact' => $flags['contact'] ? $this->contact($settings['contact'], false) : []];
     }
 
-    public function document(Workspace $workspace, string $locale): array
+    public function document(Workspace $workspace, string $locale, bool $preferVectorLogo = false): array
     {
         $settings = $this->settings($workspace);
         $flags = $settings['export'];
         $asset = $workspace->branding['assets']['logo'] ?? null;
-        $logo = $flags['logo'] && $asset && Storage::disk('local')->exists($asset['path']) ? 'data:'.($asset['mime'] ?? 'image/png').';base64,'.base64_encode(Storage::disk('local')->get($asset['path'])) : null;
+        $logo = null;
+        $logoSvg = null;
+        if ($flags['logo'] && $asset) {
+            $images = app(BrandImage::class);
+            if ($preferVectorLogo && ! empty($asset['svgPath']) && Storage::disk('local')->exists($asset['svgPath'])) {
+                $svg = $images->svg(Storage::disk('local')->get($asset['svgPath']));
+                // Mixed-script SVG text has no per-glyph fallback in pdfmake; keep its verified PNG rendering.
+                if (! preg_match('/<(?:[a-zA-Z0-9_-]+:)?(?:text|tspan)\b|<\/?[a-zA-Z0-9_-]+:/', $svg)) {
+                    $logoSvg = $svg;
+                }
+            }
+            if ($logoSvg === null && Storage::disk('local')->exists($asset['path'])) {
+                $logo = 'data:image/png;base64,'.base64_encode($images->documentPng(Storage::disk('local')->get($asset['path'])));
+            }
+        }
         $rows = [];
         if ($flags['business']) {
             foreach ($settings['business'] as $key => $value) {
                 if (trim($value) !== '') {
-                    $rows[] = ['label' => trans('branding.fields.'.$key, [], $locale), 'value' => $value];
+                    $rows[] = ['key' => $key, 'label' => trans('branding.fields.'.$key, [], $locale), 'value' => $value];
                 }
             }
         }
 
-        return ['name' => $flags['companyName'] ? $settings['visual']['companyName'] : '', 'logo' => $logo,
+        return ['name' => $flags['companyName'] ? $settings['visual']['companyName'] : '', 'logo' => $logo, 'logoSvg' => $logoSvg,
+            'color' => $this->documentAccent($settings['visual']['primaryColor']),
             'address' => $flags['address'] ? $this->contact($settings['contact'], true) : [],
             'contact' => $flags['contact'] ? $this->contact($settings['contact'], false) : [], 'business' => $rows,
             'businessTitle' => trans('branding.business', [], $locale), 'platform' => $flags['platform'], 'platformUrl' => rtrim(config('app.url'), '/')];
+    }
+
+    /** Preserve the hue while keeping a small printed accent readable against white. */
+    private function documentAccent(string $color): string
+    {
+        if (! preg_match('/^#[a-f0-9]{6}$/iD', $color)) {
+            return '#344054';
+        }
+        $rgb = array_map(fn ($value) => hexdec($value), str_split(substr($color, 1), 2));
+        do {
+            $linear = array_map(fn ($value) => $value / 255 <= 0.04045 ? $value / 255 / 12.92 : (($value / 255 + 0.055) / 1.055) ** 2.4, $rgb);
+            $luminance = $linear[0] * 0.2126 + $linear[1] * 0.7152 + $linear[2] * 0.0722;
+            if (1.05 / ($luminance + 0.05) >= 4.5) {
+                break;
+            }
+            $rgb = array_map(fn ($value) => (int) floor($value * 0.9), $rgb);
+        } while (true);
+
+        return '#'.implode('', array_map(fn ($value) => str_pad(dechex($value), 2, '0', STR_PAD_LEFT), $rgb));
     }
 }

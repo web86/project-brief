@@ -25,7 +25,12 @@ const document = {
           number: '2.9',
           title: 'User task',
           content: [
-            { block: true, label: 'Description', value: 'Keep <img src="x"> & 原文，不翻译。' },
+            {
+              key: 'description',
+              block: true,
+              label: 'Description',
+              value: 'Keep <img src="x"> & 原文，不翻译。',
+            },
             { block: false, label: 'Price', value: '1.234,50 USD' },
           ],
           metadata: 'Price: 1.234,50 USD',
@@ -90,8 +95,9 @@ test('PDF worker is terminated on success and private JSON is sent only to it', 
     },
   }
   const adapter = createBrowserPdfAdapter({
-    request: async (path) => {
+    request: async (path, options) => {
       requestPath = path
+      assert.equal(options.headers['X-ProjectBrief-Pdf-Renderer'], '2')
       return { schemaVersion: 1, document, filename: 'safe.pdf' }
     },
     workerFactory: () => worker,
@@ -112,9 +118,89 @@ test('large or line-heavy original blocks remain breakable while short headings 
     const block = definition.content.find(
       (node) => node.text?.map((run) => run.text).join('') === value,
     )
-    assert.ok(block, 'original block must remain outside an unbreakable group')
-    assert.equal(block.unbreakable, undefined)
+    if (!value.includes('\r')) {
+      assert.ok(block, 'original block must remain outside an unbreakable group')
+      assert.equal(block.unbreakable, undefined)
+    } else {
+      assert.ok(
+        definition.content.filter((node) => node.text?.map((run) => run.text).join('') === ' ')
+          .length >= 9,
+        'Explicit blank paragraphs survive in the breakable flow',
+      )
+    }
   }
+})
+
+const descendants = (nodes) =>
+  nodes.flatMap((node) => [
+    node,
+    ...descendants(node.stack || node.columns || node.table?.body.flat() || []),
+  ])
+
+test('compact document has no description caption, preserves inline block labels and prints metadata once', () => {
+  const input = structuredClone(document)
+  input.sections[0].tasks[0].content.push({
+    key: 'expectedResult',
+    block: true,
+    label: 'Expected result',
+    value: 'Original result\nSecond line',
+  })
+  input.sections[0].tasks[0].metadata = 'Approved · Priority: Normal · 2 h · 150 $'
+  const definition = documentDefinition(input)
+  const all = descendants(definition.content)
+  const strings = all
+    .filter((node) => node.text)
+    .map((node) => node.text.map((run) => run.text).join(''))
+  assert.ok(!strings.includes('Description'))
+  assert.ok(strings.includes('Keep <img src="x"> & 原文，不翻译。'))
+  assert.ok(strings.includes('Expected result: Original result'))
+  assert.ok(strings.includes('Second line'))
+  assert.equal(strings.filter((value) => value.includes('2 h')).length, 1)
+  assert.equal(definition.defaultStyle.fontSize, 9.25)
+  assert.ok(definition.pageMargins.slice(0, 3).every((value) => value >= 45 && value <= 51))
+  assert.ok(all.every((node) => !node.fillColor))
+})
+
+test('SVG logo is embedded directly once and disabled private branding stays absent', () => {
+  const input = structuredClone(document)
+  input.branding = {
+    logoSvg:
+      '<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20"/></svg>',
+    name: 'Studio',
+    business: [],
+    platform: false,
+  }
+  const definition = documentDefinition(input)
+  const all = descendants(definition.content)
+  assert.equal(all.filter((node) => node.svg).length, 1)
+  assert.equal(all.filter((node) => node.image).length, 0)
+  assert.deepEqual(all.find((node) => node.svg).fit, [86, 28])
+  assert.ok(!JSON.stringify(definition.footer(1, 2)).includes('ProjectBrief'))
+  assert.ok(JSON.stringify(definition.footer(1, 2)).includes('Studio'))
+  assert.equal(definition.info.creator, input.title)
+})
+
+test('section breaks precede only later sections and long content is never boxed as a whole task', () => {
+  const input = structuredClone(document)
+  input.sections.push(structuredClone(input.sections[0]))
+  input.presentation.pageBreakBySection = true
+  let definition = documentDefinition(input)
+  assert.equal(definition.content.filter((node) => node.pageBreak === 'before').length, 1)
+  input.sections[0].tasks[0].content[0].value = 'Long paragraph '.repeat(2000)
+  definition = documentDefinition(input)
+  const paragraph = definition.content.find(
+    (node) =>
+      node.text?.map((run) => run.text).join('') === input.sections[0].tasks[0].content[0].value,
+  )
+  assert.ok(paragraph)
+  assert.equal(paragraph.unbreakable, undefined)
+  assert.equal(
+    definition.pageBreakBefore(
+      { headlineLevel: 2 },
+      { getFollowingNodesOnPage: () => [{ id: 'body-start', startPosition: { top: 777 } }] },
+    ),
+    true,
+  )
 })
 
 test('public font cache avoids another transfer and unavailable storage does not prevent export', async () => {

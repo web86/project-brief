@@ -1,0 +1,65 @@
+[
+  {
+    "name": "large-en",
+    "bytes": 631969,
+    "apiMs": 0,
+    "libraryMs": 191.5,
+    "fontsMs": 876.1000000089407,
+    "fontBytes": 22644176,
+    "fontCacheHits": 0,
+    "renderMs": 1569.0999999940395,
+    "workerMs": 2636.7999999970198,
+    "cjk": true,
+    "fontResources": [
+      {
+        "transferSize": 757376,
+        "decodedBodySize": 757076,
+        "duration": 84.79999999701977
+      },
+      {
+        "transferSize": 705984,
+        "decodedBodySize": 705684,
+        "duration": 249.70000000298023
+      },
+      {
+        "transferSize": 10596236,
+        "decodedBodySize": 10595936,
+        "duration": 635.3999999910593
+      },
+      {
+        "transferSize": 10585780,
+        "decodedBodySize": 10585480,
+        "duration": 492.79999999701977
+      }
+    ],
+    "totalMs": 2661.4000000059605
+  },
+  {
+    "name": "large-en",
+    "bytes": 631969,
+    "apiMs": 0,
+    "libraryMs": 136.70000000298023,
+    "fontsMs": 47.099999994039536,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 761.6000000089407,
+    "workerMs": 945.4000000059605,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 959.7000000029802
+  },
+  {
+    "name": "large-en",
+    "bytes": 631969,
+    "apiMs": 0,
+    "libraryMs": 136.69999998807907,
+    "fontsMs": 43.30000001192093,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 789.3999999910593,
+    "workerMs": 969.3999999910593,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 985.7000000029802
+  }
+]

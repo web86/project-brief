@@ -150,14 +150,14 @@ try {
     path.join(staging, 'deployment/rollback-public.htaccess'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-7-6/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-7-7/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   const deploymentGuide = path.join(staging, 'DEPLOY-JINO.md')
   await writeFile(
     deploymentGuide,
     (await readFile(deploymentGuide, 'utf8'))
-      .replaceAll('(docs/milestone-7-6/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-7-7/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-7-4/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-7-3/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-7-2-1/PRODUCTION.md)', '(PRODUCTION.md)')
@@ -166,7 +166,7 @@ try {
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.7.6', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.7.7', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }
@@ -195,7 +195,7 @@ try {
   const secrets = await knownLocalSecrets()
   const fileCount = await validateRelease(staging, secrets)
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
-  const archive = path.join(releaseRoot, `project-brief-v0.7.6-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(releaseRoot, `project-brief-v0.7.7-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
   // Test the actual ZIP in a fresh directory, never an existing installation.

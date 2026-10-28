@@ -1,0 +1,135 @@
+[
+  {
+    "name": "small-en",
+    "bytes": 72337,
+    "apiMs": 0.09999999403953552,
+    "libraryMs": 545.5999999940395,
+    "fontsMs": 611.6999999880791,
+    "fontBytes": 22644176,
+    "fontCacheHits": 0,
+    "renderMs": 150.70000000298023,
+    "workerMs": 1308.2000000029802,
+    "cjk": true,
+    "fontResources": [
+      {
+        "transferSize": 757376,
+        "decodedBodySize": 757076,
+        "duration": 46.5
+      },
+      {
+        "transferSize": 705984,
+        "decodedBodySize": 705684,
+        "duration": 34.79999999701977
+      },
+      {
+        "transferSize": 10596236,
+        "decodedBodySize": 10595936,
+        "duration": 387
+      },
+      {
+        "transferSize": 10585780,
+        "decodedBodySize": 10585480,
+        "duration": 499.29999999701977
+      }
+    ],
+    "totalMs": 1370.0999999940395
+  },
+  {
+    "name": "studio-ru",
+    "bytes": 79683,
+    "apiMs": 0,
+    "libraryMs": 189.5,
+    "fontsMs": 42.79999999701977,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 142.1000000089407,
+    "workerMs": 374.40000000596046,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 404.70000000298023
+  },
+  {
+    "name": "medium-ru",
+    "bytes": 155203,
+    "apiMs": 0,
+    "libraryMs": 136.6000000089407,
+    "fontsMs": 45.099999994039536,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 243,
+    "workerMs": 424.70000000298023,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 439.80000001192093
+  },
+  {
+    "name": "large-en",
+    "bytes": 631969,
+    "apiMs": 0,
+    "libraryMs": 135.8999999910593,
+    "fontsMs": 46.400000005960464,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 784.2000000029802,
+    "workerMs": 966.5,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 980
+  },
+  {
+    "name": "long-tr",
+    "bytes": 92272,
+    "apiMs": 0,
+    "libraryMs": 155.90000000596046,
+    "fontsMs": 43.8999999910593,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 170.70000000298023,
+    "workerMs": 370.5,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 387
+  },
+  {
+    "name": "chinese",
+    "bytes": 109136,
+    "apiMs": 0,
+    "libraryMs": 137.5,
+    "fontsMs": 44.70000000298023,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 170.8999999910593,
+    "workerMs": 353.09999999403954,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 370.3999999910593
+  },
+  {
+    "name": "section-breaks",
+    "bytes": 81400,
+    "apiMs": 0,
+    "libraryMs": 138.09999999403954,
+    "fontsMs": 42.5,
+    "fontBytes": 22644176,
+    "fontCacheHits": 4,
+    "renderMs": 129.29999999701977,
+    "workerMs": 310,
+    "cjk": true,
+    "fontResources": [],
+    "totalMs": 323.5
+  },
+  {
+    "name": "minimal",
+    "bytes": 20915,
+    "apiMs": 0,
+    "libraryMs": 136.90000000596046,
+    "fontsMs": 4,
+    "fontBytes": 1462760,
+    "fontCacheHits": 2,
+    "renderMs": 77.59999999403954,
+    "workerMs": 218.5,
+    "cjk": false,
+    "fontResources": [],
+    "totalMs": 231.8999999910593
+  }
+]
