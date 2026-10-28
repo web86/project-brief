@@ -11,6 +11,8 @@
 - Проверена передача внутреннего renderer header, безопасный повтор после step-up и сохранность защищённых заголовков API.
 - Каноническая сборка, полный backend и проверка распакованного ZIP: результат фиксируется после сборки в `RELEASE-ARTIFACT.json`.
 
+При первом полном прогоне новые тяжёлые CJK-фикстуры исчерпали общий лимит 128 МБ PHPUnit. Два теста рендера изолированы в отдельных процессах по существующему примеру ChineseLocalizationTest; между документами освобождаются циклы PHPWord. Лимит PHP и production-код ради тестов не повышались.
+
 ## Содержание и страницы
 
 Созданы настоящие 8 PDF + 8 DOCX новой версии и такие же 16 файлов базовой 7.6. Все **185 новых страниц** (90 PDF + 95 DOCX после LibreOffice) открыты и визуально проверены. Повторно просмотрены все пять страниц длинного DOCX после последней правки keepLines. Заголовки не остаются без начала задачи; короткие абзацы не распадаются, длинные задачи продолжаются свободно. Нет пустых страниц, обрезанных идентификаторов, наложения на footer и испорченных символов. Итоговый блок и реквизиты могут начинаться на следующей странице, когда для короткого целого блока недостаточно места.
@@ -46,7 +48,7 @@ DOCUMENT_EXPORT_QA_DIRECTORY=../artifacts/milestone-7-7/after php artisan test -
 cd ..
 BRANDING_EXPORT_QA_DIRECTORY=artifacts/milestone-7-7/after BRANDING_EXPORT_NAMES=small-en,studio-ru,medium-ru,large-en,long-tr,chinese,section-breaks,minimal DOCUMENT_VECTOR_QA=1 node tests/branding-export.browser.mjs
 EXPORT_QA_DIRECTORY=artifacts/milestone-7-7/ui-export EXPORT_LARGE_QA=1 node tests/export.browser.mjs
-python3 tests/document-export.audit.py --help
+python3 tests/document-export.audit.py artifacts/milestone-7-7
 ./bin/build-release
 ```
 

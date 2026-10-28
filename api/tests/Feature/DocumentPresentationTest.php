@@ -10,6 +10,8 @@ use App\Services\ProjectExportData;
 use App\Services\WorkspaceBranding;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Tests\TestCase;
 
 class DocumentPresentationTest extends TestCase
@@ -88,6 +90,8 @@ class DocumentPresentationTest extends TestCase
         return $project->fresh();
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_reproducible_document_matrix_preserves_scope_content_and_generates_real_docx(): void
     {
         gc_collect_cycles();
@@ -191,6 +195,8 @@ class DocumentPresentationTest extends TestCase
         }
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_docx_uses_borderless_wrapping_tables_and_preserves_original_paragraphs(): void
     {
         $project = $this->fixture(8, 'tr', true, true);
