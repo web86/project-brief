@@ -1611,7 +1611,7 @@ echo json_encode(['ok'=>true]);
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
     await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_29_174316_add_client_sso_handoffs/,
+    /2026_10_29_211509_add_platform_administration/,
   )
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 
