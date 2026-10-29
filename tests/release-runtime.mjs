@@ -241,6 +241,10 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   })
   assert.equal(factor.status, 200)
   assert.equal((await factor.json()).state, 'authenticated')
+  assert.equal(
+    (await request('/api/platform/overview', { headers: { Accept: 'application/json' } })).status,
+    403,
+  )
   const ownerState = await (await request('/api/admin/me')).json()
   const liveSeed = await request(
     '/api/admin/sync?cursor=' + encodeURIComponent(ownerState.syncCursor),
@@ -1775,6 +1779,95 @@ echo json_encode(['ok'=>true]);
       await browser.close()
     }
   }
+  // Platform diagnostics must also run with the ZIP's optimized no-dev vendor.
+  const platformFixture = path.join(fixtureRoot, 'platform-fixture.php')
+  await writeFile(
+    platformFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
+$user = \\App\\Models\\User::forceCreate(['name'=>'Package platform', 'email'=>'platform-package@example.test', 'password'=>\\Illuminate\\Support\\Facades\\Hash::make('Package-platform-only!90'), 'platform_admin'=>true, 'two_factor_secret'=>$owner->two_factor_secret, 'two_factor_confirmed_at'=>now(), 'recovery_codes_acknowledged_at'=>now(), 'two_factor_recovery_codes'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(json_encode(['Package-platform-recovery']))]);
+echo $user->id;
+`,
+  )
+  const platformId = command([platformFixture, application]).trim()
+  await request('/api/admin/logout', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+  })
+  const platformLogin = await request('/api/admin/login', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+    body: JSON.stringify({
+      email: 'platform-package@example.test',
+      password: 'Package-platform-only!90',
+    }),
+  })
+  assert.equal(platformLogin.status, 200)
+  assert.equal((await platformLogin.json()).state, 'pending_2fa')
+  assert.equal(
+    (await request('/api/platform/overview', { headers: { Accept: 'application/json' } })).status,
+    401,
+  )
+  const platformFactor = await request('/api/security/challenge', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+    body: JSON.stringify({ recovery_code: 'Package-platform-recovery' }),
+  })
+  assert.equal(platformFactor.status, 200)
+  assert.equal((await (await request('/api/session')).json()).type, 'platform')
+  assert.equal((await request('/platform')).status, 200)
+  const platformOverview = await request('/api/platform/overview')
+  assert.equal(platformOverview.status, 200)
+  assert.match(platformOverview.headers.get('cache-control'), /no-store/)
+  for (const endpoint of [
+    '/api/platform/workspaces',
+    '/api/platform/workspaces/' + fixture.workspace,
+    '/api/platform/usage',
+    '/api/platform/audit',
+  ]) {
+    const response = await request(endpoint)
+    assert.equal(response.status, 200, endpoint + ': ' + (await response.clone().text()))
+    assert.doesNotMatch(
+      await response.text(),
+      /secret_hash|two_factor_secret|authorization|"password"/,
+    )
+  }
+  assert.equal(
+    (
+      await request('/api/admin/projects/' + fixture.project, {
+        headers: { Accept: 'application/json' },
+      })
+    ).status,
+    403,
+  )
+  assert.match(
+    command(
+      ['artisan', 'platform:admin', platformId, '--revoke'],
+      'REVOKE PLATFORM ADMIN ' + platformId + '\n',
+    ),
+    /Global privilege updated/,
+  )
+  assert.equal(
+    (await request('/api/platform/overview', { headers: { Accept: 'application/json' } })).status,
+    401,
+  )
+  console.log(
+    'PASS: Packaged platform-only MFA/session, ordinary-owner denial, cross-workspace diagnostics, safe usage/audit, project isolation and interactive revoke/session invalidation',
+  )
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
     'PASS: Packaged comments/files Read API and quiet cron stdout/stderr; token revocation/audit and webhook history cascade; project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',

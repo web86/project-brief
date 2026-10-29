@@ -1,0 +1,12 @@
+PHPUnit 12.5.38 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /tmp/m90-api/phpunit.xml
+
+...............................................................  63 / 131 ( 48%)
+............................................................... 126 / 131 ( 96%)
+.....                                                           131 / 131 (100%)
+
+Time: 00:38.007, Memory: 93.00 MB
+
+OK (131 tests, 1390 assertions)

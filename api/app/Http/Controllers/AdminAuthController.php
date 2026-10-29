@@ -10,6 +10,7 @@ use App\Services\AccountSecurity;
 use App\Services\CurrentWorkspace;
 use App\Services\DeveloperInvitations;
 use App\Services\LiveSync;
+use App\Services\PlatformAudit;
 use App\Services\ProjectPermissions;
 use App\Services\ProjectRequests;
 use Illuminate\Http\JsonResponse;
@@ -25,8 +26,12 @@ class AdminAuthController extends Controller
         $credentials['email'] = $registeredEmail ?? $credentials['email'];
         $validCredentials = Auth::validate($credentials);
         $user = Auth::getLastAttempted();
-        $eligible = $user && ($user->workspaceMembers()->active()->exists() || DeveloperInvitation::where('token_hash', hash('sha256', (string) $request->input('invitation_token')))->whereRaw('LOWER(email) = ?', [DeveloperInvitations::normalizeEmail($user->email)])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->exists());
+        $eligible = $user && ($user->platform_admin || $user->workspaceMembers()->active()->exists() || DeveloperInvitation::where('token_hash', hash('sha256', (string) $request->input('invitation_token')))->whereRaw('LOWER(email) = ?', [DeveloperInvitations::normalizeEmail($user->email)])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->exists());
         if (! $validCredentials || ! $eligible) {
+            if ($user?->platform_admin) {
+                app(PlatformAudit::class)->record($user->id, 'login_denied', result: 'invalid_credentials');
+            }
+
             return response()->json(['code' => 'invalid_credentials', 'errors' => ['email' => [trans('interface.invalid_credentials')]]], 422);
         }
         Auth::getProvider()->rehashPasswordIfRequired($user, $credentials);

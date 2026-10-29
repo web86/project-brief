@@ -220,7 +220,7 @@ function finish() {
           <h2>
             {{ t('security.authenticator') }}
             <span class="small muted">{{
-              t(state.owner ? 'security.required' : 'security.optional')
+              t(state.owner || state.platformAdmin ? 'security.required' : 'security.optional')
             }}</span>
           </h2>
           <p>{{ t(state.totp ? 'security.totpActive' : 'security.totpHelp') }}</p>
@@ -257,7 +257,7 @@ function finish() {
             </button>
           </form>
           <template v-if="state.totp">
-            <template v-if="!state.owner">
+            <template v-if="!(state.owner || state.platformAdmin)">
               <button
                 class="text-button danger"
                 :disabled="busy"
@@ -312,9 +312,17 @@ function finish() {
             {{ t('security.passkeys') }}
             <span class="small muted">{{ t('security.optional') }}</span>
           </h2>
-          <p>{{ t(state.owner ? 'security.passkeysRequired' : 'security.passkeysOptional') }}</p>
+          <p>
+            {{
+              t(
+                state.owner || state.platformAdmin
+                  ? 'security.passkeysRequired'
+                  : 'security.passkeysOptional',
+              )
+            }}
+          </p>
           <p v-if="!passkeysSupported()" role="status">{{ t('security.unsupported') }}</p>
-          <p v-if="state.owner && (!state.totp || !state.recoverySaved)">
+          <p v-if="(state.owner || state.platformAdmin) && (!state.totp || !state.recoverySaved)">
             {{ t('security.finishTotp') }}
           </p>
           <form v-else-if="passkeysSupported()" class="admin-form" @submit.prevent="register">

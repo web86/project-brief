@@ -19,7 +19,7 @@ class PasswordRecoveryController extends Controller
 {
     private function staff(string $email): ?User
     {
-        return User::whereRaw('LOWER(TRIM(email)) = ?', [mb_strtolower(trim($email))])->whereHas('workspaceMembers', fn ($members) => $members->active())->first();
+        return User::whereRaw('LOWER(TRIM(email)) = ?', [mb_strtolower(trim($email))])->where(fn ($query) => $query->where('platform_admin', true)->orWhereHas('workspaceMembers', fn ($members) => $members->active()))->first();
     }
 
     public function inspect(Request $request): JsonResponse
@@ -55,7 +55,7 @@ class PasswordRecoveryController extends Controller
         }
         $status = DB::transaction(function () use ($data, $profile, $request): string {
             $locked = User::where('email', $data['email'])->lockForUpdate()->first();
-            abort_unless($locked && $locked->workspaceMembers()->active()->exists(), 422, 'Invalid or expired password reset link.');
+            abort_unless($locked && ($locked->platform_admin || $locked->workspaceMembers()->active()->exists()), 422, 'Invalid or expired password reset link.');
 
             return Password::broker('users')->reset(Arr::only($data, ['email', 'token', 'password', 'password_confirmation']), function (User $user, string $password) use ($profile, $data, $request): void {
                 $security = app(AccountSecurity::class);

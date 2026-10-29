@@ -18,7 +18,7 @@ class RecoverAccountSecurity extends Command
     public function handle(): int
     {
         $user = User::whereRaw('LOWER(email) = ?', [mb_strtolower(trim($this->argument('email')))])->first();
-        if (! $user || ! $user->isWorkspaceOwner()) {
+        if (! $user || ! ($user->platform_admin || $user->isWorkspaceOwner())) {
             $this->error('Active workspace owner not found.');
 
             return self::FAILURE;

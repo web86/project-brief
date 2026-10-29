@@ -30,7 +30,7 @@ stepUp.configure({
 })
 const available = computed(() => {
   const status = stepUpState.value?.status
-  return status?.signedIn && (status.totp || !status.owner)
+  return status?.signedIn && (status.totp || !(status.owner || status.platformAdmin))
 })
 const enabled = () =>
   store.apiMode && route.meta.adminShell && isSecurityConfirmationScreen(route.path)

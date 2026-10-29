@@ -7,7 +7,8 @@ import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const router = useRouter()
 async function ready() {
   useAdminNavigationStore().clear()
-  await router.replace('/admin')
+  const session = await api.request('/api/session')
+  await router.replace(session.type === 'platform' ? '/platform' : '/admin')
 }
 async function logout() {
   await api.request('/api/admin/logout', { method: 'POST' })

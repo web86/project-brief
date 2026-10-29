@@ -40,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
         }
         $this->app->singleton(LiveSync::class);
 
-        foreach (['live-sync' => 30, 'invitation-resolve' => 20, 'invitation-accept' => 10, 'profile-update' => 30, 'notification-update' => 30, 'notification-verify' => 10, 'notification-test' => 5, 'integration-settings' => 30, 'integration-test' => 5, 'integration-retry' => 5, 'push-subscribe' => 30, 'project-notification-test' => 5] as $name => $maximum) {
+        foreach (['platform' => 30, 'live-sync' => 30, 'invitation-resolve' => 20, 'invitation-accept' => 10, 'profile-update' => 30, 'notification-update' => 30, 'notification-verify' => 10, 'notification-test' => 5, 'integration-settings' => 30, 'integration-test' => 5, 'integration-retry' => 5, 'push-subscribe' => 30, 'project-notification-test' => 5] as $name => $maximum) {
             RateLimiter::for($name, function (Request $request) use ($maximum) {
                 $client = $request->attributes->get('project_client');
                 $actor = $client ? 'client:'.$client->id : ($request->user() ? 'user:'.$request->user()->id : 'ip:'.$request->ip());

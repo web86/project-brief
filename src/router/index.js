@@ -30,6 +30,11 @@ export function createProjectRouter({
     history,
     routes: [
       {
+        path: '/platform',
+        component: () => import('../views/PlatformView.vue'),
+        meta: { platform: true, title: 'ProjectBrief Platform' },
+      },
+      {
         path: '/app',
         component: () => import('../views/AppEntryView.vue'),
         meta: {
@@ -371,6 +376,20 @@ export function createProjectRouter({
     if (to.path !== from.path && !confirmDeveloperLeave(draftStore)) return false
     useTaskWorkspaceStore().closePanel()
 
+    if (to.meta.platform) {
+      try {
+        const status = await request('/api/security/status')
+        if (current !== revision) return false
+        if (!status.signedIn || status.state === 'pending_2fa') return '/admin/security'
+        if (status.state === 'enrollment_required') return '/admin/security'
+        if (!status.platformAdmin) return '/admin/unavailable?reason=permission'
+      } catch (error) {
+        if (current !== revision) return false
+        toast.error(() => formatApiError(error))
+        return false
+      }
+      return true
+    }
     if (apiMode && to.path === '/admin/security') {
       const status = await request('/api/security/status')
       if (status.state === 'guest') return '/admin/login'

@@ -19,6 +19,7 @@ use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LiveSyncController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\PasswordRecoveryController;
+use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\TaskTrashController;
 use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\WorkspaceBrandingController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\ProjectStructure;
@@ -47,6 +49,16 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
+Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(function (): void {
+    Route::get('/platform', SpaController::class)->name('platform.enter');
+    Route::prefix('/api/platform')->controller(PlatformController::class)->group(function (): void {
+        Route::get('/overview', 'overview')->name('platform.overview');
+        Route::get('/workspaces', 'workspaces')->name('platform.workspaces');
+        Route::get('/workspaces/{uuid}', 'workspace')->whereUuid('uuid')->name('platform.workspace');
+        Route::get('/usage', 'usage')->name('platform.usage');
+        Route::get('/audit', 'audit')->name('platform.audit');
+    });
+});
 Route::get('/', SpaController::class);
 Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cache-Control', 'no-store'))
     ->withoutMiddleware([

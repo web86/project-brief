@@ -202,6 +202,7 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
 }
 
 export function isSecurityConfirmationScreen(path) {
+  if (path === '/platform') return true
   return /^\/admin(?:\/?$|\/account(?:\/|$)|\/settings\/(?:integrations|branding)(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
     path,
   )

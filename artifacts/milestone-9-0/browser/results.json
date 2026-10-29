@@ -1,0 +1,56 @@
+{
+  "results": [
+    {
+      "locale": "ru",
+      "theme": "light",
+      "viewport": "desktop",
+      "passed": true
+    },
+    {
+      "locale": "ru",
+      "theme": "dark",
+      "viewport": "mobile",
+      "passed": true
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "viewport": "desktop",
+      "passed": true
+    },
+    {
+      "expiredProofDialog": true
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "viewport": "mobile",
+      "passed": true
+    },
+    {
+      "locale": "tr",
+      "theme": "light",
+      "viewport": "desktop",
+      "passed": true
+    },
+    {
+      "locale": "tr",
+      "theme": "dark",
+      "viewport": "mobile",
+      "passed": true
+    },
+    {
+      "locale": "zh-CN",
+      "theme": "light",
+      "viewport": "desktop",
+      "passed": true
+    },
+    {
+      "locale": "zh-CN",
+      "theme": "dark",
+      "viewport": "mobile",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

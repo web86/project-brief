@@ -16,6 +16,9 @@ class SessionController extends Controller
         if (in_array($securityState, ['pending_2fa', 'enrollment_required'], true)) {
             return response()->json(['authenticated' => false, 'state' => $securityState])->header('Cache-Control', 'no-store');
         }
+        if ($request->user()?->platform_admin) {
+            return response()->json(['authenticated' => true, 'type' => 'platform'])->header('Cache-Control', 'no-store');
+        }
         if ($request->user()?->workspaceMembers()->active()->exists()) {
             $context = app(CurrentWorkspace::class);
             $state = ['authenticated' => true, 'type' => 'admin', 'securityRecommended' => app(AccountSecurity::class)->recommendationsPending($request->user()), 'workspace' => $context->state($context->resolve($request))];

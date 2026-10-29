@@ -13,7 +13,9 @@ const route = useRoute(),
   id = useId()
 const items = computed(() =>
   settingsMenu.filter(
-    (item) => !item.owner || (nav.workspace && nav.user?.membershipRole === 'owner'),
+    (item) =>
+      (!item.platform || nav.user?.platformAdmin) &&
+      (!item.owner || (nav.workspace && nav.user?.membershipRole === 'owner')),
   ),
 )
 const active = (item) => route.path === item.to

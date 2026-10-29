@@ -50,7 +50,9 @@ async function login() {
         ? '/admin/account' + route.hash
         : /^#verify=[a-f0-9]{64}$/.test(route.hash)
           ? '/admin/settings/notifications' + route.hash
-          : '/admin',
+          : result.user?.platformAdmin
+            ? '/platform'
+            : '/admin',
     )
   } catch (cause) {
     error.value = cause
@@ -68,7 +70,9 @@ async function loginPasskey() {
     useAdminNavigationStore().clear()
     await router.replace(
       result.state === 'authenticated' && !result.recommendationsPending
-        ? '/admin'
+        ? result.platformAdmin
+          ? '/platform'
+          : '/admin'
         : '/admin/security',
     )
   } catch (cause) {

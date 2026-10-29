@@ -154,7 +154,8 @@ class WorkspaceMigrationTest extends TestCase
                     foreach ($after as &$row) {
                         $this->assertSame('initials', $row['avatar_source']);
                         $this->assertSame(0, $row['auth_session_version']);
-                        foreach (['pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_source', 'avatar_path', 'auth_session_version'] as $column) {
+                        $this->assertSame(0, $row['platform_admin']);
+                        foreach (['pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_source', 'avatar_path', 'auth_session_version', 'platform_admin'] as $column) {
                             unset($row[$column]);
                         }
                     }

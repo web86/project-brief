@@ -16,6 +16,7 @@ export const accountMenu = [
 
 export const settingsMenu = [
   ...accountMenu,
+  { to: '/platform', label: 'platform.title', icon: 'shield', platform: true },
   {
     to: '/admin/settings/integrations',
     label: 'integrations.title',

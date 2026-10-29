@@ -41,7 +41,7 @@ class AccountSecurity
 
             return 'guest';
         }
-        if (($user->isWorkspaceOwner() || $user->hasEnabledTwoFactorAuthentication()) && ! $this->enrolled($user)) {
+        if (($user->platform_admin || $user->isWorkspaceOwner() || $user->hasEnabledTwoFactorAuthentication()) && ! $this->enrolled($user)) {
             return 'enrollment_required';
         }
 
@@ -50,7 +50,7 @@ class AccountSecurity
 
     public function policyFingerprint(User $user): string
     {
-        return hash('sha256', $user->workspaceMembers()->orderBy('id')->get(['id', 'workspace_id', 'role', 'status', 'can_create_projects'])->toJson());
+        return hash('sha256', (int) $user->platform_admin.'|'.$user->workspaceMembers()->orderBy('id')->get(['id', 'workspace_id', 'role', 'status', 'can_create_projects'])->toJson());
     }
 
     private function proofValid(Request $request, string $key): bool
@@ -82,7 +82,7 @@ class AccountSecurity
         }
 
         return $valid
-            && (in_array($method, ['mfa', 'passkey_uv'], true) || ($method === 'password' && ! $user->isWorkspaceOwner() && ! $user->hasEnabledTwoFactorAuthentication()));
+            && (in_array($method, ['mfa', 'passkey_uv'], true) || ($method === 'password' && ! ($user->platform_admin || $user->isWorkspaceOwner()) && ! $user->hasEnabledTwoFactorAuthentication()));
     }
 
     public function setupFresh(Request $request): bool
@@ -260,6 +260,9 @@ class AccountSecurity
 
     public function audit(User $user, string $event): void
     {
+        if ($user->platform_admin) {
+            app(PlatformAudit::class)->record($user->id, $event, 'user', (string) $user->id);
+        }
         Log::notice('account_security', ['user_id' => $user->id, 'event' => $event]);
     }
 
