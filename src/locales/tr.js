@@ -1,4 +1,12 @@
 export default {
+  liveEvents: {
+    participant: 'Proje kat\u0131l\u0131mc\u0131s\u0131',
+    task: 'Yeni g\u00f6rev',
+    comment: '{author} taraf\u0131ndan yeni yorum',
+    status: 'G\u00f6rev durumu de\u011fi\u015fti',
+    more: 'Di\u011fer yeni proje olaylar\u0131: {count}',
+    open: 'A\u00e7',
+  },
   sso: {
     title: 'G\u00fcvenilir m\u00fc\u015fteri giri\u015fi (SSO)',
     hint: 'G\u00fcvenilir kaynak i\u00e7in SSO\u2019yu bir kez etkinle\u015ftirin. Bu kaynaktan olu\u015fturulan ve onaylanan projelere otomatik izin verilir. Ayar de\u011fi\u015fiklikleri kayna\u011f\u0131n SSO ge\u00e7i\u015flerini ve oturumlar\u0131n\u0131 iptal eder.',
@@ -350,6 +358,9 @@ export default {
       'Seçilen sendInvitation değerini provisioning API isteğine ekleyin. Bu örnek, harici sisteminizi yapılandırmak içindir: mod her istekte belirtilir ve API belirtecine kaydedilmez.',
   },
   integrations: {
+    sso: 'SSO',
+    createToken: 'Yeni API anahtar\u0131 olu\u015ftur',
+    createWebhook: 'Yeni Webhook olu\u015ftur',
     scope_clients_sso: 'G\u00fcvenilir m\u00fc\u015fteri giri\u015fi (SSO)',
     scope_requests_create: 'Proje talebi oluşturma',
     scope_requests_read: 'Proje taleplerini okuma',
@@ -523,6 +534,9 @@ export default {
     signInAndAccept: 'Giriş yap ve kabul et',
   },
   account: {
+    lostAuthenticator: 'Uygulamaya eri\u015femiyor musunuz? Kurtarma kodu kullan\u0131n',
+    passwordCheck:
+      'Yeni parolay\u0131 ve onay\u0131n\u0131 kontrol edin. Farkl\u0131 bir parola se\u00e7in.',
     title: 'Hesabım',
     profile: 'Profil',
     security: 'Güvenlik',
@@ -559,7 +573,7 @@ export default {
     sendReset: 'Sıfırlama bağlantısı gönder',
     resetSent: 'Bu e-posta adresiyle bir hesap varsa şifre sıfırlama bağlantısı gönderilecek.',
     reset: 'Yeni şifre belirle',
-    resetDone: 'Şifre değiştirildi. Yeni şifrenizle giriş yapın.',
+    resetDone: 'Parola ba\u015far\u0131yla de\u011fi\u015ftirildi.',
     backLogin: 'Girişe dön',
     invalidLink:
       'Bu bağlantı geçersiz, iptal edilmiş veya süresi dolmuş. Yeni bir bağlantı isteyin.',

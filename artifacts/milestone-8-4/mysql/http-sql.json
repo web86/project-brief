@@ -1,0 +1,82 @@
+[
+  {
+    "persona": "admin",
+    "queries": 15,
+    "sqlMs": 43.3,
+    "events": 0,
+    "changed": false,
+    "bytes": 539
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 16.18,
+    "events": 1,
+    "changed": true,
+    "bytes": 878
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 42.07,
+    "events": 1,
+    "changed": false,
+    "bytes": 832
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 18.030000000000005,
+    "events": 3,
+    "changed": true,
+    "bytes": 1526
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 17.22,
+    "events": 5,
+    "changed": true,
+    "bytes": 2201
+  },
+  {
+    "persona": "client",
+    "queries": 11,
+    "sqlMs": 12.420000000000002,
+    "events": 1,
+    "changed": true,
+    "bytes": 864
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 14.960000000000003,
+    "events": 2,
+    "changed": true,
+    "bytes": 1242
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 16.869999999999997,
+    "events": 2,
+    "changed": true,
+    "bytes": 1242
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 16.68,
+    "events": 2,
+    "changed": true,
+    "bytes": 1242
+  },
+  {
+    "persona": "admin",
+    "queries": 16,
+    "sqlMs": 15.549999999999997,
+    "events": 2,
+    "changed": true,
+    "bytes": 1245
+  }
+]

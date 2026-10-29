@@ -247,13 +247,36 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   )
   assert.equal(liveSeed.status, 200)
   assert.match(liveSeed.headers.get('cache-control'), /no-store/)
-  assert.equal((await liveSeed.json()).changed, false)
+  const packagedSync = await liveSeed.json()
+  assert.equal(packagedSync.changed, false)
+  assert.deepEqual(packagedSync.notifications, [])
+  assert.equal(packagedSync.additionalNotifications, 0)
   assert.equal((await request('/api/admin/sync?cursor=invalid')).status, 422)
   assert.equal(ownerState.user.role, 'admin')
   assert.equal(ownerState.user.membershipRole, 'owner')
   assert.equal(ownerState.user.canCreateProjects, true)
   assert.equal(ownerState.workspace.id, fixture.workspace)
   const workspaceCsrf = await (await request('/api/csrf')).json()
+  const resetToken = command([
+    '-r',
+    'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo Illuminate\\Support\\Facades\\Password::broker("users")->createToken(App\\Models\\User::where("email", "release@example.test")->firstOrFail());',
+  ]).trim()
+  const inspectReset = (token) =>
+    request('/api/admin/password/inspect', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': workspaceCsrf.token,
+      },
+      body: JSON.stringify({ email: 'RELEASE@example.test', token }),
+    })
+  const validReset = await inspectReset(resetToken)
+  assert.equal(validReset.status, 200)
+  assert.deepEqual(await validReset.json(), { totp: true })
+  const invalidReset = await inspectReset('invalid-token')
+  assert.equal(invalidReset.status, 422)
+  assert.equal((await invalidReset.json()).totp, undefined)
   const personal = await (await request('/api/admin/notifications')).json()
   assert.equal(personal.email, 'release@example.test')
   assert.equal(personal.pendingEmail, 'verified-release@example.test')
@@ -1579,7 +1602,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.8.3',
+    '0.8.4',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(

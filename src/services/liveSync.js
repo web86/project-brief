@@ -1,7 +1,13 @@
-export const SYNC_INTERVAL = 300000
+export const SYNC_INTERVAL = 60000
 
 // One coordinator per authenticated workspace/project. No private API data is persisted.
-export function createLiveSync({ request, refresh, env = globalThis, now = () => Date.now() }) {
+export function createLiveSync({
+  request,
+  refresh,
+  notify = () => {},
+  env = globalThis,
+  now = () => Date.now(),
+}) {
   let identity,
     cursor,
     channel,
@@ -9,7 +15,8 @@ export function createLiveSync({ request, refresh, env = globalThis, now = () =>
     pending,
     revision = 0,
     lastSuccess = 0,
-    lastAttempt = 0
+    lastAttempt = 0,
+    failures = 0
   let deferred = null,
     pushTimer,
     queuedPush,
@@ -78,12 +85,13 @@ export function createLiveSync({ request, refresh, env = globalThis, now = () =>
       env.localStorage?.setItem(storageKey(), String(value))
     } catch {}
   }
+  const interval = () => SYNC_INTERVAL * Math.min(5, 2 ** Math.max(0, failures - 1))
   function schedule() {
     env.clearTimeout(timer)
     if (!identity || !visible()) return
     timer = env.setTimeout(
       () => check(),
-      Math.max(1, Math.max(lastSuccess, lastAttempt, readClock()) + SYNC_INTERVAL - now()),
+      Math.max(1, Math.max(lastSuccess, lastAttempt, readClock()) + interval() - now()),
     )
   }
   async function receive(event) {
@@ -108,8 +116,7 @@ export function createLiveSync({ request, refresh, env = globalThis, now = () =>
       deferred = null
       await apply(result).catch(() => {})
     }
-    if (visible() && now() - Math.max(lastSuccess, lastAttempt, readClock()) >= SYNC_INTERVAL)
-      check()
+    if (visible() && now() - Math.max(lastSuccess, lastAttempt, readClock()) >= interval()) check()
     else schedule()
   }
   function signal(event) {
@@ -138,6 +145,7 @@ export function createLiveSync({ request, refresh, env = globalThis, now = () =>
     refreshPending = null
     retryRefreshAt = 0
     seenPush.clear()
+    failures = 0
     env.document?.removeEventListener?.('visibilitychange', visibility)
     env.navigator?.serviceWorker?.removeEventListener?.('message', signal)
   }
@@ -162,14 +170,15 @@ export function createLiveSync({ request, refresh, env = globalThis, now = () =>
     schedule()
   }
   function check({ pushId } = {}) {
-    if (!identity || pending || (!pushId && !visible())) return pending || Promise.resolve(false)
+    if (!identity || pending || !visible()) return pending || Promise.resolve(false)
     if (pushId && seenPush.has(pushId)) return Promise.resolve(false)
     const current = revision,
       scope = identity
     const operation = async () => {
       if (current !== revision) return false
       const clock = Math.max(lastSuccess, lastAttempt, readClock())
-      if (!pushId && now() - clock < SYNC_INTERVAL) return false
+      if (failures && now() - lastAttempt < interval()) return false
+      if (!pushId && now() - clock < interval()) return false
       if (pushId) {
         // A shared, expiring receipt deduplicates the same SW signal in multiple tabs.
         const key = storageKey() + ':push'
@@ -195,10 +204,18 @@ export function createLiveSync({ request, refresh, env = globalThis, now = () =>
         await apply(combine(previous, result))
       } else await apply(result)
       if (current !== revision) return false
+      if (visible()) notify(result.notifications || [], result.additionalNotifications || 0)
       cursor = result.cursor
+      failures = 0
       lastSuccess = now()
       writeClock(lastSuccess)
-      channel?.postMessage({ type: 'result', key: scope.key, at: lastSuccess, result })
+      const { notifications, additionalNotifications, ...sharedResult } = result
+      channel?.postMessage({
+        type: 'result',
+        key: scope.key,
+        at: lastSuccess,
+        result: sharedResult,
+      })
       return true
     }
     const run = env.navigator?.locks
@@ -213,7 +230,10 @@ export function createLiveSync({ request, refresh, env = globalThis, now = () =>
         )
       : operation()
     const promise = Promise.resolve(run)
-      .catch(() => false)
+      .catch(() => {
+        if (current === revision) failures++
+        return false
+      })
       .finally(() => {
         if (current === revision && pending === promise) {
           pending = null

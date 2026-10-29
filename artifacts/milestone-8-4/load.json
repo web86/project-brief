@@ -1,0 +1,13 @@
+{
+    "baselineIdleSql": 9,
+    "additionalIdleSql": 3,
+    "additionalEventSql": 4,
+    "idleSqlMs": 0.63,
+    "idleSql": 12,
+    "eventSql": 13,
+    "idleBytes": 539,
+    "twelveEventsBytes": 4571,
+    "sharedPollSeconds": 60,
+    "additionalHttpPollers": 0,
+    "additionalNotificationRows": 0
+}

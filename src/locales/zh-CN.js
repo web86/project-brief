@@ -1,4 +1,12 @@
 export default {
+  liveEvents: {
+    participant: '\u9879\u76ee\u6210\u5458',
+    task: '\u65b0\u4efb\u52a1',
+    comment: '\u6765\u81ea {author} \u7684\u65b0\u8bc4\u8bba',
+    status: '\u4efb\u52a1\u72b6\u6001\u5df2\u66f4\u6539',
+    more: '\u66f4\u591a\u9879\u76ee\u65b0\u4e8b\u4ef6\uff1a{count}',
+    open: '\u6253\u5f00',
+  },
   sso: {
     title: '\u53d7\u4fe1\u4efb\u7684\u5ba2\u6237\u767b\u5f55\uff08SSO\uff09',
     hint: '\u4e3a\u53ef\u4fe1\u6765\u6e90\u542f\u7528\u4e00\u6b21 SSO\u3002\u901a\u8fc7\u8be5\u6765\u6e90\u521b\u5efa\u6216\u6279\u51c6\u7684\u9879\u76ee\u5c06\u81ea\u52a8\u83b7\u51c6\u3002\u66f4\u6539\u8bbe\u7f6e\u4f1a\u64a4\u9500\u8be5\u6765\u6e90\u7684 SSO \u8df3\u8f6c\u548c\u4f1a\u8bdd\u3002',
@@ -321,6 +329,9 @@ export default {
       '在 provisioning API 请求中传递所选的 sendInvitation 值。此示例用于配置外部系统：每次请求都需指定该值，不会将模式保存到 API 令牌。',
   },
   integrations: {
+    sso: 'SSO',
+    createToken: '\u521b\u5efa\u65b0\u7684 API \u5bc6\u94a5',
+    createWebhook: '\u521b\u5efa\u65b0\u7684 Webhook',
     scope_clients_sso: '\u53d7\u4fe1\u4efb\u7684\u5ba2\u6237\u767b\u5f55\uff08SSO\uff09',
     scope_requests_create: '创建项目申请',
     scope_requests_read: '读取项目申请',
@@ -481,6 +492,10 @@ export default {
     signInAndAccept: '登录并接受',
   },
   account: {
+    lostAuthenticator:
+      '\u65e0\u6cd5\u4f7f\u7528\u9a8c\u8bc1\u5668\uff1f\u4f7f\u7528\u6062\u590d\u4ee3\u7801',
+    passwordCheck:
+      '\u8bf7\u68c0\u67e5\u65b0\u5bc6\u7801\u53ca\u5176\u786e\u8ba4\uff0c\u5e76\u9009\u62e9\u4e0d\u540c\u7684\u5bc6\u7801\u3002',
     title: '我的账号',
     profile: '个人资料',
     security: '安全',
@@ -514,7 +529,7 @@ export default {
     sendReset: '发送重置链接',
     resetSent: '如果该邮箱已注册，我们会向其发送密码重置链接。',
     reset: '设置新密码',
-    resetDone: '密码已更改，请使用新密码登录。',
+    resetDone: '\u5bc6\u7801\u5df2\u6210\u529f\u66f4\u6539\u3002',
     backLogin: '返回登录',
     invalidLink: '此链接无效、已撤销或已过期。请申请新链接。',
     mailFailed: '邮件发送失败。请检查 SMTP 设置后重试。',

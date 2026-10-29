@@ -11,6 +11,7 @@ function fixture({
   fail = false,
   response,
   onRefresh,
+  onNotify,
   clock = { time: 1000000 },
 } = {}) {
   let sequence = 0
@@ -57,6 +58,7 @@ function fixture({
     },
   }
   const sync = createLiveSync({
+    notify: onNotify,
     env,
     now: () => clock.time,
     request: async (path) => {
@@ -108,17 +110,17 @@ test('first opening uses bootstrap only; exactly three lightweight checks over 1
   f.sync.stop()
   assert.equal(f.timers.size, 0)
 })
-test('hidden tabs stop all periodic checks and resume only after the full 300 seconds', async () => {
+test('hidden tabs stop all periodic checks and resume only after the full shared interval', async () => {
   const f = fixture()
   f.start()
-  await f.advance(100000)
+  await f.advance(SYNC_INTERVAL / 3)
   await f.visible(false)
-  await f.advance(100000)
+  await f.advance(SYNC_INTERVAL / 3)
   assert.equal(f.calls.length, 0)
   await f.visible(true)
   assert.equal(f.calls.length, 0)
   await f.visible(false)
-  await f.advance(100000)
+  await f.advance(SYNC_INTERVAL / 3)
   await f.visible(true)
   assert.equal(f.calls.length, 1)
   f.sync.stop()
@@ -348,5 +350,62 @@ test('a busy cross-tab lock waits a full interval instead of spinning when stora
   f.env.navigator.locks.request = async (key, options, callback) => callback({ name: key })
   await f.advance(SYNC_INTERVAL)
   assert.equal(f.calls.length, 1)
+  f.sync.stop()
+})
+
+test('only the polling leader shows notifications and private previews are never broadcast', async () => {
+  const shared = new Map(),
+    channels = [],
+    clock = { time: 1000000 },
+    notices = []
+  const a = fixture({
+    shared,
+    channels,
+    clock,
+    onNotify: (items) => notices.push(items),
+    response: () => ({
+      cursor: 'next',
+      changed: false,
+      projects: [],
+      notifications: [{ id: 'one', preview: 'PRIVATE PREVIEW' }],
+    }),
+  })
+  const b = fixture({
+    shared,
+    channels,
+    clock,
+    onNotify: () => assert.fail('Follower must not repeat a banner'),
+  })
+  a.start()
+  b.start()
+  const messages = [],
+    original = channels[0].postMessage.bind(channels[0])
+  channels[0].postMessage = (data) => {
+    messages.push(data)
+    original(data)
+  }
+  await a.advance(SYNC_INTERVAL)
+  await b.advance(0)
+  assert.equal(notices.length, 1)
+  assert.equal(a.calls.length + b.calls.length, 1)
+  assert.equal(JSON.stringify(messages).includes('PRIVATE PREVIEW'), false)
+  a.sync.stop()
+  b.sync.stop()
+})
+test('repeated network failures back off without visibility toggles bypassing the delay', async () => {
+  const f = fixture({ fail: true })
+  f.start()
+  await f.advance(SYNC_INTERVAL)
+  await f.advance(SYNC_INTERVAL)
+  assert.equal(f.calls.length, 2)
+  await f.visible(false)
+  await f.visible(true)
+  await f.advance(SYNC_INTERVAL)
+  assert.equal(f.calls.length, 2)
+  f.push('offline-push')
+  await f.advance(250)
+  assert.equal(f.calls.length, 2)
+  await f.advance(SYNC_INTERVAL - 250)
+  assert.equal(f.calls.length, 3)
   f.sync.stop()
 })

@@ -26,9 +26,19 @@ onUnmounted(toast.clear)
         :size="18"
       />
       <div class="toast-content">
-        <p>{{ resolve(item.message) }}</p>
         <button
-          v-if="item.action"
+          v-if="item.details"
+          type="button"
+          class="toast-event"
+          :disabled="item.busy"
+          @click="toast.act(item.id)"
+        >
+          <strong>{{ resolve(item.message) }}</strong
+          ><span v-for="(line, index) in item.details" :key="index">{{ resolve(line) }}</span>
+        </button>
+        <p v-else>{{ resolve(item.message) }}</p>
+        <button
+          v-if="item.action && !item.details"
           type="button"
           class="text-button"
           :disabled="item.busy"
@@ -48,3 +58,25 @@ onUnmounted(toast.clear)
     </div>
   </div>
 </template>
+
+<style scoped>
+.toast-event {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.toast-event span {
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+}
+</style>

@@ -86,6 +86,7 @@ Route::prefix('/api/security')->controller(AccountSecurityController::class)->gr
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login')->block();
 Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:invitation-resolve');
 Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:invitation-accept');
+Route::post('/api/admin/password/inspect', [PasswordRecoveryController::class, 'inspect'])->middleware('throttle:account-reset-inspect');
 Route::post('/api/admin/password/forgot', [PasswordRecoveryController::class, 'request'])->middleware('throttle:account-recovery');
 Route::post('/api/admin/password/reset', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:account-recovery');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
@@ -204,8 +205,6 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
 
 Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:invitation-resolve');
 Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:invitation-accept');
-Route::post('/api/admin/password/forgot', [PasswordRecoveryController::class, 'request'])->middleware('throttle:account-recovery');
-Route::post('/api/admin/password/reset', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:account-recovery');
 Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::get('/account', [AccountController::class, 'show']);
     Route::patch('/account', [AccountController::class, 'update'])->middleware('throttle:profile-update');

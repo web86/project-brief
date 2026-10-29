@@ -1,3 +1,5 @@
+> Milestone 8.4 / Project Brief 0.8.4: [UX, live notifications, обновление и rollback](docs/milestone-8-4/PRODUCTION.md).
+
 > Milestone 8.2 / Project Brief 0.8.3: [Trusted Handoff — обновление и безопасный откат](docs/milestone-8-2/PRODUCTION.md).
 
 > Milestone 8.1 / Project Brief 0.8.2: [Project Requests — обновление и откат](docs/milestone-8-1/PRODUCTION.md).

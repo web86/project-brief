@@ -49,9 +49,9 @@ class LiveSync
         return [$member->workspace_id, 'admin:'.$member->user_id.':'.$member->id, null, $member];
     }
 
-    private function cursor(string $scope, int $id): string
+    private function cursor(string $scope, int $id, ?array $notifications = null): string
     {
-        return Crypt::encryptString(json_encode(['scope' => $scope, 'id' => $id, 'at' => now()->timestamp], JSON_THROW_ON_ERROR));
+        return Crypt::encryptString(json_encode(['scope' => $scope, 'id' => $id, 'at' => now()->timestamp, 'notifications' => $notifications ?? app(LiveNotifications::class)->seed()], JSON_THROW_ON_ERROR));
     }
 
     public function seed(Request $request): string
@@ -84,6 +84,13 @@ class LiveSync
             $id = (int) DB::table('project_sync_events')->where('workspace_id', $workspaceId)->max('id');
         }
 
-        return ['cursor' => $this->cursor($scope, $id), 'reset' => $reset, 'kinds' => $reset ? [] : $rows->pluck('kind')->unique()->values(), 'projects' => $reset ? [] : $rows->pluck('uuid')->filter()->unique()->values(), 'changed' => $reset || $rows->isNotEmpty()];
+        $watermark = $cursor['notifications'] ?? null;
+        $notifications = is_array($watermark) && isset($watermark['history'], $watermark['comments']) && is_int($watermark['history']) && is_int($watermark['comments']) && $cursor['at'] >= now()->subMinutes(10)->timestamp
+            ? app(LiveNotifications::class)->changes($request, $watermark, $member) : ['watermark' => app(LiveNotifications::class)->seed(), 'items' => [], 'additional' => 0, 'overflow' => false];
+        if ($notifications['overflow']) {
+            $notifications['watermark'] = app(LiveNotifications::class)->seed();
+        }
+
+        return ['cursor' => $this->cursor($scope, $id, $notifications['watermark']), 'notifications' => $notifications['items'], 'additionalNotifications' => $notifications['additional'], 'reset' => $reset, 'kinds' => $reset ? [] : $rows->pluck('kind')->unique()->values(), 'projects' => $reset ? [] : $rows->pluck('uuid')->filter()->unique()->values(), 'changed' => $reset || $rows->isNotEmpty()];
     }
 }

@@ -16,6 +16,7 @@ import { confirmDeveloperLeave } from './utils/developerEditor.js'
 import { t, locale, formatApiError } from './i18n/index.js'
 
 import { computed, nextTick, watch, onBeforeUnmount } from 'vue'
+import { createLiveNotifications } from './services/liveNotifications.js'
 import { createLiveSync } from './services/liveSync.js'
 import { useProjectListingStore } from './stores/projectListing.js'
 import { useProjectRequestsStore } from './stores/projectRequests.js'
@@ -89,7 +90,9 @@ watch(
   { immediate: true, flush: 'sync' },
 )
 const liveNav = useAdminNavigationStore()
+const liveNotices = createLiveNotifications({ navigate: (url) => router.push(url) })
 const live = createLiveSync({
+  notify: liveNotices.show,
   request: api.request,
   refresh: async (result) => {
     if (!result.changed) return
@@ -159,10 +162,16 @@ watch(
       }
     return null
   },
-  (identity) => live.start(identity),
+  (identity) => {
+    liveNotices.start(identity?.key || null)
+    live.start(identity)
+  },
   { immediate: true },
 )
-onBeforeUnmount(() => live.stop())
+onBeforeUnmount(() => {
+  live.stop()
+  liveNotices.clear()
+})
 async function logout() {
   if (!confirmDeveloperLeave(store)) return
   try {

@@ -15,7 +15,7 @@ const scratch = await mkdtemp(path.join(tmpdir(), 'brief-provisioning-'))
 const app = path.join(scratch, 'app')
 const mysql = !!process.env.PROVISIONING_MYSQL_PORT
 const productionBuild = true
-const output = path.join(root, 'artifacts/sso-source-projects', mysql ? 'mysql' : 'sqlite')
+const output = path.join(root, 'artifacts/milestone-8-4/sso', mysql ? 'mysql' : 'sqlite')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, otherBackend, frontend, browser, smtp, tlsServer, areaServer, areaBackend
@@ -439,6 +439,7 @@ try {
     })
   }
   await admin.goto(origin + '/admin/settings/integrations')
+  await admin.getByRole('tab', { name: 'SSO', exact: true }).click()
   await admin.locator('#sso-source').selectOption(fixture.source)
   await admin.locator('#sso-origin').fill(areaOrigin)
   await admin.locator('#sso-enabled').check()
@@ -455,6 +456,8 @@ try {
     admin.locator('.sso-settings button[type=submit]').click(),
   ])
   assert.equal(saved[0].status(), 200, 'Owner saves source permissions through the existing UI')
+  await admin.getByRole('tab', { name: 'API tokens', exact: true }).click()
+  await admin.getByRole('button', { name: 'Create a new API token', exact: true }).click()
   const tokenForm = admin.locator('form').filter({ has: admin.locator('#token-name') })
   await admin.locator('#token-name').fill('Provision only from UI')
   for (const scope of ['projects:read', 'tasks:read'])
@@ -911,6 +914,7 @@ try {
     }, locale)
     await admin.setViewportSize({ width: 1440, height: 980 })
     await admin.goto(origin + '/admin/settings/integrations')
+    await admin.getByRole('tab', { name: 'SSO', exact: true }).click()
     await admin.getByRole('heading', { name: title, exact: true }).waitFor()
     await admin.locator('#sso-source').selectOption(fixture.source)
     assert.equal(await admin.locator('#sso-enabled').isChecked(), true)

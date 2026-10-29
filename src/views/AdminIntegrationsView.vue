@@ -57,10 +57,6 @@ const requiresSource = computed(
 const usesSource = computed(
   () => requiresSource.value || scopes.value.includes('projects:provision'),
 )
-const invitationMode = ref('immediate')
-const invitationExample = computed(() =>
-  JSON.stringify({ sendInvitation: invitationMode.value === 'immediate' }, null, 2),
-)
 const name = ref(''),
   scopes = ref(['projects:read', 'tasks:read']),
   expires = ref('')
@@ -85,6 +81,9 @@ const projectNames = (hook) =>
   hook.projectIds
     ?.map((id) => state.value?.projects?.find((project) => project.id === id)?.name)
     .filter(Boolean) || []
+const tokenCreateOpen = ref(false),
+  hookCreateOpen = ref(false)
+let collapseAfterSecret = null
 const secret = ref(''),
   secretDialog = ref(null),
   copied = ref(false)
@@ -171,6 +170,9 @@ async function retryLoad() {
   }
 }
 function hideSecret() {
+  if (collapseAfterSecret === 'tokens') tokenCreateOpen.value = false
+  if (collapseAfterSecret === 'webhooks') hookCreateOpen.value = false
+  collapseAfterSecret = null
   secret.value = ''
   copied.value = false
   secretDialog.value?.close()
@@ -203,7 +205,8 @@ watch(
     const current = ++revision
     hideSecret()
     state.value = null
-    invitationMode.value = 'immediate'
+    tokenCreateOpen.value = false
+    hookCreateOpen.value = false
     sourceId.value = ''
     sourceName.value = ''
     deliveries.value = null
@@ -342,6 +345,9 @@ function toggleHook(hook, event) {
   )
 }
 async function createToken() {
+  if (busy.value) return
+  tokenCreateOpen.value = true
+  collapseAfterSecret = 'tokens'
   const result = await action('/tokens', 'POST', {
     name: name.value,
     scopes: scopes.value,
@@ -355,9 +361,10 @@ async function createToken() {
   if (result) {
     name.value = ''
     expires.value = ''
-  }
+  } else collapseAfterSecret = null
 }
-function edit(hook) {
+async function edit(hook) {
+  hookCreateOpen.value = true
   editing.value = hook.id
   hookName.value = hook.name
   url.value = hook.url
@@ -365,6 +372,8 @@ function edit(hook) {
   projectFilter.value = hook.projectFilter || 'all'
   projectIds.value = [...(hook.projectIds || [])]
   projectSearch.value = ''
+  await nextTick()
+  globalThis.document?.getElementById('hook-name')?.focus()
 }
 function resetHook() {
   editing.value = null
@@ -375,11 +384,19 @@ function resetHook() {
   projectIds.value = []
   projectSearch.value = ''
 }
+function cancelHook() {
+  resetHook()
+  hookCreateOpen.value = false
+}
 async function saveHook() {
   if (projectFilter.value === 'selected' && !validProjectIds.value.length) {
     reportError({ messageKey: 'integrations.selectProjectRequired' })
     return
   }
+  if (busy.value) return
+  const creating = !editing.value
+  hookCreateOpen.value = true
+  if (creating) collapseAfterSecret = 'webhooks'
   const result = await action(
     '/webhooks' + (editing.value ? '/' + editing.value : ''),
     editing.value ? 'PATCH' : 'POST',
@@ -391,7 +408,10 @@ async function saveHook() {
       projectIds: projectFilter.value === 'selected' ? validProjectIds.value : [],
     },
   )
-  if (result) resetHook()
+  if (result) {
+    resetHook()
+    if (!result.secret) hookCreateOpen.value = false
+  } else collapseAfterSecret = null
 }
 async function loadHistory(hook, targetPage = 1, current = revision) {
   const attempt = ++historyRevision
@@ -438,7 +458,7 @@ async function confirmAction(key, path, method = 'POST') {
       </button>
       <div class="integration-tabs" role="tablist" :aria-label="t('integrations.title')">
         <button
-          v-for="item in ['tokens', 'webhooks', 'operations']"
+          v-for="item in ['tokens', 'webhooks', 'sso', 'operations']"
           :id="'integration-tab-' + item"
           :key="item"
           role="tab"
@@ -462,7 +482,60 @@ async function confirmAction(key, path, method = 'POST') {
           role="tabpanel"
           aria-labelledby="integration-tab-tokens"
         >
-          <form class="surface integration-form" @submit.prevent="createToken">
+          <section class="surface integration-list">
+            <h2>{{ t('integrations.tokens') }}</h2>
+            <p v-if="!activeTokens.length" class="muted">{{ t('integrations.empty') }}</p>
+            <article v-for="token in activeTokens" :key="token.id" class="integration-item">
+              <div>
+                <h3>{{ token.name }}</h3>
+                <label
+                  v-if="token.scopes.includes('projects:provision')"
+                  class="integration-toggle"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="token.provisioningEnabled"
+                    :disabled="busy"
+                    @change="toggleProvisioning(token, $event)"
+                  />
+                  {{ t('provisioning.enabled') }}
+                </label>
+                <p class="small">{{ token.scopes.map(scopeLabel).join(' · ') }}</p>
+                <p class="small muted">
+                  {{ t('integrations.created') }}: {{ date(token.createdAt) }} ·
+                  {{ t('integrations.expires') }}: {{ date(token.expiresAt) }}
+                </p>
+                <p class="small muted">
+                  {{ t('integrations.lastUsed') }}: {{ date(token.lastUsedAt) }} ·
+                  {{ t('integrations.' + tokenStatus(token)) }}
+                </p>
+              </div>
+              <button
+                v-if="!token.revokedAt"
+                class="button secondary"
+                :disabled="busy"
+                @click="revoke(token)"
+              >
+                {{ t('integrations.revoke') }}
+              </button>
+            </article>
+          </section>
+          <button
+            v-if="activeTokens.length"
+            class="button secondary integration-create-toggle"
+            type="button"
+            :aria-expanded="tokenCreateOpen"
+            aria-controls="create-tokens"
+            @click="tokenCreateOpen = !tokenCreateOpen"
+          >
+            {{ t('integrations.createToken') }}
+          </button>
+          <form
+            v-show="!activeTokens.length || tokenCreateOpen"
+            id="create-tokens"
+            class="surface integration-form"
+            @submit.prevent="createToken"
+          >
             <h2>{{ t('integrations.create') }} · {{ t('integrations.tokens') }}</h2>
             <p v-if="validation && tab === 'tokens'" class="field-error" role="alert">
               {{ validationMessage }}
@@ -532,36 +605,13 @@ async function confirmAction(key, path, method = 'POST') {
               >{{ t('integrations.create') }}</LoadingButton
             >
           </form>
-          <section
-            class="surface integration-form provisioning-invitation-mode"
-            aria-labelledby="invitation-mode-title"
-          >
-            <h2 id="invitation-mode-title">{{ t('provisioning.invitationModeTitle') }}</h2>
-            <fieldset class="integration-choices">
-              <legend>{{ t('provisioning.invitationModeLabel') }}</legend>
-              <label
-                ><input
-                  v-model="invitationMode"
-                  type="radio"
-                  name="invitation-mode"
-                  value="immediate"
-                />{{ t('provisioning.invitationImmediate') }}</label
-              >
-              <label
-                ><input
-                  v-model="invitationMode"
-                  type="radio"
-                  name="invitation-mode"
-                  value="self_service"
-                />{{ t('provisioning.invitationSelfService') }}</label
-              >
-            </fieldset>
-            <p class="small muted">{{ t('provisioning.invitationModeHint') }}</p>
-            <pre
-              class="provisioning-request-example"
-              aria-live="polite"
-            ><code>{{ invitationExample }}</code></pre>
-          </section>
+        </section>
+        <section
+          v-show="tab === 'sso'"
+          id="integration-panel-sso"
+          role="tabpanel"
+          aria-labelledby="integration-tab-sso"
+        >
           <form class="surface integration-form sso-settings" @submit.prevent="saveSso">
             <h2>{{ t('sso.title') }}</h2>
             <p class="small muted">{{ t('sso.hint') }}</p>
@@ -611,44 +661,6 @@ async function confirmAction(key, path, method = 'POST') {
               >
             </template>
           </form>
-          <section class="surface integration-list">
-            <h2>{{ t('integrations.tokens') }}</h2>
-            <p v-if="!activeTokens.length" class="muted">{{ t('integrations.empty') }}</p>
-            <article v-for="token in activeTokens" :key="token.id" class="integration-item">
-              <div>
-                <h3>{{ token.name }}</h3>
-                <label
-                  v-if="token.scopes.includes('projects:provision')"
-                  class="integration-toggle"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="token.provisioningEnabled"
-                    :disabled="busy"
-                    @change="toggleProvisioning(token, $event)"
-                  />
-                  {{ t('provisioning.enabled') }}
-                </label>
-                <p class="small">{{ token.scopes.map(scopeLabel).join(' · ') }}</p>
-                <p class="small muted">
-                  {{ t('integrations.created') }}: {{ date(token.createdAt) }} ·
-                  {{ t('integrations.expires') }}: {{ date(token.expiresAt) }}
-                </p>
-                <p class="small muted">
-                  {{ t('integrations.lastUsed') }}: {{ date(token.lastUsedAt) }} ·
-                  {{ t('integrations.' + tokenStatus(token)) }}
-                </p>
-              </div>
-              <button
-                v-if="!token.revokedAt"
-                class="button secondary"
-                :disabled="busy"
-                @click="revoke(token)"
-              >
-                {{ t('integrations.revoke') }}
-              </button>
-            </article>
-          </section>
         </section>
         <section
           v-show="tab === 'operations'"
@@ -716,7 +728,80 @@ async function confirmAction(key, path, method = 'POST') {
           aria-labelledby="integration-tab-webhooks"
         >
           <p class="muted small">{{ t('integrations.queueHint') }}</p>
-          <form class="surface integration-form" @submit.prevent="saveHook">
+
+          <section class="surface integration-list">
+            <h2>{{ t('integrations.webhooks') }}</h2>
+            <p v-if="!state.webhooks.length" class="muted">{{ t('integrations.empty') }}</p>
+            <article
+              v-for="hook in state.webhooks"
+              :key="hook.id"
+              class="integration-item webhook-item"
+            >
+              <h3>{{ hook.name }}</h3>
+              <p class="integration-url">{{ hook.url }}</p>
+              <p class="small muted">{{ hook.events.map(eventLabel).join(' · ') }}</p>
+              <p class="small integration-project-summary">
+                {{
+                  hook.projectFilter === 'selected'
+                    ? t('integrations.selectedProjects') +
+                      ': ' +
+                      (projectNames(hook).join(' · ') || t('integrations.filterEmpty'))
+                    : t('integrations.allProjects')
+                }}
+              </p>
+              <label class="integration-toggle"
+                ><input
+                  type="checkbox"
+                  :checked="hook.enabled"
+                  :disabled="busy"
+                  @change="toggleHook(hook, $event)"
+                />{{ t('integrations.enabled') }}</label
+              >
+              <div class="integration-actions">
+                <button class="button secondary" :disabled="busy" @click="edit(hook)">
+                  {{ t('integrations.edit') }}</button
+                ><button
+                  class="button secondary"
+                  :disabled="busy || !hook.enabled"
+                  @click="
+                    action('/webhooks/' + hook.id + '/test', 'POST', undefined, { queued: true })
+                  "
+                >
+                  {{ t('integrations.test') }}</button
+                ><button
+                  class="button secondary"
+                  :disabled="busy || historyBusy"
+                  @click="history(hook)"
+                >
+                  {{ t('integrations.history') }}</button
+                ><button
+                  class="text-button"
+                  :disabled="busy"
+                  @click="confirmAction('confirmRotate', '/webhooks/' + hook.id + '/rotate')"
+                >
+                  {{ t('integrations.rotate') }}</button
+                ><button class="text-button danger" :disabled="busy" @click="deleteHook(hook)">
+                  {{ t('integrations.delete') }}
+                </button>
+              </div>
+            </article>
+          </section>
+          <button
+            v-if="state.webhooks.length && !editing"
+            class="button secondary integration-create-toggle"
+            type="button"
+            :aria-expanded="hookCreateOpen"
+            aria-controls="create-webhooks"
+            @click="hookCreateOpen = !hookCreateOpen"
+          >
+            {{ t('integrations.createWebhook') }}
+          </button>
+          <form
+            v-show="!state.webhooks.length || hookCreateOpen || editing"
+            id="create-webhooks"
+            class="surface integration-form"
+            @submit.prevent="saveHook"
+          >
             <h2>{{ t(editing ? 'integrations.edit' : 'integrations.create') }} · Webhook</h2>
             <p v-if="validation && tab === 'webhooks'" class="field-error" role="alert">
               {{ validationMessage }}
@@ -815,69 +900,12 @@ async function confirmAction(key, path, method = 'POST') {
                 type="button"
                 class="button secondary"
                 :disabled="busy"
-                @click="resetHook"
+                @click="cancelHook"
               >
                 {{ t('integrations.cancel') }}
               </button>
             </div>
           </form>
-          <section class="surface integration-list">
-            <h2>{{ t('integrations.webhooks') }}</h2>
-            <p v-if="!state.webhooks.length" class="muted">{{ t('integrations.empty') }}</p>
-            <article
-              v-for="hook in state.webhooks"
-              :key="hook.id"
-              class="integration-item webhook-item"
-            >
-              <h3>{{ hook.name }}</h3>
-              <p class="integration-url">{{ hook.url }}</p>
-              <p class="small muted">{{ hook.events.map(eventLabel).join(' · ') }}</p>
-              <p class="small integration-project-summary">
-                {{
-                  hook.projectFilter === 'selected'
-                    ? t('integrations.selectedProjects') +
-                      ': ' +
-                      (projectNames(hook).join(' · ') || t('integrations.filterEmpty'))
-                    : t('integrations.allProjects')
-                }}
-              </p>
-              <label class="integration-toggle"
-                ><input
-                  type="checkbox"
-                  :checked="hook.enabled"
-                  :disabled="busy"
-                  @change="toggleHook(hook, $event)"
-                />{{ t('integrations.enabled') }}</label
-              >
-              <div class="integration-actions">
-                <button class="button secondary" :disabled="busy" @click="edit(hook)">
-                  {{ t('integrations.edit') }}</button
-                ><button
-                  class="button secondary"
-                  :disabled="busy || !hook.enabled"
-                  @click="
-                    action('/webhooks/' + hook.id + '/test', 'POST', undefined, { queued: true })
-                  "
-                >
-                  {{ t('integrations.test') }}</button
-                ><button
-                  class="button secondary"
-                  :disabled="busy || historyBusy"
-                  @click="history(hook)"
-                >
-                  {{ t('integrations.history') }}</button
-                ><button
-                  class="text-button"
-                  :disabled="busy"
-                  @click="confirmAction('confirmRotate', '/webhooks/' + hook.id + '/rotate')"
-                >
-                  {{ t('integrations.rotate') }}</button
-                ><button class="text-button danger" :disabled="busy" @click="deleteHook(hook)">
-                  {{ t('integrations.delete') }}
-                </button>
-              </div>
-            </article>
-          </section>
           <section v-if="deliveries && selected" class="surface integration-list">
             <div class="integration-actions">
               <h2>{{ t('integrations.history') }} · {{ selected.name }}</h2>
@@ -969,6 +997,24 @@ async function confirmAction(key, path, method = 'POST') {
   </div>
 </template>
 <style scoped>
+.integration-create-toggle {
+  margin: 16px 0;
+}
+#integration-panel-operations .integration-item {
+  padding: 10px 0;
+  gap: 8px;
+}
+#integration-panel-operations h3 {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+#integration-panel-operations p {
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+
 .sso-projects {
   max-height: 220px;
   overflow: auto;
@@ -1049,13 +1095,7 @@ async function confirmAction(key, path, method = 'POST') {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-.provisioning-request-example {
-  margin: 0;
-  padding: 14px;
-  border-radius: 8px;
-  background: var(--surface-hover);
-  overflow-x: auto;
-}
+
 .integration-project-options {
   max-height: 240px;
   overflow-y: auto;

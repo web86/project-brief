@@ -1,4 +1,12 @@
 export default {
+  liveEvents: {
+    participant: 'Project participant',
+    task: 'New task',
+    comment: 'New comment from {author}',
+    status: 'Task status changed',
+    more: 'More new project events: {count}',
+    open: 'Open',
+  },
   sso: {
     title: 'Trusted client sign-in (SSO)',
     hint: 'Enable SSO once for a trusted source. Its provisioned and approved projects are allowed automatically. Changing settings revokes this source\u2019s SSO handoffs and sessions.',
@@ -350,6 +358,9 @@ export default {
       'Pass the selected sendInvitation value in the provisioning API request. This example helps configure your external system: the mode is set per request and is not saved on the API token.',
   },
   integrations: {
+    sso: 'SSO',
+    createToken: 'Create a new API token',
+    createWebhook: 'Create a new Webhook',
     scope_clients_sso: 'Trusted client sign-in (SSO)',
     scope_requests_create: 'Create project requests',
     scope_requests_read: 'Read project requests',
@@ -523,6 +534,8 @@ export default {
     signInAndAccept: 'Sign in and accept',
   },
   account: {
+    lostAuthenticator: 'No access to the app? Use a recovery code',
+    passwordCheck: 'Check the new password and confirmation. Choose a different password.',
     title: 'My account',
     profile: 'Profile',
     security: 'Security',
@@ -559,7 +572,7 @@ export default {
     sendReset: 'Send reset link',
     resetSent: 'If an account with this email exists, a recovery link will be sent to it.',
     reset: 'Set new password',
-    resetDone: 'Password changed. Sign in with your new password.',
+    resetDone: 'Password changed successfully.',
     backLogin: 'Back to sign in',
     invalidLink: 'This link is invalid, revoked or expired. Request a new link.',
     mailFailed: 'Email could not be sent. Check SMTP and try again.',
