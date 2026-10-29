@@ -58,3 +58,11 @@ Desktop light request list and mobile dark RU details were visually inspected af
 ## Operational limits
 
 Jino PHP/Apache/proxy/NAT, staging backup/restore, actual SMTP/inbox delivery, a live MODX deployment and a real external webhook consumer remain unverified. The CLI integration smoke requires no MODX user; installing an extra/plugin is outside scope. Hosts must follow PRODUCTION.md and preserve additive audit/deduplication data on rollback. Push, merge and deployment are not part of this work.
+
+## Final canonical release
+
+**PASS: 898 Laravel tests / 13,013 assertions; 362 frontend tests; production frontend build.** npm installation/audit reported0vulnerabilities. Canonical builder repeated the full suites from clean source commit `aaac2ca`. Final-source PHP8.4.26/MariaDB selection repeated successfully: **122 tests / 1,314 assertions**.
+
+The extracted ZIP passed production vendor/platform, signed WebAuthn enrollment/replay, existing client invitation/provisioning, new request creation/approval/final-decision replay/conflict/direct-provisioning scope boundary, failed SMTP durability, protected canonical URL, existing Read APIs/comments/files/exports/CLI/CSRF/maintenance and quiet cron checks. The request migration, all four notification locales and compiled request view are present. ZIP CRCs and every internal manifest hash were independently verified. No tests, source frontend, screenshots, reports, example credentials, node_modules or development vendor are shipped.
+
+Exact source/base commit, byte size, SHA-256, file/manifest counts and evidence inventory are recorded in [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json) and [SHA256SUMS.txt](SHA256SUMS.txt). Previous0.8.0/0.8.1 archives are preserved. Temporary QA MariaDB containers were removed. No push, merge or deployment was performed.

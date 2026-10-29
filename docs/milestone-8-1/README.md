@@ -9,5 +9,6 @@ A request remains `pending` until a workspace owner or an integration with `requ
 - [MODX 2 / standalone PHP examples](MODX.md)
 - [Security and test report](TESTS.md)
 - [Jino deployment and rollback](PRODUCTION.md)
+- [Verified release artifact](RELEASE-ARTIFACT.json) · [SHA-256](SHA256SUMS.txt)
 
 Owners have a Requests link beside Projects, a pending counter, status filters, search/date sorting, details, invitation choice and reject confirmation with an optional internal reason. Existing Live Sync refreshes the counter and visible requests; there is no new polling coordinator, cron, Redis or WebSocket. Four interface/mail locales and existing themes/branding remain supported.
