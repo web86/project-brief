@@ -1262,12 +1262,14 @@ echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($project
     ).status,
     403,
   )
-  assert.equal(
-    (await readFile(path.join(application, 'storage/logs/laravel.log'), 'utf8')).includes(
-      handoff.code,
-    ),
-    false,
+  const ssoLog = await readFile(path.join(application, 'storage/logs/laravel.log'), 'utf8').catch(
+    (error) => {
+      if (error.code === 'ENOENT') return ''
+      throw error
+    },
   )
+  for (const secret of [handoff.code, ssoToken.secret])
+    assert.equal((ssoLog + serverErrors).includes(secret), false)
   console.log(
     'PASS: Packaged SSO-only bearer, explicit project grant, stateless bridge, own client session, canonical 303, replay denial and no logged code',
   )
