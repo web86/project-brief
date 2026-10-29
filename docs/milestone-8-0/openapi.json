@@ -1,0 +1,229 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Project Brief Provisioning API",
+    "version": "0.8.0",
+    "description": "Extension to the existing v1 API. See API.md for normalization, token namespaces, live invitation status, error envelopes and recovery."
+  },
+  "paths": {
+    "/api/v1/projects/provision": {
+      "post": {
+        "operationId": "provisionProject",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Requires projects:provision and an enabled token. Creates contact, project and membership atomically inside the token workspace. No login secrets in response.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "Invalid token"
+          },
+          "403": {
+            "description": "Missing scope or disabled provisioning"
+          },
+          "409": {
+            "description": "Key or external ID conflict"
+          },
+          "410": {
+            "description": "Binding no longer available"
+          },
+          "413": {
+            "description": "Body larger than 32 KiB"
+          },
+          "415": {
+            "description": "JSON required"
+          },
+          "422": {
+            "description": "Invalid fields or key; templates are not supported"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "500": {
+            "description": "Temporary internal error; retry the same operation"
+          },
+          "200": {
+            "description": "Recovered existing operation",
+            "headers": {
+              "Idempotency-Replayed": {
+                "schema": {
+                  "type": "string",
+                  "enum": ["true"]
+                },
+                "description": "Present for key replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionResult"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "New operation or replay preserving its original result",
+            "headers": {
+              "Idempotency-Replayed": {
+                "schema": {
+                  "type": "string",
+                  "enum": ["true"]
+                },
+                "description": "Present for key replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "pb_*"
+      }
+    },
+    "schemas": {
+      "ProvisionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["externalId", "client", "project", "sendInvitation"],
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "client": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "email"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 255
+              },
+              "company": {
+                "type": ["string", "null"],
+                "maxLength": 255
+              },
+              "website": {
+                "type": ["string", "null"],
+                "format": "uri",
+                "maxLength": 2048
+              }
+            }
+          },
+          "project": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "language"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "description": {
+                "type": ["string", "null"],
+                "maxLength": 10000
+              },
+              "language": {
+                "type": "string",
+                "enum": ["ru", "en", "tr", "zh-CN"]
+              }
+            }
+          },
+          "sendInvitation": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProvisionResult": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operationId",
+              "projectId",
+              "clientId",
+              "projectClientId",
+              "projectUrl",
+              "invitation",
+              "created"
+            ],
+            "properties": {
+              "operationId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "projectClientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "projectUrl": {
+                "type": "string",
+                "format": "uri"
+              },
+              "invitation": {
+                "type": "string",
+                "enum": ["not_requested", "pending", "sending", "sent", "failed"]
+              },
+              "created": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

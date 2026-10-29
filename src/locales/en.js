@@ -251,7 +251,32 @@ export default {
     description:
       'Describe what you want to change on your website. Ideas, discussions and approvals in one place.',
   },
+  provisioning: {
+    enabled: 'Automatic project creation',
+    scopeHint:
+      'This scope allows creating a client contact and project in this workspace. Email verification is still required for client access.',
+    operations: 'Recent operations',
+    operationsHint:
+      'Last 500 authenticated requests in this workspace, with the current invitation status.',
+    refresh: 'Refresh',
+    success: 'Created',
+    error: 'Error',
+    replayed: 'Repeated request',
+    invitation: 'Invitation',
+    status_not_requested: 'Not requested',
+    status_pending: 'Waiting to send',
+    status_sending: 'Delivery in progress or unconfirmed',
+    status_sent: 'Sent',
+    status_failed: 'Failed',
+    loginTitle: 'Open your project',
+    loginHint: 'Enter the email address linked to this project. We will email you a sign-in link.',
+    loginSend: 'Send sign-in link',
+    loginSent:
+      'If this email has active access to the project, a sign-in link will arrive shortly. Open it to return to your project.',
+  },
   integrations: {
+    scope_projects_provision: 'Provision clients and projects',
+    event_project_invitation_changed: 'Invitation status changed',
     tokenRevoked: 'API token revoked. Create a new one to continue.',
     webhookDeleted: 'Webhook and its delivery and attempt history deleted.',
     confirmDelete:

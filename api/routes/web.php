@@ -10,6 +10,7 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BrowserProjectExportController;
 use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\ClientNotificationController;
+use App\Http\Controllers\ClientProjectLoginController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DeveloperInvitationController;
 use App\Http\Controllers\IntegrationController;
@@ -111,6 +112,8 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
 Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/integrations')->group(function (): void {
     Route::get('/', [IntegrationController::class, 'index']);
     Route::post('/tokens', [IntegrationController::class, 'token']);
+    Route::patch('/tokens/{uuid}', [IntegrationController::class, 'updateToken']);
+    Route::get('/operations', [IntegrationController::class, 'operations']);
     Route::delete('/tokens/{uuid}', [IntegrationController::class, 'revoke']);
     Route::post('/webhooks', [IntegrationController::class, 'webhook']);
     Route::patch('/webhooks/{uuid}', [IntegrationController::class, 'webhook']);
@@ -163,6 +166,7 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
     Route::patch('/sections/{section}', [ProjectSectionController::class, 'update'])->middleware('project.permission:manage_structure');
     Route::delete('/sections/{section}', [ProjectSectionController::class, 'destroy'])->middleware('project.permission:manage_structure');
 });
+Route::post('/api/client/project/{uuid}/login', [ClientProjectLoginController::class, 'store'])->whereUuid('uuid')->middleware('throttle:client-project-login');
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/project/{project}/sync', LiveSyncController::class)->middleware('throttle:live-sync');

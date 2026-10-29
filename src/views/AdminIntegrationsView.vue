@@ -43,6 +43,8 @@ const projectNames = (hook) =>
 const secret = ref(''),
   secretDialog = ref(null),
   copied = ref(false)
+const operations = ref(null),
+  operationPage = ref(1)
 const deliveries = ref(null),
   selected = ref(null),
   page = ref(1)
@@ -63,6 +65,7 @@ const validationMessage = computed(() =>
 function selectTab(value) {
   tab.value = value
   validation.value = null
+  if (value === 'operations') void loadOperations()
 }
 const scopeLabel = (s) => t('integrations.scope_' + s.replace(':', '_'))
 const eventLabel = (s) => t('integrations.event_' + s.replaceAll('.', '_'))
@@ -156,6 +159,8 @@ watch(
     hideSecret()
     state.value = null
     deliveries.value = null
+    operations.value = null
+    operationPage.value = 1
     selected.value = null
     resetHook()
     validation.value = null
@@ -170,7 +175,10 @@ watch(
     historyRevision++
     loading.value = true
     try {
-      if (allowed.value) await load(current)
+      if (allowed.value) {
+        await load(current)
+        if (tab.value === 'operations') await loadOperations(1, current)
+      }
     } catch (cause) {
       if (isSecurityCancellation(cause)) return
       if (current === revision) loadFailed.value = true
@@ -222,6 +230,26 @@ async function action(
   } finally {
     if (current === revision) busy.value = false
   }
+}
+async function loadOperations(targetPage = 1, current = revision) {
+  if (historyBusy.value || !allowed.value) return
+  historyBusy.value = true
+  const attempt = ++historyRevision
+  try {
+    const result = await api.request(`${root}/operations?page=${targetPage}`)
+    if (current !== revision || attempt !== historyRevision) return
+    operations.value = result
+    operationPage.value = targetPage
+  } catch (cause) {
+    reportError(cause, current)
+  } finally {
+    if (current === revision) historyBusy.value = false
+  }
+}
+function toggleProvisioning(token, event) {
+  const provisioningEnabled = event.target.checked
+  event.target.checked = token.provisioningEnabled
+  return action('/tokens/' + token.id, 'PATCH', { provisioningEnabled })
 }
 async function revoke(token) {
   if (busy.value || !window.confirm(t('integrations.confirmRevoke'))) return
@@ -357,7 +385,7 @@ async function confirmAction(key, path, method = 'POST') {
       </button>
       <div class="integration-tabs" role="tablist" :aria-label="t('integrations.title')">
         <button
-          v-for="item in ['tokens', 'webhooks']"
+          v-for="item in ['tokens', 'webhooks', 'operations']"
           :id="'integration-tab-' + item"
           :key="item"
           role="tab"
@@ -367,7 +395,7 @@ async function confirmAction(key, path, method = 'POST') {
           :class="tab === item ? 'primary' : 'secondary'"
           @click="selectTab(item)"
         >
-          {{ t('integrations.' + item) }}
+          {{ t(item === 'operations' ? 'provisioning.operations' : 'integrations.' + item) }}
         </button>
       </div>
       <p v-if="loading" role="status">{{ t('nav.loading') }}</p>
@@ -406,6 +434,9 @@ async function confirmAction(key, path, method = 'POST') {
             >
               {{ t('integrations.sensitiveReadHint') }}
             </p>
+            <p v-if="scopes.includes('projects:provision')" class="small muted" role="note">
+              {{ t('provisioning.scopeHint') }}
+            </p>
             <label class="field" for="token-expires"
               >{{ t('integrations.expires')
               }}<input id="token-expires" v-model="expires" type="date" :disabled="busy"
@@ -424,6 +455,18 @@ async function confirmAction(key, path, method = 'POST') {
             <article v-for="token in activeTokens" :key="token.id" class="integration-item">
               <div>
                 <h3>{{ token.name }}</h3>
+                <label
+                  v-if="token.scopes.includes('projects:provision')"
+                  class="integration-toggle"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="token.provisioningEnabled"
+                    :disabled="busy"
+                    @change="toggleProvisioning(token, $event)"
+                  />
+                  {{ t('provisioning.enabled') }}
+                </label>
                 <p class="small">{{ token.scopes.map(scopeLabel).join(' · ') }}</p>
                 <p class="small muted">
                   {{ t('integrations.created') }}: {{ date(token.createdAt) }} ·
@@ -444,6 +487,57 @@ async function confirmAction(key, path, method = 'POST') {
               </button>
             </article>
           </section>
+        </section>
+        <section
+          v-show="tab === 'operations'"
+          id="integration-panel-operations"
+          role="tabpanel"
+          aria-labelledby="integration-tab-operations"
+          class="surface integration-list"
+        >
+          <h2>{{ t('provisioning.operations') }}</h2>
+          <p class="muted small">{{ t('provisioning.operationsHint') }}</p>
+          <button
+            class="button secondary"
+            :disabled="historyBusy"
+            @click="loadOperations(operationPage)"
+          >
+            {{ t('provisioning.refresh') }}
+          </button>
+          <p v-if="historyBusy" role="status">{{ t('nav.loading') }}</p>
+          <p v-else-if="!operations?.data.length" class="muted">{{ t('integrations.empty') }}</p>
+          <article
+            v-for="operation in operations?.data || []"
+            :key="operation.id"
+            class="integration-item"
+          >
+            <div>
+              <h3>{{ operation.tokenName }}</h3>
+              <p>{{ t('provisioning.' + operation.outcome) }} · HTTP {{ operation.httpStatus }}</p>
+              <p v-if="operation.invitation" class="small">
+                {{ t('provisioning.invitation') }}:
+                {{ t('provisioning.status_' + operation.invitation) }}
+              </p>
+              <p class="small muted">{{ date(operation.createdAt) }}</p>
+            </div>
+          </article>
+          <div v-if="operations && operations.meta.lastPage > 1" class="integration-tabs">
+            <button
+              class="button secondary"
+              :disabled="historyBusy || operationPage <= 1"
+              @click="loadOperations(operationPage - 1)"
+            >
+              {{ t('integrations.previous') }}
+            </button>
+            <span>{{ operationPage }} / {{ operations.meta.lastPage }}</span>
+            <button
+              class="button secondary"
+              :disabled="historyBusy || operationPage >= operations.meta.lastPage"
+              @click="loadOperations(operationPage + 1)"
+            >
+              {{ t('integrations.next') }}
+            </button>
+          </div>
         </section>
         <section
           v-show="tab === 'webhooks'"

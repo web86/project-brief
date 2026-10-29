@@ -1,0 +1,38 @@
+{
+  "results": [
+    {
+      "test": "additive-upgrade-on-existing-project-and-client",
+      "passed": true
+    },
+    {
+      "test": "real-smtp-delivery-after-visible-commit",
+      "passed": true
+    },
+    {
+      "test": "parallel-same-key-eight-and-same-external-id-six-two-php-processes",
+      "passed": true
+    },
+    {
+      "test": "smtp-failure-durable-result-and-no-automatic-resend",
+      "passed": true
+    },
+    {
+      "test": "canonical-link-mailbox-login-repeat-magic-link-foreign-project-and-revocation",
+      "passed": true
+    },
+    {
+      "test": "owner-ui-toggle-history-webhook-preservation-mobile-and-four-locales",
+      "passed": true
+    },
+    {
+      "test": "webhook-recovery-payload-and-log-response-history-secret-scan",
+      "passed": true
+    }
+  ],
+  "browserErrors": [],
+  "concurrentProcesses": 2,
+  "php": "8.5",
+  "database": "MariaDB 11.8.9",
+  "mail": "local SMTP sink",
+  "liveJino": false
+}

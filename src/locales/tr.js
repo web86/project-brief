@@ -252,7 +252,32 @@ export default {
     description:
       'Web sitenizde neleri değiştirmek istediğinizi anlatın. Fikirler, tartışmalar ve onaylar tek yerde.',
   },
+  provisioning: {
+    enabled: 'Otomatik proje oluşturma',
+    scopeHint:
+      'Bu kapsam, bu çalışma alanında müşteri kişisi ve proje oluşturabilir. Müşteri erişimi için e-posta doğrulaması gerekir.',
+    operations: 'Son işlemler',
+    operationsHint: 'Bu çalışma alanında kimliği doğrulanmış son 500 istek ve güncel davet durumu.',
+    refresh: 'Yenile',
+    success: 'Oluşturuldu',
+    error: 'Hata',
+    replayed: 'Tekrarlanan istek',
+    invitation: 'Davet',
+    status_not_requested: 'İstenmedi',
+    status_pending: 'Gönderilmeyi bekliyor',
+    status_sending: 'Gönderiliyor veya teslimat doğrulanmadı',
+    status_sent: 'Gönderildi',
+    status_failed: 'Başarısız',
+    loginTitle: 'Projenizi açın',
+    loginHint:
+      'Bu projeye bağlı e-posta adresini girin. Giriş bağlantısını e-posta ile göndereceğiz.',
+    loginSend: 'Giriş bağlantısı gönder',
+    loginSent:
+      'Bu e-posta adresinin projeye etkin erişimi varsa giriş bağlantısı kısa süre içinde ulaşır. Projenize dönmek için bağlantıyı açın.',
+  },
   integrations: {
+    scope_projects_provision: 'Müşteri ve proje oluştur',
+    event_project_invitation_changed: 'Davet durumu değişti',
     tokenRevoked: 'API anahtarı iptal edildi. Devam etmek için yeni bir anahtar oluşturun.',
     webhookDeleted: 'Webhook ve gönderim denemeleriyle birlikte tüm gönderim geçmişi silindi.',
     confirmDelete:

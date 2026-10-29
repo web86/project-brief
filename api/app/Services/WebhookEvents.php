@@ -10,7 +10,22 @@ use Illuminate\Support\Str;
 
 class WebhookEvents
 {
-    public const TYPES = ['project.created', 'project.updated', 'task.created', 'task.updated', 'task.status_changed', 'task.approved', 'task.client_comment_created', 'project.client_comment_created'];
+    public const TYPES = ['project.created', 'project.updated', 'project.invitation_changed', 'task.created', 'task.updated', 'task.status_changed', 'task.approved', 'task.client_comment_created', 'project.client_comment_created'];
+
+    public function provisioned(Project $project, array $result, string $externalId): void
+    {
+        $this->emit($project, null, 'project.created', [
+            'title' => $project->title, 'projectUrl' => $result['projectUrl'], 'clientId' => $result['clientId'],
+            'projectClientId' => $result['projectClientId'], 'invitation' => $result['invitation'], 'operationId' => $result['operationId'], 'externalId' => $externalId,
+        ]);
+    }
+
+    public function invitation(Project $project, string $operationId, string $status): void
+    {
+        $this->emit($project, null, 'project.invitation_changed', [
+            'operationId' => $operationId, 'invitation' => $status, 'projectUrl' => ProjectProvisioning::url($project),
+        ]);
+    }
 
     public function project(Project $project, string $type, array $changes): void
     {

@@ -973,7 +973,7 @@ $app = require $argv[1].'/bootstrap/app.php';
 $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 $user = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
 $workspace = $user->workspaceMembers()->active()->firstOrFail()->workspace;
-echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspace->id, ['name'=>'Release API', 'scopes'=>['projects:read','projects:write','tasks:read','tasks:write']]));
+echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspace->id, ['name'=>'Release API', 'scopes'=>['projects:read','projects:write','projects:provision','tasks:read','tasks:write']]));
 `,
   )
   const integration = JSON.parse(command([integrationFixture, application]))
@@ -1038,6 +1038,55 @@ echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspa
   assert.equal(integrationTasks.data[0].id, integrationTask.id)
   assert.equal(integrationTasks.data[0].price, undefined)
   assert.equal(integrationTasks.data[0].developerNotes, undefined)
+  const provisionPayload = JSON.stringify({
+    externalId: 'packaged-order-1042',
+    client: { name: 'Package Client', email: 'package-client@example.test' },
+    project: {
+      name: 'Packaged provisioned project',
+      language: 'tr',
+      description: 'Preserved package metadata',
+    },
+    sendInvitation: true,
+  })
+  const packagedProvision = await callIntegration('/api/v1/projects/provision', {
+    method: 'POST',
+    body: provisionPayload,
+  })
+  assert.equal(packagedProvision.status, 201)
+  assert.equal(packagedProvision.headers.getSetCookie().length, 0)
+  const provisioned = (await packagedProvision.json()).data
+  assert.equal(provisioned.invitation, 'failed') // Production example has no SMTP credentials.
+  assert.equal(provisioned.created, true)
+  assert.ok(provisioned.projectUrl.endsWith('/project/' + provisioned.projectId))
+  assert.equal(JSON.stringify(provisioned).includes('/access/'), false)
+  const provisionReplay = await callIntegration('/api/v1/projects/provision', {
+    method: 'POST',
+    body: provisionPayload,
+  })
+  assert.equal(provisionReplay.status, 201)
+  assert.equal(provisionReplay.headers.get('Idempotency-Replayed'), 'true')
+  assert.deepEqual((await provisionReplay.json()).data, provisioned)
+  const provisionRecovered = await fetch(origin + '/api/v1/projects/provision', {
+    method: 'POST',
+    headers: { ...integrationHeaders, 'Idempotency-Key': 'packaged-recovery-key' },
+    body: provisionPayload,
+  })
+  assert.equal(provisionRecovered.status, 200)
+  const recoveredProvision = (await provisionRecovered.json()).data
+  assert.equal(recoveredProvision.projectId, provisioned.projectId)
+  assert.equal(recoveredProvision.created, false)
+  const provisionDetails = (
+    await (await callIntegration('/api/v1/projects/' + provisioned.projectId)).json()
+  ).data
+  assert.equal(provisionDetails.description, 'Preserved package metadata')
+  assert.equal(provisionDetails.language, 'tr')
+  assert.equal((await fetch(origin + '/api/client/project/' + provisioned.projectId)).status, 401)
+  const canonicalReload = await fetch(origin + '/project/' + provisioned.projectId)
+  assert.equal(canonicalReload.status, 200)
+  assert.match(await canonicalReload.text(), /id="app"/)
+  console.log(
+    'PASS: Packaged provisioning/contact/membership, failed mail durability, idempotency/external-ID recovery, language/description and protected canonical URL',
+  )
   const idleCron = spawnSync(php, ['artisan', 'integrations:webhooks'], {
     cwd: application,
     env,
@@ -1343,12 +1392,12 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.7.8',
+    '0.8.0',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
     await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_26_200540_add_project_trash_lifecycle/,
+    /2026_10_29_092022_add_project_provisioning_foundation/,
   )
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 

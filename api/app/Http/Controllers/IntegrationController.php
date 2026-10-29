@@ -36,7 +36,7 @@ class IntegrationController extends Controller
         $workspace = $this->workspace($request);
 
         return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
-            'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at'])->map(fn ($t) => ['id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at]),
+            'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at', 'provisioning_enabled'])->map(fn ($t) => ['id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at, 'provisioningEnabled' => (bool) $t->provisioning_enabled]),
             'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['id', 'workspace_id', 'uuid', 'name', 'url', 'events', 'enabled', 'created_at', 'project_filter'])->map(fn ($e) => ['id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'projectFilter' => $e->project_filter, 'projectIds' => app(WebhookProjectFilter::class)->ids($e), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
         ])->header('Cache-Control', 'no-store');
     }
@@ -56,6 +56,38 @@ class IntegrationController extends Controller
 
             return response()->json(app(IntegrationTokens::class)->create($workspace, $data), 201)->header('Cache-Control', 'no-store');
         });
+    }
+
+    public function updateToken(Request $request, string $uuid): JsonResponse
+    {
+        $workspace = $this->workspace($request);
+        $data = $request->validate(['provisioningEnabled' => ['required', 'boolean']]);
+        DB::transaction(function () use ($request, $workspace, $uuid, $data): void {
+            Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
+            $this->workspace($request);
+            $token = DB::table('integration_tokens')->where('workspace_id', $workspace)->where('uuid', $uuid)->whereNull('revoked_at')->lockForUpdate()->first();
+            abort_unless($token, 404);
+            abort_unless(in_array('projects:provision', json_decode($token->scopes, true), true), 422);
+            DB::table('integration_tokens')->where('id', $token->id)->update(['provisioning_enabled' => $data['provisioningEnabled'], 'updated_at' => now()]);
+        }, 3);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function operations(Request $request): JsonResponse
+    {
+        $workspace = $this->workspace($request);
+        $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
+        $page = DB::table('provisioning_operations as o')
+            ->join('integration_tokens as t', 't.id', '=', 'o.integration_token_id')
+            ->leftJoin('project_provisionings as p', fn ($join) => $join->on('p.uuid', '=', 'o.provisioning_uuid')->on('p.workspace_id', '=', 'o.workspace_id'))
+            ->where('o.workspace_id', $workspace)->orderByDesc('o.id')
+            ->paginate(25, ['o.id', 'o.outcome', 'o.http_status', 'o.created_at', 't.name', 'p.invitation_status', 'p.uuid']);
+
+        return response()->json(['data' => $page->getCollection()->map(fn ($row) => [
+            'id' => $row->id, 'operationId' => $row->uuid, 'tokenName' => $row->name, 'outcome' => $row->outcome,
+            'httpStatus' => $row->http_status, 'invitation' => $row->invitation_status, 'createdAt' => $row->created_at,
+        ]), 'meta' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()]])->header('Cache-Control', 'no-store');
     }
 
     public function revoke(Request $request, string $uuid): JsonResponse

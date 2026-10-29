@@ -10,6 +10,7 @@ use App\Services\AccountSecurity;
 use App\Services\ClientInvitations;
 use App\Services\DeveloperInvitations;
 use App\Services\ProjectPermissions;
+use App\Services\ProjectProvisioning;
 use App\Services\ProjectStructure;
 use App\Services\SupportedLocales;
 use Illuminate\Http\JsonResponse;
@@ -72,6 +73,7 @@ class ProjectClientController extends Controller
             return app(ClientInvitations::class)->issue($project->refresh(), $client->refresh(), now()->addDays(7));
         }, 3);
         $delivery = app(ClientInvitations::class)->deliver($project, $client, $link['url']) ? 'sent' : 'failed';
+        app(ProjectProvisioning::class)->recordInvitation($project, $client, $delivery);
         $response = $this->index($project);
 
         return $response->setData([...$response->getData(true), 'invitation' => $delivery]);

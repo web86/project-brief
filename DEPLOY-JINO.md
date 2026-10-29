@@ -1,3 +1,5 @@
+> Project Brief 0.8.0: [Integration Foundation — обновление и откат](docs/milestone-8-0/PRODUCTION.md).
+
 > Project Brief 0.7.8: [Live Sync, UI polish, обновление и откат](docs/live-sync-ui/PRODUCTION.md).
 
 > Milestone 7.4 (0.7.4): [приглашения, отзывы, миграция, обновление и откат](docs/milestone-7-4/PRODUCTION.md).
@@ -18,7 +20,7 @@
    ./bin/build-release
    ```
 
-   Нужны Node/npm, PHP 8.3+ и Composer 2. Локальные PHP также требуют `pdo_sqlite` и `gd` для тестов, `zip` для упаковки. Script использует обычный `composer` или локальный `.tools/composer.phar`. Другой исполняемый файл можно задать через `PHP_BIN` и `COMPOSER_BIN` (путь к binary или `.phar`, без аргументов). Сборка выполняет `npm ci`, тесты, Vue build, Laravel tests, отдельную установку production vendor, проверку пакета и запуск его копии с временной SQLite. Текущие `.env`, MariaDB, uploads и development vendor сохраняются. Архив появляется в `release/project-brief-v0.7.8-<commit>.zip`, распакованная копия — `release/project-brief/`.
+   Нужны Node/npm, PHP 8.3+ и Composer 2. Локальные PHP также требуют `pdo_sqlite` и `gd` для тестов, `zip` для упаковки. Script использует обычный `composer` или локальный `.tools/composer.phar`. Другой исполняемый файл можно задать через `PHP_BIN` и `COMPOSER_BIN` (путь к binary или `.phar`, без аргументов). Сборка выполняет `npm ci`, тесты, Vue build, Laravel tests, отдельную установку production vendor, проверку пакета и запуск его копии с временной SQLite. Текущие `.env`, MariaDB, uploads и development vendor сохраняются. Архив появляется в `release/project-brief-v0.8.0-<commit>.zip`, распакованная копия — `release/project-brief/`.
 
    В ZIP входят только `public/`, `private/project-brief-app/`, необходимый Telegram bridge, `DEPLOY-JINO.md`, `PRODUCTION.md`, `release.json` и `checksums.txt`. Шрифты и лицензии сохранены. Тестовые документы, скриншоты, результаты проверок и исторические отчёты остаются в Git вне дистрибутива. Перед публикацией сборка распаковывает готовый ZIP в новую временную папку, сверяет все SHA-256 и проверяет установку, запуск и экспорт на отдельной SQLite.
 

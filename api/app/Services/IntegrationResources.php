@@ -26,7 +26,7 @@ class IntegrationResources
 
     public static function project(Project $project): array
     {
-        return ['id' => $project->uuid, 'title' => $project->title, 'website' => $project->website_url, 'currency' => $project->currency, 'status' => $project->status, 'managerUrl' => '/admin/projects/'.$project->uuid.'/brief', 'sections' => $project->briefSections->map(fn ($s) => ProjectStructure::sectionData($s))->all(), 'createdAt' => $project->created_at->toISOString(), 'updatedAt' => $project->updated_at->toISOString()];
+        return ['id' => $project->uuid, 'title' => $project->title, 'description' => $project->description, 'language' => $project->language, 'website' => $project->website_url, 'currency' => $project->currency, 'status' => $project->status, 'managerUrl' => '/admin/projects/'.$project->uuid.'/brief', 'sections' => $project->briefSections->map(fn ($s) => ProjectStructure::sectionData($s))->all(), 'createdAt' => $project->created_at->toISOString(), 'updatedAt' => $project->updated_at->toISOString()];
     }
 
     public static function task(Task $task, bool $estimates): array

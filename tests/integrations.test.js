@@ -145,3 +145,41 @@ test('team and clients render different SVG icons in the shared menu', async () 
   assert.match(teamSvg, /viewbox="0 0 24 24"/i)
   assert.match(teamSvg, /M16 11l2 2 4-4/)
 })
+
+for (const [session, destination] of [
+  [{ authenticated: false }, '/project/00000000-0000-4000-8000-000000000001/login'],
+  [{ authenticated: true, type: 'client', project: { id: 'other' } }, '/access-error'],
+  [{ authenticated: false, state: 'pending_2fa' }, '/admin/security'],
+]) {
+  test(`canonical project login respects session state ${JSON.stringify(session)}`, async () => {
+    const calls = []
+    const router = routerFactory({
+      history: createMemoryHistory(),
+      apiMode: true,
+      request: async (url) => {
+        calls.push(url)
+        if (url === '/api/session') return session
+        if (url === '/api/security/status') return { state: 'pending_2fa' }
+        throw new Error('Unexpected ' + url)
+      },
+    })
+    await router.push('/project/00000000-0000-4000-8000-000000000001/login')
+    assert.equal(router.currentRoute.value.path, destination)
+    assert.ok(calls.includes('/api/session'))
+  })
+}
+
+test('client login page renders a mailbox form without project data in every locale', async () => {
+  const View = (await server.ssrLoadModule('/src/views/ClientProjectLoginView.vue')).default
+  for (const locale of ['ru', 'en', 'tr', 'zh-CN']) {
+    i18n.global.locale.value = locale
+    const router = routerFactory({ history: createMemoryHistory(), apiMode: false })
+    await router.push('/project/00000000-0000-4000-8000-000000000001/login')
+    const html = await renderToString(createSSRApp(View).use(router).use(i18n))
+    assert.match(html, /type="email"/)
+    assert.match(html, /autocomplete="email"/)
+    assert.ok(!html.includes('provisioning.login'))
+    assert.ok(!html.includes('/access/'))
+  }
+  i18n.global.locale.value = 'en'
+})

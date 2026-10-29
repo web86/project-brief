@@ -12,7 +12,7 @@ class ProjectClient extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['project_id', 'name', 'email', 'active', 'preferred_locale', 'notification_preferences'];
+    protected $fillable = ['project_id', 'name', 'email', 'active', 'preferred_locale', 'notification_preferences', 'workspace_client_id'];
 
     protected function casts(): array
     {

@@ -2,11 +2,14 @@
 
 use App\Http\Controllers\IntegrationApiController;
 use App\Http\Controllers\IntegrationReadController;
+use App\Http\Controllers\ProjectProvisioningController;
 use App\Http\Middleware\AuthenticateIntegration;
+use App\Http\Middleware\RecordProvisioningOperation;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(function (): void {
     Route::get('/projects', [IntegrationApiController::class, 'projects']);
+    Route::post('/projects/provision', [ProjectProvisioningController::class, 'store'])->middleware(RecordProvisioningOperation::class);
     Route::post('/projects', [IntegrationApiController::class, 'store']);
     Route::get('/projects/{uuid}', [IntegrationApiController::class, 'show']);
     Route::get('/projects/{uuid}/tasks', [IntegrationApiController::class, 'tasks']);

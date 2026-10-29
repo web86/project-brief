@@ -213,6 +213,16 @@ export function createProjectRouter({
           },
         },
       })),
+      {
+        path: '/project/:uuid/login',
+        component: () => import('../views/ClientProjectLoginView.vue'),
+        meta: {
+          clientLogin: true,
+          get title() {
+            return t('provisioning.loginTitle')
+          },
+        },
+      },
       ...['/project/:uuid'].flatMap((path) => [
         {
           path,
@@ -504,6 +514,23 @@ export function createProjectRouter({
       }
       return true
     }
+    if (to.meta.clientLogin) {
+      try {
+        const session = await request('/api/session')
+        if (current !== revision) return false
+        if (session.authenticated && session.type === 'client')
+          return session.project?.id === to.params.uuid
+            ? `/project/${to.params.uuid}`
+            : '/access-error?reason=unavailable'
+        if (session.authenticated && session.type === 'admin')
+          return `/admin/projects/${to.params.uuid}/brief`
+        if (['pending_2fa', 'enrollment_required'].includes(session.state)) return '/admin/security'
+      } catch (error) {
+        if (current !== revision) return false
+        toast.error(() => formatApiError(error))
+        return false
+      }
+    }
     if (!to.meta.apiProject) return true
     const store = useProjectStore()
     if (canReuseProject(to, from, store)) {
@@ -532,9 +559,11 @@ export function createProjectRouter({
         toast.error(() => formatApiError(error))
         return false
       }
-      return to.meta.admin && error.status === 401
-        ? '/admin/login'
-        : `/access-error?reason=${error.status === 401 ? 'session' : 'unavailable'}`
+      return error.status === 401
+        ? to.meta.admin
+          ? '/admin/login'
+          : `/project/${to.params.uuid}/login`
+        : '/access-error?reason=unavailable'
     }
   })
   router.beforeResolve((to) => {

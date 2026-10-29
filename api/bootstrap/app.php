@@ -57,7 +57,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
             $status = $e instanceof ValidationException ? 422 : ($e instanceof HttpExceptionInterface ? $e->getStatusCode() : ($e instanceof ModelNotFoundException ? 404 : 500));
-            $code = [403 => 'insufficient_scope', 404 => 'not_found', 405 => 'method_not_allowed', 409 => 'idempotency_conflict', 413 => 'payload_too_large', 415 => 'invalid_content_type', 422 => 'validation_failed', 429 => 'rate_limited'][$status] ?? 'internal_error';
+            $code = [401 => 'invalid_token', 410 => 'resource_unavailable', 403 => 'insufficient_scope', 404 => 'not_found', 405 => 'method_not_allowed', 409 => 'idempotency_conflict', 413 => 'payload_too_large', 415 => 'invalid_content_type', 422 => 'validation_failed', 429 => 'rate_limited'][$status] ?? 'internal_error';
 
             return response()->json(['code' => $code, 'message' => $status === 500 ? 'Internal error.' : ($status === 422 ? 'Check request fields and Idempotency-Key.' : Response::$statusTexts[$status]), ...($e instanceof ValidationException ? ['errors' => $e->errors()] : [])], $status)->withHeaders($e instanceof HttpExceptionInterface ? $e->getHeaders() : [])->header('Cache-Control', 'no-store');
         });

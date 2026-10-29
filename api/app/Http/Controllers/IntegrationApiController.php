@@ -17,6 +17,7 @@ class IntegrationApiController extends Controller
 {
     private function scope(Request $request, string $scope): void
     {
+        $request->attributes->set('integration_required_scope', $scope);
         abort_unless(in_array($scope, json_decode($request->attributes->get('integration_token')->scopes, true), true), 403, 'Required scope: '.$scope);
     }
 

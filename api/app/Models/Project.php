@@ -12,7 +12,7 @@ class Project extends Model
     use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     /** Legacy client_name, client_email and sections are retained for migration compatibility only. */
-    protected $fillable = ['title', 'website_url', 'client_name', 'client_email', 'currency', 'status', 'sections', 'workspace_id'];
+    protected $fillable = ['title', 'website_url', 'client_name', 'client_email', 'currency', 'status', 'sections', 'workspace_id', 'description', 'language'];
 
     protected function casts(): array
     {
