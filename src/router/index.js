@@ -82,6 +82,17 @@ export function createProjectRouter({
             },
           },
           {
+            path: 'requests',
+            component: () => import('../views/AdminProjectRequestsView.vue'),
+            meta: {
+              ownerOnly: true,
+              projectRequests: true,
+              get title() {
+                return t('requests.title')
+              },
+            },
+          },
+          {
             path: 'settings/integrations',
             component: () => import('../views/AdminIntegrationsView.vue'),
             meta: {

@@ -18,6 +18,7 @@ import { t, locale, formatApiError } from './i18n/index.js'
 import { computed, nextTick, watch, onBeforeUnmount } from 'vue'
 import { createLiveSync } from './services/liveSync.js'
 import { useProjectListingStore } from './stores/projectListing.js'
+import { useProjectRequestsStore } from './stores/projectRequests.js'
 import { useWorkspaceAppearance } from './services/workspaceAppearance.js'
 import { theme } from './services/theme.js'
 import { useRoute, useRouter } from 'vue-router'
@@ -119,6 +120,13 @@ const live = createLiveSync({
       const listing = useProjectListingStore()
       listing.refresh()
       work.push(listing.load(liveNav.workspace.id, route.query))
+    }
+    if (
+      liveNav.user?.membershipRole === 'owner' &&
+      (result.reset || result.kinds?.includes('requests'))
+    ) {
+      work.push(liveNav.refreshRequestCount())
+      if (route.meta.projectRequests) work.push(useProjectRequestsStore().refresh())
     }
     await Promise.all(work)
   },

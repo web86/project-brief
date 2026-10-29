@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'project_request_heading' => '新的项目申请',
+    'project_request_message' => '有新的项目申请等待您审核。',
+    'open_request' => '审核申请',
+
     'open' => '打开任务',
     'open_project' => '打开项目',
     'access' => '如果会话已结束，请打开您的个人 ProjectBrief 链接以访问项目。',

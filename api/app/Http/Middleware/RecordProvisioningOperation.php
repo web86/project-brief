@@ -30,6 +30,8 @@ class RecordProvisioningOperation
                 $token = $request->attributes->get('integration_token');
                 DB::table('provisioning_operations')->insert([
                     'workspace_id' => $token->workspace_id, 'integration_token_id' => $token->id,
+                    'operation_type' => $request->attributes->get('operation_type', 'project.provision'),
+                    'project_request_uuid' => $request->attributes->get('project_request_uuid'),
                     'provisioning_uuid' => $request->attributes->get('provisioning_uuid'),
                     'outcome' => $status >= 400 ? 'error' : ($request->attributes->get('provisioning_reused') ? 'replayed' : 'success'),
                     'http_status' => $status, 'created_at' => now(),

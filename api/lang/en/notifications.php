@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'project_request_heading' => 'New project request',
+    'project_request_message' => 'A new project request is waiting for your decision.',
+    'open_request' => 'Review request',
+
     'open' => 'Open task',
     'open_project' => 'Open project',
     'access' => 'To access the project, open your personal ProjectBrief link if your session has ended.',

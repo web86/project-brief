@@ -116,6 +116,10 @@ class WorkspaceMigrationTest extends TestCase
                             unset($data[$added]);
                         }
                     }
+                    if ($table === 'notification_deliveries') {
+                        $this->assertNull($data['project_request_id']);
+                        unset($data['project_request_id']);
+                    }
                     if ($table === 'project_clients') {
                         $this->assertNull($data['notification_preferences']);
                         $this->assertNull($data['workspace_client_id']);

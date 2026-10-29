@@ -15,4 +15,4 @@ mkdir -p bootstrap/cache storage/framework/cache/data storage/framework/sessions
 cp /workspace/api/bootstrap/app.php /workspace/api/bootstrap/providers.php bootstrap/
 ln -s /workspace/api/vendor vendor
 # DDL rollback is covered by native SQLite; MariaDB DDL implicitly commits.
-php -d memory_limit=512M vendor/bin/phpunit --filter '(ProjectProvisioningTest::(?!test_schema_upgrade_and_empty_rollback)|ClientProjectLoginTest|ClientInvitationsTest|IntegrationReadTest|IntegrationsTest::(?!test_integration_migration_rolls_back_and_reapplies)|WebhooksTest)'
+php -d memory_limit=512M vendor/bin/phpunit --filter '(ProjectRequestsTest|ProjectProvisioningTest::(?!test_schema_upgrade_and_empty_rollback)|ClientProjectLoginTest|ClientInvitationsTest|IntegrationReadTest|IntegrationsTest::(?!test_integration_migration_rolls_back_and_reapplies)|WebhooksTest)'

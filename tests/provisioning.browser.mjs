@@ -13,7 +13,9 @@ const scratch = await mkdtemp(path.join(tmpdir(), 'brief-provisioning-'))
 const app = path.join(scratch, 'app')
 const mysql = !!process.env.PROVISIONING_MYSQL_PORT
 const productionBuild = process.env.CLIENT_ENTRY_PRODUCTION_BUILD === '1'
-const output = path.join(root, 'artifacts/client-entry-0-8-1', mysql ? 'mysql' : 'sqlite')
+const output =
+  process.env.PROVISIONING_QA_DIRECTORY ||
+  path.join(root, 'artifacts/client-entry-0-8-1', mysql ? 'mysql' : 'sqlite')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, otherBackend, frontend, browser, smtp
@@ -181,14 +183,19 @@ try {
   }
   await writeFile(path.join(app, '.env'), '')
   if (!mysql) await writeFile(env.DB_DATABASE, '')
-  const migrationName = '2026_10_29_092022_add_project_provisioning_foundation.php'
-  const migration = path.join(app, 'database/migrations', migrationName)
-  const migrationSource = await readFile(migration)
-  await rm(migration)
+  const deferredMigrations = (await readdir(path.join(app, 'database/migrations'))).filter(
+    (name) => name >= '2026_10_29_092022_add_project_provisioning_foundation.php',
+  )
+  const deferredSources = []
+  for (const name of deferredMigrations) {
+    const file = path.join(app, 'database/migrations', name)
+    deferredSources.push([file, await readFile(file)])
+    await rm(file)
+  }
   if (mysql) php(['artisan', 'db:wipe', '--force', '--no-interaction'])
   php(['artisan', 'migrate', '--force', '--no-interaction'])
   const legacy = JSON.parse(php(['tests/provisioning-fixture.php', 'legacy']))
-  await writeFile(migration, migrationSource)
+  for (const [file, source] of deferredSources) await writeFile(file, source)
   php(['artisan', 'migrate', '--force', '--no-interaction'])
   const fixture = JSON.parse(php(['tests/provisioning-fixture.php']))
   assert.equal(state().projects, 1)

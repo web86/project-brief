@@ -36,6 +36,9 @@ class WebhookProjectFilter
 
     public function matches(object $endpoint, string $type, ?string $projectUuid): bool
     {
+        if (str_starts_with($type, 'project_request.')) {
+            return $endpoint->project_filter === 'all';
+        }
         if ($type === 'webhook.test') {
             return $projectUuid === null;
         }

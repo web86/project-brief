@@ -1,3 +1,4 @@
+import { useProjectRequestsStore } from './projectRequests.js'
 import { usePersonalNotificationsStore } from './personalNotifications.js'
 import { useTaskWorkspaceStore } from './taskWorkspace.js'
 import { useDiscussionsStore, useClientDiscussionsStore } from './discussions.js'
@@ -14,6 +15,7 @@ import { t, formatApiError, applyClientLocale } from '../i18n/index.js'
 
 export const useAdminNavigationStore = defineStore('adminNavigation', () => {
   const syncCursor = ref(null)
+  const pendingRequests = ref(0)
   const user = ref(null),
     workspace = ref(null),
     workspaces = ref([]),
@@ -31,6 +33,8 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     pending = null
   function clearProjectState() {
     useWorkspaceBrandingStore().clear()
+    useProjectRequestsStore().clear()
+    pendingRequests.value = 0
     useProjectListingStore().clear()
     projectsPath.value = '/admin'
     useProjectStore().clearApiState()
@@ -68,6 +72,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
         ])
         if (current !== revision) return false
         syncCursor.value = me.syncCursor
+        pendingRequests.value = me.pendingRequests || 0
         user.value = me.user
         workspace.value = me.workspace
         workspaces.value = choices.data
@@ -161,6 +166,21 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
       if (current === revision) toast.error(() => formatApiError(cause))
     }
   }
+  async function refreshRequestCount(request = api.request) {
+    if (user.value?.membershipRole !== 'owner' || !workspace.value) {
+      pendingRequests.value = 0
+      return
+    }
+    const current = revision,
+      id = workspace.value.id
+    const result = await request('/api/admin/project-requests/count')
+    if (
+      current === revision &&
+      workspace.value?.id === id &&
+      user.value?.membershipRole === 'owner'
+    )
+      pendingRequests.value = result.pending
+  }
   function updateCommentCount(id, count) {
     listRevision++
     refreshing.value = false
@@ -197,6 +217,8 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     else projects.value[index] = { ...projects.value[index], ...project }
   }
   return {
+    pendingRequests,
+    refreshRequestCount,
     syncCursor,
     user,
     workspace,

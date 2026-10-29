@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\ProjectClient;
+use App\Models\ProjectRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -22,8 +23,26 @@ class ProjectProvisioning
 
             return [['data' => $this->resource($existing, false)], 200];
         }
-        $identity = app(ClientIdentities::class)->resolve($token->workspace_id, $input['client']);
-        $project = app(ProjectCreation::class)->create($token->workspace_id, [
+        $result = $this->createNew($token->workspace_id, $token->id, $input, $externalHash);
+        app(WebhookEvents::class)->provisioned(Project::where('uuid', $result['projectId'])->firstOrFail(), $result, $input['externalId']);
+
+        return [['data' => $result], 201];
+    }
+
+    /** The request decision holds the same workspace lock as direct provisioning. */
+    public function createForRequest(ProjectRequest $request, bool $sendInvitation): array
+    {
+        return $this->createNew($request->workspace_id, $request->integration_token_id, [
+            'client' => ['name' => $request->client_name, 'email' => $request->email, 'company' => $request->company, 'website' => $request->website],
+            'project' => ['name' => $request->project_name, 'description' => $request->description, 'language' => $request->language],
+            'sendInvitation' => $sendInvitation,
+        ], hash('sha256', random_bytes(32)));
+    }
+
+    private function createNew(int $workspaceId, int $tokenId, array $input, string $externalHash): array
+    {
+        $identity = app(ClientIdentities::class)->resolve($workspaceId, $input['client']);
+        $project = app(ProjectCreation::class)->create($workspaceId, [
             'title' => $input['project']['name'], 'description' => $input['project']['description'], 'language' => $input['project']['language'],
         ], [], emitEvent: false);
         $client = $project->clients()->create([
@@ -31,15 +50,14 @@ class ProjectProvisioning
             'preferred_locale' => SupportedLocales::storage($input['project']['language']),
         ]);
         $id = DB::table('project_provisionings')->insertGetId([
-            'uuid' => (string) Str::uuid(), 'workspace_id' => $token->workspace_id, 'integration_token_id' => $token->id,
-            'external_hash' => $externalHash, 'body_hash' => $bodyHash, 'workspace_client_id' => $identity->id,
+            'uuid' => (string) Str::uuid(), 'workspace_id' => $workspaceId, 'integration_token_id' => $tokenId,
+            'external_hash' => $externalHash, 'body_hash' => IntegrationWrites::fingerprint($input), 'workspace_client_id' => $identity->id,
             'project_id' => $project->id, 'project_client_id' => $client->id,
             'invitation_status' => $input['sendInvitation'] ? 'pending' : 'not_requested', 'created_at' => now(), 'updated_at' => now(),
         ]);
         $result = $this->resource(DB::table('project_provisionings')->find($id), true);
-        app(WebhookEvents::class)->provisioned($project, $result, $input['externalId']);
 
-        return [['data' => $result], 201];
+        return $result;
     }
 
     private function resource(object $row, bool $created): array

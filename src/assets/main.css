@@ -6349,7 +6349,8 @@ button.attachment-item:hover {
   min-height: 44px;
   overflow-y: auto;
 }
-.sidebar-all-projects {
+.sidebar-all-projects,
+.sidebar-request-link {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -6358,7 +6359,8 @@ button.attachment-item:hover {
   border-radius: 8px;
   font-size: 14px;
 }
-.sidebar-all-projects[aria-current='page'] {
+.sidebar-all-projects[aria-current='page'],
+.sidebar-request-link[aria-current='page'] {
   background: var(--selected-bg);
   color: var(--link);
 }

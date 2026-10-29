@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'project_request_heading' => 'Yeni proje talebi',
+    'project_request_message' => 'Yeni bir proje talebi kararınızı bekliyor.',
+    'open_request' => 'Talebi incele',
+
     'open' => 'Görevi aç',
     'open_project' => 'Projeyi aç',
     'access' => 'Oturumunuz sona erdiyse projeye erişmek için kişisel ProjectBrief bağlantınızı açın.',

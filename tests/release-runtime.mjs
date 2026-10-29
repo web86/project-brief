@@ -1087,6 +1087,94 @@ echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspa
   console.log(
     'PASS: Packaged provisioning/contact/membership, failed mail durability, idempotency/external-ID recovery, language/description and protected canonical URL',
   )
+  command(['artisan', 'cache:clear'])
+  const requestsFixture = path.join(fixtureRoot, 'requests-fixture.php')
+  await writeFile(
+    requestsFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$workspace = \\App\\Models\\User::where('email','release@example.test')->firstOrFail()->workspaceMembers()->active()->firstOrFail()->workspace;
+$source = \\Illuminate\\Support\\Facades\\DB::table('integration_sources')->insertGetId(['uuid'=>(string)\\Illuminate\\Support\\Str::uuid(),'workspace_id'=>$workspace->id,'name'=>'Packaged form','created_at'=>now(),'updated_at'=>now()]);
+echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspace->id,['name'=>'Packaged requests','sourceId'=>$source,'scopes'=>['requests:create','requests:read','requests:approve']]));
+`,
+  )
+  const requestToken = JSON.parse(command([requestsFixture, application]))
+  const requestHeaders = {
+    Authorization: 'Bearer ' + requestToken.secret,
+    'Content-Type': 'application/json',
+    'Idempotency-Key': 'packaged-request',
+  }
+  const requestPayload = JSON.stringify({
+    externalId: 'packaged-request-1',
+    client: { name: 'Request Client', email: 'request-package@example.test' },
+    project: {
+      name: 'Approved request package project',
+      description: 'Preserved request description',
+      language: 'zh-CN',
+    },
+  })
+  const requestCreated = await fetch(origin + '/api/v1/project-requests', {
+    method: 'POST',
+    headers: requestHeaders,
+    body: requestPayload,
+  })
+  assert.equal(requestCreated.status, 201)
+  const requestId = (await requestCreated.json()).data.requestId
+  const detailRequest = async () =>
+    (
+      await (
+        await fetch(origin + '/api/v1/project-requests/' + requestId, { headers: requestHeaders })
+      ).json()
+    ).data
+  assert.equal((await detailRequest()).status, 'pending')
+  assert.equal((await detailRequest()).projectId, null)
+  const approveRequest = async () =>
+    fetch(origin + '/api/v1/project-requests/' + requestId + '/approve', {
+      method: 'POST',
+      headers: { ...requestHeaders, 'Idempotency-Key': 'packaged-request-approval' },
+      body: JSON.stringify({ sendInvitation: true }),
+    })
+  const approvedRequest = await approveRequest()
+  assert.equal(approvedRequest.status, 200)
+  const approvedRequestData = (await approvedRequest.json()).data
+  assert.equal(approvedRequestData.status, 'approved')
+  assert.equal(approvedRequestData.invitation, 'failed')
+  assert.ok(approvedRequestData.projectUrl.endsWith('/project/' + approvedRequestData.projectId))
+  assert.equal(
+    (await (await approveRequest()).json()).data.projectId,
+    approvedRequestData.projectId,
+  )
+  assert.equal(
+    (
+      await fetch(origin + '/api/v1/project-requests/' + requestId + '/reject', {
+        method: 'POST',
+        headers: requestHeaders,
+        body: '{}',
+      })
+    ).status,
+    409,
+  )
+  assert.equal(
+    (
+      await fetch(origin + '/api/v1/projects/provision', {
+        method: 'POST',
+        headers: requestHeaders,
+        body: provisionPayload,
+      })
+    ).status,
+    403,
+  )
+  assert.equal(JSON.stringify(approvedRequestData).includes('/access/'), false)
+  assert.equal(
+    (await fetch(origin + '/api/client/project/' + approvedRequestData.projectId)).status,
+    401,
+  )
+  console.log(
+    'PASS: Packaged project requests pending/approval, existing provisioning, failed SMTP durability, final-decision replay/conflict, scope boundary and protected canonical URL',
+  )
+  command(['artisan', 'cache:clear'])
   const idleCron = spawnSync(php, ['artisan', 'integrations:webhooks'], {
     cwd: application,
     env,
@@ -1392,12 +1480,12 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.8.1',
+    '0.8.2',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
     await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_29_092022_add_project_provisioning_foundation/,
+    /2026_10_29_123816_create_project_requests_foundation/,
   )
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 

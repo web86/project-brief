@@ -231,7 +231,7 @@ class IntegrationReadTest extends TestCase
                 $this->getJson($url, $headers)->assertUnauthorized();
             }
         }
-        $this->actingAs($this->ownerFor($project))->postJson('/api/admin/integrations/tokens', ['name' => 'All scopes', 'scopes' => IntegrationTokens::SCOPES])->assertCreated();
-        $this->getJson('/api/admin/integrations')->assertOk()->assertJsonCount(8, 'scopes');
+        $this->actingAs($this->ownerFor($project))->postJson('/api/admin/integrations/tokens', ['name' => 'All scopes', 'scopes' => IntegrationTokens::SCOPES, 'sourceName' => 'CRM requests'])->assertCreated();
+        $this->getJson('/api/admin/integrations')->assertOk()->assertJsonCount(11, 'scopes');
     }
 }

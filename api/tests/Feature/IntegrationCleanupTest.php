@@ -22,7 +22,7 @@ class IntegrationCleanupTest extends TestCase
     {
         $project = Project::factory()->create();
         $this->actingAs($this->ownerFor($project));
-        $token = $this->postJson('/api/admin/integrations/tokens', ['name' => 'CRM', 'scopes' => IntegrationTokens::SCOPES])->assertCreated()->json();
+        $token = $this->postJson('/api/admin/integrations/tokens', ['name' => 'CRM', 'scopes' => IntegrationTokens::SCOPES, 'sourceName' => 'CRM requests'])->assertCreated()->json();
         $headers = ['Authorization' => 'Bearer '.$token['secret'], 'Idempotency-Key' => 'preserved-after-revoke'];
         $body = ['title' => 'Audited project'];
         $this->postJson('/api/v1/projects', $body, $headers)->assertCreated();

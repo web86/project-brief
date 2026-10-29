@@ -1,0 +1,43 @@
+{
+  "results": [
+    {
+      "test": "upgrade-from-client-entry-081-retains-existing-project-and-client",
+      "passed": true
+    },
+    {
+      "test": "external-php-create-owner-notification-no-access-replay-and-live-sync-count",
+      "passed": true
+    },
+    {
+      "test": "modx-request-owner-ui-approve-provisioning-smtp-invitation-client-url-and-api-recovery",
+      "passed": true
+    },
+    {
+      "test": "parallel-submission-ui-api-approval-and-approval-rejection-conflict-two-processes",
+      "passed": true
+    },
+    {
+      "test": "replacement-token-retains-source-and-smtp-failure-keeps-one-approved-project",
+      "passed": true
+    },
+    {
+      "test": "owner-rejection-confirmation-four-locales-light-dark-desktop-mobile-escaping",
+      "passed": true
+    },
+    {
+      "test": "developer-denied-source-reuse-token-scopes-and-distinct-operation-history",
+      "passed": true
+    },
+    {
+      "test": "unique-business-events-and-contact-secret-log-payload-scan",
+      "passed": true
+    }
+  ],
+  "browserErrors": [],
+  "concurrentProcesses": 2,
+  "php": "8.5",
+  "database": "SQLite",
+  "mail": "local SMTP sink",
+  "productionBuild": true,
+  "liveJino": false
+}

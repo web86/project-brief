@@ -21,6 +21,10 @@ class LiveSync
         DB::afterCommit(function () use ($workspaceId, $projectId, $kind): void {
             // Serial allocation per workspace prevents a later committed ID from skipping an earlier concurrent event.
             DB::transaction(function () use ($workspaceId, $projectId, $kind): void {
+                // Reserve SQLite's writer before the first read, as in IntegrationWrites.
+                if (DB::getDriverName() === 'sqlite') {
+                    DB::table('workspaces')->where('id', $workspaceId)->update(['id' => $workspaceId]);
+                }
                 if (! DB::table('workspaces')->where('id', $workspaceId)->lockForUpdate()->first(['id'])) {
                     return;
                 }
@@ -69,6 +73,7 @@ class LiveSync
             throw ValidationException::withMessages(['cursor' => 'Invalid sync cursor.']);
         }
         $rows = DB::table('project_sync_events as events')->where('events.workspace_id', $workspaceId)->where('events.id', '>', $cursor['id'])
+            ->when($member && $member->role !== 'owner', fn ($q) => $q->where('events.kind', '!=', 'requests'))
             ->when($projectId, fn ($q) => $q->where('events.project_id', $projectId))
             ->when($member, fn ($q) => $q->where(fn ($q) => $q->whereNull('events.project_id')->orWhereExists(ProjectAccess::forMember($member)->withTrashed()->whereColumn('projects.id', 'events.project_id')->selectRaw('1')->toBase())))
             ->leftJoin('projects', 'projects.id', '=', 'events.project_id')->orderBy('events.id')->limit(101)->get(['events.id', 'events.kind', 'events.project_id', 'projects.uuid']);

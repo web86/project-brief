@@ -5,6 +5,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminNotificationController;
+use App\Http\Controllers\AdminProjectRequestController;
 use App\Http\Controllers\AiTaskAssistantController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BrowserProjectExportController;
@@ -122,6 +123,14 @@ Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admi
     Route::post('/webhooks/{uuid}/test', [IntegrationController::class, 'test'])->middleware('throttle:integration-test');
     Route::get('/webhooks/{uuid}/deliveries', [IntegrationController::class, 'history']);
     Route::post('/webhooks/{uuid}/deliveries/{delivery}/retry', [IntegrationController::class, 'retry'])->middleware('throttle:integration-retry');
+});
+
+Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/project-requests')->group(function (): void {
+    Route::get('/', [AdminProjectRequestController::class, 'index']);
+    Route::get('/count', [AdminProjectRequestController::class, 'count']);
+    Route::get('/{uuid}', [AdminProjectRequestController::class, 'show']);
+    Route::post('/{uuid}/approve', [AdminProjectRequestController::class, 'approve']);
+    Route::post('/{uuid}/reject', [AdminProjectRequestController::class, 'reject']);
 });
 
 Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {

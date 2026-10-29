@@ -4,13 +4,26 @@ namespace App\Services;
 
 use App\Models\Comment;
 use App\Models\Project;
+use App\Models\ProjectRequest;
 use App\Models\Task;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class WebhookEvents
 {
-    public const TYPES = ['project.created', 'project.updated', 'project.invitation_changed', 'task.created', 'task.updated', 'task.status_changed', 'task.approved', 'task.client_comment_created', 'project.client_comment_created'];
+    public const TYPES = ['project_request.created', 'project_request.approved', 'project_request.rejected', 'project.created', 'project.updated', 'project.invitation_changed', 'task.created', 'task.updated', 'task.status_changed', 'task.approved', 'task.client_comment_created', 'project.client_comment_created'];
+
+    public function projectRequest(ProjectRequest $row, string $decision): void
+    {
+        $source = DB::table('integration_sources')->where('workspace_id', $row->workspace_id)->find($row->integration_source_id);
+        $this->enqueue($row->workspace_id, 'project_request.'.$decision, [
+            'workspaceId' => $row->workspace->uuid, 'projectId' => $row->result['projectId'] ?? null, 'taskId' => null,
+            'requestId' => $row->uuid, 'status' => $row->status, 'sourceId' => $source->uuid, 'externalId' => $row->external_id,
+            'projectUrl' => $row->result['projectUrl'] ?? null,
+            'actor' => ['type' => request()->attributes->get('integration_token') ? 'integration' : 'admin', 'id' => request()->attributes->get('integration_token')?->uuid ?? request()->user()?->uuid],
+            'changes' => (object) [], 'origin' => request()->attributes->get('integration_token') ? 'api' : 'ui',
+        ]);
+    }
 
     public function provisioned(Project $project, array $result, string $externalId): void
     {

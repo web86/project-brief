@@ -9,9 +9,11 @@ use App\Models\NotificationDelivery;
 use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\ProjectNotificationSetting;
+use App\Models\ProjectRequest;
 use App\Models\PushSubscription;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -66,6 +68,42 @@ class ProjectNotificationService
             $this->deliver($event);
         } catch (Throwable $exception) {
             Log::warning('Project notification dispatch failed', ['event' => $event->event, 'error_code' => 'dispatch_failed', 'exception_type' => get_class($exception)]);
+        }
+    }
+
+    public function notifyRequest(ProjectRequest $row): void
+    {
+        try {
+            $owners = $row->workspace->members()->active()->where('role', 'owner')->with('user')->get();
+            foreach ($owners as $member) {
+                $user = $member->user;
+                $locale = SupportedLocales::resolve($user->preferred_locale);
+                $payload = NotificationPayload::test($locale, rtrim(config('app.url'), '/').'/admin/requests?request='.$row->uuid);
+                $heading = trans('notifications.project_request_heading', [], $locale);
+                $payload = array_replace($payload, ['title' => $heading, 'heading' => $heading, 'subject' => '[ProjectBrief] '.$heading,
+                    'body' => trans('notifications.project_request_message', [], $locale), 'explanation' => trans('notifications.project_request_message', [], $locale),
+                    'project' => $row->workspace->name, 'open' => trans('notifications.open_request', [], $locale), 'event' => 'project_request.created',
+                    'workspace_id' => $row->workspace_id, 'tag' => 'projectbrief-request-'.$row->uuid]);
+                $preferences = $user->notificationPreferences();
+                $key = 'request:'.$row->uuid.':'.$user->id;
+                if ($preferences['email']) {
+                    $this->attempt(null, 'project_request.created', 'email', 'admin', $user->id, $key.':email', fn () => $this->sendMail($user->notificationEmail(), $payload), $row->id);
+                }
+                if ($preferences['telegram']) {
+                    $connection = TelegramLinking::query($user)->whereNotNull('chat_id')->first();
+                    if ($connection) {
+                        $this->attempt(null, 'project_request.created', 'telegram', 'admin', $user->id, $key.':telegram', fn () => $this->telegram->send($connection, TelegramTransport::message($payload)), $row->id);
+                    }
+                }
+                if ($preferences['push']) {
+                    foreach (PushSubscription::where('user_id', $user->id)->get() as $subscription) {
+                        $this->attempt(null, 'project_request.created', 'push', 'admin', $user->id, $key.':push:'.$subscription->uuid,
+                            fn () => $this->push->available() ? $this->push->send($subscription, NotificationPayload::push($payload)) : ['status' => 'skipped', 'error_code' => 'push_unconfigured'], $row->id);
+                    }
+                }
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Project request notification dispatch failed', ['error_code' => 'dispatch_failed', 'exception_type' => get_class($exception)]);
         }
     }
 
@@ -128,10 +166,10 @@ class ProjectNotificationService
         }
     }
 
-    private function attempt(Project $project, string $event, string $channel, string $type, int $recipientId, string $key, callable $send): void
+    private function attempt(?Project $project, string $event, string $channel, string $type, int $recipientId, string $key, callable $send, ?int $requestId = null): void
     {
         $key = hash('sha256', $key);
-        $claimed = DB::table('notification_deliveries')->insertOrIgnore(['project_id' => $project->id, 'dedup_key' => $key, 'event' => $event, 'channel' => $channel, 'recipient_type' => $type, 'recipient_id' => $recipientId, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        $claimed = DB::table('notification_deliveries')->insertOrIgnore(['project_id' => $project?->id, 'project_request_id' => $requestId, 'dedup_key' => $key, 'event' => $event, 'channel' => $channel, 'recipient_type' => $type, 'recipient_id' => $recipientId, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
         if (! $claimed) {
             return;
         }
@@ -150,7 +188,8 @@ class ProjectNotificationService
             return ['status' => 'skipped', 'error_code' => 'smtp_unconfigured'];
         }
         $project = ! empty($payload['project_uuid']) ? Project::with('workspace')->where('uuid', $payload['project_uuid'])->first() : null;
-        $payload['branding'] = $project ? app(WorkspaceBranding::class)->email($project->workspace) : null;
+        $workspace = $project?->workspace ?? (! empty($payload['workspace_id']) ? Workspace::find($payload['workspace_id']) : null);
+        $payload['branding'] = $workspace ? app(WorkspaceBranding::class)->email($workspace) : null;
         Mail::to($email)->send(new ProjectActivityMail($payload));
 
         return ['status' => 'sent', 'error_code' => null];

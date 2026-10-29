@@ -16,6 +16,8 @@ const state = ref(null),
   loadFailed = ref(false),
   historyBusy = ref(false),
   copying = ref(false)
+const sourceId = ref(''),
+  sourceName = ref('')
 const invitationMode = ref('immediate')
 const invitationExample = computed(() =>
   JSON.stringify({ sendInvitation: invitationMode.value === 'immediate' }, null, 2),
@@ -163,6 +165,8 @@ watch(
     hideSecret()
     state.value = null
     invitationMode.value = 'immediate'
+    sourceId.value = ''
+    sourceName.value = ''
     deliveries.value = null
     operations.value = null
     operationPage.value = 1
@@ -303,6 +307,11 @@ async function createToken() {
     name: name.value,
     scopes: scopes.value,
     expiresAt: expires.value ? expires.value + 'T23:59:59Z' : null,
+    ...(scopes.value.includes('requests:create')
+      ? sourceId.value
+        ? { sourceId: sourceId.value }
+        : { sourceName: sourceName.value }
+      : {}),
   })
   if (result) {
     name.value = ''
@@ -442,6 +451,30 @@ async function confirmAction(key, path, method = 'POST') {
             <p v-if="scopes.includes('projects:provision')" class="small muted" role="note">
               {{ t('provisioning.scopeHint') }}
             </p>
+            <div v-if="scopes.includes('requests:create')" class="request-source-controls">
+              <label class="field" for="token-source"
+                >{{ t('requests.sourceLabel')
+                }}<select id="token-source" v-model="sourceId" :disabled="busy">
+                  <option value="">{{ t('requests.newSource') }}</option>
+                  <option v-for="source in state.sources || []" :key="source.id" :value="source.id">
+                    {{ source.name }}
+                  </option>
+                </select></label
+              >
+              <label v-if="!sourceId" class="field" for="token-source-name"
+                >{{ t('requests.sourceName')
+                }}<input
+                  id="token-source-name"
+                  v-model="sourceName"
+                  maxlength="100"
+                  required
+                  :disabled="busy"
+              /></label>
+              <p class="small muted">{{ t('requests.sourceHint') }}</p>
+            </div>
+            <p v-if="scopes.includes('requests:approve')" class="small muted">
+              {{ t('requests.approveHint') }}
+            </p>
             <label class="field" for="token-expires"
               >{{ t('integrations.expires')
               }}<input id="token-expires" v-model="expires" type="date" :disabled="busy"
@@ -548,6 +581,14 @@ async function confirmAction(key, path, method = 'POST') {
           >
             <div>
               <h3>{{ operation.tokenName }}</h3>
+              <p>
+                {{
+                  t(
+                    'requests.operation_' +
+                      (operation.operationType || 'project.provision').replace('.', '_'),
+                  )
+                }}
+              </p>
               <p>{{ t('provisioning.' + operation.outcome) }} · HTTP {{ operation.httpStatus }}</p>
               <p v-if="operation.invitation" class="small">
                 {{ t('provisioning.invitation') }}:

@@ -12,11 +12,9 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-client-regressions-'))
 const app = path.join(scratch, 'app')
 const baseline = process.env.PROJECT_REGRESSION_BASELINE === '1'
-const output = path.join(
-  root,
-  'artifacts/client-project-regressions',
-  baseline ? 'before' : 'after',
-)
+const output =
+  process.env.PROJECT_REGRESSION_QA_DIRECTORY ||
+  path.join(root, 'artifacts/client-project-regressions', baseline ? 'before' : 'after')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, frontend, browser

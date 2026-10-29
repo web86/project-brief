@@ -4,6 +4,7 @@ defineProps({
   size: { type: [Number, String], default: 20 },
 })
 const paths = {
+  refresh: 'M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 2M4 17l2 2a7 7 0 0 0 12-2',
   shield: 'M12 3 3 7v5c0 5 9 10 9 10s9-5 9-10V7l-9-4ZM8 12l3 3 5-6',
   search: 'M21 21l-6-6M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
   palette:

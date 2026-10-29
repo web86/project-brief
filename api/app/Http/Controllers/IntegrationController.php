@@ -35,8 +35,8 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
 
-        return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
-            'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at', 'provisioning_enabled'])->map(fn ($t) => ['id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at, 'provisioningEnabled' => (bool) $t->provisioning_enabled]),
+        return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'sources' => DB::table('integration_sources')->where('workspace_id', $workspace)->orderBy('name')->get()->map(fn ($source) => ['id' => $source->uuid, 'name' => $source->name]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
+            'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at', 'provisioning_enabled', 'integration_source_id'])->map(fn ($t) => ['sourceId' => $t->integration_source_id ? DB::table('integration_sources')->where('workspace_id', $workspace)->where('id', $t->integration_source_id)->value('uuid') : null, 'id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at, 'provisioningEnabled' => (bool) $t->provisioning_enabled]),
             'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['id', 'workspace_id', 'uuid', 'name', 'url', 'events', 'enabled', 'created_at', 'project_filter'])->map(fn ($e) => ['id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'projectFilter' => $e->project_filter, 'projectIds' => app(WebhookProjectFilter::class)->ids($e), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
         ])->header('Cache-Control', 'no-store');
     }
@@ -44,7 +44,7 @@ class IntegrationController extends Controller
     public function token(Request $request): JsonResponse
     {
         $workspace = $this->workspace($request);
-        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'scopes' => ['required', 'array', 'min:1', 'max:'.count(IntegrationTokens::SCOPES)], 'scopes.*' => ['required', Rule::in(IntegrationTokens::SCOPES), 'distinct'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()]]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'scopes' => ['required', 'array', 'min:1', 'max:'.count(IntegrationTokens::SCOPES)], 'scopes.*' => ['required', Rule::in(IntegrationTokens::SCOPES), 'distinct'], 'sourceId' => ['nullable', 'uuid', 'prohibits:sourceName'], 'sourceName' => ['nullable', 'string', 'max:100', 'regex:/\S/u', 'prohibits:sourceId'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()]]);
         if (! empty($data['expiresAt'])) {
             $data['expiresAt'] = Carbon::parse($data['expiresAt'])->utc();
         }
@@ -53,6 +53,15 @@ class IntegrationController extends Controller
             Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
             $this->workspace($request);
             abort_if(DB::table('integration_tokens')->where('workspace_id', $workspace)->count() >= 100, 422, 'Token limit reached.');
+
+            if (! empty($data['sourceId'])) {
+                $data['sourceId'] = DB::table('integration_sources')->where('workspace_id', $workspace)->where('uuid', $data['sourceId'])->value('id');
+                abort_unless($data['sourceId'], 422, 'Unknown integration source.');
+            } elseif (! empty($data['sourceName'])) {
+                abort_if(DB::table('integration_sources')->where('workspace_id', $workspace)->count() >= 100, 422, 'Source limit reached.');
+                $data['sourceId'] = DB::table('integration_sources')->insertGetId(['uuid' => (string) Str::uuid(), 'workspace_id' => $workspace, 'name' => trim($data['sourceName']), 'created_at' => now(), 'updated_at' => now()]);
+            }
+            abort_if(in_array('requests:create', $data['scopes'], true) && empty($data['sourceId']), 422, 'Select or create a persistent integration source.');
 
             return response()->json(app(IntegrationTokens::class)->create($workspace, $data), 201)->header('Cache-Control', 'no-store');
         });
@@ -82,10 +91,10 @@ class IntegrationController extends Controller
             ->join('integration_tokens as t', 't.id', '=', 'o.integration_token_id')
             ->leftJoin('project_provisionings as p', fn ($join) => $join->on('p.uuid', '=', 'o.provisioning_uuid')->on('p.workspace_id', '=', 'o.workspace_id'))
             ->where('o.workspace_id', $workspace)->orderByDesc('o.id')
-            ->paginate(25, ['o.id', 'o.outcome', 'o.http_status', 'o.created_at', 't.name', 'p.invitation_status', 'p.uuid']);
+            ->paginate(25, ['o.operation_type', 'o.project_request_uuid', 'o.id', 'o.outcome', 'o.http_status', 'o.created_at', 't.name', 'p.invitation_status', 'p.uuid']);
 
         return response()->json(['data' => $page->getCollection()->map(fn ($row) => [
-            'id' => $row->id, 'operationId' => $row->uuid, 'tokenName' => $row->name, 'outcome' => $row->outcome,
+            'operationType' => $row->operation_type, 'requestId' => $row->project_request_uuid, 'id' => $row->id, 'operationId' => $row->uuid, 'tokenName' => $row->name, 'outcome' => $row->outcome,
             'httpStatus' => $row->http_status, 'invitation' => $row->invitation_status, 'createdAt' => $row->created_at,
         ]), 'meta' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()]])->header('Cache-Control', 'no-store');
     }

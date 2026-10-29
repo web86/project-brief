@@ -54,7 +54,7 @@ class IntegrationWrites
                 abort_unless(hash_equals($previous->body_hash, $bodyHash), 409, 'Idempotency key was already used with another body.');
                 $response = json_decode($previous->response, true, 512, JSON_THROW_ON_ERROR);
                 $projectUuid = $response['data']['projectId'] ?? $response['data']['id'] ?? null;
-                if ($projectUuid) {
+                if ($projectUuid && ! $request->is('api/v1/project-requests*')) {
                     Project::where('workspace_id', $token->workspace_id)->where('uuid', $projectUuid)->firstOrFail();
                 }
 
