@@ -1,6 +1,6 @@
 # Milestone 8.2 — Minimal Client SSO / Project Brief 0.8.3
 
-База: завершённая Project Brief 0.8.2, commit `03932e0`. Ветка `codex/milestone-8-2-client-sso`. [English guide](README.en.md), [API/OpenAPI](openapi.json), [проверки и безопасность](TESTS.md), [Jino и rollback](PRODUCTION.md).
+База: завершённая Project Brief 0.8.2, commit `03932e0`. Ветка `codex/milestone-8-2-client-sso`. [English guide](README.en.md), [API/OpenAPI](openapi.json), [проверки и безопасность](TESTS.md), [Jino и rollback](PRODUCTION.md), [релиз и SHA-256](RELEASE-ARTIFACT.json).
 
 Клиент уже авторизован в кабинете доверенного сайта. Одна кнопка передаёт его в существующий разрешённый проект без повторного email или письма. SSO не создаёт проекты, клиентов, memberships или кабинеты. Для остальных случаев сохраняются приглашения и Magic Link.
 

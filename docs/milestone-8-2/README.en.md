@@ -1,6 +1,6 @@
 # Minimal Client SSO — Trusted Handoff (0.8.3)
 
-Built on completed0.8.2 (`03932e0`) in `codex/milestone-8-2-client-sso`. [Russian guide](README.md), [OpenAPI](openapi.json), [security/test evidence](TESTS.md), [Jino deployment/rollback](PRODUCTION.md).
+Built on completed0.8.2 (`03932e0`) in `codex/milestone-8-2-client-sso`. [Russian guide](README.md), [OpenAPI](openapi.json), [security/test evidence](TESTS.md), [Jino deployment/rollback](PRODUCTION.md), [release manifest/SHA-256](RELEASE-ARTIFACT.json).
 
 An already authenticated external client clicks Open project and reaches an existing authorized Project Brief project. No project, account or membership is created. Invitations, Magic Links and staff authentication remain available. No OAuth/OIDC, provider framework, extra infrastructure or registration is introduced.
 

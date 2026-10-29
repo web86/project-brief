@@ -1,0 +1,84 @@
+{
+  "milestone": "8.2 Minimal Client SSO (Trusted Handoff)",
+  "version": "0.8.3",
+  "branch": "codex/milestone-8-2-client-sso",
+  "baseBranch": "codex/milestone-8-1-project-requests",
+  "baseCommit": "03932e056f0169645f24cdcc130bd89b6432a993",
+  "sourceCommit": "3117883ea37dd56e20535b3172383b12b1aa68db",
+  "builtAt": "2026-10-29T18:33:30.141Z",
+  "archive": "release/project-brief-v0.8.3-3117883.zip",
+  "bytes": 39252082,
+  "sha256": "c956a7b0990f7066e22d63eb792c804e12b2a51c72bf2ece419eef92ba72b0c1",
+  "fileCount": 8861,
+  "checksummedFiles": 8860,
+  "archiveEntries": 10106,
+  "nativePhp": "8.5.10",
+  "phpTarget": "8.4",
+  "testOnlyMemoryLimitMiB": 512,
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 923,
+    "passed": 923,
+    "assertions": 13229,
+    "duration_ms": 79018
+  },
+  "nodeTests": {
+    "tests": 370,
+    "passed": 370,
+    "failed": 0
+  },
+  "php84MariaDb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 147,
+    "assertions": 1520,
+    "passed": true,
+    "readOnlySourceMount": true,
+    "finalSourceCommit": true
+  },
+  "browser": {
+    "sqlite": {
+      "scenarioGroups": 11,
+      "screenshots": 9,
+      "javascriptErrors": 0,
+      "productionBuild": true,
+      "twoPhpProcesses": true,
+      "crossSiteHttps": true,
+      "curlVerifiesLocalCa": true,
+      "sameSite": "Lax",
+      "fourLocales": true,
+      "selectedViewportThemeCombinations": true,
+      "evidence": "artifacts/milestone-8-2-client-sso/sqlite/results.json"
+    },
+    "mysql": {
+      "scenarioGroups": 11,
+      "screenshots": 9,
+      "javascriptErrors": 0,
+      "productionBuild": true,
+      "twoPhpProcesses": true,
+      "crossSiteHttps": true,
+      "curlVerifiesLocalCa": true,
+      "sameSite": "Lax",
+      "fourLocales": true,
+      "selectedViewportThemeCombinations": true,
+      "evidence": "artifacts/milestone-8-2-client-sso/mysql/results.json"
+    }
+  },
+  "independentZipCrcAndInternalHashes": true,
+  "canonicalProductionRuntime": {
+    "passed": true,
+    "ssoStatelessPostAndOwnSession": true,
+    "signedWebAuthnEnrollment": true,
+    "provisioningRequestsInvitationsRegression": true,
+    "noSsoSecretInServerOutput": true
+  },
+  "noDependenciesChanged": true,
+  "liveJino": false,
+  "liveCms": false,
+  "realInboxDelivery": false,
+  "push": false,
+  "merge": false,
+  "deployment": false,
+  "previousArchivesPreserved": true
+}
