@@ -65,6 +65,7 @@ class SeamlessSecurityConfirmationTest extends TestCase
 
     public function test_fresh_duration_expires_and_context_changes_with_role_workspace_and_version(): void
     {
+        $this->freezeTime();
         $owner = User::factory()->owner()->create();
         $this->actingAs($owner);
         $this->getJson('/api/admin/me')->assertOk();
