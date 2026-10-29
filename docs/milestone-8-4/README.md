@@ -16,4 +16,4 @@ Live Sync читает существующие `task_history` и `comments`; н
 
 RU / EN / TR / ZH-CN, desktop/mobile и Light/Dark сохранены. Новых таблиц, миграций, зависимостей, WebSocket, Redis, cron или очередей нет.
 
-[Проверки и нагрузка](TESTS.md) · [Обновление и rollback Jino](PRODUCTION.md). Точная информация о production ZIP и SHA-256 фиксируется после штатной сборки в RELEASE-ARTIFACT.json и SHA256SUMS.txt. Push, merge и deployment не выполняются в рамках этой работы.
+[Проверки и нагрузка](TESTS.md) · [Обновление и rollback Jino](PRODUCTION.md). Production ZIP: `release/project-brief-v0.8.4-d6328c0.zip` (39 258 554 bytes). Реквизиты: [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json), [SHA256SUMS.txt](SHA256SUMS.txt). Push, merge и deployment не выполняются в рамках этой работы.

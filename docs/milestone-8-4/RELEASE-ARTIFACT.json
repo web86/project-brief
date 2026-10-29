@@ -1,0 +1,101 @@
+{
+  "milestone": "8.4 UX Polish & Live Notifications",
+  "version": "0.8.4",
+  "branch": "codex/milestone-8-4-ux-live-notifications",
+  "baseBranch": "codex/fix-sso-source-projects",
+  "baseCommit": "2d909d7",
+  "sourceCommit": "d6328c0e8e5e5b279e3da5ab3b3523ceb2ba50d8",
+  "builtAt": "2026-10-29T21:06:59.471Z",
+  "archive": "release/project-brief-v0.8.4-d6328c0.zip",
+  "bytes": 39258554,
+  "sha256": "b27237ff42d9357631b4059fddaa8a4893d15579aae72d90867c9060fec58f6e",
+  "fileCount": 8863,
+  "checksummedFiles": 8862,
+  "archiveEntries": 10108,
+  "fileCountIncludesManifest": true,
+  "nativePhp": "8.5.10",
+  "phpTarget": "8.4",
+  "testOnlyMemoryLimitMiB": 512,
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 937,
+    "passed": 937,
+    "assertions": 13366,
+    "duration_ms": 76287
+  },
+  "nodeTests": {
+    "tests": 378,
+    "passed": 378,
+    "failed": 0
+  },
+  "php84MariaDb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 161,
+    "assertions": 1657,
+    "passed": true,
+    "readOnlySourceMount": true
+  },
+  "browser": {
+    "sqlite": {
+      "scenarioGroups": 6,
+      "screenshots": 21,
+      "javascriptErrors": 0,
+      "productionBuild": false,
+      "fourLocales": true,
+      "selectedViewportThemeCombinations": true,
+      "evidence": "artifacts/milestone-8-4/sqlite/results.json"
+    },
+    "mysql": {
+      "scenarioGroups": 6,
+      "screenshots": 21,
+      "javascriptErrors": 0,
+      "productionBuild": false,
+      "fourLocales": true,
+      "selectedViewportThemeCombinations": true,
+      "evidence": "artifacts/milestone-8-4/mysql/results.json"
+    },
+    "sso/sqlite": {
+      "scenarioGroups": 12,
+      "screenshots": 9,
+      "javascriptErrors": 0,
+      "productionBuild": true,
+      "fourLocales": true,
+      "selectedViewportThemeCombinations": true,
+      "evidence": "artifacts/milestone-8-4/sso/sqlite/results.json"
+    }
+  },
+  "load": {
+    "baselineIdleSql": 9,
+    "additionalIdleSql": 3,
+    "additionalEventSql": 4,
+    "idleSqlMs": 0.63,
+    "idleSql": 12,
+    "eventSql": 13,
+    "idleBytes": 539,
+    "twelveEventsBytes": 4571,
+    "sharedPollSeconds": 60,
+    "additionalHttpPollers": 0,
+    "additionalNotificationRows": 0
+  },
+  "independentZipCrcAndInternalHashes": true,
+  "runtimeAndSecretExclusionsPassed": true,
+  "canonicalProductionRuntime": {
+    "passed": true,
+    "validResetInspection": true,
+    "invalidResetFactorPrivacy": true,
+    "newSyncNotificationFields": true,
+    "signedWebAuthnEnrollment": true,
+    "ssoProvisioningRequestsInvitationsRegression": true
+  },
+  "noNewMigrations": true,
+  "noDependenciesChanged": true,
+  "liveJino": false,
+  "liveCms": false,
+  "realInboxDelivery": false,
+  "push": false,
+  "merge": false,
+  "deployment": false,
+  "previousArchivesPreserved": true
+}
