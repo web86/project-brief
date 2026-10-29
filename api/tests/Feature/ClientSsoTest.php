@@ -270,6 +270,11 @@ class ClientSsoTest extends TestCase
         DB::table('client_sso_handoffs')->delete();
         $this->assertNotNull($access->fresh()->client_sso_handoff_id);
         $this->assertFalse($access->fresh()->isUsable());
+        DB::table('client_sso_bindings')->delete();
+        $migration = require database_path('migrations/2026_10_29_174316_add_client_sso_handoffs.php');
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Keep SSO bindings and revocation markers');
+        $migration->down();
     }
 
     public function test_disabled_clients_inactive_projects_ambiguous_email_and_unknown_fields_cannot_issue(): void

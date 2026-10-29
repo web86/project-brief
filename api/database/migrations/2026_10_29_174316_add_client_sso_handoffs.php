@@ -53,7 +53,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (DB::table('client_sso_bindings')->exists() || DB::table('client_sso_handoffs')->exists()) {
+        if (DB::table('client_sso_bindings')->exists() || DB::table('client_sso_handoffs')->exists() || DB::table('project_access_tokens')->whereNotNull('client_sso_handoff_id')->exists()) {
             throw new RuntimeException('Keep SSO bindings and revocation markers during application rollback. Disable SSO before rolling back code.');
         }
         Schema::table('project_access_tokens', function (Blueprint $table): void {

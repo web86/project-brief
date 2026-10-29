@@ -788,7 +788,7 @@
               "Cache-Control": {
                 "schema": {
                   "type": "string",
-                  "const": "no-store"
+                  "pattern": "no-store"
                 }
               }
             },
