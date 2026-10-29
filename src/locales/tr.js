@@ -723,9 +723,8 @@ export default {
   },
   emptyProject: {
     title: 'Bu proje henüz boş',
-    manageHint: 'Fikirleri ve görevleri düzenlemek için ilk bölümü oluşturun.',
-    clientHint: 'Proje ekibi bölümleri ve görevleri buraya ekleyecek.',
-    createSection: 'Bölüm oluştur',
+    hint: 'İlk görevinizi oluşturun. Görev formunda mevcut bir bölümü seçebilir veya yeni bir bölüm oluşturabilirsiniz.',
+    createTask: 'Görev oluştur',
   },
   export: {
     document: 'Belge ayarları',

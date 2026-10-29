@@ -239,7 +239,7 @@ try {
         )
         const clients = await (
           await request(context, `/api/admin/projects/${project}/clients`, {
-            name: 'Read only empty client',
+            name: 'Empty project client',
           })
         ).json()
         const access = await (
@@ -254,14 +254,17 @@ try {
         await clientPage.goto(origin + new URL(access.url).pathname)
         await clientPage.waitForURL(origin + '/project/' + project)
         await clientPage.locator('.project-empty-state').waitFor()
-        assert.equal(await clientPage.locator('.project-empty-state a').count(), 0)
-        assert.equal(await clientPage.locator('a[href$="/task/new"]').count(), 0)
+        assert.equal(await clientPage.locator('.project-empty-state a').count(), 1)
+        assert.equal(await clientPage.locator('a[href$="/task/new"]').count(), 1)
         await capture(clientPage, 'empty-client-mobile')
         await client.close()
         await page.locator('.project-empty-state a').click()
-        await page.locator('#new-section-name').fill('First section / İlk bölüm / 第一个分区')
-        await page.locator('.add-section-form button[type=submit]').click()
-        await page.locator('.managed-section').waitFor()
+        await page.locator('#idea-title').fill('First task')
+        await page.locator('#idea-location').fill('First section / İlk bölüm / 第一个分区')
+        await page.locator('#idea-description').fill('Requirements for the first task')
+        await page.locator('.idea-form button[type=submit]').click()
+        await page.waitForURL(origin + `/admin/projects/${project}/brief`)
+        await page.locator('.task-card').first().waitFor()
         const sections = await (
           await request(context, `/api/admin/projects/${project}/sections`)
         ).json()
@@ -273,7 +276,7 @@ try {
           existing,
         )
         results.push({
-          test: 'empty-project-ui-manual-section-client-and-preservation',
+          test: 'empty-project-task-form-client-access-and-preservation',
           status: 'passed',
         })
         await page.setViewportSize({ width: 768, height: 1024 })

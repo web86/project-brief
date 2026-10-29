@@ -1,0 +1,420 @@
+{
+  "branding": {
+    "name": "",
+    "logo": null,
+    "logoSvg": null,
+    "color": "#344054",
+    "address": [],
+    "contact": [],
+    "business": [],
+    "businessTitle": "Şirket bilgileri",
+    "platform": true,
+    "platformUrl": "http://127.0.0.1:57143"
+  },
+  "title": "Teknik şartname",
+  "project": {
+    "name": "Project / Çığ / 中文 / проект",
+    "website": null
+  },
+  "generated": {
+    "date": "29 Ekim 2026",
+    "isoDate": "2026-10-29",
+    "locale": "tr"
+  },
+  "labels": {
+    "title": "Teknik şartname",
+    "project": "Proje",
+    "website": "Web sitesi",
+    "generated": "Oluşturulma tarihi",
+    "footer": "ProjectBrief ile oluşturuldu",
+    "attachments": "Ekler",
+    "summary": "Teknik şartname özeti"
+  },
+  "sections": [
+    {
+      "number": 1,
+      "name": "Navigation",
+      "tasks": [
+        {
+          "number": "1.1",
+          "title": "Export task 1 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            }
+          ],
+          "metadata": "Tamamlandı · Öncelik: Normal",
+          "attachments": [
+            "requirements-1.pdf"
+          ]
+        },
+        {
+          "number": "1.2",
+          "title": "Export task 4 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            }
+          ],
+          "metadata": "Tamamlandı · Öncelik: Normal",
+          "attachments": [
+            "requirements-4.pdf"
+          ]
+        },
+        {
+          "number": "1.3",
+          "title": "Export task 7 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            }
+          ],
+          "metadata": "Tamamlandı · Öncelik: Normal",
+          "attachments": [
+            "requirements-7.pdf"
+          ]
+        },
+        {
+          "number": "1.4",
+          "title": "Export task 10 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Yeni fikir",
+              "block": false
+            }
+          ],
+          "metadata": "Yeni fikir · Öncelik: Normal",
+          "attachments": [
+            "requirements-10.pdf"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "name": "Products",
+      "tasks": [
+        {
+          "number": "2.1",
+          "title": "Export task 2 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            }
+          ],
+          "metadata": "Tamamlandı · Öncelik: Normal",
+          "attachments": [
+            "requirements-2.pdf"
+          ]
+        },
+        {
+          "number": "2.2",
+          "title": "Export task 5 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            }
+          ],
+          "metadata": "Tamamlandı · Öncelik: Normal",
+          "attachments": [
+            "requirements-5.pdf"
+          ]
+        },
+        {
+          "number": "2.3",
+          "title": "Export task 8 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Yeni fikir",
+              "block": false
+            }
+          ],
+          "metadata": "Yeni fikir · Öncelik: Normal",
+          "attachments": [
+            "requirements-8.pdf"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "name": "Account",
+      "tasks": [
+        {
+          "number": "3.1",
+          "title": "Export task 3 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            }
+          ],
+          "metadata": "Tamamlandı · Öncelik: Normal",
+          "attachments": [
+            "requirements-3.pdf"
+          ]
+        },
+        {
+          "number": "3.2",
+          "title": "Export task 6 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Tamamlandı",
+              "block": false
+            }
+          ],
+          "metadata": "Tamamlandı · Öncelik: Normal",
+          "attachments": [
+            "requirements-6.pdf"
+          ]
+        },
+        {
+          "number": "3.3",
+          "title": "Export task 9 — Çığ / 中文 / задача",
+          "content": [
+            {
+              "key": "description",
+              "label": "Açıklama",
+              "value": "这是客户输入的原始中文需求，请保留原文，不要自动翻译。 Çığ ışığı İpek — исходный текст. Keep the original requirement.",
+              "block": true
+            },
+            {
+              "key": "expectedResult",
+              "label": "Beklenen sonuç",
+              "value": "Accessible navigation / 无障碍导航 / удобная навигация.",
+              "block": true
+            },
+            {
+              "key": "priority",
+              "label": "Öncelik",
+              "value": "Normal",
+              "block": false
+            },
+            {
+              "key": "status",
+              "label": "Durum",
+              "value": "Yeni fikir",
+              "block": false
+            }
+          ],
+          "metadata": "Yeni fikir · Öncelik: Normal",
+          "attachments": [
+            "requirements-9.pdf"
+          ]
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "taskCount": 10,
+    "approvedCount": 5,
+    "workflowApprovedCount": 0,
+    "clarificationCount": 0,
+    "doneCount": 7
+  },
+  "summary": [
+    {
+      "label": "Görevler",
+      "value": "10",
+      "coverage": null
+    },
+    {
+      "label": "Tamamlandı durumunda",
+      "value": "7",
+      "coverage": null
+    },
+    {
+      "label": "Müşteri tarafından onaylanan",
+      "value": "5",
+      "coverage": null
+    }
+  ],
+  "presentation": {
+    "pageBreakBySection": false
+  }
+}

@@ -719,9 +719,8 @@ export default {
   },
   emptyProject: {
     title: 'This project is empty',
-    manageHint: 'Create the first section to organise ideas and tasks.',
-    clientHint: 'The project team will add sections and tasks here.',
-    createSection: 'Create section',
+    hint: 'Create your first task. Choose an existing section or create one in the task form.',
+    createTask: 'Create task',
   },
   export: {
     document: 'Document settings',

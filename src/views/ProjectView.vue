@@ -1,6 +1,5 @@
 <script setup>
 import { t } from '../i18n/index.js'
-import { hasProjectPermission } from '../services/projectPermissions.js'
 
 import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -14,10 +13,6 @@ import SectionBlock from '../components/SectionBlock.vue'
 import AppIcon from '../components/AppIcon.vue'
 
 const store = useProjectStore()
-const canManageStructure = computed(
-  () =>
-    store.apiMode && store.isDeveloper && hasProjectPermission(store.project, 'manage_structure'),
-)
 const activeFilter = ref('all')
 const activeSection = ref('')
 const route = useRoute()
@@ -123,12 +118,9 @@ const groups = computed(() =>
     <div v-if="!store.sections.length" class="empty-state project-empty-state">
       <AppIcon name="list-tree" :size="32" />
       <h3>{{ t('emptyProject.title') }}</h3>
-      <p>{{ t(canManageStructure ? 'emptyProject.manageHint' : 'emptyProject.clientHint') }}</p>
-      <RouterLink
-        v-if="canManageStructure"
-        :to="`/admin/projects/${store.project.id}/structure`"
-        class="button primary"
-        >{{ t('emptyProject.createSection') }}</RouterLink
+      <p>{{ t('emptyProject.hint') }}</p>
+      <RouterLink :to="store.newTaskPath" class="button primary"
+        ><AppIcon name="plus" :size="19" />{{ t('emptyProject.createTask') }}</RouterLink
       >
     </div>
     <div v-else-if="!groups.some((group) => group.tasks.length)" class="empty-state">

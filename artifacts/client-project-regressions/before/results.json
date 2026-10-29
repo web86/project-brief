@@ -1,0 +1,27 @@
+{
+  "baseline": true,
+  "results": [
+    {
+      "test": "ru-empty-desktop",
+      "width": 1440,
+      "gap": 273.546875,
+      "headingGap": 299.546875,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "ru-empty-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "missing-empty-project-action",
+      "actions": 0
+    }
+  ],
+  "javascriptErrors": [],
+  "localOnly": true
+}

@@ -41,8 +41,8 @@ PHP-пример проверяется синтаксически; готовы
 
 | Проверка                                                 | Результат                                                  |
 | -------------------------------------------------------- | ---------------------------------------------------------- |
-| Полный Laravel / PHP 8.5 / SQLite                        | **855 tests, 12 542 assertions — PASS**                    |
-| Полный frontend Node                                     | **337 tests — PASS**                                       |
+| Полный Laravel / PHP 8.5 / SQLite                        | **860 tests, 12 602 assertions — PASS**                    |
+| Полный frontend Node                                     | **351 tests — PASS**                                       |
 | PHP 8.4.26 / MariaDB 11.8.9, scoped regression           | **78 tests, 848 assertions — PASS**                        |
 | SQLite HTTP + Chromium + local SMTP                      | **7 scenario groups, 9 screenshots, 0 page errors — PASS** |
 | MariaDB HTTP + Chromium + local SMTP                     | **7 scenario groups, 9 screenshots, 0 page errors — PASS** |
@@ -59,3 +59,13 @@ PHP-пример проверяется синтаксически; готовы
 Все CRC и внутренние checksums сверены после сборки; QA-материалы, исходники frontend, node_modules, development vendor и CMS-пример в ZIP отсутствуют. Инструкции внутри ZIP содержат финальные patch-версии. Точные source commit, SHA-256, размер и результаты сохранены в `RELEASE-ARTIFACT.json` и `SHA256SUMS.txt`.
 
 Первый промежуточный ZIP до patch-обновлений заменён финальным. После сборки изменялись только внешние отчёты; runtime исходники соответствуют указанному source commit. Push, merge и deployment не выполнялись.
+
+## Регрессии client layout и пустого проекта
+
+Исправлена причина верхнего отступа: общие `.workspace` / `.topbar-inner` использовали `margin: auto`, что создавало вертикальные auto margins при размещении workspace в desktop Grid. Используется `margin: 0 auto`; отрицательных отступов нет. На 1440 px зафиксировано изменение промежутка между topbar и workspace с 273.55 px до 0, заголовок остаётся на обычных 26 px от панели. На 390 px промежуток равен 0, заголовок — 20 px; горизонтального переполнения нет.
+
+Пустой проект показывает «+ Создать задачу» и открывает существующий TaskForm. Первую секцию клиент создаёт в прежнем LocationInput вместе с задачей; вторая задача выбирает ту же секцию, существующие проекты принимают дополнительные задачи. Новых экранов, permissions или backend-ограничений нет; production PHP не менялся. Проверены owner и назначенный developer с прежними правами. RU/EN/TR/ZH-CN сохранены.
+
+Добавлены 14 frontend регрессий и 5 Laravel случаев; сначала 12 frontend случаев воспроизвели отсутствие CTA. Финальный отдельный HTTP/Chromium прогон: **23 проверки**, 0 page errors, 17 итоговых скриншотов. Существующий browser-набор на compiled frontend: **19 проверок**, Chromium/Firefox, desktop/mobile/tablet, 0 page errors. Сырые метрики и PNG: `artifacts/client-project-regressions/{before,after,export}/`. Синтетические PDF/DOCX загрузки удалены после проверок; JSON/PNG сохранены.
+
+Команды: `node --test tests/empty-project.test.js`; `php artisan test --compact tests/Feature/EmptyProjectTest.php tests/Feature/ProjectPermissionsTest.php`; `PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/client-project-regressions.browser.mjs`; `EXPORT_QA_DIRECTORY=/path/to/evidence PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/export.browser.mjs`; полный `npm test`, `npm run build`, Laravel suite, scoped Pint/Prettier и `git diff --check`. Прежние PHP 8.4/MariaDB доказательства относятся к неизменённому production PHP; новые UI-проверки выполнялись локально на PHP 8.5/SQLite.

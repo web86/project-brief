@@ -378,7 +378,7 @@ h2 {
   width: 100%;
   max-width: 1344px;
   padding: 0 32px;
-  margin: auto;
+  margin: 0 auto;
 }
 .topbar-inner {
   min-height: 62px;

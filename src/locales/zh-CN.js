@@ -658,9 +658,8 @@ export default {
   },
   emptyProject: {
     title: '此项目暂无内容',
-    manageHint: '创建第一个分区，开始整理想法和任务。',
-    clientHint: '项目团队将在这里添加分区和任务。',
-    createSection: '创建分区',
+    hint: '创建第一个任务。在任务表单中选择现有分区或创建新分区。',
+    createTask: '创建任务',
   },
   export: {
     document: '文档设置',

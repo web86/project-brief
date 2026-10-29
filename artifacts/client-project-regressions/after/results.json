@@ -1,0 +1,173 @@
+{
+  "baseline": false,
+  "results": [
+    {
+      "test": "ru-empty-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "ru-empty-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "ru-populated-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "ru-populated-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "empty-client-create-section-and-task-then-reuse-section",
+      "locale": "ru",
+      "passed": true
+    },
+    {
+      "test": "en-empty-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "en-empty-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "en-populated-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "en-populated-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "empty-client-create-section-and-task-then-reuse-section",
+      "locale": "en",
+      "passed": true
+    },
+    {
+      "test": "tr-empty-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "tr-empty-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "tr-populated-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "tr-populated-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "empty-client-create-section-and-task-then-reuse-section",
+      "locale": "tr",
+      "passed": true
+    },
+    {
+      "test": "zh-CN-empty-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "zh-CN-empty-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "zh-CN-populated-mobile",
+      "width": 390,
+      "gap": 0,
+      "headingGap": 20,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "zh-CN-populated-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "empty-client-create-section-and-task-then-reuse-section",
+      "locale": "zh-CN",
+      "passed": true
+    },
+    {
+      "test": "existing-client-desktop",
+      "width": 1440,
+      "gap": 0,
+      "headingGap": 26,
+      "marginTop": "0px",
+      "overflow": false
+    },
+    {
+      "test": "existing-task-form-and-empty-project",
+      "role": "owner",
+      "passed": true
+    },
+    {
+      "test": "existing-task-form-and-empty-project",
+      "role": "developer",
+      "passed": true
+    }
+  ],
+  "javascriptErrors": [],
+  "localOnly": true
+}
