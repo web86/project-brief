@@ -5,6 +5,7 @@ Base: `codex/milestone-8-0-integration-foundation`, commit `a533aca`. Work branc
 - [Invitation modes and unchanged API contract](INVITATION-MODES.md)
 - [Testing and security report](TESTS.md)
 - [Jino update and rollback](PRODUCTION.md)
+- [Release artifact](RELEASE-ARTIFACT.json) · [SHA-256](SHA256SUMS.txt)
 - [Existing provisioning API / PHP example](../milestone-8-0/API.md)
 
 The canonical project URL now has two separate states. Before submission it shows the email form; after an accepted request it shows a mail icon, “Check your email” and a generic conditional message. “Use another email” returns to the same form with focus on its email field, without sending another request. Errors retain the form; pending submissions are guarded against duplicates. Labels, themes and CSS tokens follow the existing RU/EN/TR/ZH-CN interface.

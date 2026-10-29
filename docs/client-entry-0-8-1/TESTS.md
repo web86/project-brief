@@ -51,3 +51,11 @@ The canonical ZIP builder repeats full Laravel/frontend tests and validates prod
 ## Hosting boundary
 
 Local PHP 8.4/MariaDB coverage does not verify Jino proxy/NAT/Apache settings, staging backup/restore, external SMTP/inbox or webhook consumer. Complete the smoke in PRODUCTION.md on the agreed host before deployment. Push, merge and deployment are not part of this work.
+
+## Final canonical release
+
+**PASS: 867 Laravel tests / 12,773 assertions; 351 frontend tests; production frontend build.** npm installation/audit reported 0 vulnerabilities. The full suites were repeated by the canonical builder from the clean source commit recorded in RELEASE-ARTIFACT.json.
+
+The extracted ZIP passed production vendor/platform, signed WebAuthn, provisioning/contact/membership, failed SMTP durability, idempotency/external-ID recovery, canonical project access and existing API/invitation/export/CLI/CSRF/maintenance checks. The new public-login mail context and all four client mail locale keys are present; the dedicated login CSS asset is included. All ZIP CRCs and internal manifest hashes were independently checked after the build. No tests, screenshots, reports, frontend sources, node_modules or development vendor are in the ZIP.
+
+Exact size, SHA-256, source commit and evidence inventory are in `RELEASE-ARTIFACT.json` and `SHA256SUMS.txt`. Prior 0.8.0 archives are preserved. No push, merge or deployment was performed.

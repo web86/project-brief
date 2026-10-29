@@ -1,0 +1,101 @@
+{
+  "version": "0.8.1",
+  "branch": "codex/milestone-8-1-client-entry-ux",
+  "baseBranch": "codex/milestone-8-0-integration-foundation",
+  "baseCommit": "a533acab4c78b954ef6ae09adbf88c69c725c5cb",
+  "sourceCommit": "0bae3e8b8acf54bc7f4e531ea035f13ce3d9e48e",
+  "builtAt": "2026-10-29T12:31:34.246Z",
+  "archive": "release/project-brief-v0.8.1-0bae3e8.zip",
+  "bytes": 39226464,
+  "sha256": "eecd1f85b5c8fbb520cfb76e062fa0cef12d9c845ec92cd3fa6f6e64b9ae70f8",
+  "fileCount": 8850,
+  "checksummedFiles": 8849,
+  "archiveEntries": 10095,
+  "phpRuntime": "8.5.10",
+  "phpTarget": "8.4",
+  "testProcessMemoryLimitMiB": 512,
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 867,
+    "passed": 867,
+    "assertions": 12773,
+    "duration_ms": 72688
+  },
+  "nodeTests": {
+    "tests": 351,
+    "passed": 351,
+    "failed": 0
+  },
+  "php84MariaDb": {
+    "runtime": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 85,
+    "assertions": 991,
+    "passed": true
+  },
+  "browser": {
+    "engine": "Chromium",
+    "database": "SQLite",
+    "productionBuild": true,
+    "scenarioGroups": 11,
+    "screenshots": 19,
+    "javascriptErrors": 0,
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "widths": [1440, 390],
+    "themes": ["light", "dark"],
+    "fullCartesianMatrix": false,
+    "localSmtpSink": true,
+    "realInvitationAndLoginRedirects": true,
+    "doubleSubmitOneRequest": true,
+    "knownUnknownPresentationIdentical": true,
+    "errorCases429AndNetworkInjected": true,
+    "syntheticDataOnly": true
+  },
+  "email": {
+    "invitationDays": 7,
+    "publicLoginMinutes": 30,
+    "separateSubjectsAndMessages": true,
+    "localizedOpenProjectButton": true,
+    "genericAccountCtaFallbackPreserved": true,
+    "brandingPreserved": true,
+    "initialInviteSkipsEmailForm": true
+  },
+  "integration": {
+    "sendInvitationContractChanged": false,
+    "choiceIsRequestExample": true,
+    "tokenDefaultAdded": false,
+    "choices": ["immediate", "self_service"]
+  },
+  "checks": {
+    "canonicalBuilder": true,
+    "cleanSourceCommit": true,
+    "archiveFullCrc": true,
+    "internalChecksums": true,
+    "qaArtifactsAbsent": true,
+    "secretAndArtifactScan": true,
+    "productionVendorOnly": true,
+    "packagedRuntimeHttp": true,
+    "packagedSignedWebAuthn": true,
+    "packagedProvisioning": true,
+    "mailLocalesAndLoginContextPresent": true,
+    "pint": true,
+    "changedFilePrettier": true,
+    "diffCheck": true,
+    "npmAuditVulnerabilities": 0
+  },
+  "migrationsAdded": [],
+  "dependenciesChanged": false,
+  "cronJobsAdded": false,
+  "authenticationMethodsAdded": false,
+  "limitations": [
+    "Local QA does not verify Jino hosting, proxy/NAT settings or staging backups",
+    "Local SMTP acceptance does not verify external inbox delivery",
+    "External webhook consumer and live CMS hooks not tested",
+    "Guest entry keeps existing platform branding; private workspace information is not made public"
+  ],
+  "productionVerified": false,
+  "pushed": false,
+  "merged": false,
+  "deployed": false
+}
