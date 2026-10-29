@@ -9,11 +9,38 @@ $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
 if ($path==='/mock-login') { $profile=$_GET['profile']??'client'; if (!isset($profiles[$profile])) { http_response_code(403); exit; } session_regenerate_id(true); $_SESSION=['user'=>$profile,'csrf'=>bin2hex(random_bytes(24))]; header('Location: /account',true,303); exit; }
 if (!isset($_SESSION['user'],$profiles[$_SESSION['user']])) { http_response_code(401); exit; }
 header('Cache-Control: private, no-store'); header('Referrer-Policy: no-referrer');
-if ($path==='/account' || $path==='/') { echo '<!doctype html><title>Local authenticated account</title><form method="post" action="/open"><input type="hidden" name="csrf" value="'.htmlspecialchars($_SESSION['csrf'],ENT_QUOTES).'"><button>Open project</button></form>'; exit; }
-if ($path!=='/open' || $_SERVER['REQUEST_METHOD']!=='POST' || !is_string($_POST['csrf']??null) || !hash_equals($_SESSION['csrf'],$_POST['csrf'])) { http_response_code(403); exit; }
+if ($path==='/account' || $path==='/') {
+    echo '<!doctype html><title>Local authenticated account</title><form method="post" action="/open"><input type="hidden" name="csrf" value="'.htmlspecialchars($_SESSION['csrf'],ENT_QUOTES).'"><button>Open project</button></form>';
+    if (!empty($config['ordersFile'])) {
+        foreach (json_decode(file_get_contents($config['ordersFile']),true,512,JSON_THROW_ON_ERROR) as $order) {
+            if ($order['user_id']!==$profiles[$_SESSION['user']]['id']) { continue; }
+            echo '<form method="post" action="/order-open"><input type="hidden" name="csrf" value="'.htmlspecialchars($_SESSION['csrf'],ENT_QUOTES).'"><input type="hidden" name="order_id" value="'.(int)$order['id'].'"><button>Open order '.(int)$order['id'].'</button></form>';
+        }
+    }
+    exit;
+}
+if (!in_array($path,['/open','/order-open'],true) || $_SERVER['REQUEST_METHOD']!=='POST' || !is_string($_POST['csrf']??null) || !hash_equals($_SESSION['csrf'],$_POST['csrf'])) { http_response_code(403); exit; }
 $user=$profiles[$_SESSION['user']];
 try {
+    if ($path==='/order-open') {
+        if (!$user['verified']) { throw new RuntimeException('Unverified'); }
+        require_once $config['orderHelper'];
+        $file=fopen($config['ordersFile'],'r+');
+        try {
+            if (!flock($file,LOCK_EX)) { throw new RuntimeException('Lock failed'); }
+            $orders=json_decode(stream_get_contents($file),true,512,JSON_THROW_ON_ERROR);
+            $found=false;
+            foreach ($orders as &$order) {
+                if ($order['id']!==(int)($_POST['order_id']??0) || $order['user_id']!==$user['id']) { continue; }
+                $config['projectId']=projectBriefOrderProject($order,$config);
+                $order['pb_project_id']=$config['projectId']; $found=true; break;
+            }
+            unset($order);
+            if (!$found) { throw new RuntimeException('Order unavailable'); }
+            rewind($file); ftruncate($file,0); fwrite($file,json_encode($orders,JSON_THROW_ON_ERROR)); fflush($file);
+        } finally { flock($file,LOCK_UN); fclose($file); }
+    }
     $api=new ProjectBriefClientSso($config['origin'],$config['token'],$config['ca']);
     $handoff=$api->issue($config['projectId'],$user['id'],$user['email'],$user['verified']);
     $api->transferPage($handoff);
-} catch (Throwable $exception) { http_response_code(403); echo '<!doctype html><title>Email sign-in available</title><a href="'.htmlspecialchars($config['origin'].'/project/'.$config['projectId'],ENT_QUOTES).'">Sign in by email</a>'; }
+} catch (Throwable $exception) { if ($path==='/order-open') { error_log('SSO order QA: '.$exception::class); } http_response_code(403); echo '<!doctype html><title>Email sign-in available</title><a href="'.htmlspecialchars($config['origin'].'/project/'.$config['projectId'],ENT_QUOTES).'">Sign in by email</a>'; }

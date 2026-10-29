@@ -3,7 +3,7 @@
   "info": {
     "title": "Project Brief Trusted Client Handoff and Integration API",
     "version": "0.8.3",
-    "description": "Milestone 8.2 additive SSO. Existing provisioning/requests contracts unchanged. clients:sso requires a permanent source, exact HTTPS account origin and explicit source project grants, all owner configured. Existing tokens gain no scope. See README.en.md."
+    "description": "0.8.3 source-project correction: SSO permits source-provisioned and approved source-request projects automatically, or explicit manual legacy grants. Existing wire formats unchanged; clients:sso requires the same permanent source, enabled SSO and exact HTTPS origin. Source-assigned provisioning retries recover by source/externalId across token rotation; source-less tokens remain per-token. See README.en.md."
   },
   "paths": {
     "/api/v1/projects/provision": {
@@ -14,7 +14,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Requires projects:provision and an enabled token. Creates contact, project and membership atomically inside the token workspace. No login secrets in response.",
+        "description": "Requires projects:provision and an enabled token. Creates contact, project and membership atomically inside the token workspace. No login secrets in response. With a permanent source, the same externalId/body recovers the existing result across credential rotation; conflicting content is409. Source-less credentials retain per-token external ID deduplication. Idempotency-Key format and token-scoped response replay are unchanged.",
         "parameters": [
           {
             "in": "header",
@@ -770,7 +770,7 @@
           }
         ],
         "x-required-scope": "clients:sso",
-        "description": "Server-only. Existing active client/project in token workspace and explicitly granted source required. Verified email and immutable externalUserId must come from existing server session/database, never browser input. Pins source identity; conflicts do not rebind. No business records created. No Idempotency-Key: each retry returns a new 60-second code. Never log/persist body or response. Existing API IP/workspace rate budgets apply.",
+        "description": "Server-only. Existing active client/project in token workspace and trusted project provenance from the same permanent source or explicit manual project permission required. Verified email and immutable externalUserId must come from existing server session/database, never browser input. Pins source identity; conflicts do not rebind. No business records created. No Idempotency-Key: each retry returns a new 60-second code. Never log/persist body or response. Existing API IP/workspace rate budgets apply.",
         "requestBody": {
           "required": true,
           "content": {

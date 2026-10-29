@@ -16,8 +16,12 @@ class ProjectProvisioning
     {
         $externalHash = hash('sha256', $input['externalId']);
         $bodyHash = IntegrationWrites::fingerprint($input);
-        $existing = DB::table('project_provisionings')->where('workspace_id', $token->workspace_id)
-            ->where('integration_token_id', $token->id)->where('external_hash', $externalHash)->first();
+        $existing = DB::table('project_provisionings')->where('workspace_id', $token->workspace_id)->where('external_hash', $externalHash)
+            ->when($token->integration_source_id ?? null,
+                fn ($query) => $query->whereExists(fn ($origin) => $origin->selectRaw('1')->from('integration_tokens as origin')
+                    ->whereColumn('origin.id', 'project_provisionings.integration_token_id')->where('origin.workspace_id', $token->workspace_id)->where('origin.integration_source_id', $token->integration_source_id)),
+                fn ($query) => $query->where('integration_token_id', $token->id))
+            ->orderBy('id')->first();
         if ($existing) {
             abort_unless(hash_equals($existing->body_hash, $bodyHash), 409);
 

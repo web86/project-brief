@@ -95,3 +95,25 @@ test('server helper rejects insecure origins and arbitrary transfer targets', ()
   })
   assert.equal(result.stdout, 'refused')
 })
+function savedOrder(order) {
+  return spawnSync(
+    'php',
+    [
+      '-r',
+      'require "docs/milestone-8-2/examples/order-project.php"; try { echo projectBriefOrderProject(json_decode(stream_get_contents(STDIN),true,512,JSON_THROW_ON_ERROR), []); } catch (Throwable $error) { echo "refused"; }',
+    ],
+    { input: JSON.stringify(order), encoding: 'utf8' },
+  )
+}
+test('order entry uses each persisted project UUID instead of a one-project user mapping', () => {
+  for (const id of ['018f214d-baf1-7000-8000-000000000001', '018f214d-baf1-7000-8000-000000000002'])
+    assert.equal(savedOrder({ pb_project_id: id }).stdout, id)
+})
+test('pending requests never fall through into direct provisioning and missing projects fail closed', () => {
+  for (const order of [
+    { pb_request_id: 'pending-request' },
+    {},
+    { pb_project_id: 'https://evil.example/' },
+  ])
+    assert.equal(savedOrder(order).stdout, 'refused')
+})

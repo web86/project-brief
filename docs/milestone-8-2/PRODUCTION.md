@@ -2,6 +2,12 @@
 
 Prepared locally from completed0.8.2 (`03932e0`). No push, merge or deployment was performed. These instructions do not authorize deployment. Local HTTPS/SQLite/MariaDB/PHP8.4 tests are not Jino preflight.
 
+## Source-project correction (branch, not a replacement ZIP)
+
+`codex/fix-sso-source-projects` is based on completed0.8.3 (`e816abd`) and needs no new migration or infrastructure. Existing source provisioning/request provenance supplies automatic project authorization, including existing records; additional manual grants remain for unattributed projects. Configure SSO/origin once with an empty manual list. Tokens for creation, approval and SSO may differ; use the same source for creation/SSO. Request origin is the submitting source even if another credential approves. Source-assigned provisioning now deduplicates externalId/body across replacement credentials; source-less token behavior is unchanged. Preserve original credential/provisioning/request records and rotate by revocation rather than physical deletion/reassignment.
+
+Before deploying this correction, repeat hosting smoke with two projects from one source, another source, an unattributed legacy project, different creator/SSO tokens and a lost-result retry after rotation. Existing0.8.3 archive/checksum metadata remains historical and does not contain this correction. Rolling only this correction back to original0.8.3 restores manual-only grants: automatic-only projects/sessions will be refused until explicitly permitted or accessed through ordinary email login. The full SSO rollback to0.8.2 below still requires revoking marked access tokens first.
+
 ## Backup and maintenance
 
 Check archive SHA-256/bytes, CRC and internal manifest against RELEASE-ARTIFACT.json/SHA256SUMS.txt. Rehearse on private Jino PHP8.4/MariaDB staging. Back up the database, exact public/private/vendor set, APP_KEY, `.env`, uploads/branding/storage, sessions, actual `.htaccess` and schedules. Keep independent rollback access. Preserve MFA/Passkeys, RP ID/origin and existing security settings. HTTP_BOOTSTRAP_LIMIT_ENABLED stays disabled until the separate proxy/NAT preflight.
@@ -24,7 +30,7 @@ php artisan migrate:status --no-interaction
 php artisan account:security-diagnostics
 ```
 
-Use HTTPS end to end, the canonical FRONTEND_URL, secure HttpOnly session cookies and the existing host's session policy. Configure proxy/APM to exclude Authorization/Cookie and API/form response/request bodies for `/api/v1/client-sso/handoffs` and `/client-sso/*`; no codes in access-log URLs. The external relay must be no-store, use the helper's nonce CSP and Referrer-Policy:origin (path/secret never sent); source Origin must match exactly, including port. Verify host-level headers do not override the relay's policy. Configure source origin/project grants and an SSO-only server credential explicitly in the existing owner UI. There is no automatic upgrade of existing credentials and no default source grants.
+Use HTTPS end to end, the canonical FRONTEND_URL, secure HttpOnly session cookies and the existing host's session policy. Configure proxy/APM to exclude Authorization/Cookie and API/form response/request bodies for `/api/v1/client-sso/handoffs` and `/client-sso/*`; no codes in access-log URLs. The external relay must be no-store, use the helper's nonce CSP and Referrer-Policy:origin (path/secret never sent); source Origin must match exactly, including port. Verify host-level headers do not override the relay's policy. Configure source origin, optional manual legacy grants and an SSO-only server credential explicitly in the existing owner UI. There is no automatic upgrade of existing credentials and no default source grants.
 
 No dependency change, service, Redis, worker, new cron or registration. Existing integrations:webhooks scheduling remains as before. Expired unused handoffs are opportunistically pruned in small batches; consumed rows retain session revocation linkage and identity bindings remain stable.
 

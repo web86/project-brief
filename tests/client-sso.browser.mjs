@@ -15,11 +15,12 @@ const scratch = await mkdtemp(path.join(tmpdir(), 'brief-provisioning-'))
 const app = path.join(scratch, 'app')
 const mysql = !!process.env.PROVISIONING_MYSQL_PORT
 const productionBuild = true
-const output = path.join(root, 'artifacts/milestone-8-2-client-sso', mysql ? 'mysql' : 'sqlite')
+const output = path.join(root, 'artifacts/sso-source-projects', mysql ? 'mysql' : 'sqlite')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, otherBackend, frontend, browser, smtp, tlsServer, areaServer, areaBackend
 const protocol = []
+let areaErrors = ''
 const results = [],
   errors = [],
   messages = [],
@@ -434,15 +435,17 @@ try {
     return call(owner, '/api/admin/integrations/sources/' + fixture.source + '/sso', 'PATCH', {
       ssoEnabled: enabled,
       ssoOrigin: areaOrigin,
-      projectIds: [project.projectId, secondProject.projectId],
+      projectIds: [],
     })
   }
   await admin.goto(origin + '/admin/settings/integrations')
   await admin.locator('#sso-source').selectOption(fixture.source)
   await admin.locator('#sso-origin').fill(areaOrigin)
   await admin.locator('#sso-enabled').check()
+  await admin.locator('.sso-automatic').waitFor()
+  assert.match(await admin.locator('.sso-automatic').innerText(), /2/)
   for (const id of [project.projectId, secondProject.projectId])
-    await admin.locator('.sso-projects input[value="' + id + '"]').check()
+    assert.equal(await admin.locator('.sso-projects input[value="' + id + '"]').count(), 0)
   const saved = await Promise.all([
     admin.waitForResponse(
       (response) =>
@@ -452,6 +455,31 @@ try {
     admin.locator('.sso-settings button[type=submit]').click(),
   ])
   assert.equal(saved[0].status(), 200, 'Owner saves source permissions through the existing UI')
+  const tokenForm = admin.locator('form').filter({ has: admin.locator('#token-name') })
+  await admin.locator('#token-name').fill('Provision only from UI')
+  for (const scope of ['projects:read', 'tasks:read'])
+    await tokenForm.locator('input[value="' + scope + '"]').uncheck()
+  await tokenForm.locator('input[value="projects:provision"]').check()
+  await admin.locator('#token-source').selectOption(fixture.source)
+  const createdProvisionToken = await Promise.all([
+    admin.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/admin/integrations/tokens') &&
+        response.request().method() === 'POST',
+    ),
+    tokenForm.locator('button[type=submit]').click(),
+  ])
+  assert.equal(createdProvisionToken[0].status(), 201)
+  let provisionOnly = await createdProvisionToken[0].json()
+  await admin
+    .locator('.integration-secret')
+    .getByRole('button', { name: 'Close', exact: true })
+    .click()
+  const issued = (await call(owner, '/api/admin/integrations')).tokens.find(
+    (token) => token.id === provisionOnly.id,
+  )
+  assert.deepEqual(issued.scopes, ['projects:provision'])
+  assert.equal(issued.sourceId, fixture.source)
   const configFile = path.join(scratch, 'external-config.json')
   const externalConfig = {
     origin,
@@ -473,8 +501,14 @@ try {
       `127.0.0.1:${areaPort}`,
       path.join(root, 'tests/client-sso-external.php'),
     ],
-    { env: { ...env, PB_SSO_QA: '1', PB_SSO_QA_CONFIG: configFile }, stdio: 'ignore' },
+    {
+      env: { ...env, PB_SSO_QA: '1', PB_SSO_QA_CONFIG: configFile },
+      stdio: ['ignore', 'ignore', 'pipe'],
+    },
   )
+  areaBackend.stderr.on('data', (chunk) => {
+    areaErrors += chunk.toString()
+  })
   areaServer = https.createServer(tls, (request, response) => proxy(areaPort, request, response))
   await new Promise((resolve) => areaServer.listen(areaTlsPort, '127.0.0.1', resolve))
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -788,6 +822,80 @@ try {
   )
   await noJs.close()
   results.push({ test: 'no-javascript-continue-buttons-complete-the-protocol', passed: true })
+  externalConfig.ordersFile = path.join(scratch, 'orders.json')
+  externalConfig.orderHelper = path.join(root, 'docs/milestone-8-2/examples/order-project.php')
+  externalConfig.provisionHelper = path.join(root, 'docs/milestone-8-0/provision-project.php')
+  externalConfig.provisionToken = provisionOnly.secret
+  const orders = [
+    {
+      id: 901,
+      user_id: 'user-42',
+      pb_project_id: null,
+      provision_input: JSON.stringify({
+        externalId: 'first-open-901',
+        client: input.client,
+        project: { ...input.project, name: 'First open project' },
+        sendInvitation: false,
+      }),
+    },
+    { id: 902, user_id: 'user-42', pb_project_id: secondProject.projectId },
+    { id: 903, user_id: 'someone-else', pb_project_id: project.projectId },
+  ]
+  await writeFile(externalConfig.ordersFile, JSON.stringify(orders), { mode: 0o600 })
+  await writeExternalConfig()
+  const ordersContext = await context(),
+    ordersPage = await ordersContext.newPage()
+  observe(ordersPage)
+  const beforeFirstOpen = state().projects
+  await ordersPage.goto(areaOrigin + '/mock-login')
+  assert.equal(
+    await ordersPage.getByRole('button', { name: 'Open order 903', exact: true }).count(),
+    0,
+  )
+  const orderCsrf = await ordersPage.locator('input[name=csrf]').first().inputValue()
+  const otherOrder = await ordersContext.request.post(areaOrigin + '/order-open', {
+    form: { csrf: orderCsrf, order_id: '903' },
+  })
+  assert.equal(otherOrder.status(), 403)
+  const firstOrderResponse = await Promise.all([
+    ordersPage.waitForResponse((response) => response.url() === areaOrigin + '/order-open'),
+    ordersPage.getByRole('button', { name: 'Open order 901', exact: true }).click(),
+  ])
+  assert.equal(firstOrderResponse[0].status(), 200, 'External first order failed: ' + areaErrors)
+  await ordersPage.waitForURL((url) => /^\/project\/[a-f0-9-]+$/.test(url.pathname))
+  const savedOrders = JSON.parse(await readFile(externalConfig.ordersFile, 'utf8'))
+  const firstOpened = savedOrders[0].pb_project_id
+  assert.equal(new URL(ordersPage.url()).pathname, '/project/' + firstOpened)
+  await ordersPage.getByRole('heading', { name: 'First open project', exact: true }).waitFor()
+  assert.equal(state().projects, beforeFirstOpen + 1)
+  // Simulate a lost local save followed by credential rotation: the source and
+  // immutable external order snapshot must recover the same remote project.
+  savedOrders[0].pb_project_id = null
+  await writeFile(externalConfig.ordersFile, JSON.stringify(savedOrders), { mode: 0o600 })
+  provisionOnly = JSON.parse(php(['tests/client-sso-fixture.php', 'rotate', provisionOnly.id]))
+  externalConfig.provisionToken = provisionOnly.secret
+  await writeExternalConfig()
+  await ordersPage.goto(areaOrigin + '/account')
+  await ordersPage.getByRole('button', { name: 'Open order 901', exact: true }).click()
+  await ordersPage.waitForURL((url) => url.pathname === '/project/' + firstOpened)
+  assert.equal(
+    state().projects,
+    beforeFirstOpen + 1,
+    'Source recovers the same project after a lost save and provisioning-token rotation',
+  )
+  assert.equal(
+    JSON.parse(await readFile(externalConfig.ordersFile, 'utf8'))[0].pb_project_id,
+    firstOpened,
+  )
+  await ordersPage.goto(areaOrigin + '/account')
+  await ordersPage.getByRole('button', { name: 'Open order 902', exact: true }).click()
+  await ordersPage.waitForURL((url) => url.pathname === '/project/' + secondProject.projectId)
+  assert.equal(state().bindings, 1, 'Multiple order projects use one stable client identity')
+  await ordersContext.close()
+  results.push({
+    test: 'owned-orders-first-click-provision-persist-sso-rotated-token-recovery-and-multiple-projects-without-manual-grants',
+    passed: true,
+  })
   php(['artisan', 'cache:clear'])
   const titles = {
     en: 'Trusted client sign-in (SSO)',

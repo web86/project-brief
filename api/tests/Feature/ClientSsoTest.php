@@ -11,6 +11,7 @@ use App\Services\IntegrationTokens;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -322,5 +323,101 @@ class ClientSsoTest extends TestCase
             $this->assertStringContainsString('Keep SSO bindings', $exception->getMessage());
         }
         $this->assertDatabaseCount('client_sso_bindings', 1);
+    }
+
+    private function provision(array $token, string $externalId = 'order-42'): Project
+    {
+        Mail::fake();
+        $input = ['externalId' => $externalId, 'client' => ['name' => 'Ada', 'email' => 'ada@example.test'],
+            'project' => ['name' => $externalId, 'description' => 'Website', 'language' => 'en'], 'sendInvitation' => false];
+        $response = $this->postJson('/api/v1/projects/provision', $input, [...$this->headers($token), 'Idempotency-Key' => $externalId])->assertSuccessful();
+
+        return Project::where('uuid', $response->json('data.projectId'))->firstOrFail();
+    }
+
+    public function test_provisioned_projects_are_automatic_with_separate_rotated_credentials_and_no_manual_grants(): void
+    {
+        [$legacy, $source, $sso] = $this->fixture();
+        DB::table('integration_source_projects')->delete();
+        $creator = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'Provision only', 'sourceId' => $source, 'scopes' => ['projects:provision']]);
+        $first = $this->provision($creator);
+        $this->assertSame($first->id, $this->provision($creator)->id);
+        DB::table('integration_tokens')->where('uuid', $creator['id'])->update(['revoked_at' => now()]);
+        DB::table('integration_tokens')->where('uuid', $sso['id'])->update(['revoked_at' => now()]);
+        $sso = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'Replacement SSO', 'sourceId' => $source, 'scopes' => ['clients:sso']]);
+        $creator = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'Replacement provision', 'sourceId' => $source, 'scopes' => ['projects:provision']]);
+        $this->assertSame($first->id, $this->provision($creator)->id);
+        $second = $this->provision($creator, 'order-43');
+        foreach ([$first, $second] as $project) {
+            $this->complete($this->issue($project, $sso))->assertRedirectContains('/project/'.$project->uuid);
+            $this->getJson('/api/client/project/'.$project->uuid)->assertOk();
+        }
+        $this->assertDatabaseCount('integration_source_projects', 0);
+        $this->assertDatabaseCount('client_sso_bindings', 1);
+        $this->assertDatabaseCount('project_provisionings', 2);
+        $this->postJson(self::API, $this->input($legacy), $this->headers($sso))->assertForbidden();
+    }
+
+    #[TestWith([false])] #[TestWith([true])]
+    public function test_request_origin_not_approver_credentials_grants_sso_only_after_approval(bool $ownerApproval): void
+    {
+        Mail::fake();
+        [$legacy, $source, $sso] = $this->fixture();
+        DB::table('integration_source_projects')->delete();
+        $submitter = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'Form', 'sourceId' => $source, 'scopes' => ['requests:create']]);
+        $input = ['externalId' => 'request-42', 'client' => ['name' => 'Ada', 'email' => 'ada@example.test'], 'project' => ['name' => 'Requested', 'language' => 'en']];
+        $id = $this->postJson('/api/v1/project-requests', $input, [...$this->headers($submitter), 'Idempotency-Key' => 'request-42'])->assertCreated()->json('data.requestId');
+        $this->assertSame(0, app(ClientSso::class)->automaticProjects($source, $legacy->workspace_id)->count());
+        DB::table('integration_tokens')->where('uuid', $submitter['id'])->update(['revoked_at' => now()]);
+        $otherSource = DB::table('integration_sources')->insertGetId(['uuid' => (string) Str::uuid(), 'workspace_id' => $legacy->workspace_id, 'name' => 'Other source', 'sso_enabled' => true, 'sso_origin' => self::ORIGIN]);
+        $approver = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'CRM reviewer', 'sourceId' => $otherSource, 'scopes' => ['requests:approve', 'clients:sso']]);
+        if ($ownerApproval) {
+            $this->actingAs(User::factory()->owner($legacy->workspace)->create());
+            $approved = $this->postJson('/api/admin/project-requests/'.$id.'/approve', ['sendInvitation' => false])->assertOk();
+            $this->app['auth']->forgetGuards();
+        } else {
+            $approved = $this->postJson('/api/v1/project-requests/'.$id.'/approve', ['sendInvitation' => false], [...$this->headers($approver), 'Idempotency-Key' => 'approve-42'])->assertOk();
+        }
+        $project = Project::where('uuid', $approved->json('data.projectId'))->firstOrFail();
+        $this->issue($project, $sso);
+        $this->postJson(self::API, $this->input($project), $this->headers($approver))->assertForbidden();
+        $this->assertDatabaseCount('integration_source_projects', 0);
+        $this->assertDatabaseCount('project_provisionings', 1);
+    }
+
+    public function test_provenance_does_not_grant_other_sources_or_projects_without_a_source(): void
+    {
+        [$legacy, $source, $sso] = $this->fixture();
+        DB::table('integration_source_projects')->delete();
+        $otherSource = DB::table('integration_sources')->insertGetId(['uuid' => (string) Str::uuid(), 'workspace_id' => $legacy->workspace_id, 'name' => 'Other source', 'sso_enabled' => true, 'sso_origin' => self::ORIGIN]);
+        $creator = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'Another source', 'sourceId' => $otherSource, 'scopes' => ['projects:provision']]);
+        $foreignSourceProject = $this->provision($creator);
+        $noSource = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'Legacy token', 'scopes' => ['projects:provision']]);
+        $unattributed = $this->provision($noSource);
+        foreach ([$legacy, $foreignSourceProject, $unattributed, Project::factory()->create(['client_email' => 'ada@example.test'])] as $project) {
+            $this->postJson(self::API, $this->input($project), $this->headers($sso))->assertStatus($project->workspace_id === $legacy->workspace_id ? 403 : 404);
+        }
+        DB::table('integration_source_projects')->insert(['workspace_id' => $legacy->workspace_id, 'integration_source_id' => $source, 'project_id' => $unattributed->id]);
+        $this->issue($unattributed, $sso);
+    }
+
+    public function test_owner_can_enable_source_before_any_projects_and_automatic_permissions_are_read_only(): void
+    {
+        [$legacy, $source, $sso] = $this->fixture();
+        DB::table('integration_source_projects')->delete();
+        $owner = User::factory()->owner($legacy->workspace)->create();
+        $this->actingAs($owner);
+        $uuid = DB::table('integration_sources')->find($source)->uuid;
+        $settings = ['ssoEnabled' => true, 'ssoOrigin' => self::ORIGIN, 'projectIds' => []];
+        $this->patchJson('/api/admin/integrations/sources/'.$uuid.'/sso', $settings)->assertOk();
+        $this->postJson(self::API, $this->input($legacy), $this->headers($sso))->assertForbidden();
+        $creator = app(IntegrationTokens::class)->create($legacy->workspace_id, ['name' => 'Provision', 'sourceId' => $source, 'scopes' => ['projects:provision']]);
+        $project = $this->provision($creator);
+        $state = $this->getJson('/api/admin/integrations')->assertOk()->json('sources');
+        $this->assertSame([$project->uuid], $state[0]['automaticSsoProjectIds']);
+        $this->assertSame([], $state[0]['ssoProjectIds']);
+        $this->patchJson('/api/admin/integrations/sources/'.$uuid.'/sso', $settings)->assertOk();
+        $this->issue($project, $sso);
+        $this->assertDatabaseCount('integration_source_projects', 0);
     }
 }

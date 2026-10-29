@@ -1,14 +1,17 @@
 export default {
   sso: {
     title: 'Trusted client sign-in (SSO)',
-    hint: 'Allow a trusted server to open selected projects. Changing settings revokes this source\u2019s SSO handoffs and sessions.',
+    hint: 'Enable SSO once for a trusted source. Its provisioned and approved projects are allowed automatically. Changing settings revokes this source\u2019s SSO handoffs and sessions.',
+    automatic: 'Projects created through this source are allowed automatically: {count}.',
     source: 'Trusted source',
     enabled: 'Enable SSO',
     origin: 'Client area origin',
     originHint:
       'Exact HTTPS origin without a path, such as https://studio.example.com. POSTs are accepted only from this origin.',
-    projects: 'Allowed projects',
+    projects: 'Additional projects (manual permission)',
     empty: 'Create a source when issuing a token with clients:sso permission.',
+    provisionSourceHint:
+      'For automatic SSO, choose the same source as the SSO token. Optional for provisioning without SSO.',
     scopeHint:
       'For trusted server code with a verified client session and confirmed email only. It grants no owner or developer access.',
     failed:

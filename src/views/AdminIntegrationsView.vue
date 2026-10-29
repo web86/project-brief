@@ -20,6 +20,16 @@ const ssoSourceId = ref(''),
   ssoEnabled = ref(false),
   ssoOrigin = ref(''),
   ssoProjectIds = ref([])
+const automaticSsoProjectIds = computed(
+  () =>
+    state.value?.sources?.find((source) => source.id === ssoSourceId.value)
+      ?.automaticSsoProjectIds || [],
+)
+const manualSsoProjects = computed(() =>
+  (state.value?.projects || []).filter(
+    (project) => !automaticSsoProjectIds.value.includes(project.id),
+  ),
+)
 watch(
   () => [state.value?.sources, ssoSourceId.value],
   () => {
@@ -41,6 +51,12 @@ async function saveSso() {
 }
 const sourceId = ref(''),
   sourceName = ref('')
+const requiresSource = computed(
+  () => scopes.value.includes('requests:create') || scopes.value.includes('clients:sso'),
+)
+const usesSource = computed(
+  () => requiresSource.value || scopes.value.includes('projects:provision'),
+)
 const invitationMode = ref('immediate')
 const invitationExample = computed(() =>
   JSON.stringify({ sendInvitation: invitationMode.value === 'immediate' }, null, 2),
@@ -330,7 +346,7 @@ async function createToken() {
     name: name.value,
     scopes: scopes.value,
     expiresAt: expires.value ? expires.value + 'T23:59:59Z' : null,
-    ...(scopes.value.includes('requests:create') || scopes.value.includes('clients:sso')
+    ...(usesSource.value && (sourceId.value || sourceName.value.trim() || requiresSource.value)
       ? sourceId.value
         ? { sourceId: sourceId.value }
         : { sourceName: sourceName.value }
@@ -474,10 +490,7 @@ async function confirmAction(key, path, method = 'POST') {
             <p v-if="scopes.includes('projects:provision')" class="small muted" role="note">
               {{ t('provisioning.scopeHint') }}
             </p>
-            <div
-              v-if="scopes.includes('requests:create') || scopes.includes('clients:sso')"
-              class="request-source-controls"
-            >
+            <div v-if="usesSource" class="request-source-controls">
               <label class="field" for="token-source"
                 >{{ t('requests.sourceLabel')
                 }}<select id="token-source" v-model="sourceId" :disabled="busy">
@@ -493,10 +506,13 @@ async function confirmAction(key, path, method = 'POST') {
                   id="token-source-name"
                   v-model="sourceName"
                   maxlength="100"
-                  required
+                  :required="requiresSource"
                   :disabled="busy"
               /></label>
               <p class="small muted">{{ t('requests.sourceHint') }}</p>
+              <p v-if="scopes.includes('projects:provision')" class="small muted">
+                {{ t('sso.provisionSourceHint') }}
+              </p>
             </div>
             <p v-if="scopes.includes('requests:approve')" class="small muted">
               {{ t('requests.approveHint') }}
@@ -575,9 +591,12 @@ async function confirmAction(key, path, method = 'POST') {
                   :disabled="busy"
               /></label>
               <p class="small muted">{{ t('sso.originHint') }}</p>
+              <p class="small muted sso-automatic">
+                {{ t('sso.automatic', { count: automaticSsoProjectIds.length }) }}
+              </p>
               <fieldset class="integration-choices sso-projects" :disabled="busy">
                 <legend>{{ t('sso.projects') }}</legend>
-                <label v-for="project in state.projects" :key="project.id"
+                <label v-for="project in manualSsoProjects" :key="project.id"
                   ><input v-model="ssoProjectIds" type="checkbox" :value="project.id" />{{
                     project.name
                   }}</label
@@ -587,7 +606,7 @@ async function confirmAction(key, path, method = 'POST') {
                 type="submit"
                 class="button primary"
                 :busy="busy"
-                :disabled="busy || (ssoEnabled && (!ssoOrigin || !ssoProjectIds.length))"
+                :disabled="busy || (ssoEnabled && !ssoOrigin)"
                 >{{ t('integrations.save') }}</LoadingButton
               >
             </template>

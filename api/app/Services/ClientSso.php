@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectAccessToken;
 use App\Models\ProjectClient;
 use App\Models\User;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +67,26 @@ class ClientSso
 
     private function granted(int $sourceId, int $workspaceId, int $projectId): bool
     {
-        return DB::table('integration_source_projects')->where('workspace_id', $workspaceId)->where('integration_source_id', $sourceId)->where('project_id', $projectId)->exists();
+        return DB::table('integration_source_projects')->where('workspace_id', $workspaceId)->where('integration_source_id', $sourceId)->where('project_id', $projectId)->exists()
+            || $this->automaticProjects($sourceId, $workspaceId)->where('p.project_id', $projectId)->exists();
+    }
+
+    /** Token sources are immutable; revoked credentials retain their provenance. Requests use their own permanent source, never the approver's token. */
+    public function automaticProjects(int $sourceId, int $workspaceId): Builder
+    {
+        return DB::table('project_provisionings as p')->select('p.project_id')->where('p.workspace_id', $workspaceId)->whereNotNull('p.project_id')
+            ->where(function (Builder $query) use ($sourceId, $workspaceId): void {
+                $query->whereExists(function (Builder $requests) use ($sourceId, $workspaceId): void {
+                    $requests->selectRaw('1')->from('project_requests as r')->whereColumn('r.project_provisioning_id', 'p.id')
+                        ->where('r.workspace_id', $workspaceId)->where('r.integration_source_id', $sourceId)->where('r.status', 'approved');
+                })->orWhere(function (Builder $direct) use ($sourceId, $workspaceId): void {
+                    $direct->whereNotExists(fn (Builder $requests) => $requests->selectRaw('1')->from('project_requests as r')->whereColumn('r.project_provisioning_id', 'p.id'))
+                        ->whereExists(function (Builder $tokens) use ($sourceId, $workspaceId): void {
+                            $tokens->selectRaw('1')->from('integration_tokens as t')->whereColumn('t.id', 'p.integration_token_id')
+                                ->where('t.workspace_id', $workspaceId)->where('t.integration_source_id', $sourceId);
+                        });
+                });
+            });
     }
 
     public function handoff(#[\SensitiveParameter] mixed $code): ?object

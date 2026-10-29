@@ -10,7 +10,7 @@ declare(strict_types=1);
  *
  * @return array{operationId:string, projectId:string, clientId:string, projectClientId:string, projectUrl:string, invitation:string, created:bool}
  */
-function provisionProject(string $baseUrl, #[SensitiveParameter] string $token, string $externalId, array $client, array $project, bool $sendInvitation = true): array
+function provisionProject(string $baseUrl, #[SensitiveParameter] string $token, string $externalId, array $client, array $project, bool $sendInvitation = true, ?string $caFile = null): array
 {
     if (! extension_loaded('curl') || ! preg_match('/^pb_[a-f0-9]{64}$/D', $token)) {
         throw new RuntimeException('Configure the server API token and PHP cURL.');
@@ -43,6 +43,9 @@ function provisionProject(string $baseUrl, #[SensitiveParameter] string $token, 
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
         ]);
+        if ($caFile !== null) {
+            curl_setopt($handle, CURLOPT_CAINFO, $caFile);
+        }
         $body = curl_exec($handle);
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         if (is_string($body) && in_array($status, [200, 201], true)) {

@@ -1,14 +1,17 @@
 export default {
   sso: {
     title: 'G\u00fcvenilir m\u00fc\u015fteri giri\u015fi (SSO)',
-    hint: 'G\u00fcvenilir sunucunun se\u00e7ilen projeleri a\u00e7mas\u0131na izin verin. Ayarlar\u0131 de\u011fi\u015ftirmek kayna\u011f\u0131n SSO ge\u00e7i\u015flerini ve oturumlar\u0131n\u0131 iptal eder.',
+    hint: 'G\u00fcvenilir kaynak i\u00e7in SSO\u2019yu bir kez etkinle\u015ftirin. Bu kaynaktan olu\u015fturulan ve onaylanan projelere otomatik izin verilir. Ayar de\u011fi\u015fiklikleri kayna\u011f\u0131n SSO ge\u00e7i\u015flerini ve oturumlar\u0131n\u0131 iptal eder.',
+    automatic: 'Bu kaynaktan olu\u015fturulan projelere otomatik izin verilir: {count}.',
     source: 'G\u00fcvenilir kaynak',
     enabled: 'SSO giri\u015fini etkinle\u015ftir',
     origin: 'M\u00fc\u015fteri alan\u0131 adresi',
     originHint:
       'Yol i\u00e7ermeyen tam HTTPS adresi, \u00f6rne\u011fin https://studio.example.com. POST istekleri yaln\u0131zca bu adresten kabul edilir.',
-    projects: '\u0130zin verilen projeler',
+    projects: 'Ek projeler (manuel izin)',
     empty: 'clients:sso izinli token olu\u015ftururken bir kaynak olu\u015fturun.',
+    provisionSourceHint:
+      'Otomatik SSO i\u00e7in SSO anahtar\u0131yla ayn\u0131 kayna\u011f\u0131 se\u00e7in. SSO olmadan proje olu\u015ftururken kaynak iste\u011fe ba\u011fl\u0131d\u0131r.',
     scopeHint:
       'Yaln\u0131zca do\u011frulanm\u0131\u015f m\u00fc\u015fteri oturumu ve onayl\u0131 e-posta kullanan g\u00fcvenilir sunucu kodu i\u00e7indir. Sahip veya geli\u015ftirici eri\u015fimi vermez.',
     failed:
