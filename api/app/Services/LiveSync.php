@@ -3,35 +3,36 @@
 namespace App\Services;
 
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\Connection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class LiveSync
 {
     private bool $ready = false;
 
-    public function record(int $workspaceId, ?int $projectId, string $kind): void
+    public function record(int $workspaceId, ?int $projectId, string $kind, ?Connection $connection = null): void
     {
-        if (! $this->ready && ! ($this->ready = Schema::hasTable('project_sync_events'))) {
+        $connection ??= DB::connection();
+        if (! $this->ready && ! ($this->ready = $connection->getSchemaBuilder()->hasTable('project_sync_events'))) {
             return;
         }
-        DB::afterCommit(function () use ($workspaceId, $projectId, $kind): void {
+        $connection->afterCommit(function () use ($workspaceId, $projectId, $kind, $connection): void {
             // Serial allocation per workspace prevents a later committed ID from skipping an earlier concurrent event.
-            DB::transaction(function () use ($workspaceId, $projectId, $kind): void {
+            $connection->transaction(function () use ($workspaceId, $projectId, $kind, $connection): void {
                 // Reserve SQLite's writer before the first read, as in IntegrationWrites.
-                if (DB::getDriverName() === 'sqlite') {
-                    DB::table('workspaces')->where('id', $workspaceId)->update(['id' => $workspaceId]);
+                if ($connection->getDriverName() === 'sqlite') {
+                    $connection->table('workspaces')->where('id', $workspaceId)->update(['id' => $workspaceId]);
                 }
-                if (! DB::table('workspaces')->where('id', $workspaceId)->lockForUpdate()->first(['id'])) {
+                if (! $connection->table('workspaces')->where('id', $workspaceId)->lockForUpdate()->first(['id'])) {
                     return;
                 }
-                if ($projectId && ! DB::table('projects')->where('id', $projectId)->exists()) {
+                if ($projectId && ! $connection->table('projects')->where('id', $projectId)->exists()) {
                     $projectId = null;
                 }
-                DB::table('project_sync_events')->insert(['workspace_id' => $workspaceId, 'project_id' => $projectId, 'kind' => $kind, 'created_at' => now()]);
+                $connection->table('project_sync_events')->insert(['workspace_id' => $workspaceId, 'project_id' => $projectId, 'kind' => $kind, 'created_at' => now()]);
             }, 3);
         });
     }

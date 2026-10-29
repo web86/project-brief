@@ -3,7 +3,8 @@
 set -eu
 test "$DB_DATABASE" = projectbrief_m80_qa
 test "$APP_ENV" = testing
-mkdir -p /tmp/project-brief-m80-api
+mkdir -p /tmp/project-brief-m80-api /tmp/tests
+cp -R /workspace/tests/fixtures /tmp/tests/fixtures
 cd /tmp/project-brief-m80-api
 export APP_BASE_PATH=/tmp/project-brief-m80-api
 APP_KEY="$(php -r 'echo "base64:".base64_encode(random_bytes(32));')"
@@ -15,4 +16,4 @@ mkdir -p bootstrap/cache storage/framework/cache/data storage/framework/sessions
 cp /workspace/api/bootstrap/app.php /workspace/api/bootstrap/providers.php bootstrap/
 ln -s /workspace/api/vendor vendor
 # DDL rollback is covered by native SQLite; MariaDB DDL implicitly commits.
-php -d memory_limit=512M vendor/bin/phpunit --filter '(ProjectRequestsTest|ProjectProvisioningTest::(?!test_schema_upgrade_and_empty_rollback)|ClientProjectLoginTest|ClientInvitationsTest|IntegrationReadTest|IntegrationsTest::(?!test_integration_migration_rolls_back_and_reapplies)|WebhooksTest)'
+php -d memory_limit=512M vendor/bin/phpunit --filter '(LiveSyncTest|ProjectRequestsTest|ProjectProvisioningTest::(?!test_schema_upgrade_and_empty_rollback)|ClientProjectLoginTest|ClientInvitationsTest|IntegrationReadTest|IntegrationsTest::(?!test_integration_migration_rolls_back_and_reapplies)|WebhooksTest)'

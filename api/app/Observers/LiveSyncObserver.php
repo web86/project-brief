@@ -45,7 +45,7 @@ class LiveSyncObserver
             $workspaceId = DB::table('projects')->where('id', $projectId)->value('workspace_id');
         }
         if ($workspaceId) {
-            app(LiveSync::class)->record($workspaceId, $projectId, $model instanceof Comment ? 'comments' : 'project');
+            app(LiveSync::class)->record($workspaceId, $projectId, $model instanceof Comment ? 'comments' : 'project', $model->getConnection());
         }
         if ($model instanceof Task && ($model->wasRecentlyCreated || $model->wasChanged(['status', 'deleted_at']) || $model->trashed())) {
             app(ProjectFeedbacks::class)->invalidatePrompt($model);

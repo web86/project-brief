@@ -25,7 +25,13 @@ const env = Object.fromEntries(
 )
 
 function command(args, input) {
-  const result = spawnSync(php, args, { cwd: application, env, encoding: 'utf8', input })
+  const result = spawnSync(php, args, {
+    cwd: application,
+    env,
+    encoding: 'utf8',
+    input,
+    timeout: 60000,
+  })
   assert.equal(
     result.status,
     0,

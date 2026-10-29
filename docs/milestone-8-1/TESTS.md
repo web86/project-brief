@@ -17,7 +17,7 @@ Approval commits request decision, normal business records, provisioning link an
 
 Request notifications extend the existing notification delivery table with an optional request FK and nullable project FK; existing rows retain their values. Existing email/push/Telegram transports and personal channel preferences are used only for current workspace owners, with durable per-request/recipient/channel deduplication. There is no new service/worker/cron.
 
-Requests append to the existing Live Sync journal; owners refresh count/visible requests through the same coordinator. Non-owner sync excludes request journal entries. A concurrency test exposed SQLite's read-to-write lock upgrade in journal append; it now reserves the writer before its first read, matching IntegrationWrites. This preserves serial event allocation and avoids a post-commit500 under concurrent decisions. Visible detail refresh retains its identity and local rejection draft; workspace changes discard pending private state. No new polling is added.
+Requests append to the existing Live Sync journal; owners refresh count/visible requests through the same coordinator. Non-owner sync excludes request journal entries. A concurrency test exposed SQLite's read-to-write lock upgrade in journal append; it now reserves the writer before its first read, matching IntegrationWrites. This preserves serial event allocation and avoids a post-commit500 under concurrent decisions. Model observers also bind journal callbacks/writes to the model connection: the CLI optimize/config-cache bootstrap can rebind the default container while owner provisioning still uses its original connection. A dedicated regression checks this boundary, and packaged first-install remains a release gate. Test CLI subprocesses have a60-second timeout so a blocked install fails instead of hanging. Visible detail refresh retains its identity and local rejection draft; workspace changes discard pending private state. No new polling is added.
 
 ## Automated coverage and reproduction
 
@@ -46,7 +46,7 @@ Full native/canonical test processes use test-only PHP memory_limit512M; runtime
 
 ## Verified pre-release results
 
-- PHP8.4.26 / MariaDB11.8.9 focused selection: **115 tests / 1,203 assertions — PASS**.
+- PHP8.4.26 / MariaDB11.8.9 focused selection: **122 tests / 1,314 assertions — PASS** (includes the complete LiveSyncTest selection).
 - Compiled frontend with real HTTP/SMTP/Chromium: **8 scenario groups / 18 screenshots / 0 JavaScript errors — PASS on SQLite and on MariaDB**. Evidence: `artifacts/milestone-8-1-project-requests/sqlite/` and `mysql/`.
 - Changed request/integration/migration/Live Sync selection: **54 tests / 677 assertions — PASS**. The complete canonical suites below remain the release gate.
 - Previous client-project regressions: **23 checks / 0 JavaScript errors — PASS**, including no desktop gap, first task and first section through the existing client task form, existing projects and roles. Previous compiled provisioning/Client Entry: **11 scenario groups / 19 temporary screenshots / 0 page errors — PASS**. Summary: `artifacts/milestone-8-1-project-requests/previous-ux-regressions.json`; historical 0.8.0/0.8.1 screenshots were preserved.

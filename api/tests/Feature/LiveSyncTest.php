@@ -24,6 +24,25 @@ class LiveSyncTest extends TestCase
         $this->withSession(['client_project_id' => $project->id, 'project_client_id' => $client->id, 'client_access_token_id' => $token->id]);
     }
 
+    public function test_model_journal_keeps_its_connection_when_console_bootstrap_rebinds_the_default(): void
+    {
+        $project = Project::factory()->create();
+        $name = DB::getDefaultConnection();
+        $connection = $project->getConnection();
+        $project->setConnection($name);
+        $before = $connection->table('project_sync_events')->count();
+        config(['database.connections.sync_shadow' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]);
+        try {
+            DB::setDefaultConnection('sync_shadow');
+            $project->update(['title' => 'Console connection regression']);
+            $this->assertSame($before + 1, $connection->table('project_sync_events')->count());
+            $this->assertFalse(DB::connection()->getSchemaBuilder()->hasTable('project_sync_events'));
+        } finally {
+            DB::setDefaultConnection($name);
+            DB::purge('sync_shadow');
+        }
+    }
+
     public function test_cursor_is_seeded_by_regular_bootstrap_and_poll_is_bounded_and_private(): void
     {
         $project = Project::factory()->create();
