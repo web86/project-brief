@@ -232,6 +232,6 @@ class IntegrationReadTest extends TestCase
             }
         }
         $this->actingAs($this->ownerFor($project))->postJson('/api/admin/integrations/tokens', ['name' => 'All scopes', 'scopes' => IntegrationTokens::SCOPES, 'sourceName' => 'CRM requests'])->assertCreated();
-        $this->getJson('/api/admin/integrations')->assertOk()->assertJsonCount(11, 'scopes');
+        $this->getJson('/api/admin/integrations')->assertOk()->assertJsonCount(12, 'scopes');
     }
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\BrowserProjectExportController;
 use App\Http\Controllers\ClientLocaleController;
 use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\ClientProjectLoginController;
+use App\Http\Controllers\ClientSsoController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DeveloperInvitationController;
 use App\Http\Controllers\IntegrationController;
@@ -112,6 +113,7 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
 
 Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/integrations')->group(function (): void {
     Route::get('/', [IntegrationController::class, 'index']);
+    Route::patch('/sources/{uuid}/sso', [IntegrationController::class, 'sourceSso']);
     Route::post('/tokens', [IntegrationController::class, 'token']);
     Route::patch('/tokens/{uuid}', [IntegrationController::class, 'updateToken']);
     Route::get('/operations', [IntegrationController::class, 'operations']);
@@ -176,6 +178,9 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
     Route::delete('/sections/{section}', [ProjectSectionController::class, 'destroy'])->middleware('project.permission:manage_structure');
 });
 Route::post('/api/client/project/{uuid}/login', [ClientProjectLoginController::class, 'store'])->whereUuid('uuid')->middleware('throttle:client-project-login');
+Route::post('/client-sso/enter', [ClientSsoController::class, 'enter'])
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->middleware('throttle:client-sso');
+Route::get('/client-sso/complete', [ClientSsoController::class, 'complete'])->middleware('throttle:client-sso');
 Route::get('/access/{token}', [AccessLinkController::class, 'enter'])->middleware('throttle:access')->name('client.access');
 Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::get('/project/{project}/sync', LiveSyncController::class)->middleware('throttle:live-sync');

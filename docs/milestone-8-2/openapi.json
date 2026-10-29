@@ -1,0 +1,1531 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Project Brief Trusted Client Handoff and Integration API",
+    "version": "0.8.3",
+    "description": "Milestone 8.2 additive SSO. Existing provisioning/requests contracts unchanged. clients:sso requires a permanent source, exact HTTPS account origin and explicit source project grants, all owner configured. Existing tokens gain no scope. See README.en.md."
+  },
+  "paths": {
+    "/api/v1/projects/provision": {
+      "post": {
+        "operationId": "provisionProject",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Requires projects:provision and an enabled token. Creates contact, project and membership atomically inside the token workspace. No login secrets in response.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "Invalid token"
+          },
+          "403": {
+            "description": "Missing scope or disabled provisioning"
+          },
+          "409": {
+            "description": "Key or external ID conflict"
+          },
+          "410": {
+            "description": "Binding no longer available"
+          },
+          "413": {
+            "description": "Body larger than 32 KiB"
+          },
+          "415": {
+            "description": "JSON required"
+          },
+          "422": {
+            "description": "Invalid fields or key; templates are not supported"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "500": {
+            "description": "Temporary internal error; retry the same operation"
+          },
+          "200": {
+            "description": "Recovered existing operation",
+            "headers": {
+              "Idempotency-Replayed": {
+                "schema": {
+                  "type": "string",
+                  "enum": ["true"]
+                },
+                "description": "Present for key replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionResult"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "New operation or replay preserving its original result",
+            "headers": {
+              "Idempotency-Replayed": {
+                "schema": {
+                  "type": "string",
+                  "enum": ["true"]
+                },
+                "description": "Present for key replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/project-requests": {
+      "post": {
+        "operationId": "createProjectRequest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scope": "requests:create",
+        "description": "Requires requests:create. Data is scoped to the verified token workspace. Persistent source is required. No project/contact/membership/access is created. First creation returns pending. Same external ID/body recovers across token rotation; changed input is 409.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Invalid, expired or revoked bearer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request absent or outside workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, source or Idempotency-Key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; retry the same operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed body/external ID or conflicting final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body over 32 KiB, or decision body over 4 KiB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "JSON Content-Type required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current result or recovered final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestCreated"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created, or key replay preserving initial code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestCreated"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestInput"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listProjectRequests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scope": "requests:read",
+        "description": "Requires requests:read. Data is scoped to the verified token workspace.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "approved", "rejected"]
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Invalid, expired or revoked bearer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request absent or outside workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, source or Idempotency-Key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; retry the same operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current result or recovered final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/project-requests/{uuid}": {
+      "get": {
+        "operationId": "getProjectRequest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scope": "requests:read",
+        "description": "Requires requests:read. Data is scoped to the verified token workspace.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Invalid, expired or revoked bearer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request absent or outside workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, source or Idempotency-Key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; retry the same operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current result or recovered final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/project-requests/{uuid}/approve": {
+      "post": {
+        "operationId": "approveProjectRequest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scope": "requests:approve",
+        "description": "Requires requests:approve. Data is scoped to the verified token workspace. Approval atomically provisions via the existing service and sends invitation after commit. No direct provisioning permission is granted. Final same-input decisions replay; opposite decisions are 409. SMTP failure preserves approved project.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Invalid, expired or revoked bearer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request absent or outside workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, source or Idempotency-Key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; retry the same operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed body/external ID or conflicting final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body over 32 KiB, or decision body over 4 KiB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "JSON Content-Type required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current result or recovered final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestDetail"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/project-requests/{uuid}/reject": {
+      "post": {
+        "operationId": "rejectProjectRequest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scope": "requests:approve",
+        "description": "Requires requests:approve. Data is scoped to the verified token workspace. Rejection is final and creates no project or access. Same reason replays; changed final reason/approval is 409.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Invalid, expired or revoked bearer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request absent or outside workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, source or Idempotency-Key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; retry the same operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed body/external ID or conflicting final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body over 32 KiB, or decision body over 4 KiB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "JSON Content-Type required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current result or recovered final decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestDetail"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/client-sso/handoffs": {
+      "post": {
+        "operationId": "createClientSsoHandoff",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scope": "clients:sso",
+        "description": "Server-only. Existing active client/project in token workspace and explicitly granted source required. Verified email and immutable externalUserId must come from existing server session/database, never browser input. Pins source identity; conflicts do not rebind. No business records created. No Idempotency-Key: each retry returns a new 60-second code. Never log/persist body or response. Existing API IP/workspace rate budgets apply.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientSsoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "New one-use code; Cache-Control: no-store. POST only to fixed postUrl immediately.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ClientSsoResult"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, revoked or expired token"
+          },
+          "403": {
+            "description": "Missing scope, disabled source, missing grant or invalid client identity"
+          },
+          "404": {
+            "description": "No active project in the verified workspace"
+          },
+          "409": {
+            "description": "External ID/email binding conflict; no automatic rebinding"
+          },
+          "413": {
+            "description": "Body exceeds 2048 bytes"
+          },
+          "415": {
+            "description": "JSON required"
+          },
+          "422": {
+            "description": "Invalid/unknown fields; verified email must be boolean true"
+          },
+          "429": {
+            "description": "Existing integration IP/workspace rate budget exceeded"
+          }
+        }
+      }
+    },
+    "/client-sso/enter": {
+      "post": {
+        "operationId": "enterClientSso",
+        "security": [],
+        "description": "Browser-only stateless POST, never API bearer. Exact source Origin plus live one-use code. Sole new CSRF exception. No query fields. No session overwrite on cross-site POST. Sets encrypted HttpOnly host-only pending cookie and returns minimal same-origin bridge with no-store/nonce CSP. Separate60/min/IP throttle.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Exact configured HTTPS source origin; null/missing denied."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["code"],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Minimal same-origin navigation bridge; automatic JS or no-JS Continue"
+          },
+          "303": {
+            "description": "Generic failure + ordinary email sign-in; no arbitrary redirect"
+          },
+          "429": {
+            "description": "Entry rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/client-sso/complete": {
+      "get": {
+        "operationId": "completeClientSso",
+        "security": [],
+        "description": "Internal same-origin completion with encrypted pending cookie and existing PB session. Atomically consumes code, refuses staff/different client session, regenerates session/CSRF, clears pending cookie. Never put code in URL.",
+        "responses": {
+          "303": {
+            "description": "Canonical server-owned project URL on success; safe localized fallback on failure"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "pb_*"
+      }
+    },
+    "schemas": {
+      "ProvisionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["externalId", "client", "project", "sendInvitation"],
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "client": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "email"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 255
+              },
+              "company": {
+                "type": ["string", "null"],
+                "maxLength": 255
+              },
+              "website": {
+                "type": ["string", "null"],
+                "format": "uri",
+                "maxLength": 2048
+              }
+            }
+          },
+          "project": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "language"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "description": {
+                "type": ["string", "null"],
+                "maxLength": 10000
+              },
+              "language": {
+                "type": "string",
+                "enum": ["ru", "en", "tr", "zh-CN"]
+              }
+            }
+          },
+          "sendInvitation": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProvisionResult": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operationId",
+              "projectId",
+              "clientId",
+              "projectClientId",
+              "projectUrl",
+              "invitation",
+              "created"
+            ],
+            "properties": {
+              "operationId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "projectClientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "projectUrl": {
+                "type": "string",
+                "format": "uri"
+              },
+              "invitation": {
+                "type": "string",
+                "enum": ["not_requested", "pending", "sending", "sent", "failed"]
+              },
+              "created": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "RequestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["externalId", "client", "project"],
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "client": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "email"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 255
+              },
+              "company": {
+                "type": ["string", "null"],
+                "maxLength": 255
+              },
+              "website": {
+                "type": ["string", "null"],
+                "format": "uri",
+                "maxLength": 2048
+              }
+            }
+          },
+          "project": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "language"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "description": {
+                "type": ["string", "null"],
+                "maxLength": 10000
+              },
+              "language": {
+                "type": "string",
+                "enum": ["ru", "en", "tr", "zh-CN"]
+              }
+            }
+          }
+        }
+      },
+      "RequestCreated": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["id", "requestId", "status", "createdAt"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "enum": ["pending", "approved", "rejected"]
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "ProjectRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "requestId",
+          "externalId",
+          "source",
+          "client",
+          "project",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "reviewedAt",
+          "decision",
+          "result",
+          "projectId",
+          "clientId",
+          "projectUrl",
+          "invitation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "externalId": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "source": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 100
+              }
+            }
+          },
+          "client": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "email"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 255
+              },
+              "company": {
+                "type": ["string", "null"],
+                "maxLength": 255
+              },
+              "website": {
+                "type": ["string", "null"],
+                "format": "uri",
+                "maxLength": 2048
+              }
+            }
+          },
+          "project": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "language"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "description": {
+                "type": ["string", "null"],
+                "maxLength": 10000
+              },
+              "language": {
+                "type": "string",
+                "enum": ["ru", "en", "tr", "zh-CN"]
+              }
+            }
+          },
+          "status": {
+            "enum": ["pending", "approved", "rejected"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewedAt": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "decision": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "required": ["actor", "reason", "sendInvitation"],
+                "properties": {
+                  "actor": {
+                    "type": "object",
+                    "required": ["type", "id", "name"],
+                    "properties": {
+                      "type": {
+                        "enum": ["admin", "integration"]
+                      },
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "reason": {
+                    "type": ["string", "null"],
+                    "maxLength": 2000
+                  },
+                  "sendInvitation": {
+                    "type": ["boolean", "null"]
+                  }
+                }
+              }
+            ]
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "operationId",
+                  "projectId",
+                  "clientId",
+                  "projectClientId",
+                  "projectUrl",
+                  "invitation"
+                ],
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "clientId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "projectClientId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "projectUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "invitation": {
+                    "type": "string",
+                    "enum": ["not_requested", "pending", "sending", "sent", "failed"]
+                  }
+                }
+              }
+            ]
+          },
+          "projectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "projectUrl": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "invitation": {
+            "type": ["string", "null"],
+            "enum": ["pending", "sending", "sent", "failed", "not_requested", null]
+          }
+        }
+      },
+      "RequestDetail": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectRequest"
+          }
+        }
+      },
+      "RequestList": {
+        "type": "object",
+        "required": ["data", "meta"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectRequest"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": ["page", "lastPage", "total", "pending"],
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "lastPage": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "pending": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      },
+      "ApproveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sendInvitation": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "RejectInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": ["string", "null"],
+            "maxLength": 2000
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ProjectRequestWebhook": {
+        "type": "object",
+        "description": "Existing v1 envelope; only all-project endpoint subscriptions receive request events. No contact data, title/description, reasons or login secrets. HMAC and retry are unchanged.",
+        "required": [
+          "version",
+          "id",
+          "type",
+          "occurredAt",
+          "workspaceId",
+          "projectId",
+          "taskId",
+          "requestId",
+          "status",
+          "sourceId",
+          "externalId",
+          "projectUrl",
+          "actor",
+          "changes",
+          "origin"
+        ],
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "enum": [
+              "project_request.created",
+              "project_request.approved",
+              "project_request.rejected"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "null"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "enum": ["pending", "approved", "rejected"]
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "projectUrl": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "actor": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "enum": ["admin", "integration"]
+              },
+              "id": {
+                "type": ["string", "null"],
+                "format": "uuid"
+              }
+            }
+          },
+          "changes": {
+            "type": "object",
+            "maxProperties": 0
+          },
+          "origin": {
+            "enum": ["api", "ui"]
+          }
+        }
+      },
+      "ClientSsoInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["projectId", "externalUserId", "email", "emailVerified"],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "externalUserId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "\\S"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "ClientSsoResult": {
+        "type": "object",
+        "required": ["code", "postUrl", "expiresAt"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "256-bit CSPRNG opaque secret, never persist/log; DB stores SHA-256 only."
+          },
+          "postUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Canonical configured PB origin + /client-sso/enter, HTTPS production, no arbitrary redirect."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "No later than60seconds from issuance; atomic one-use."
+          }
+        }
+      }
+    }
+  }
+}

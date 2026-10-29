@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'sso_continue' => '继续',
     'task_changed' => '任务已更新',
     'client' => '客户',
     'invalid_credentials' => '邮箱或密码不正确。',

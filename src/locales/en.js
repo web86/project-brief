@@ -1,4 +1,20 @@
 export default {
+  sso: {
+    title: 'Trusted client sign-in (SSO)',
+    hint: 'Allow a trusted server to open selected projects. Changing settings revokes this source\u2019s SSO handoffs and sessions.',
+    source: 'Trusted source',
+    enabled: 'Enable SSO',
+    origin: 'Client area origin',
+    originHint:
+      'Exact HTTPS origin without a path, such as https://studio.example.com. POSTs are accepted only from this origin.',
+    projects: 'Allowed projects',
+    empty: 'Create a source when issuing a token with clients:sso permission.',
+    scopeHint:
+      'For trusted server code with a verified client session and confirmed email only. It grants no owner or developer access.',
+    failed:
+      'Trusted sign-in could not be completed. Your existing session was preserved. You can use the usual email sign-in link.',
+    magic: 'Sign in by email',
+  },
   requests: {
     title: 'Project requests',
     hint: 'Review requests from your websites and CRM.',
@@ -331,6 +347,7 @@ export default {
       'Pass the selected sendInvitation value in the provisioning API request. This example helps configure your external system: the mode is set per request and is not saved on the API token.',
   },
   integrations: {
+    scope_clients_sso: 'Trusted client sign-in (SSO)',
     scope_requests_create: 'Create project requests',
     scope_requests_read: 'Read project requests',
     scope_requests_approve: 'Approve and reject project requests',

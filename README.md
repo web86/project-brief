@@ -1,5 +1,7 @@
 # Планировщик ТЗ / Project Brief
 
+Milestone 8.2 / Project Brief 0.8.3: [Minimal Client SSO — Trusted Handoff](docs/milestone-8-2/README.md).
+
 Milestone 8.1 / Project Brief 0.8.2: [Заявки и External Approval API](docs/milestone-8-1/README.md).
 
 Project Brief 0.8.1: [Client Entry UX — вход клиента, письма и режимы приглашения](docs/client-entry-0-8-1/README.md).

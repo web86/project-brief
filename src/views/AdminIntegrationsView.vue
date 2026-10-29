@@ -16,6 +16,29 @@ const state = ref(null),
   loadFailed = ref(false),
   historyBusy = ref(false),
   copying = ref(false)
+const ssoSourceId = ref(''),
+  ssoEnabled = ref(false),
+  ssoOrigin = ref(''),
+  ssoProjectIds = ref([])
+watch(
+  () => [state.value?.sources, ssoSourceId.value],
+  () => {
+    const sources = state.value?.sources || []
+    const source = sources.find((item) => item.id === ssoSourceId.value) || sources[0]
+    ssoSourceId.value = source?.id || ''
+    ssoEnabled.value = !!source?.ssoEnabled
+    ssoOrigin.value = source?.ssoOrigin || ''
+    ssoProjectIds.value = [...(source?.ssoProjectIds || [])]
+  },
+)
+async function saveSso() {
+  if (ssoSourceId.value)
+    await action('/sources/' + ssoSourceId.value + '/sso', 'PATCH', {
+      ssoEnabled: ssoEnabled.value,
+      ssoOrigin: ssoOrigin.value || null,
+      projectIds: ssoProjectIds.value,
+    })
+}
 const sourceId = ref(''),
   sourceName = ref('')
 const invitationMode = ref('immediate')
@@ -307,7 +330,7 @@ async function createToken() {
     name: name.value,
     scopes: scopes.value,
     expiresAt: expires.value ? expires.value + 'T23:59:59Z' : null,
-    ...(scopes.value.includes('requests:create')
+    ...(scopes.value.includes('requests:create') || scopes.value.includes('clients:sso')
       ? sourceId.value
         ? { sourceId: sourceId.value }
         : { sourceName: sourceName.value }
@@ -451,7 +474,10 @@ async function confirmAction(key, path, method = 'POST') {
             <p v-if="scopes.includes('projects:provision')" class="small muted" role="note">
               {{ t('provisioning.scopeHint') }}
             </p>
-            <div v-if="scopes.includes('requests:create')" class="request-source-controls">
+            <div
+              v-if="scopes.includes('requests:create') || scopes.includes('clients:sso')"
+              class="request-source-controls"
+            >
               <label class="field" for="token-source"
                 >{{ t('requests.sourceLabel')
                 }}<select id="token-source" v-model="sourceId" :disabled="busy">
@@ -474,6 +500,9 @@ async function confirmAction(key, path, method = 'POST') {
             </div>
             <p v-if="scopes.includes('requests:approve')" class="small muted">
               {{ t('requests.approveHint') }}
+            </p>
+            <p v-if="scopes.includes('clients:sso')" class="small muted">
+              {{ t('sso.scopeHint') }}
             </p>
             <label class="field" for="token-expires"
               >{{ t('integrations.expires')
@@ -517,6 +546,52 @@ async function confirmAction(key, path, method = 'POST') {
               aria-live="polite"
             ><code>{{ invitationExample }}</code></pre>
           </section>
+          <form class="surface integration-form sso-settings" @submit.prevent="saveSso">
+            <h2>{{ t('sso.title') }}</h2>
+            <p class="small muted">{{ t('sso.hint') }}</p>
+            <p v-if="!state.sources?.length" class="muted">{{ t('sso.empty') }}</p>
+            <template v-else>
+              <label class="field" for="sso-source"
+                >{{ t('sso.source')
+                }}<select id="sso-source" v-model="ssoSourceId" :disabled="busy">
+                  <option v-for="source in state.sources" :key="source.id" :value="source.id">
+                    {{ source.name }}
+                  </option>
+                </select></label
+              >
+              <label class="integration-toggle"
+                ><input id="sso-enabled" v-model="ssoEnabled" type="checkbox" :disabled="busy" />{{
+                  t('sso.enabled')
+                }}</label
+              >
+              <label class="field" for="sso-origin"
+                >{{ t('sso.origin')
+                }}<input
+                  id="sso-origin"
+                  v-model="ssoOrigin"
+                  type="url"
+                  maxlength="255"
+                  :required="ssoEnabled"
+                  :disabled="busy"
+              /></label>
+              <p class="small muted">{{ t('sso.originHint') }}</p>
+              <fieldset class="integration-choices sso-projects" :disabled="busy">
+                <legend>{{ t('sso.projects') }}</legend>
+                <label v-for="project in state.projects" :key="project.id"
+                  ><input v-model="ssoProjectIds" type="checkbox" :value="project.id" />{{
+                    project.name
+                  }}</label
+                >
+              </fieldset>
+              <LoadingButton
+                type="submit"
+                class="button primary"
+                :busy="busy"
+                :disabled="busy || (ssoEnabled && (!ssoOrigin || !ssoProjectIds.length))"
+                >{{ t('integrations.save') }}</LoadingButton
+              >
+            </template>
+          </form>
           <section class="surface integration-list">
             <h2>{{ t('integrations.tokens') }}</h2>
             <p v-if="!activeTokens.length" class="muted">{{ t('integrations.empty') }}</p>
@@ -875,6 +950,10 @@ async function confirmAction(key, path, method = 'POST') {
   </div>
 </template>
 <style scoped>
+.sso-projects {
+  max-height: 220px;
+  overflow: auto;
+}
 .integrations-page {
   max-width: 960px;
   min-width: 0;

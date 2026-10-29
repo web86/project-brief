@@ -171,6 +171,11 @@ class WorkspaceMigrationTest extends TestCase
                     unset($row);
                 }
                 if ($table === 'project_access_tokens') {
+                    foreach ($after as &$row) {
+                        $this->assertNull($row['client_sso_handoff_id']);
+                        unset($row['client_sso_handoff_id']);
+                    }
+                    unset($row);
                     // Entering the preserved link intentionally updates these activity timestamps.
                     foreach ($rows as &$row) {
                         unset($row['last_used_at'], $row['updated_at']);

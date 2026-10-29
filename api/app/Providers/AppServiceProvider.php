@@ -69,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by('client-login-ip:'.$r->ip()),
             Limit::perMinutes(15, 3)->by('client-login-mailbox:'.hash('sha256', $r->route('uuid').'|'.mb_strtolower(trim(is_string($r->input('email')) ? $r->input('email') : '')))),
         ]);
+        RateLimiter::for('client-sso', fn (Request $r) => Limit::perMinute(60)->by('client-sso:'.$r->ip()));
         RateLimiter::for('access', fn (Request $r) => Limit::perMinute(20)->by($r->ip()));
         RateLimiter::for('comments', fn (Request $r) => Limit::perMinute(30)->by($r->session()->getId()));
         foreach (['telegram-connect', 'telegram-test'] as $name) {

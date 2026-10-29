@@ -1181,6 +1181,97 @@ echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($workspa
     'PASS: Packaged project requests pending/approval, existing provisioning, failed SMTP durability, final-decision replay/conflict, scope boundary and protected canonical URL',
   )
   command(['artisan', 'cache:clear'])
+  const ssoFixture = path.join(fixtureRoot, 'sso-fixture.php')
+  await writeFile(
+    ssoFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$project = \\App\\Models\\Project::where('uuid',$argv[2])->firstOrFail();
+$source = \\Illuminate\\Support\\Facades\\DB::table('integration_sources')->insertGetId(['uuid'=>(string)\\Illuminate\\Support\\Str::uuid(),'workspace_id'=>$project->workspace_id,'name'=>'Packaged trusted SSO','sso_enabled'=>true,'sso_origin'=>'https://account.example.test','created_at'=>now(),'updated_at'=>now()]);
+\\Illuminate\\Support\\Facades\\DB::table('integration_source_projects')->insert(['workspace_id'=>$project->workspace_id,'integration_source_id'=>$source,'project_id'=>$project->id]);
+echo json_encode(app(\\App\\Services\\IntegrationTokens::class)->create($project->workspace_id,['name'=>'Packaged SSO only','sourceId'=>$source,'scopes'=>['clients:sso']]));
+`,
+  )
+  const ssoToken = JSON.parse(command([ssoFixture, application, approvedRequestData.projectId]))
+  const handoffResponse = await fetch(origin + '/api/v1/client-sso/handoffs', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + ssoToken.secret, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId: approvedRequestData.projectId,
+      externalUserId: 'package-user:42',
+      email: 'request-package@example.test',
+      emailVerified: true,
+    }),
+  })
+  assert.equal(handoffResponse.status, 201)
+  assert.match(handoffResponse.headers.get('cache-control'), /no-store/)
+  const handoff = (await handoffResponse.json()).data
+  assert.match(handoff.code, /^[a-f0-9]{64}$/)
+  const enterSso = () =>
+    fetch(origin + '/client-sso/enter', {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        Origin: 'https://account.example.test',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ code: handoff.code }),
+    })
+  const ssoBridge = await enterSso()
+  assert.equal(ssoBridge.status, 200)
+  const pendingCookie = ssoBridge.headers
+    .getSetCookie()
+    .find((cookie) => cookie.startsWith('projectbrief_sso_handoff='))
+  assert.ok(pendingCookie)
+  assert.equal(
+    ssoBridge.headers.getSetCookie().length,
+    1,
+    'Stateless entry must not replace another session',
+  )
+  assert.equal((await ssoBridge.text()).includes(handoff.code), false)
+  const ssoComplete = await fetch(origin + '/client-sso/complete', {
+    redirect: 'manual',
+    headers: { Cookie: pendingCookie.split(';')[0] },
+  })
+  assert.equal(ssoComplete.status, 303)
+  assert.ok(
+    ssoComplete.headers.get('location').endsWith('/project/' + approvedRequestData.projectId),
+  )
+  const ssoCookies = ssoComplete.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(';')[0])
+    .join('; ')
+  assert.equal(
+    (
+      await fetch(origin + '/api/client/project/' + approvedRequestData.projectId, {
+        headers: { Cookie: ssoCookies },
+      })
+    ).status,
+    200,
+  )
+  assert.equal((await enterSso()).status, 303, 'Packaged SSO is one-use')
+  assert.equal(
+    (
+      await fetch(origin + '/api/v1/projects/provision', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + ssoToken.secret, 'Content-Type': 'application/json' },
+        body: provisionPayload,
+      })
+    ).status,
+    403,
+  )
+  assert.equal(
+    (await readFile(path.join(application, 'storage/logs/laravel.log'), 'utf8')).includes(
+      handoff.code,
+    ),
+    false,
+  )
+  console.log(
+    'PASS: Packaged SSO-only bearer, explicit project grant, stateless bridge, own client session, canonical 303, replay denial and no logged code',
+  )
+  command(['artisan', 'cache:clear'])
   const idleCron = spawnSync(php, ['artisan', 'integrations:webhooks'], {
     cwd: application,
     env,
@@ -1486,12 +1577,12 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.8.2',
+    '0.8.3',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
     await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_29_123816_create_project_requests_foundation/,
+    /2026_10_29_174316_add_client_sso_handoffs/,
   )
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 

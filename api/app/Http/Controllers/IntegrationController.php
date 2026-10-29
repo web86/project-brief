@@ -7,6 +7,7 @@ use App\Models\Workspace;
 use App\Services\AccountSecurity;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
+use App\Services\IntegrationWrites;
 use App\Services\WebhookDestination;
 use App\Services\WebhookEvents;
 use App\Services\WebhookProjectFilter;
@@ -35,7 +36,7 @@ class IntegrationController extends Controller
     {
         $workspace = $this->workspace($request);
 
-        return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'sources' => DB::table('integration_sources')->where('workspace_id', $workspace)->orderBy('name')->get()->map(fn ($source) => ['id' => $source->uuid, 'name' => $source->name]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
+        return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'sources' => DB::table('integration_sources')->where('workspace_id', $workspace)->orderBy('name')->get()->map(fn ($source) => ['id' => $source->uuid, 'name' => $source->name, 'ssoEnabled' => (bool) $source->sso_enabled, 'ssoOrigin' => $source->sso_origin, 'ssoProjectIds' => Project::where('workspace_id', $workspace)->whereIn('id', DB::table('integration_source_projects')->where('workspace_id', $workspace)->where('integration_source_id', $source->id)->select('project_id'))->orderBy('uuid')->pluck('uuid')->all()]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
             'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at', 'provisioning_enabled', 'integration_source_id'])->map(fn ($t) => ['sourceId' => $t->integration_source_id ? DB::table('integration_sources')->where('workspace_id', $workspace)->where('id', $t->integration_source_id)->value('uuid') : null, 'id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at, 'provisioningEnabled' => (bool) $t->provisioning_enabled]),
             'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['id', 'workspace_id', 'uuid', 'name', 'url', 'events', 'enabled', 'created_at', 'project_filter'])->map(fn ($e) => ['id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'projectFilter' => $e->project_filter, 'projectIds' => app(WebhookProjectFilter::class)->ids($e), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
         ])->header('Cache-Control', 'no-store');
@@ -61,10 +62,42 @@ class IntegrationController extends Controller
                 abort_if(DB::table('integration_sources')->where('workspace_id', $workspace)->count() >= 100, 422, 'Source limit reached.');
                 $data['sourceId'] = DB::table('integration_sources')->insertGetId(['uuid' => (string) Str::uuid(), 'workspace_id' => $workspace, 'name' => trim($data['sourceName']), 'created_at' => now(), 'updated_at' => now()]);
             }
-            abort_if(in_array('requests:create', $data['scopes'], true) && empty($data['sourceId']), 422, 'Select or create a persistent integration source.');
+            abort_if((in_array('requests:create', $data['scopes'], true) || in_array('clients:sso', $data['scopes'], true)) && empty($data['sourceId']), 422, 'Select or create a persistent integration source.');
 
             return response()->json(app(IntegrationTokens::class)->create($workspace, $data), 201)->header('Cache-Control', 'no-store');
         });
+    }
+
+    public function sourceSso(Request $request, string $uuid): JsonResponse
+    {
+        $workspaceId = $this->workspace($request);
+        abort_if(array_diff(array_keys($request->all()), ['ssoEnabled', 'ssoOrigin', 'projectIds']), 422);
+        $data = $request->validate(['ssoEnabled' => ['required', 'boolean'], 'ssoOrigin' => ['nullable', 'string', 'url:https', 'max:255'], 'projectIds' => ['required', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct']]);
+        $origin = $data['ssoOrigin'] ?? null;
+        if ($origin !== null) {
+            $parts = parse_url($origin);
+            abort_if(isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) || ! in_array($parts['path'] ?? '', ['', '/'], true), 422);
+            $origin = 'https://'.strtolower($parts['host']).(isset($parts['port']) && $parts['port'] !== 443 ? ':'.$parts['port'] : '');
+        }
+        abort_if($data['ssoEnabled'] && (! $origin || ! $data['projectIds']), 422);
+        DB::transaction(function () use ($request, $workspaceId, $uuid, $data, $origin): void {
+            IntegrationWrites::lockWorkspace($workspaceId);
+            $this->workspace($request);
+            $source = DB::table('integration_sources')->where('workspace_id', $workspaceId)->where('uuid', $uuid)->lockForUpdate()->firstOrFail();
+            $ids = Project::where('workspace_id', $workspaceId)->whereIn('uuid', $data['projectIds'])->orderBy('id')->pluck('id')->all();
+            abort_unless(count($ids) === count($data['projectIds']), 422);
+            $current = DB::table('integration_source_projects')->where('workspace_id', $workspaceId)->where('integration_source_id', $source->id)->orderBy('project_id')->pluck('project_id')->all();
+            if ((bool) $source->sso_enabled !== (bool) $data['ssoEnabled'] || $source->sso_origin !== $origin || $current !== $ids) {
+                DB::table('client_sso_handoffs')->where('workspace_id', $workspaceId)->where('integration_source_id', $source->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
+                DB::table('integration_source_projects')->where('workspace_id', $workspaceId)->where('integration_source_id', $source->id)->delete();
+                foreach ($ids as $id) {
+                    DB::table('integration_source_projects')->insert(['workspace_id' => $workspaceId, 'integration_source_id' => $source->id, 'project_id' => $id]);
+                }
+                DB::table('integration_sources')->where('id', $source->id)->update(['sso_enabled' => $data['ssoEnabled'], 'sso_origin' => $origin, 'updated_at' => now()]);
+            }
+        }, 3);
+
+        return response()->json(['ok' => true]);
     }
 
     public function updateToken(Request $request, string $uuid): JsonResponse

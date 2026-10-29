@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'sso_continue' => 'Devam et',
     'task_changed' => 'Görev güncellendi',
     'client' => 'Müşteri',
     'invalid_credentials' => 'E-posta veya şifre yanlış.',

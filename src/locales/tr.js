@@ -1,4 +1,20 @@
 export default {
+  sso: {
+    title: 'G\u00fcvenilir m\u00fc\u015fteri giri\u015fi (SSO)',
+    hint: 'G\u00fcvenilir sunucunun se\u00e7ilen projeleri a\u00e7mas\u0131na izin verin. Ayarlar\u0131 de\u011fi\u015ftirmek kayna\u011f\u0131n SSO ge\u00e7i\u015flerini ve oturumlar\u0131n\u0131 iptal eder.',
+    source: 'G\u00fcvenilir kaynak',
+    enabled: 'SSO giri\u015fini etkinle\u015ftir',
+    origin: 'M\u00fc\u015fteri alan\u0131 adresi',
+    originHint:
+      'Yol i\u00e7ermeyen tam HTTPS adresi, \u00f6rne\u011fin https://studio.example.com. POST istekleri yaln\u0131zca bu adresten kabul edilir.',
+    projects: '\u0130zin verilen projeler',
+    empty: 'clients:sso izinli token olu\u015ftururken bir kaynak olu\u015fturun.',
+    scopeHint:
+      'Yaln\u0131zca do\u011frulanm\u0131\u015f m\u00fc\u015fteri oturumu ve onayl\u0131 e-posta kullanan g\u00fcvenilir sunucu kodu i\u00e7indir. Sahip veya geli\u015ftirici eri\u015fimi vermez.',
+    failed:
+      'G\u00fcvenilir giri\u015f tamamlanamad\u0131. Mevcut oturumunuz korundu. Normal e-posta giri\u015f ba\u011flant\u0131s\u0131n\u0131 kullanabilirsiniz.',
+    magic: 'E-posta ile giri\u015f',
+  },
   requests: {
     title: 'Proje talepleri',
     hint: 'Web sitelerinizden ve CRM sisteminizden gelen talepleri inceleyin.',
@@ -331,6 +347,7 @@ export default {
       'Seçilen sendInvitation değerini provisioning API isteğine ekleyin. Bu örnek, harici sisteminizi yapılandırmak içindir: mod her istekte belirtilir ve API belirtecine kaydedilmez.',
   },
   integrations: {
+    scope_clients_sso: 'G\u00fcvenilir m\u00fc\u015fteri giri\u015fi (SSO)',
     scope_requests_create: 'Proje talebi oluşturma',
     scope_requests_read: 'Proje taleplerini okuma',
     scope_requests_approve: 'Proje taleplerini onaylama ve reddetme',

@@ -1,0 +1,59 @@
+{
+  "results": [
+    {
+      "test": "upgrade-from-082-retains-existing-project-and-client",
+      "passed": true
+    },
+    {
+      "test": "existing-provisioning-and-approved-request-source-explicit-project-permissions",
+      "passed": true
+    },
+    {
+      "test": "real-external-php-curl-cross-site-post-to-own-client-session-without-email",
+      "passed": true
+    },
+    {
+      "test": "one-code-two-workers-one-atomic-consumption-and-same-identity-project-switch",
+      "passed": true
+    },
+    {
+      "test": "expired-sso-falls-back-to-real-email-magic-link-with-existing-smtp-flow",
+      "passed": true
+    },
+    {
+      "test": "cross-site-lax-cookie-return-preserves-other-client-and-mfa-owner-without-identity-switch",
+      "passed": true
+    },
+    {
+      "test": "identity-pin-origin-csrf-verified-email-and-tenant-boundaries",
+      "passed": true
+    },
+    {
+      "test": "replacement-token-keeps-binding-revoked-token-and-inactive-membership-block-redemption",
+      "passed": true
+    },
+    {
+      "test": "no-javascript-continue-buttons-complete-the-protocol",
+      "passed": true
+    },
+    {
+      "test": "four-locale-owner-controls-dark-mobile-desktop-source-disable-preserves-magic-link",
+      "passed": true
+    },
+    {
+      "test": "no-sso-code-or-bearer-in-urls-storage-history-application-logs-webhooks",
+      "passed": true
+    }
+  ],
+  "browserErrors": [],
+  "concurrentProcesses": 2,
+  "php": "8.5",
+  "database": "MariaDB 11.8.9",
+  "productionBuild": true,
+  "crossSiteHttps": true,
+  "selfSignedLocalCertificate": true,
+  "curlVerifiesLocalCa": true,
+  "sameSite": "Lax",
+  "noLiveCms": true,
+  "liveJino": false
+}

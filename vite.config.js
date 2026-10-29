@@ -9,6 +9,6 @@ export default defineConfig(({ mode }) => {
     plugins: [vue(), localeBootstrap(), pdfAssets()],
     build: { sourcemap: false },
     worker: { format: 'es' },
-    server: { proxy: { '/api': { target }, '/access/': { target } } },
+    server: { proxy: { '/api': { target }, '/access/': { target }, '/client-sso': { target } } },
   }
 })

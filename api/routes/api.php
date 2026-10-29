@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClientSsoController;
 use App\Http\Controllers\IntegrationApiController;
 use App\Http\Controllers\IntegrationReadController;
 use App\Http\Controllers\ProjectProvisioningController;
@@ -9,6 +10,7 @@ use App\Http\Middleware\RecordProvisioningOperation;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(function (): void {
+    Route::post('/client-sso/handoffs', [ClientSsoController::class, 'store']);
     Route::post('/project-requests', [ProjectRequestController::class, 'store'])->middleware(RecordProvisioningOperation::class);
     Route::get('/project-requests', [ProjectRequestController::class, 'index']);
     Route::get('/project-requests/{uuid}', [ProjectRequestController::class, 'show']);
