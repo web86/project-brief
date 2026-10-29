@@ -38,3 +38,5 @@ Webhook-данные читаются из существующих `webhook_eve
 Обязательного cron нет. По решению оператора старую диагностическую статистику можно удалять партиями, например `DELETE FROM api_usage_hours WHERE hour < UTC_TIMESTAMP() - INTERVAL 90 DAY LIMIT 10000`, повторяя до окончания; не применять это к аудиту. По умолчанию история не удаляется автоматически. Следить за объёмом таблиц, connection budget и задержками по процедуре Jino preflight.
 
 [Проверки и производительность](TESTS.md) · [Jino deployment/rollback](PRODUCTION.md) · [Архив и SHA-256](RELEASE-ARTIFACT.json).
+
+Production ZIP: `release/project-brief-v0.9.0-55600df.zip`, **39 276 075 bytes**. Source commit `55600dfe4f151bd23dba9c717073c422889e03ef`. SHA-256: `74eda88c3f3b736d04ccfdd435a015b361461a75ebbe1bd814405ed3f4ca8e0b`. CRC и 8 873 внутренних SHA-256 проверены независимо; архив содержит 8 874 файла с manifest. Последующий commit отчёта не меняет runtime архива.

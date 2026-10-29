@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "php": "8.4.26",
+  "database": "11.8.9-MariaDB-ubu2404",
+  "productionVendor": true,
+  "sourceCommit": "55600dfe4f151bd23dba9c717073c422889e03ef",
+  "phpSyntaxChecked": true,
+  "freshSchema": true,
+  "platformRoutes": 6,
+  "atomicUsageWrites": true,
+  "audit": true,
+  "disposableDatabaseOnly": true
+}
