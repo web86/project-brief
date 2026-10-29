@@ -47,6 +47,7 @@ PHP-пример проверяется синтаксически; готовы
 | SQLite HTTP + Chromium + local SMTP                      | **7 scenario groups, 9 screenshots, 0 page errors — PASS** |
 | MariaDB HTTP + Chromium + local SMTP                     | **7 scenario groups, 9 screenshots, 0 page errors — PASS** |
 | Eight same-key / six same-external-ID concurrent calls   | **One project per operation on both engines — PASS**       |
+| npm audit, полный / omit-dev после patch updates         | **0 / 0 vulnerabilities**                                  |
 | Scoped Pint / Prettier / diff check / PHP example syntax | **PASS**                                                   |
 
 Скриншоты формы входа RU/mobile/dark и журнала desktop/mobile просмотрены визуально. Матрица показывает отдельные сочетания четырёх языков/двух тем и desktop/mobile, а не полное декартово произведение. Все адреса, токены, письма и пользователи синтетические. JSON browser-сценариев сохранены рядом с PNG; команды и миграции не обращались к Jino.

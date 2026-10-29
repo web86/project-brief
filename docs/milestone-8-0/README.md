@@ -5,7 +5,7 @@ Base: `codex/live-sync-ui-polish`, 0.7.8, commit `5918f51`. Work branch: `codex/
 - [API contract and examples](API.md) · [OpenAPI](openapi.json)
 - [Server-side PHP example for WordPress/MODX](provision-project.php)
 - [Deployment, migration and rollback](PRODUCTION.md)
-- [Verification and security boundaries](TESTS.md)
+- [Verification](TESTS.md) · [Security report and dependency audit](SECURITY.md)
 
 ## Architecture audit and decisions
 
