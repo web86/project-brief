@@ -2,11 +2,11 @@
   "version": "0.8.0",
   "branch": "codex/milestone-8-0-integration-foundation",
   "baseCommit": "5918f51b767c61163bb6afdc861d28e9e9ea49da",
-  "sourceCommit": "3a579689896b8f5cfe865b49843a0b56a8cbd439",
-  "builtAt": "2026-10-29T09:56:05.382Z",
-  "archive": "release/project-brief-v0.8.0-3a57968.zip",
-  "bytes": 39226803,
-  "sha256": "e27b19bc458934cf4a05a39cb93837f4420f946b07ff30690404c1db030b75f0",
+  "sourceCommit": "7289c8a9f349861a38fb652f2ac925bd31d79fb8",
+  "builtAt": "2026-10-29T10:15:16.933Z",
+  "archive": "release/project-brief-v0.8.0-7289c8a.zip",
+  "bytes": 39226881,
+  "sha256": "830c8329a92577d84593cbf269f907c2a3e270036e9e7989c226e2a16e2d8715",
   "fileCount": 8849,
   "checksummedFiles": 8848,
   "archiveEntries": 10094,
@@ -16,14 +16,14 @@
   "phpunit": {
     "tool": "phpunit",
     "result": "passed",
-    "tests": 855,
-    "passed": 855,
-    "assertions": 12542,
-    "duration_ms": 74743
+    "tests": 860,
+    "passed": 860,
+    "assertions": 12602,
+    "duration_ms": 69136
   },
   "nodeTests": {
-    "tests": 337,
-    "passed": 337,
+    "tests": 351,
+    "passed": 351,
     "failed": 0
   },
   "php84MariaDb": {
@@ -31,7 +31,8 @@
     "database": "MariaDB 11.8.9",
     "tests": 78,
     "assertions": 848,
-    "passed": true
+    "passed": true,
+    "note": "Previous integration backend verification; production PHP is byte-identical after these frontend regressions were fixed."
   },
   "browser": {
     "engine": "Chromium",
@@ -66,7 +67,8 @@
     "packagedSignedWebAuthn": true,
     "pint": true,
     "changedFilePrettier": true,
-    "diffCheck": true
+    "diffCheck": true,
+    "emptyClientFirstTaskAndSection": true
   },
   "migrationsAdded": ["2026_10_29_092022_add_project_provisioning_foundation"],
   "dependenciesAdded": false,
@@ -83,5 +85,27 @@
   "productionVerified": false,
   "pushed": false,
   "merged": false,
-  "deployed": false
+  "deployed": false,
+  "previousArchive": {
+    "sourceCommit": "3a579689896b8f5cfe865b49843a0b56a8cbd439",
+    "archive": "release/project-brief-v0.8.0-3a57968.zip",
+    "sha256": "e27b19bc458934cf4a05a39cb93837f4420f946b07ff30690404c1db030b75f0",
+    "bytes": 39226803
+  },
+  "regressionQa": {
+    "cases": 23,
+    "compiledFrontendCases": 19,
+    "browserEngines": ["Chromium", "Firefox"],
+    "database": "SQLite",
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "viewports": [1440, 768, 390],
+    "roles": ["client", "owner", "assigned developer"],
+    "javascriptErrors": 0,
+    "desktopGapBefore": 273.546875,
+    "desktopGapAfter": 0,
+    "negativeMarginsAdded": false,
+    "productionPhpUnchangedFromPreviousArchive": true,
+    "extraMigrations": false,
+    "evidence": "artifacts/client-project-regressions/"
+  }
 }
