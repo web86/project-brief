@@ -1,0 +1,87 @@
+{
+  "version": "0.8.0",
+  "branch": "codex/milestone-8-0-integration-foundation",
+  "baseCommit": "5918f51b767c61163bb6afdc861d28e9e9ea49da",
+  "sourceCommit": "3a579689896b8f5cfe865b49843a0b56a8cbd439",
+  "builtAt": "2026-10-29T09:56:05.382Z",
+  "archive": "release/project-brief-v0.8.0-3a57968.zip",
+  "bytes": 39226803,
+  "sha256": "e27b19bc458934cf4a05a39cb93837f4420f946b07ff30690404c1db030b75f0",
+  "fileCount": 8849,
+  "checksummedFiles": 8848,
+  "archiveEntries": 10094,
+  "phpRuntime": "8.5.10",
+  "phpTarget": "8.4",
+  "testProcessMemoryLimitMiB": 512,
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 855,
+    "passed": 855,
+    "assertions": 12542,
+    "duration_ms": 74743
+  },
+  "nodeTests": {
+    "tests": 337,
+    "passed": 337,
+    "failed": 0
+  },
+  "php84MariaDb": {
+    "runtime": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 78,
+    "assertions": 848,
+    "passed": true
+  },
+  "browser": {
+    "engine": "Chromium",
+    "scenarioGroupsPerEngine": 7,
+    "engines": ["SQLite", "MariaDB 11.8.9"],
+    "screenshotsPerEngine": 9,
+    "javascriptErrors": 0,
+    "concurrentPhpProcesses": 2,
+    "sameKeyConcurrentCalls": 8,
+    "sameExternalIdConcurrentCalls": 6,
+    "syntheticDataOnly": true,
+    "localSmtpAfterCommitVerified": true,
+    "fullCartesianMatrix": false
+  },
+  "dependencyAudit": {
+    "allVulnerabilities": 0,
+    "runtimeVulnerabilities": 0,
+    "vue-i18n": "11.4.14",
+    "vite": "7.3.7",
+    "userAuthorizedPatchUpdates": true
+  },
+  "checks": {
+    "canonicalBuilder": true,
+    "cleanSourceCommit": true,
+    "archiveFullCrc": true,
+    "internalChecksums": true,
+    "qaArtifactsAbsent": true,
+    "secretAndArtifactScan": true,
+    "productionVendorOnly": true,
+    "packagedRuntimeHttp": true,
+    "packagedProvisioning": true,
+    "packagedSignedWebAuthn": true,
+    "pint": true,
+    "changedFilePrettier": true,
+    "diffCheck": true
+  },
+  "migrationsAdded": ["2026_10_29_092022_add_project_provisioning_foundation"],
+  "dependenciesAdded": false,
+  "dependencyVersionsUpdated": true,
+  "composerDependenciesChanged": false,
+  "cronJobsAdded": false,
+  "limitations": [
+    "Local QA does not verify Jino hosting, proxy/NAT settings or staging backups",
+    "SMTP acceptance at a local sink does not verify delivery to an external inbox",
+    "Actual external webhook consumer and live CMS hooks not tested",
+    "Client identity remains a workspace contact; authentication remains project scoped",
+    "Integration external ID namespace is per API token/workspace; token replacement requires mapping reconciliation"
+  ],
+  "productionVerified": false,
+  "pushed": false,
+  "merged": false,
+  "deployed": false
+}

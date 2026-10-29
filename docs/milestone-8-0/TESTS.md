@@ -51,3 +51,11 @@ PHP-пример проверяется синтаксически; готовы
 | Scoped Pint / Prettier / diff check / PHP example syntax | **PASS**                                                   |
 
 Скриншоты формы входа RU/mobile/dark и журнала desktop/mobile просмотрены визуально. Матрица показывает отдельные сочетания четырёх языков/двух тем и desktop/mobile, а не полное декартово произведение. Все адреса, токены, письма и пользователи синтетические. JSON browser-сценариев сохранены рядом с PNG; команды и миграции не обращались к Jino.
+
+## Финальный production ZIP
+
+Каноническая повторная сборка после разрешённых patch-обновлений: **PASS**. Полный frontend/backend набор повторно прошёл; extracted ZIP проверен на production vendor, signed WebAuthn, новый provisioning flow (contact/project/membership, failed SMTP, same-key replay и recovery по external ID, язык/описание, защищённый canonical URL), прежние API, приглашения, comments/files, trash/restore, CLI/CSRF/SPA и maintenance.
+
+Все CRC и внутренние checksums сверены после сборки; QA-материалы, исходники frontend, node_modules, development vendor и CMS-пример в ZIP отсутствуют. Инструкции внутри ZIP содержат финальные patch-версии. Точные source commit, SHA-256, размер и результаты сохранены в `RELEASE-ARTIFACT.json` и `SHA256SUMS.txt`.
+
+Первый промежуточный ZIP до patch-обновлений заменён финальным. После сборки изменялись только внешние отчёты; runtime исходники соответствуют указанному source commit. Push, merge и deployment не выполнялись.
