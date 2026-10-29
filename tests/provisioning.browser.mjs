@@ -127,6 +127,12 @@ async function capture(page, name) {
     const box = await page.locator('.client-project-login').boundingBox()
     assert.ok(Math.abs(box.x + box.width / 2 - page.viewportSize().width / 2) <= 1)
     assert.ok(box.width <= 481)
+    const contentBox = await page.locator('#main-content').boundingBox()
+    const workspaceBox = await page.locator('.workspace').boundingBox()
+    assert.ok(
+      Math.abs(contentBox.y + contentBox.height / 2 - (workspaceBox.y + workspaceBox.height / 2)) <=
+        12,
+    )
   }
   await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true })
 }

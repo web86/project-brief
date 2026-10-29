@@ -224,6 +224,7 @@ watch(
       class="app-shell"
       :class="{
         'client-shell': clientShell,
+        'client-entry-shell': route.meta.clientLogin,
         'task-workspace-shell': route.meta.taskDetail,
         'task-navigation-hidden': route.meta.taskDetail && workspace.hidden,
       }"

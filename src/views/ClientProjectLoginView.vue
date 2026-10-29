@@ -94,7 +94,7 @@ async function login() {
 <style scoped>
 .client-project-login {
   width: min(100%, 480px);
-  margin: clamp(24px, 6vh, 64px) auto;
+  margin: 24px auto;
   padding: clamp(20px, 4vw, 32px);
   display: grid;
   gap: 24px;
