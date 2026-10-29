@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Mail;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class ClientInvitationsTest extends TestCase
@@ -27,27 +28,44 @@ class ClientInvitationsTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_localized_invitation_uses_existing_client_access_and_expires_in_seven_days(): void
+    #[TestWith(['ru'])]
+    #[TestWith(['en'])]
+    #[TestWith(['tr'])]
+    #[TestWith(['zh-CN'])]
+    public function test_localized_invitation_uses_existing_client_access_and_expires_in_seven_days(string $locale): void
     {
         Mail::fake();
         config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'system@example.test']);
         $project = Project::factory()->create();
         $this->actingAs($this->ownerFor($project));
         $root = '/api/admin/projects/'.$project->uuid.'/clients';
-        $this->withHeader('Accept-Language', 'tr')->postJson($root, ['name' => 'Mehmet', 'email' => 'MEHMET@example.test', 'sendInvitation' => true])->assertCreated()->assertJsonPath('invitation', 'sent');
+        $this->travelTo(now()->startOfSecond());
+        $this->withHeader('Accept-Language', $locale)->postJson($root, ['name' => 'Mehmet', 'email' => 'MEHMET@example.test', 'sendInvitation' => true])->assertCreated()->assertJsonPath('invitation', 'sent');
         $client = $project->clients()->where('email', 'mehmet@example.test')->firstOrFail();
         $mail = Mail::sent(AccountActionMail::class)->first();
-        $this->assertSame('tr', $mail->language);
-        $this->assertSame(trans('account.client_invitation_heading', [], 'tr'), $mail->heading);
+        $this->assertSame($locale, $mail->language);
+        $this->assertSame(trans('account.client_invitation_heading', [], $locale), $mail->heading);
+        $this->assertSame(trans('account.client_open_project', [], $locale), $mail->actionLabel);
+        $this->assertSame(trans('account.client_invitation_message', ['project' => $project->title], $locale), $mail->messageText);
+        $this->assertStringContainsString('7', $mail->messageText);
+        $this->assertStringNotContainsString('30', $mail->messageText);
+        $this->assertStringContainsString('>'.$mail->actionLabel.'</a>', $mail->render());
         $this->assertStringContainsString('/access/', $mail->actionUrl);
         $token = $client->accessTokens()->firstOrFail();
         $plain = basename($mail->actionUrl);
         $this->assertSame(hash('sha256', $plain), $token->token_hash);
-        $this->assertTrue($token->expires_at->between(now()->addDays(7)->subMinute(), now()->addDays(7)->addMinute()));
+        $this->assertSame(now()->addDays(7)->toISOString(), $token->expires_at->toISOString());
         $this->get('/access/'.$plain)->assertRedirect(config('projectbrief.frontend_url').'/project/'.$project->uuid);
         $this->getJson('/api/client/me')->assertOk()->assertJsonPath('id', $client->uuid);
         $this->travel(8)->days();
         $this->get('/access/'.$plain)->assertRedirect(config('projectbrief.frontend_url').'/access-error?reason=expired');
+    }
+
+    public function test_other_account_mail_keeps_its_default_button_label(): void
+    {
+        $mail = new AccountActionMail('Reset password', 'Reset instructions', 'https://example.test/reset');
+        $this->assertStringContainsString('>Reset password</a>', $mail->render());
+        $this->assertNull($mail->actionLabel);
     }
 
     public function test_duplicate_creation_reuses_client_without_resending_or_rotating_links(): void

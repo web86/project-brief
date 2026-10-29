@@ -178,6 +178,9 @@ test('client login page renders a mailbox form without project data in every loc
     const html = await renderToString(createSSRApp(View).use(router).use(i18n))
     assert.match(html, /type="email"/)
     assert.match(html, /autocomplete="email"/)
+    assert.ok(html.includes(i18n.global.t('provisioning.loginTitle')))
+    assert.ok(html.includes(i18n.global.t('provisioning.loginSend')))
+    assert.ok(!html.includes(i18n.global.t('provisioning.loginSentTitle')))
     assert.ok(!html.includes('provisioning.login'))
     assert.ok(!html.includes('/access/'))
   }

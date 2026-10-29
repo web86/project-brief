@@ -271,9 +271,17 @@ export default {
     loginTitle: 'Projenizi açın',
     loginHint:
       'Bu projeye bağlı e-posta adresini girin. Giriş bağlantısını e-posta ile göndereceğiz.',
-    loginSend: 'Giriş bağlantısı gönder',
+    loginSend: 'Giriş bağlantısı al',
+    loginSentTitle: 'E-postanızı kontrol edin',
+    loginAnotherEmail: 'Başka bir e-posta kullan',
     loginSent:
-      'Bu e-posta adresinin projeye etkin erişimi varsa giriş bağlantısı kısa süre içinde ulaşır. Projenize dönmek için bağlantıyı açın.',
+      'Bu e-posta adresinin projeye erişimi varsa bir giriş bağlantısı göndereceğiz. Bağlantıyı açarak doğrudan projenize gidebilirsiniz.',
+    invitationModeTitle: 'Entegrasyondan müşteri girişi',
+    invitationModeLabel: 'Proje oluşturulurken',
+    invitationImmediate: 'Daveti hemen gönder',
+    invitationSelfService: 'Müşteri giriş bağlantısını kendisi ister',
+    invitationModeHint:
+      'Seçilen sendInvitation değerini provisioning API isteğine ekleyin. Bu örnek, harici sisteminizi yapılandırmak içindir: mod her istekte belirtilir ve API belirtecine kaydedilmez.',
   },
   integrations: {
     scope_projects_provision: 'Müşteri ve proje oluştur',

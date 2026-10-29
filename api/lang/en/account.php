@@ -11,4 +11,7 @@ return [
     'invitation_message' => 'You are invited to :workspace. Sign in or create an account. This link expires in 7 days.',
     'client_invitation_heading' => 'Project invitation',
     'client_invitation_message' => 'You are invited to :project. Open your personal client interface using this link. The link expires in 7 days.',
+    'client_login_heading' => 'Sign in to your project',
+    'client_login_message' => 'You requested access to :project. This sign-in link expires in 30 minutes. If you did not request it, ignore this email.',
+    'client_open_project' => 'Open project',
 ];

@@ -6,8 +6,10 @@ use App\Mail\AccountActionMail;
 use App\Models\Project;
 use App\Models\ProjectAccessToken;
 use App\Services\ClientInvitations;
+use App\Services\SupportedLocales;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class ClientProjectLoginTest extends TestCase
@@ -20,22 +22,39 @@ class ClientProjectLoginTest extends TestCase
         config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'system@example.test']);
     }
 
-    public function test_canonical_link_requires_mailbox_proof_and_magic_link_can_be_used_again(): void
+    #[TestWith(['ru'])]
+    #[TestWith(['en'])]
+    #[TestWith(['tr'])]
+    #[TestWith(['zh-CN'])]
+    public function test_canonical_link_requires_mailbox_proof_and_magic_link_can_be_used_again(string $locale): void
     {
+        $this->travelTo(now()->startOfSecond());
         $this->mail();
         $project = Project::factory()->create(['client_email' => 'ada@example.test']);
         $client = $project->clients()->first();
+        $client->update(['preferred_locale' => SupportedLocales::storage($locale)]);
         $this->getJson('/api/client/project/'.$project->uuid)->assertUnauthorized();
         $this->postJson('/api/client/project/'.$project->uuid.'/login', ['email' => 'ADA@example.test'])->assertAccepted()->assertExactJson(['accepted' => true]);
         $mail = Mail::sent(AccountActionMail::class)->first();
         $token = $client->accessTokens()->first();
         $this->assertNotNull($mail);
-        $this->assertTrue($token->expires_at->between(now()->addMinutes(29), now()->addMinutes(31)));
+        $this->assertSame(now()->addMinutes(30)->toISOString(), $token->expires_at->toISOString());
+        $this->assertSame(trans('account.client_login_heading', [], $locale), $mail->heading);
+        $this->assertSame(trans('account.client_open_project', [], $locale), $mail->actionLabel);
+        $this->assertSame(trans('account.client_login_message', ['project' => $project->title], $locale), $mail->messageText);
+        $this->assertStringContainsString('30', $mail->messageText);
+        $this->assertStringNotContainsString('7', $mail->messageText);
+        $this->assertStringContainsString('>'.$mail->actionLabel.'</a>', $mail->render());
+        $text = view('mail.account-action-text', get_object_vars($mail))->render();
+        $this->assertStringContainsString($mail->actionLabel, $text);
+        $this->assertStringContainsString($mail->actionUrl, $text);
         $this->get('/access/'.basename($mail->actionUrl))->assertRedirect(config('projectbrief.frontend_url').'/project/'.$project->uuid);
         $this->getJson('/api/client/project/'.$project->uuid)->assertOk()->assertJsonPath('data.id', $project->uuid);
         $this->get('/access/'.basename($mail->actionUrl))->assertRedirect(config('projectbrief.frontend_url').'/project/'.$project->uuid);
         $this->getJson('/api/client/me')->assertOk()->assertJsonPath('id', $client->uuid);
         Mail::assertSentCount(1);
+        $this->travel(31)->minutes();
+        $this->get('/access/'.basename($mail->actionUrl))->assertRedirect(config('projectbrief.frontend_url').'/access-error?reason=expired');
     }
 
     public function test_unknown_email_and_unknown_project_have_same_response_and_no_mail(): void

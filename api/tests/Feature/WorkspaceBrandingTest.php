@@ -184,6 +184,12 @@ class WorkspaceBrandingTest extends TestCase
         $invite = Mail::sent(AccountActionMail::class)->first();
         $this->assertNotNull($invite->branding);
         $this->assertStringContainsString('/access/test', $invite->render());
+        app(ClientInvitations::class)->deliver($this->project, $client, 'https://example.test/access/login', login: true);
+        $login = Mail::sent(AccountActionMail::class)->last();
+        $this->assertSame($invite->branding, $login->branding);
+        $this->assertSame(trans('account.client_open_project', [], 'en'), $login->actionLabel);
+        $this->assertStringContainsString('&lt;script&gt;Company&lt;/script&gt;', $login->render());
+        $this->assertStringContainsString('#17695d', $login->render());
         app(AccountMail::class)->localized('user@example.test', 'en', 'reset', 'https://example.test/reset');
         $system = Mail::sent(AccountActionMail::class)->last();
         $this->assertNull($system->branding);

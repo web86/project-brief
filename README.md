@@ -1,5 +1,7 @@
 # Планировщик ТЗ / Project Brief
 
+Project Brief 0.8.1: [Client Entry UX — вход клиента, письма и режимы приглашения](docs/client-entry-0-8-1/README.md).
+
 Milestone 8.0 / 0.8.0: [Integration Foundation — API, миграция, PHP-пример и проверки](docs/milestone-8-0/README.md).
 
 Клиент описывает изменение сайта своими словами, разработчик получает структурированную идею, обсуждение и историю. Vue 3 / Vite / Pinia / Vue Router / vanilla CSS остаются основой интерфейса. Backend — Laravel 13.34, Eloquent и MariaDB, без JWT и публичной регистрации.

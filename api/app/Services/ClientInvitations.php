@@ -20,8 +20,8 @@ class ClientInvitations
         return ['id' => $token->id, 'url' => rtrim(config('projectbrief.frontend_url'), '/').'/access/'.$plaintext, 'expiresAt' => $token->expires_at?->toISOString()];
     }
 
-    public function deliver(Project $project, ProjectClient $client, string $url): bool
+    public function deliver(Project $project, ProjectClient $client, string $url, bool $login = false): bool
     {
-        return app(AccountMail::class)->localized($client->email, $client->preferred_locale, 'client_invitation', $url, ['project' => $project->title], $project->workspace()->firstOrFail());
+        return app(AccountMail::class)->localized($client->email, $client->preferred_locale, $login ? 'client_login' : 'client_invitation', $url, ['project' => $project->title], $project->workspace()->firstOrFail(), 'client_open_project');
     }
 }

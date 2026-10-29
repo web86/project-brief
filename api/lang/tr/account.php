@@ -11,4 +11,7 @@ return [
     'invitation_message' => ':workspace çalışma alanına davet edildiniz. Giriş yapın veya hesap oluşturun. Bu bağlantı 7 gün geçerlidir.',
     'client_invitation_heading' => 'Proje daveti',
     'client_invitation_message' => ':project projesine davet edildiniz. Kişisel müşteri arayüzünüzü bu bağlantıyla açın. Bağlantı 7 gün geçerlidir.',
+    'client_login_heading' => 'Projenize giriş yapın',
+    'client_login_message' => ':project projesine giriş bağlantısı istediniz. Bu bağlantı 30 dakika geçerlidir. Siz istemediyseniz bu e-postayı dikkate almayın.',
+    'client_open_project' => 'Projeyi aç',
 ];

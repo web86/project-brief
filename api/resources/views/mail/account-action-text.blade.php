@@ -2,6 +2,9 @@
 
 {{ $messageText }}
 @if($actionUrl)
+@if($actionLabel)
+{{ $actionLabel }}
+@endif
 {{ $actionUrl }}
 @endif
 

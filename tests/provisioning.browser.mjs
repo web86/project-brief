@@ -6,13 +6,14 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import net from 'node:net'
-import { createServer } from 'vite'
+import { createServer, preview } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = fileURLToPath(new URL('..', import.meta.url))
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-provisioning-'))
 const app = path.join(scratch, 'app')
 const mysql = !!process.env.PROVISIONING_MYSQL_PORT
-const output = path.join(root, 'artifacts/milestone-8-0', mysql ? 'mysql' : 'sqlite')
+const productionBuild = process.env.CLIENT_ENTRY_PRODUCTION_BUILD === '1'
+const output = path.join(root, 'artifacts/client-entry-0-8-1', mysql ? 'mysql' : 'sqlite')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, otherBackend, frontend, browser, smtp
@@ -122,10 +123,20 @@ async function capture(page, name) {
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
     name + ': overflow',
   )
+  if (await page.locator('.client-project-login').count()) {
+    const box = await page.locator('.client-project-login').boundingBox()
+    assert.ok(Math.abs(box.x + box.width / 2 - page.viewportSize().width / 2) <= 1)
+    assert.ok(box.width <= 481)
+  }
   await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true })
 }
+function decodedMail(index = messages.length - 1) {
+  return messages[index]
+    .replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+}
 function mailLink(index = messages.length - 1) {
-  const text = messages[index].replace(/=\r?\n/g, '')
+  const text = decodedMail(index)
   return origin + text.match(/\/access\/[a-f0-9]{64}/)[0]
 }
 try {
@@ -218,24 +229,39 @@ try {
     )
   backend = serve(apiPort)
   otherBackend = serve(otherPort)
-  frontend = await createServer({
-    cacheDir: path.join(scratch, 'vite-cache'),
-    mode: 'test',
-    define: { 'import.meta.env.VITE_DATA_SOURCE': '"api"' },
-    server: {
-      host: '127.0.0.1',
-      port: webPort,
-      strictPort: true,
-      hmr: false,
-      proxy: {
-        '/api': { target: `http://127.0.0.1:${apiPort}` },
-        '/access/': { target: `http://127.0.0.1:${apiPort}` },
-        '/branding-assets': { target: `http://127.0.0.1:${apiPort}` },
-      },
-    },
-    logLevel: 'error',
-  })
-  await frontend.listen()
+  frontend = productionBuild
+    ? await preview({
+        configFile: path.join(root, 'vite.config.js'),
+        preview: {
+          host: '127.0.0.1',
+          port: webPort,
+          strictPort: true,
+          proxy: {
+            '/api': { target: `http://127.0.0.1:${apiPort}` },
+            '/access/': { target: `http://127.0.0.1:${apiPort}` },
+            '/branding-assets': { target: `http://127.0.0.1:${apiPort}` },
+          },
+        },
+        logLevel: 'error',
+      })
+    : await createServer({
+        cacheDir: path.join(scratch, 'vite-cache'),
+        mode: 'test',
+        define: { 'import.meta.env.VITE_DATA_SOURCE': '"api"' },
+        server: {
+          host: '127.0.0.1',
+          port: webPort,
+          strictPort: true,
+          hmr: false,
+          proxy: {
+            '/api': { target: `http://127.0.0.1:${apiPort}` },
+            '/access/': { target: `http://127.0.0.1:${apiPort}` },
+            '/branding-assets': { target: `http://127.0.0.1:${apiPort}` },
+          },
+        },
+        logLevel: 'error',
+      })
+  if (!productionBuild) await frontend.listen()
   for (let i = 0; i < 100; i++) {
     try {
       if (
@@ -343,15 +369,78 @@ try {
     'failed',
   )
   results.push({ test: 'smtp-failure-durable-result-and-no-automatic-resend', passed: true })
+  assert.ok(decodedMail(0).includes('7 days'))
+  assert.ok(decodedMail(0).includes('Open project'))
+  const invited = await context(),
+    invitationPage = await invited.newPage()
+  await invitationPage.goto(mailLink(0))
+  await invitationPage.waitForURL(created.body.data.projectUrl)
+  await invitationPage
+    .getByRole('heading', { name: 'Studio website project', exact: true })
+    .first()
+    .waitFor()
+  assert.equal(await invitationPage.locator('#client-login-email').count(), 0)
+  await invited.close()
+  results.push({
+    test: 'initial-invitation-opens-project-directly-without-email-step',
+    passed: true,
+  })
   const guest = await context(),
     page = await guest.newPage()
   await page.goto(created.body.data.projectUrl)
   await page.waitForURL('**/project/*/login')
   await page.locator('#client-login-email').fill('ada@example.test')
-  await page.locator('form button[type=submit]').click()
-  await page.getByRole('status').filter({ hasText: 'If this email' }).waitFor()
   await capture(page, 'client-login-en-light')
-  const loginLink = mailLink()
+  let releaseLogin,
+    loginRequests = 0
+  const loginGate = new Promise((resolve) => {
+    releaseLogin = resolve
+  })
+  await page.route('**/api/client/project/*/login', async (route) => {
+    loginRequests++
+    const response = await route.fetch()
+    await loginGate
+    await route.fulfill({ response })
+  })
+  await page.locator('form button[type=submit]').click()
+  await page
+    .locator('form')
+    .evaluate((form) =>
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    )
+  releaseLogin()
+  await page.getByRole('heading', { name: 'Check your email', exact: true }).waitFor()
+  await page.unroute('**/api/client/project/*/login')
+  assert.equal(loginRequests, 1)
+  assert.equal(await page.locator('#client-login-email').count(), 0)
+  assert.equal(
+    await page.getByRole('heading', { name: 'Open your project', exact: true }).count(),
+    0,
+  )
+  assert.equal(
+    await page
+      .getByText(
+        'Enter the email address linked to this project. We will email you a sign-in link.',
+        { exact: true },
+      )
+      .count(),
+    0,
+  )
+  await capture(page, 'client-login-sent-en-light')
+  const knownSentText = await page.locator('.client-entry-sent').innerText()
+  const loginMailIndex = messages.length - 1
+  assert.ok(decodedMail(loginMailIndex).includes('30 minutes'))
+  assert.ok(!decodedMail(loginMailIndex).includes('7 days'))
+  assert.ok(decodedMail(loginMailIndex).includes('Open project'))
+  await page.getByRole('button', { name: 'Use another email', exact: true }).click()
+  await page.locator('#client-login-email').fill('unknown@example.test')
+  const mailBeforeUnknown = messages.length
+  await page.locator('form button[type=submit]').click()
+  await page.getByRole('heading', { name: 'Check your email', exact: true }).waitFor()
+  assert.equal(await page.locator('.client-entry-sent').innerText(), knownSentText)
+  assert.equal(messages.length, mailBeforeUnknown)
+  results.push({ test: 'sent-state-another-email-privacy-and-duplicate-submit', passed: true })
+  const loginLink = mailLink(loginMailIndex)
   await page.goto(loginLink)
   await page.waitForURL(created.body.data.projectUrl)
   await page.getByRole('heading', { name: 'Studio website project', exact: true }).first().waitFor()
@@ -380,8 +469,47 @@ try {
     await p.waitForURL('**/project/*/login')
     await p.locator('#client-login-email').waitFor()
     await capture(p, 'client-login-' + locale + '-mobile-dark')
+    const initial = await p.locator('.client-entry-heading h1').innerText()
+    php(['artisan', 'cache:clear']) // Isolate independent UI cases in the disposable QA cache.
+    await p.locator('#client-login-email').fill('ada@example.test')
+    await p.locator('form button[type=submit]').click()
+    await p.locator('.client-entry-sent h1').waitFor()
+    assert.notEqual(await p.locator('.client-entry-sent h1').innerText(), initial)
+    assert.equal(await p.locator('.client-entry-heading').count(), 0)
+    assert.equal(await p.locator('#client-login-email').count(), 0)
+    await capture(p, 'client-login-sent-' + locale + '-mobile-dark')
+    await p.setViewportSize({ width: 1440, height: 980 })
+    await capture(p, 'client-login-sent-' + locale + '-desktop-dark')
+    await p.locator('.client-entry-another').click()
+    assert.equal(await p.locator('#client-login-email').inputValue(), 'ada@example.test')
+    assert.equal(
+      await p.locator('#client-login-email').evaluate((el) => el === document.activeElement),
+      true,
+    )
+    await p.route('**/api/client/project/*/login', (route) =>
+      route.fulfill({ status: 429, json: { message: 'Too many requests.' } }),
+    )
+    await p.locator('form button[type=submit]').click()
+    await p.getByRole('alert').waitFor()
+    assert.equal(await p.locator('.client-entry-sent').count(), 0)
+    assert.equal(await p.locator('#client-login-email').isEnabled(), true)
+    assert.equal(await p.locator('form button[type=submit]').isEnabled(), true)
+    const rateError = await p.getByRole('alert').innerText()
+    await p.unroute('**/api/client/project/*/login')
+    await p.route('**/api/client/project/*/login', (route) => route.abort('failed'))
+    await p.locator('form button[type=submit]').click()
+    await p.waitForFunction((previous) => {
+      const alert = document.querySelector('[role=alert]')
+      return alert && alert.textContent.trim() !== previous.trim()
+    }, rateError)
+    assert.equal(await p.locator('.client-entry-sent').count(), 0)
+    assert.equal(await p.locator('#client-login-email').isEnabled(), true)
     await ctx.close()
   }
+  results.push({
+    test: 'login-state-matrix-four-locales-two-sizes-and-recoverable-errors',
+    passed: true,
+  })
   const owner = await context(),
     admin = await owner.newPage()
   await admin.goto(origin + '/admin/login')
@@ -409,7 +537,33 @@ try {
     tokenItem.locator('input[type=checkbox]').click(),
   ])
   assert.equal((await provision()).status, 201)
+  const writes = []
+  const trackWrites = (request) => {
+    if (request.method() !== 'GET' && request.url().includes('/api/admin/integrations'))
+      writes.push(request.url())
+  }
+  admin.on('request', trackWrites)
+  await admin.locator('input[name=invitation-mode][value=self_service]').check()
+  assert.deepEqual(
+    JSON.parse(await admin.locator('.provisioning-request-example code').innerText()),
+    { sendInvitation: false },
+  )
+  await admin.locator('input[name=invitation-mode][value=immediate]').check()
+  assert.deepEqual(
+    JSON.parse(await admin.locator('.provisioning-request-example code').innerText()),
+    { sendInvitation: true },
+  )
+  assert.deepEqual(writes, [])
+  admin.off('request', trackWrites)
   await capture(admin, 'tokens-en-desktop')
+  await admin.setViewportSize({ width: 390, height: 844 })
+  await admin.locator('input[name=invitation-mode][value=self_service]').check()
+  await capture(admin, 'invitation-mode-en-mobile')
+  await admin.setViewportSize({ width: 1440, height: 980 })
+  results.push({
+    test: 'invitation-mode-chooser-retains-sendInvitation-contract-without-settings-writes',
+    passed: true,
+  })
   await admin.getByRole('tab', { name: 'Recent operations' }).click()
   await admin.locator('#integration-panel-operations .integration-item').first().waitFor()
   await capture(admin, 'operations-en-desktop')
@@ -475,6 +629,7 @@ try {
         database: mysql ? 'MariaDB 11.8.9' : 'SQLite',
         mail: 'local SMTP sink',
         liveJino: false,
+        productionBuild,
       },
       null,
       2,
@@ -491,7 +646,9 @@ try {
   throw error
 } finally {
   await browser?.close()
-  await frontend?.close()
+  if (productionBuild && frontend)
+    await new Promise((resolve) => frontend.httpServer.close(resolve))
+  else await frontend?.close()
   backend?.kill('SIGTERM')
   otherBackend?.kill('SIGTERM')
   if (smtp) await new Promise((resolve) => smtp.close(resolve))

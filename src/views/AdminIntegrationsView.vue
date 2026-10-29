@@ -16,6 +16,10 @@ const state = ref(null),
   loadFailed = ref(false),
   historyBusy = ref(false),
   copying = ref(false)
+const invitationMode = ref('immediate')
+const invitationExample = computed(() =>
+  JSON.stringify({ sendInvitation: invitationMode.value === 'immediate' }, null, 2),
+)
 const name = ref(''),
   scopes = ref(['projects:read', 'tasks:read']),
   expires = ref('')
@@ -158,6 +162,7 @@ watch(
     const current = ++revision
     hideSecret()
     state.value = null
+    invitationMode.value = 'immediate'
     deliveries.value = null
     operations.value = null
     operationPage.value = 1
@@ -449,6 +454,36 @@ async function confirmAction(key, path, method = 'POST') {
               >{{ t('integrations.create') }}</LoadingButton
             >
           </form>
+          <section
+            class="surface integration-form provisioning-invitation-mode"
+            aria-labelledby="invitation-mode-title"
+          >
+            <h2 id="invitation-mode-title">{{ t('provisioning.invitationModeTitle') }}</h2>
+            <fieldset class="integration-choices">
+              <legend>{{ t('provisioning.invitationModeLabel') }}</legend>
+              <label
+                ><input
+                  v-model="invitationMode"
+                  type="radio"
+                  name="invitation-mode"
+                  value="immediate"
+                />{{ t('provisioning.invitationImmediate') }}</label
+              >
+              <label
+                ><input
+                  v-model="invitationMode"
+                  type="radio"
+                  name="invitation-mode"
+                  value="self_service"
+                />{{ t('provisioning.invitationSelfService') }}</label
+              >
+            </fieldset>
+            <p class="small muted">{{ t('provisioning.invitationModeHint') }}</p>
+            <pre
+              class="provisioning-request-example"
+              aria-live="polite"
+            ><code>{{ invitationExample }}</code></pre>
+          </section>
           <section class="surface integration-list">
             <h2>{{ t('integrations.tokens') }}</h2>
             <p v-if="!activeTokens.length" class="muted">{{ t('integrations.empty') }}</p>
@@ -874,6 +909,13 @@ async function confirmAction(key, path, method = 'POST') {
 .integration-id {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+.provisioning-request-example {
+  margin: 0;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--surface-hover);
+  overflow-x: auto;
 }
 .integration-project-options {
   max-height: 240px;

@@ -243,9 +243,16 @@ export default {
     status_failed: '失败',
     loginTitle: '打开您的项目',
     loginHint: '请输入与此项目关联的电子邮件地址。我们将发送登录链接。',
-    loginSend: '发送登录链接',
-    loginSent:
-      '如果此电子邮件地址拥有项目的有效访问权限，您将很快收到登录链接。打开链接即可返回项目。',
+    loginSend: '获取登录链接',
+    loginSentTitle: '请查收电子邮件',
+    loginAnotherEmail: '使用其他电子邮件地址',
+    loginSent: '如果此电子邮件地址拥有项目访问权限，我们将发送登录链接。打开链接即可直接进入项目。',
+    invitationModeTitle: '集成中的客户登录方式',
+    invitationModeLabel: '创建项目时',
+    invitationImmediate: '立即发送邀请',
+    invitationSelfService: '客户自行请求登录链接',
+    invitationModeHint:
+      '在 provisioning API 请求中传递所选的 sendInvitation 值。此示例用于配置外部系统：每次请求都需指定该值，不会将模式保存到 API 令牌。',
   },
   integrations: {
     scope_projects_provision: '创建客户和项目',

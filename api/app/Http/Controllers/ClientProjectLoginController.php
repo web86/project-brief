@@ -37,7 +37,7 @@ class ClientProjectLoginController extends Controller
         if ($delivery) {
             [$project, $client, $link] = $delivery;
             try {
-                $sent = app(ClientInvitations::class)->deliver($project, $client, $link['url']);
+                $sent = app(ClientInvitations::class)->deliver($project, $client, $link['url'], login: true);
             } catch (Throwable $exception) {
                 app(SafeExceptionReporter::class)->report($exception);
                 $sent = false;

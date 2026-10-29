@@ -270,9 +270,17 @@ export default {
     status_failed: 'Failed',
     loginTitle: 'Open your project',
     loginHint: 'Enter the email address linked to this project. We will email you a sign-in link.',
-    loginSend: 'Send sign-in link',
+    loginSend: 'Get a sign-in link',
+    loginSentTitle: 'Check your email',
+    loginAnotherEmail: 'Use another email',
     loginSent:
-      'If this email has active access to the project, a sign-in link will arrive shortly. Open it to return to your project.',
+      'If this email has access to the project, we will send a sign-in link. Open it to go directly to your project.',
+    invitationModeTitle: 'Client entry from an integration',
+    invitationModeLabel: 'When creating a project',
+    invitationImmediate: 'Send an invitation immediately',
+    invitationSelfService: 'Client requests a sign-in link',
+    invitationModeHint:
+      'Pass the selected sendInvitation value in the provisioning API request. This example helps configure your external system: the mode is set per request and is not saved on the API token.',
   },
   integrations: {
     scope_projects_provision: 'Provision clients and projects',
