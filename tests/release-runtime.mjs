@@ -1606,7 +1606,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.9.2',
+    '0.9.3',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
