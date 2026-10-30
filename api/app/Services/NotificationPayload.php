@@ -99,6 +99,17 @@ class NotificationPayload
             'open' => trans('notifications.open_discussion', [], $locale)]);
     }
 
+    public static function team(Comment $comment, Project $project, string $locale): array
+    {
+        $heading = trans('notifications.team_heading', [], $locale);
+        $body = trans('notifications.team_explanation', [], $locale);
+        $payload = self::test($locale, rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid.'/discussions#team-'.$comment->uuid);
+
+        return array_replace($payload, ['title' => $heading, 'heading' => $heading, 'subject' => '[ProjectBrief] '.$heading,
+            'body' => $body, 'explanation' => $body, 'project' => $project->title, 'project_uuid' => $project->uuid,
+            'event' => 'team.message_created', 'tag' => 'projectbrief-team-'.$comment->id]);
+    }
+
     public static function push(array $payload): array
     {
         return array_intersect_key($payload, array_flip(['title', 'body', 'url', 'tag', 'event', 'project_uuid', 'task_uuid']));

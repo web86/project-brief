@@ -10,6 +10,11 @@ class Attachment extends Model
 {
     use HasUuids;
 
+    protected static function booted(): void
+    {
+        static::addGlobalScope('public_channel', fn ($query) => $query->whereNotExists(fn ($private) => $private->selectRaw('1')->from('comments')->whereColumn('comments.id', 'attachments.comment_id')->where('comments.team_only', true)));
+    }
+
     protected $fillable = ['thumbnail_path', 'project_client_id', 'task_id', 'comment_id', 'uploaded_by_type', 'original_name', 'stored_name', 'mime_type', 'size', 'disk', 'path'];
 
     public function projectClient(): BelongsTo

@@ -2,13 +2,20 @@
 import { useRoute } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { computed } from 'vue'
-import { useWorkspaceAppearance } from '../services/workspaceAppearance.js'
+import {
+  useWorkspaceAppearance,
+  isEntryRoute,
+  entryBrandingReady,
+} from '../services/workspaceAppearance.js'
 import { safeFooterUrl } from '../utils/agreementEditor.js'
 import { t, locale } from '../i18n/index.js'
 const props = defineProps({ compact: Boolean, branding: Object })
 const route = useRoute(),
   nav = useAdminNavigationStore()
-const switching = computed(() => route.meta.adminShell && nav.switching)
+const switching = computed(
+  () =>
+    (route.meta.adminShell && nav.switching) || (isEntryRoute(route) && !entryBrandingReady.value),
+)
 const { brand } = useWorkspaceAppearance()
 const current = computed(() => props.branding || brand.value || {})
 const agreement = computed(() => safeFooterUrl(current.value.agreementUrl))

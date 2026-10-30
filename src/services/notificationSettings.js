@@ -9,6 +9,7 @@ export const notificationEvents = [
   'admin.task_done',
   'client.project_comment_created',
   'admin.project_comment_created',
+  'team.message_created',
 ]
 export function createNotificationSettings(request, projectId) {
   const path = `/api/admin/projects/${projectId}/notifications`

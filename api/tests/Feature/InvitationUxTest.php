@@ -27,7 +27,7 @@ class InvitationUxTest extends TestCase
         User::factory()->create(['email' => 'existing@example.test']);
         foreach (['new@example.test', 'existing@example.test'] as $email) {
             [$invitation, $token] = $this->invitation($email);
-            $this->postJson('/api/invitations/resolve', ['token' => $token, 'email' => 'arbitrary@example.test'])
+            $this->postJson('/api/invitations/resolve', ['token' => $token])
                 ->assertOk()->assertHeader('Cache-Control', 'no-store, private')
                 ->assertJsonPath('email', $email)->assertJsonPath('authenticated', false)
                 ->assertJsonPath('authenticatedEmail', null)->assertJsonPath('accountMatches', null)

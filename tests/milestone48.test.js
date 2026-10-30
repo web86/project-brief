@@ -69,7 +69,9 @@ test('owner team navigation has decorative aligned icons, active state, right-ha
 })
 test('developer menu omits owner-only team management and retains existing tools', async () => {
   navStore().user = { membershipRole: 'admin' }
-  navStore().projects = [{ id: 'test', permissions: { ...allProjectPermissions } }]
+  navStore().projects = [
+    { id: 'test', permissions: { ...allProjectPermissions, manage_team: false } },
+  ]
   const html = await render(Navigation, '/admin/projects/test/brief', { vertical: true })
   assert.ok(!html.includes('/test/team'))
   assert.ok(html.includes('/test/clients'))

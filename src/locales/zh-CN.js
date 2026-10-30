@@ -1,4 +1,17 @@
 export default {
+  team95: {
+    superadmin: '设为项目超级管理员',
+    superadminHint:
+      '允许全面管理已分配项目的设置、客户、团队、结构、通知和回收站。不授予工作空间、集成或平台管理权限，也不允许创建新项目。',
+    superadminBadge: '项目超级管理员',
+    assigned: '已分配',
+    invite: '邀请成员加入此项目',
+    connected: '已连接',
+    notConnected: '未连接',
+    chat: '项目团队聊天',
+    accountProtection: '账号保护',
+    securityIntro: '连接身份验证器或通行密钥以保护账号。可用方式和必需步骤取决于安全策略。',
+  },
   clientStatus: {
     return: '退回已确认',
     complete: '完成任务',
@@ -7,6 +20,14 @@ export default {
     conflict: '任务已更改。请检查当前状态后重试。',
   },
   agreement: {
+    languageEnabled: '启用',
+    defaultLanguage: '默认',
+    chooseDefaultFirst: '请先选择另一种已启用的默认语言。不能禁用最后一种语言。',
+    fillTemplate: '填入示例',
+    replaceTemplate: '是否用示例协议替换当前语言的文本？',
+    documentLanguage: '文档语言',
+    languageFallback: '此协议以{language}显示：界面语言的译文尚未启用。',
+
     settings: '管理员协议',
     title: '规则与管理员协议',
     label: '协议',
@@ -14,7 +35,7 @@ export default {
     requireAgain: '要求现有管理员重新接受已发布版本',
     settingsHint: '此文档由工作区所有者管理。草稿修改在发布前不会公开。',
     publishHint:
-      '发布需要修订日期和全部四种语言的文本。常规修改保留现有接受记录。要求重新接受时须使用更晚的修订日期。',
+      '发布需要修订日期和每种已启用语言的文本。一般编辑保留此前的接受记录；要求重新接受时必须使用较晚的修订日期。',
     version: '修订日期',
     languages: '文档语言',
     publicPage: '公开文档',
@@ -1097,6 +1118,7 @@ export default {
       enabled: '此设备已启用',
     },
     events: {
+      team: { message_created: '项目团队聊天' },
       client: {
         task_status_changed: '客户更改了任务状态',
         task_created: '新创意',

@@ -253,6 +253,9 @@ async function copyLink() {
           <p v-if="!member.projects.length" class="small muted">
             {{ t('administrators.noProjects') }}
           </p>
+          <p v-if="member.isProjectSuperadmin" class="small">
+            <AppIcon name="shield" :size="15" /> {{ t('team95.superadminBadge') }}
+          </p>
           <AgreementStatus :agreement="member.agreement" />
           <div class="administrator-security small muted">
             <span :title="t('security.authenticator')"

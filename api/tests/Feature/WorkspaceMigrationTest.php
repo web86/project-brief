@@ -150,6 +150,13 @@ class WorkspaceMigrationTest extends TestCase
 
                     return $data;
                 })->all();
+                if ($table === 'comments') {
+                    foreach ($after as &$row) {
+                        $this->assertSame($row['task_id'] === null ? 1 : 0, (int) $row['team_only']);
+                        unset($row['team_only']);
+                    }
+                    unset($row);
+                }
                 if ($table === 'users') {
                     foreach ($after as &$row) {
                         $this->assertSame('initials', $row['avatar_source']);

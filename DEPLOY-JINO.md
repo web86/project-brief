@@ -1,3 +1,7 @@
+# Релиз v0.9.5
+
+Актуальные обновление и безопасный rollback: [Milestone 9.5](docs/milestone-9-5/PRODUCTION.md). Обычный возврат v0.9.4 на текущую БД недопустим из-за приватного канала.
+
 > Milestone 9.0 / Project Brief 0.9.0 — Platform Admin & Usage Monitoring.
 
 Текущий release 0.9.3 / Milestone 9.3: [deployment и rollback](docs/milestone-9-3/PRODUCTION.md).

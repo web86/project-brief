@@ -145,6 +145,18 @@ try {
   await page.locator('form button[type=submit]').click()
   await page.waitForURL('**/admin/security')
   await call('/api/security/challenge', 'POST', { recovery_code: 'Live-browser-code-0' })
+  const settings95 = await call('/api/admin/settings/agreement')
+  await call('/api/admin/settings/agreement', 'PUT', {
+    enabled: false,
+    publish: false,
+    requireAgain: false,
+    baseRevision: null,
+    draft: {
+      ...settings95.data.draft,
+      enabledLocales: ['ru', 'en', 'tr', 'zh-CN'],
+      defaultLocale: 'ru',
+    },
+  })
   await page.goto(origin + '/admin/settings/agreement')
   const editor = page.locator('.editor-content'),
     dialog = page.locator('.agreement-link-dialog')

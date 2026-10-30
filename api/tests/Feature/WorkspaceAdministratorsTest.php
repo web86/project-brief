@@ -95,7 +95,7 @@ class WorkspaceAdministratorsTest extends TestCase
         $before = $member->projectMemberships()->where('project_id', $other->id)->firstOrFail()->permissions;
         $this->deleteJson($team.'/members/'.$member->id)->assertOk();
         $this->assertSame('active', $member->fresh()->status);
-        $this->assertTrue($member->fresh()->can_create_projects);
+        $this->assertFalse($member->fresh()->can_create_projects);
         $this->assertSame($before, $member->projectMemberships()->firstOrFail()->permissions);
         $this->assertSame($other->id, $member->projectMemberships()->firstOrFail()->project_id);
         $this->getJson($team)->assertJsonCount(0, 'members')->assertJsonCount(1, 'available');
@@ -122,7 +122,7 @@ class WorkspaceAdministratorsTest extends TestCase
         $team = '/api/admin/projects/'.$project->uuid.'/team';
         $this->postJson($team.'/members', ['members' => [$member->id], 'canCreateProjects' => true])->assertUnprocessable();
         $this->postJson($team.'/members', ['members' => [$owner->workspaceMembers()->firstOrFail()->id]])->assertUnprocessable();
-        $this->postJson($team.'/invitations', ['email' => 'bypass@example.test'])->assertNotFound();
+        $this->postJson($team.'/invitations', ['email' => 'scoped@example.test', 'generateLink' => true])->assertCreated();
         $this->patchJson($team.'/members/'.$member->id, ['projects' => []])->assertNotFound();
         $this->deleteJson($team.'/members/'.$owner->workspaceMembers()->firstOrFail()->id)->assertForbidden();
     }

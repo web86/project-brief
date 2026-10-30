@@ -306,7 +306,10 @@ test('logout warns before discarding, preserves draft on cancellation/failure, a
     assert.equal(store.hasDeveloperChanges('task'), true)
     api.request = success
     await instance.$.setupState.logout()
-    assert.deepEqual(calls, [{ path: '/api/admin/logout', method: 'POST' }])
+    assert.deepEqual(
+      calls.filter((call) => call.path !== '/api/entry/branding'),
+      [{ path: '/api/admin/logout', method: 'POST' }],
+    )
     assert.equal(store.admin, null)
     assert.equal(store.hasDeveloperChanges('task'), false)
     assert.equal(router.currentRoute.value.path, '/admin/login')

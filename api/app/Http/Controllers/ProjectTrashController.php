@@ -18,6 +18,8 @@ class ProjectTrashController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $member = app(CurrentWorkspace::class)->resolve($request);
+        abort_unless($member->role === 'owner' || $member->is_project_superadmin, 403);
         $projects = ProjectAccess::query($request)->onlyTrashed()->latest('deleted_at')->get()
             ->filter(fn ($project) => ProjectPermissions::effective($request, $project)['manage_trash']);
 

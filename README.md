@@ -1,6 +1,8 @@
 # Планировщик ТЗ / Project Brief
 
-Milestone 9.4 / Project Brief 0.9.4: [Global branding, mobile swipe navigation and client task statuses](docs/milestone-9-4/README.md).
+Milestone 9.5 / Project Brief 0.9.5: [Agreements, team management, invitations and private team chat](docs/milestone-9-5/README.md).
+
+Previous Milestone 9.4 / Project Brief 0.9.4: [Global branding, mobile swipe navigation and client task statuses](docs/milestone-9-4/README.md).
 
 База Milestone 9.2 / Project Brief 0.9.2: [Administrators & SSO UX + Passkey Reliability](docs/milestone-9-2/README.md).
 

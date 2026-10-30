@@ -22,7 +22,7 @@ class AdminNotificationController extends Controller
             : ($memberships->count() === 1 ? $memberships->first() : null);
 
         return response()->json([
-            'user' => [...app(AccountProfile::class)->state($user), 'membershipRole' => $member?->role, 'canCreateProjects' => $member ? ProjectPermissions::canCreateProjects($member) : false],
+            'user' => [...app(AccountProfile::class)->state($user), 'isProjectSuperadmin' => (bool) $member?->is_project_superadmin, 'membershipRole' => $member?->role, 'canCreateProjects' => $member ? ProjectPermissions::canCreateProjects($member) : false],
             'workspace' => $member ? app(CurrentWorkspace::class)->state($member, true) : null,
             'workspaces' => $memberships->map(fn ($member) => ['id' => $member->workspace->uuid, 'name' => $member->workspace->name])->values(),
             'preferences' => $user->notificationPreferences(), 'email' => $user->notificationEmail(), 'accountEmail' => $user->email,

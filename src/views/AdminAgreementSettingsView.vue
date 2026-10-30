@@ -3,6 +3,7 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
+import { documentLanguages } from '../utils/agreementLanguages.js'
 import AgreementEditor from '../components/AgreementEditor.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
@@ -15,7 +16,35 @@ const state = ref(null),
   again = ref(false),
   publicUrl = ref(null),
   original = ref('')
-const feedback = ref(null)
+const feedback = ref(null),
+  templates = ref({}),
+  editorRevision = ref(0)
+function changeLanguage(lang, event) {
+  toggleLanguage(lang, event.target.checked)
+  event.target.checked = state.value.draft.enabledLocales.includes(lang)
+}
+function toggleLanguage(lang, checked) {
+  const config = state.value.draft
+  if (!checked && (config.defaultLocale === lang || config.enabledLocales.length === 1)) {
+    window.alert(t('agreement.chooseDefaultFirst'))
+    return
+  }
+  config.enabledLocales = checked
+    ? [...new Set([...config.enabledLocales, lang])]
+    : config.enabledLocales.filter((item) => item !== lang)
+}
+function useTemplate() {
+  const text = state.value.draft.texts[language.value]
+  if (
+    text.some((block) => block.content.some((span) => span.text.trim())) &&
+    !window.confirm(t('agreement.replaceTemplate'))
+  )
+    return
+  state.value.draft.texts[language.value] = JSON.parse(
+    JSON.stringify(templates.value[language.value]),
+  )
+  editorRevision.value++
+}
 function languageKey(event, index) {
   const key = event.key
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(key)) return
@@ -36,6 +65,11 @@ async function load() {
 }
 function adopt(result) {
   state.value = result.data
+  for (const lang of locales) state.value.draft.texts[lang] ||= []
+  const config = documentLanguages(state.value.draft)
+  state.value.draft.enabledLocales = config.enabled
+  state.value.draft.defaultLocale = config.default
+  templates.value = result.templates || templates.value
   publicUrl.value = result.publicUrl
   original.value = JSON.stringify(result.data)
   again.value = false
@@ -101,29 +135,69 @@ onMounted(load)
         >{{ t('agreement.version')
         }}<input v-model="state.draft.date" type="date" required :disabled="busy"
       /></label>
-      <div class="agreement-language" role="tablist" :aria-label="t('agreement.languages')">
-        <button
+      <div class="agreement-languages" role="tablist" :aria-label="t('agreement.languages')">
+        <div
           v-for="(lang, index) in locales"
           :key="lang"
-          class="button secondary"
-          type="button"
-          :id="'agreement-tab-' + lang"
-          role="tab"
-          :aria-selected="language === lang"
-          :tabindex="language === lang ? 0 : -1"
-          aria-controls="agreement-language-panel"
-          @keydown="languageKey($event, index)"
-          @click="language = lang"
+          class="agreement-language-option"
+          :class="{ 'is-disabled': !state.draft.enabledLocales.includes(lang) }"
         >
-          {{ lang.toUpperCase() }}
-        </button>
+          <div>
+            <button
+              :id="'agreement-tab-' + lang"
+              class="button secondary"
+              type="button"
+              role="tab"
+              :aria-selected="language === lang"
+              :tabindex="language === lang ? 0 : -1"
+              aria-controls="agreement-language-panel"
+              @keydown="languageKey($event, index)"
+              @click="language = lang"
+            >
+              {{ lang.toUpperCase() }}
+            </button>
+          </div>
+          <div class="agreement-language-controls">
+            <label
+              ><input
+                type="checkbox"
+                :aria-label="lang.toUpperCase() + ': ' + t('agreement.languageEnabled')"
+                :checked="state.draft.enabledLocales.includes(lang)"
+                :disabled="busy"
+                @change="changeLanguage(lang, $event)"
+              />{{ t('agreement.languageEnabled') }}</label
+            >
+            <label
+              ><input
+                v-model="state.draft.defaultLocale"
+                type="radio"
+                :value="lang"
+                name="agreement-default-language"
+                :aria-label="lang.toUpperCase() + ': ' + t('agreement.defaultLanguage')"
+                :disabled="busy || !state.draft.enabledLocales.includes(lang)"
+              />{{ t('agreement.defaultLanguage') }}</label
+            >
+          </div>
+        </div>
       </div>
+      <button
+        type="button"
+        class="text-button agreement-template"
+        :disabled="busy"
+        @click="useTemplate"
+      >
+        {{ t('agreement.fillTemplate') }}
+      </button>
       <div
         id="agreement-language-panel"
         role="tabpanel"
         :aria-labelledby="'agreement-tab-' + language"
       >
-        <AgreementEditor :key="language" v-model="state.draft.texts[language]" :disabled="busy" />
+        <AgreementEditor
+          :key="language + editorRevision"
+          v-model="state.draft.texts[language]"
+          :disabled="busy"
+        />
       </div>
       <label class="agreement-option"
         ><input v-model="again" type="checkbox" :disabled="busy" />{{
@@ -204,10 +278,47 @@ onMounted(load)
 .agreement-settings-actions {
   justify-content: flex-end;
 }
-.agreement-language [aria-selected='true'] {
+.agreement-languages [aria-selected='true'] {
   outline: 2px solid var(--link);
 }
+.agreement-languages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.agreement-language-option {
+  min-width: 0;
+}
+.agreement-language-option.is-disabled button {
+  color: var(--muted);
+  border-style: dashed;
+}
+.agreement-language-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  font-size: 0.75rem;
+}
+.agreement-language-controls label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.agreement-language-controls input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  margin: 0;
+}
+.agreement-template {
+  justify-self: start;
+}
 @media (max-width: 600px) {
+  .agreement-languages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .agreement-settings-form {
     padding: 16px;
   }

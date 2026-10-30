@@ -74,16 +74,44 @@ class DeveloperInvitations
         }
         $invitation = $query->first();
         abort_unless($invitation && $invitation->active(), 410, 'Invitation is unavailable.');
+        $this->validateManager($invitation, $lock);
 
         return $invitation;
+    }
+
+    public function resolveRequest(Request $request, ?string $token = null, bool $lock = false): DeveloperInvitation
+    {
+        if ($token) {
+            $invitation = $this->resolve($token, $lock);
+            $request->session()->put('invitation_context', ['id' => $invitation->id, 'hash' => $invitation->token_hash]);
+
+            return $invitation;
+        }
+        $context = $request->session()->get('invitation_context', []);
+        $invitation = DeveloperInvitation::whereKey($context['id'] ?? 0)->where('token_hash', $context['hash'] ?? '')
+            ->when($lock, fn ($query) => $query->lockForUpdate())->first();
+        abort_unless($invitation && $invitation->active(), 410, 'Invitation is unavailable.');
+        $this->validateManager($invitation, $lock);
+
+        return $invitation;
+    }
+
+    private function validateManager(DeveloperInvitation $invitation, bool $lock = false): void
+    {
+        if (! $invitation->project_scoped) {
+            return;
+        }
+        $manager = WorkspaceMember::where('workspace_id', $invitation->workspace_id)->where('user_id', $invitation->invited_by)->active()
+            ->when($lock, fn ($query) => $query->lockForUpdate())->first();
+        abort_unless($manager && ($manager->role === 'owner' || $manager->is_project_superadmin) && count($invitation->project_ids) > 0 && ProjectAccess::forMember($manager)->whereIn('id', $invitation->project_ids)->count() === count($invitation->project_ids), 410);
     }
 
     public function accept(Request $request, array $data): User
     {
         return DB::transaction(function () use ($request, $data): User {
-            $preview = $this->resolve($data['token']);
+            $preview = $this->resolveRequest($request, $data['token'] ?? null);
             Workspace::whereKey($preview->workspace_id)->lockForUpdate()->firstOrFail();
-            $invitation = $this->resolve($data['token'], true);
+            $invitation = $this->resolveRequest($request, $data['token'] ?? null, true);
             $user = $request->user();
             if (! $user) {
                 abort_if(User::whereRaw('LOWER(TRIM(email)) = ?', [$invitation->email])->exists(), 401, 'Sign in to accept this invitation.');
@@ -106,8 +134,8 @@ class DeveloperInvitations
             if ($member->status !== 'active') {
                 $member->can_create_projects = false;
             }
-            if ($invitation->can_create_projects !== null) {
-                $member->can_create_projects = $invitation->can_create_projects;
+            if (! $invitation->project_scoped && $member->role !== 'owner') {
+                $member->is_project_superadmin = $invitation->is_project_superadmin;
             }
             $member->forceFill(['status' => 'active', 'joined_at' => $member->joined_at ?? now()])->save();
             foreach ($invitation->workspace->projects()->whereIn('id', $invitation->project_ids)->pluck('id') as $projectId) {

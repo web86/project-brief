@@ -4,6 +4,8 @@ defineProps({
   size: { type: [Number, String], default: 20 },
 })
 const paths = {
+  message: 'M21 11a8 8 0 0 1-8 8H8l-5 3V11a9 9 0 0 1 18 0ZM7 10h10M7 14h6',
+  key: 'M15 8a5 5 0 1 0-5 5l-7 7h4v-3h3v-3l3-3M15 8h.01',
   paragraph: 'M13 4H8a4 4 0 0 0 0 8h5M13 4v16M18 4v16M10 4h11',
   'heading-1': 'M3 4v16M12 4v16M3 12h9M17 9l3-2v13M17 20h6',
   'heading-2': 'M3 4v16M12 4v16M3 12h9M16 10a3 3 0 0 1 6 0c0 3-6 5-6 9h6',

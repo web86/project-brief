@@ -108,13 +108,16 @@ class ProjectTrashTest extends TestCase
         $root = '/api/admin/projects/'.$project->uuid;
         $this->actingAs($developer)->postJson($root.'/trash')->assertForbidden();
         $assignment->update(['permissions' => ['manage_trash' => true]]);
+        $this->postJson($root.'/trash')->assertForbidden();
+        $developer->workspaceMembers()->update(['is_project_superadmin' => true]);
         $this->postJson($root.'/trash')->assertOk();
         $this->getJson('/api/admin/projects/trash')->assertJsonCount(1, 'data');
         $this->deleteJson($root.'/permanent', ['confirmed' => true])->assertForbidden();
         $this->deleteJson('/api/admin/projects/trash', ['confirmed' => true, 'projectIds' => [$project->uuid]])->assertForbidden();
         $assignment->update(['permissions' => ['manage_trash' => false]]);
+        $developer->workspaceMembers()->update(['is_project_superadmin' => false]);
         $this->postJson($root.'/restore')->assertForbidden();
-        $this->getJson('/api/admin/projects/trash')->assertJsonCount(0, 'data');
+        $this->getJson('/api/admin/projects/trash')->assertForbidden();
         $this->actingAs($owner)->postJson($root.'/restore')->assertOk();
         foreach (['trash', 'restore'] as $action) {
             $this->postJson('/api/admin/projects/'.$foreign->uuid.'/'.$action)->assertNotFound();

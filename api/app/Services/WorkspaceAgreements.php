@@ -29,7 +29,35 @@ class WorkspaceAgreements
 
     public function settings(Workspace $workspace): array
     {
-        return array_replace(['enabled' => false, 'draft' => ['date' => '', 'texts' => array_fill_keys(self::LOCALES, [])], 'published' => null], $workspace->administrator_agreement ?? []);
+        $settings = array_replace(['enabled' => false, 'draft' => ['date' => '', 'texts' => array_fill_keys(self::LOCALES, [])], 'published' => null], $workspace->administrator_agreement ?? []);
+        $settings['draft'] = $this->documentLanguages($settings['draft']);
+        if ($settings['published']) {
+            $settings['published'] = $this->documentLanguages($settings['published']);
+        }
+
+        return $settings;
+    }
+
+    public function documentLanguages(array $document): array
+    {
+        return [...$document, 'enabledLocales' => $document['enabledLocales'] ?? self::LOCALES, 'defaultLocale' => $document['defaultLocale'] ?? 'ru'];
+    }
+
+    public function visibleDocument(?array $document): ?array
+    {
+        if (! $document) {
+            return null;
+        }
+        $document = $this->documentLanguages($document);
+        $document['texts'] = array_intersect_key($document['texts'], array_flip($document['enabledLocales']));
+
+        return $document;
+    }
+
+    public function archive(Workspace $workspace, array $document): void
+    {
+        DB::table('workspace_agreement_revisions')->insertOrIgnore(['uuid' => $document['id'], 'workspace_id' => $workspace->id,
+            'version' => $document['date'], 'document' => json_encode($this->documentLanguages($document), JSON_THROW_ON_ERROR), 'created_at' => now()]);
     }
 
     public function required(WorkspaceMember $member): bool

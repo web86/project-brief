@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'team_heading' => '新的团队聊天消息',
+    'team_explanation' => '打开项目以阅读团队私密消息。',
     'status_change' => '状态变更',
     'project_request_heading' => '新的项目申请',
     'project_request_message' => '有新的项目申请等待您审核。',

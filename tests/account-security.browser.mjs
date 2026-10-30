@@ -211,6 +211,7 @@ try {
     navigator.credentials.create = () =>
       Promise.reject(new DOMException('User cancelled', 'NotAllowedError'))
   })
+  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByLabel('Device name', { exact: true }).fill('Virtual authenticator')
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   const stepUp = page.getByRole('dialog')
@@ -385,12 +386,11 @@ try {
   await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
   if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
     await page.locator('.administrator-dialog .assigned-projects > summary').click()
-  if (!(await page.locator('.administrator-dialog .project-rights').evaluate((el) => el.open)))
-    await page.locator('.administrator-dialog .project-rights > summary').click()
-  const switches = page
+  const superadminSwitch = page
     .locator('.administrator-dialog')
-    .locator('.member-permissions [role="switch"]')
-  for (let i = 1; i < 6; i++) await switches.nth(i).check()
+    .getByRole('switch', { name: 'Assign as project superadministrator', exact: true })
+  const switches = superadminSwitch
+  await superadminSwitch.check()
   await page
     .locator('.administrator-dialog')
     .getByRole('button', { name: 'Save', exact: true })
@@ -405,17 +405,15 @@ try {
   const savedTeam = (await request('/api/admin/administrators')).body
   const savedPermissions = savedTeam.members.find(
     (member) => member.user.email === 'security-developer@example.test',
-  ).projectPermissions[fixture.project]
-  assert.equal(Object.values(savedPermissions).filter(Boolean).length, 6)
+  ).isProjectSuperadmin
+  assert.equal(savedPermissions, true)
   results.push(
-    'Team Save -> synchronous user-activated real UV assertion -> exactly one PATCH with five changed permissions; no application dialog, including double click',
+    'Team Save -> synchronous user-activated real UV assertion -> exactly one PATCH with the project superadministrator grant; no application dialog, including double click',
   )
   await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
   if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
     await page.locator('.administrator-dialog .assigned-projects > summary').click()
-  if (!(await page.locator('.administrator-dialog .project-rights').evaluate((el) => el.open)))
-    await page.locator('.administrator-dialog .project-rights > summary').click()
-  await switches.nth(5).uncheck()
+  await superadminSwitch.uncheck()
   await page
     .locator('.administrator-dialog')
     .getByRole('button', { name: 'Save', exact: true })
@@ -435,9 +433,7 @@ try {
   await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
   if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
     await page.locator('.administrator-dialog .assigned-projects > summary').click()
-  if (!(await page.locator('.administrator-dialog .project-rights').evaluate((el) => el.open)))
-    await page.locator('.administrator-dialog .project-rights > summary').click()
-  await switches.nth(4).uncheck()
+  await superadminSwitch.check()
   const draft = await switches.evaluateAll((items) => items.map((item) => item.checked))
   const criticalBefore = await page.locator('.toast-error').count()
   await page
@@ -590,9 +586,7 @@ try {
   await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
   if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
     await page.locator('.administrator-dialog .assigned-projects > summary').click()
-  if (!(await page.locator('.administrator-dialog .project-rights').evaluate((el) => el.open)))
-    await page.locator('.administrator-dialog .project-rights > summary').click()
-  await switches.nth(4).check()
+  await superadminSwitch.check()
   await page
     .locator('.administrator-dialog')
     .getByRole('button', { name: 'Save', exact: true })
@@ -849,15 +843,9 @@ try {
         await compatibilityPage
           .locator('.administrator-dialog .assigned-projects > summary')
           .click()
-      if (
-        !(await compatibilityPage
-          .locator('.administrator-dialog .project-rights')
-          .evaluate((el) => el.open))
-      )
-        await compatibilityPage.locator('.administrator-dialog .project-rights > summary').click()
       const permission = compatibilityPage
-        .locator('.administrator-dialog .member-permissions [role="switch"]')
-        .nth(5)
+        .locator('.administrator-dialog')
+        .getByRole('switch', { name: 'Assign as project superadministrator', exact: true })
       await permission.setChecked(!(await permission.isChecked()))
       await compatibilityPage
         .locator('.administrator-dialog')

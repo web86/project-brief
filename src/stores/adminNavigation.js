@@ -1,6 +1,7 @@
 import { useProjectRequestsStore } from './projectRequests.js'
 import { usePersonalNotificationsStore } from './personalNotifications.js'
 import { useTaskWorkspaceStore } from './taskWorkspace.js'
+import { useTeamChatStore } from './teamChat.js'
 import { useDiscussionsStore, useClientDiscussionsStore } from './discussions.js'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -39,6 +40,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     projectsPath.value = '/admin'
     useProjectStore().clearApiState()
     useProjectManagementStore().clear()
+    useTeamChatStore().clear()
     useDiscussionsStore().clear()
     useClientDiscussionsStore().clear()
     useTaskWorkspaceStore().clear()

@@ -11,7 +11,12 @@ class Comment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['submission_key', 'submission_fingerprint', 'project_id', 'project_client_id', 'task_id', 'author_type', 'author_user_id', 'text'];
+    protected static function booted(): void
+    {
+        static::addGlobalScope('public_channel', fn ($query) => $query->where('comments.team_only', false));
+    }
+
+    protected $fillable = ['team_only', 'submission_key', 'submission_fingerprint', 'project_id', 'project_client_id', 'task_id', 'author_type', 'author_user_id', 'text'];
 
     public function attachments(): HasMany
     {
@@ -30,7 +35,7 @@ class Comment extends Model
 
     protected function casts(): array
     {
-        return [];
+        return ['team_only' => 'boolean'];
     }
 
     public function uniqueIds(): array

@@ -18,7 +18,7 @@ class AdministratorModalWorkflowTest extends TestCase
     {
         $project = Project::factory()->create();
         $owner = $this->ownerFor($project);
-        $created = $this->actingAs($owner)->postJson(self::ROOT.'/invitations', ['name' => 'Manual administrator', 'email' => 'manual@example.test', 'sendEmail' => false, 'generateLink' => true, 'canCreateProjects' => true, 'projects' => [$project->uuid], 'projectPermissions' => [$project->uuid => ['manage_clients' => true]]])->assertCreated()->assertHeader('Cache-Control', 'no-store, private')->json();
+        $created = $this->actingAs($owner)->postJson(self::ROOT.'/invitations', ['name' => 'Manual administrator', 'email' => 'manual@example.test', 'sendEmail' => false, 'generateLink' => true, 'isProjectSuperadmin' => true, 'projects' => [$project->uuid], 'projectPermissions' => [$project->uuid => ['manage_clients' => true]]])->assertCreated()->assertHeader('Cache-Control', 'no-store, private')->json();
         parse_str(parse_url($created['link'], PHP_URL_FRAGMENT), $fragment);
         $old = $fragment['token'];
         $invitation = DeveloperInvitation::where('uuid', $created['id'])->firstOrFail();
@@ -34,7 +34,7 @@ class AdministratorModalWorkflowTest extends TestCase
         $this->postJson('/api/invitations/accept', ['token' => $token, 'name' => 'Manual administrator', 'password' => 'New-manual-password', 'password_confirmation' => 'New-manual-password'])->assertOk();
         $user = User::where('email', 'manual@example.test')->firstOrFail();
         $this->assertNull($user->email_verified_at);
-        $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', true);
+        $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', false)->assertJsonPath('user.isProjectSuperadmin', true);
         $this->getJson('/api/admin/projects/'.$project->uuid)->assertOk()->assertJsonPath('data.permissions.manage_clients', true);
         $this->postJson('/api/invitations/accept', ['token' => $token])->assertGone();
         $this->actingAs($owner)->postJson(self::ROOT.'/invitations/'.$invitation->uuid.'/link')->assertGone();

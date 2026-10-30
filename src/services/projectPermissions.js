@@ -1,6 +1,7 @@
 import { projectMenu } from './adminMenu.js'
 export const defaultProjectPermissions = {
   manage_structure: true,
+  manage_team: false,
   manage_clients: false,
   manage_project_settings: false,
   manage_project_notifications: false,
@@ -8,7 +9,7 @@ export const defaultProjectPermissions = {
   manage_trash: false,
 }
 export function canCreateProjects(user) {
-  return user?.membershipRole === 'owner' || user?.canCreateProjects === true
+  return user?.membershipRole === 'owner'
 }
 export function hasProjectPermission(project, permission) {
   return project?.permissions?.[permission] === true

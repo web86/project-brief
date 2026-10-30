@@ -33,12 +33,12 @@ class WorkspaceAdministratorController extends Controller
         return response()->json([
             'projects' => $projects->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]),
             'members' => $members->map(fn ($m) => [
-                'agreement' => app(WorkspaceAgreements::class)->status($m, $acceptances->get($m->id)), 'id' => $m->id, 'canCreateProjects' => ($m->role === 'owner' || (bool) $m->can_create_projects), 'user' => [...app(AccountProfile::class)->state($m->user), 'name' => $m->display_name ?? $m->user->name], 'role' => $m->role, 'security' => ['passkey' => (bool) $m->user->security_passkey_configured, 'totp' => $m->user->hasEnabledTwoFactorAuthentication()], 'status' => $m->status, 'joinedAt' => $m->joined_at?->toISOString(),
+                'agreement' => app(WorkspaceAgreements::class)->status($m, $acceptances->get($m->id)), 'id' => $m->id, 'isProjectSuperadmin' => (bool) $m->is_project_superadmin, 'canCreateProjects' => ($m->role === 'owner'), 'user' => [...app(AccountProfile::class)->state($m->user), 'name' => $m->display_name ?? $m->user->name], 'role' => $m->role, 'security' => ['passkey' => (bool) $m->user->security_passkey_configured, 'totp' => $m->user->hasEnabledTwoFactorAuthentication()], 'status' => $m->status, 'joinedAt' => $m->joined_at?->toISOString(),
                 'projectPermissions' => $m->projectMemberships->mapWithKeys(fn ($p) => [$p->project->uuid => ProjectPermissions::normalize($p->permissions)]),
                 'projects' => $m->role === 'owner' ? $allProjectIds : $m->projectMemberships->map(fn ($p) => $p->project->uuid)]),
             'invitations' => DeveloperInvitation::where('workspace_id', $owner->workspace_id)->whereNull('accepted_at')->whereNull('revoked_at')->latest()->get()->map(fn ($i) => [
                 'agreement' => app(WorkspaceAgreements::class)->invitationStatus($owner->workspace), 'id' => $i->uuid, 'email' => $i->email, 'name' => $i->name, 'status' => ! $i->sent_at ? 'draft' : ($i->expires_at->isFuture() ? 'pending' : 'expired'), 'expiresAt' => $i->expires_at->toISOString(),
-                'canCreateProjects' => (bool) $i->can_create_projects, 'projectPermissions' => $i->project_permissions ?? [], 'sentAt' => $i->sent_at?->toISOString(), 'projects' => $projects->whereIn('id', $i->project_ids)->pluck('uuid')]),
+                'isProjectSuperadmin' => (bool) $i->is_project_superadmin, 'canCreateProjects' => false, 'projectPermissions' => $i->project_permissions ?? [], 'sentAt' => $i->sent_at?->toISOString(), 'projects' => $projects->whereIn('id', $i->project_ids)->pluck('uuid')]),
         ])->header('Cache-Control', 'no-store');
     }
 
@@ -46,6 +46,7 @@ class WorkspaceAdministratorController extends Controller
     {
         $owner = $invitations->owner($request);
         $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'name' => ['nullable', 'string', 'max:255'], 'projects' => ['sometimes', 'array'], 'projects.*' => ['required', 'uuid', 'distinct'], 'sendEmail' => ['sometimes', 'boolean'], 'generateLink' => ['sometimes', 'boolean'],
+            'isProjectSuperadmin' => ['sometimes', 'boolean'],
             'canCreateProjects' => ['sometimes', function (string $attribute, mixed $value, \Closure $fail): void {
                 if (! is_bool($value)) {
                     $fail('The option must be a boolean.');
@@ -75,7 +76,7 @@ class WorkspaceAdministratorController extends Controller
             if ($pending) {
                 return response()->json(['code' => 'administrator_invitation_exists', 'errors' => ['invitationId' => $pending->uuid]], 409);
             }
-            $invitation = DeveloperInvitation::create(['workspace_id' => $owner->workspace_id, 'invited_by' => $owner->user_id, 'email' => $email, 'name' => $data['name'] ?? null, 'project_ids' => $ids, 'locale' => $owner->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7), 'can_create_projects' => $data['canCreateProjects'] ?? null, 'project_permissions' => $data['projectPermissions'] ?? null]);
+            $invitation = DeveloperInvitation::create(['workspace_id' => $owner->workspace_id, 'invited_by' => $owner->user_id, 'email' => $email, 'name' => $data['name'] ?? null, 'project_ids' => $ids, 'locale' => $owner->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7), 'is_project_superadmin' => $data['isProjectSuperadmin'] ?? false, 'can_create_projects' => false, 'project_permissions' => $data['projectPermissions'] ?? null]);
             $sent = ($data['sendEmail'] ?? true) ? $invitations->deliver($invitation) : false;
             $link = ($data['generateLink'] ?? false) ? $invitations->issue($invitation) : null;
             $failed = ($data['sendEmail'] ?? true) && ! $sent;
@@ -87,8 +88,9 @@ class WorkspaceAdministratorController extends Controller
     public function updateInvitation(Request $request, string $invitation, DeveloperInvitations $invitations): JsonResponse
     {
         $owner = $invitations->owner($request);
-        abort_if(array_diff(array_keys($request->all()), ['name', 'projects', 'canCreateProjects', 'projectPermissions']), 422);
+        abort_if(array_diff(array_keys($request->all()), ['name', 'projects', 'canCreateProjects', 'isProjectSuperadmin', 'projectPermissions']), 422);
         $data = $request->validate(['name' => ['nullable', 'string', 'max:255'], 'projects' => ['present', 'array'], 'projects.*' => ['required', 'uuid', 'distinct'],
+            'isProjectSuperadmin' => ['sometimes', 'boolean'],
             'canCreateProjects' => ['sometimes', function (string $attribute, mixed $value, \Closure $fail): void {
                 if (! is_bool($value)) {
                     $fail('The option must be a boolean.');
@@ -109,7 +111,7 @@ class WorkspaceAdministratorController extends Controller
             $invitations->owner($request);
             $item = DeveloperInvitation::where('workspace_id', $owner->workspace_id)->where('uuid', $invitation)->lockForUpdate()->firstOrFail();
             abort_if($item->accepted_at || $item->revoked_at, 410);
-            $item->update(['name' => $data['name'] ?? $item->name, 'project_ids' => $ids, 'can_create_projects' => $data['canCreateProjects'] ?? $item->can_create_projects, 'project_permissions' => $data['projectPermissions'] ?? $item->project_permissions]);
+            $item->update(['name' => $data['name'] ?? $item->name, 'project_ids' => $ids, 'is_project_superadmin' => $data['isProjectSuperadmin'] ?? $item->is_project_superadmin, 'can_create_projects' => false, 'project_permissions' => $data['projectPermissions'] ?? $item->project_permissions]);
         });
 
         return response()->json(['saved' => true]);
@@ -172,6 +174,7 @@ class WorkspaceAdministratorController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'nullable', 'string', 'max:255'], 'status' => ['sometimes', Rule::in(['active', 'inactive'])],
             'projects' => ['present', 'array'], 'projects.*' => ['required', 'uuid', 'distinct'],
+            'isProjectSuperadmin' => ['sometimes', 'boolean'],
             'canCreateProjects' => ['sometimes', function (string $attribute, mixed $value, \Closure $fail): void {
                 if (! is_bool($value)) {
                     $fail('The option must be a boolean.');
@@ -204,8 +207,12 @@ class WorkspaceAdministratorController extends Controller
             if (array_key_exists('name', $data)) {
                 $target->update(['display_name' => $data['name']]);
             }
+            if (array_key_exists('isProjectSuperadmin', $data)) {
+                $target->update(['is_project_superadmin' => $data['isProjectSuperadmin']]);
+                app(AccountSecurity::class)->audit($request->user(), 'project_superadmin_changed:'.$target->id);
+            }
             if (array_key_exists('canCreateProjects', $data)) {
-                $target->update(['can_create_projects' => $data['canCreateProjects']]);
+                $target->update(['can_create_projects' => false]);
             }
             ProjectMember::where('workspace_member_id', $target->id)->where('workspace_id', $owner->workspace_id)->whereHas('project')->whereNotIn('project_id', $ids)->delete();
             foreach ($ids as $id) {

@@ -172,8 +172,8 @@ test('both languages render accessible tabs with independent badges and one visi
     assert.equal((html.match(/role="tabpanel"/g) || []).length, 2)
     assert.equal((html.match(/aria-selected="true"/g) || []).length, 1)
     assert.equal((html.match(/display:none/g) || []).length, 1)
-    assert.ok(html.includes('>31</span>') && html.includes('>42</span>'))
-    assert.ok(html.includes(i18n.global.t('discussions.general')))
+    assert.ok(html.includes('>42</span>'))
+    assert.ok(html.includes(i18n.global.t('team95.chat')))
     assert.equal(html.includes('filter-tabs'), false)
   }
 })

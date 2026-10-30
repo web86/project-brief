@@ -284,7 +284,7 @@ async function trash() {
             class="button secondary"
             >{{ t('ui.clients') }}</RouterLink
           ><RouterLink
-            v-if="nav.user?.membershipRole === 'owner'"
+            v-if="hasProjectPermission(project, 'manage_team')"
             :to="`/admin/projects/${project.id}/team`"
             class="button secondary"
             >{{ t('projectList.team') }}</RouterLink
@@ -353,7 +353,9 @@ async function trash() {
       </button>
     </nav>
     <ProjectRecycleBin
-      v-if="nav.workspace"
+      v-if="
+        nav.workspace && (nav.user?.membershipRole === 'owner' || nav.user?.isProjectSuperadmin)
+      "
       :key="nav.workspace.id"
       ref="bin"
       @changed="reload(true)"

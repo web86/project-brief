@@ -40,12 +40,13 @@ class LiveSyncObserver
         if (! $projectId && $model->getAttribute('comment_id')) {
             $projectId = DB::table('comments')->where('id', $model->comment_id)->value('project_id');
         }
+        $privateFile = $model->getAttribute('comment_id') && DB::table('comments')->where('id', $model->comment_id)->where('team_only', true)->exists();
         $workspaceId = $model instanceof Workspace ? $model->id : $model->getAttribute('workspace_id');
         if (! $workspaceId && $projectId) {
             $workspaceId = DB::table('projects')->where('id', $projectId)->value('workspace_id');
         }
         if ($workspaceId) {
-            app(LiveSync::class)->record($workspaceId, $projectId, $model instanceof Comment ? 'comments' : 'project', $model->getConnection());
+            app(LiveSync::class)->record($workspaceId, $projectId, $privateFile ? 'team' : ($model instanceof Comment ? ($model->team_only ? 'team' : 'comments') : 'project'), $model->getConnection());
         }
         if ($model instanceof Task && ($model->wasRecentlyCreated || $model->wasChanged(['status', 'deleted_at']) || $model->trashed())) {
             app(ProjectFeedbacks::class)->invalidatePrompt($model);

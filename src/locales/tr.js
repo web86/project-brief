@@ -1,4 +1,18 @@
 export default {
+  team95: {
+    superadmin: 'Proje süper yöneticisi olarak ata',
+    superadminHint:
+      'Atanan projelerin ayarları, müşterileri, ekibi, yapısı, bildirimleri ve çöp kutusu üzerinde tam yönetim sağlar. Çalışma alanı, entegrasyon veya platform yönetimi sağlamaz. Yeni proje oluşturma yetkisi vermez.',
+    superadminBadge: 'Proje süper yöneticisi',
+    assigned: 'Atandı',
+    invite: 'Bu projeye ekip üyesi davet et',
+    connected: 'Bağlı',
+    notConnected: 'Bağlı değil',
+    chat: 'Proje ekibi sohbeti',
+    accountProtection: 'Hesap koruması',
+    securityIntro:
+      'Hesabınızı korumak için bir kimlik doğrulama uygulaması veya geçiş anahtarı bağlayın. Kullanılabilir yöntemler ve zorunlu adımlar güvenlik politikasına bağlıdır.',
+  },
   clientStatus: {
     return: 'Onaylananlara geri gönder',
     complete: 'Görevi tamamla',
@@ -7,6 +21,16 @@ export default {
     conflict: 'Görev değişti. Yeniden denemeden önce güncel durumunu kontrol edin.',
   },
   agreement: {
+    languageEnabled: 'Etkin',
+    defaultLanguage: 'Varsayılan',
+    chooseDefaultFirst:
+      'Önce başka bir etkin varsayılan dil seçin. Son dil devre dışı bırakılamaz.',
+    fillTemplate: 'Örnekle doldur',
+    replaceTemplate: 'Seçili dildeki metin örnek sözleşmeyle değiştirilsin mi?',
+    documentLanguage: 'Belge dili',
+    languageFallback:
+      'Bu sözleşme {language} dilinde gösteriliyor: arayüz dilindeki çeviri etkin değil.',
+
     settings: 'Yönetici sözleşmesi',
     title: 'Kurallar ve yönetici sözleşmesi',
     label: 'Sözleşme',
@@ -15,7 +39,7 @@ export default {
     settingsHint:
       'Bu belgeyi çalışma alanının sahibi yönetir. Taslak değişiklikleri yayımlanana kadar gizli kalır.',
     publishHint:
-      'Yayımlamak için tarih ve dört dilde metin gerekir. Normal düzenlemeler önceki kabulleri korur. Yeniden kabul için daha sonraki bir sürüm tarihi gerekir.',
+      'Yayınlamak için tarih ve etkin her dilde metin gereklidir. Olağan düzenlemeler önceki kabulü korur; yeniden kabul istemek daha sonraki bir sürüm tarihi gerektirir.',
     version: 'Sürüm tarihi',
     languages: 'Belge dilleri',
     publicPage: 'Herkese açık belge',
@@ -1179,6 +1203,7 @@ export default {
       enabled: 'Bu cihazda etkin',
     },
     events: {
+      team: { message_created: 'Proje ekibi sohbeti' },
       client: {
         task_status_changed: 'Müşteri görev durumunu değiştirdi',
         task_created: 'Yeni fikir',

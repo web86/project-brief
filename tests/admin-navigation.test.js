@@ -656,7 +656,7 @@ test('a developer cannot open global project creation but retains personal setti
   assert.equal(router.currentRoute.value.path, '/admin/account')
 })
 
-test('project creation can be delegated explicitly and revocation is checked despite cached navigation', async () => {
+test('legacy creation and project superadministrator grants cannot open project creation', async () => {
   const { request } = backend()
   let allowed = false
   const scoped = async (path, options) => {
@@ -671,7 +671,7 @@ test('project creation can be delegated explicitly and revocation is checked des
   assert.equal(router.currentRoute.value.fullPath, '/admin/unavailable?reason=permission')
   allowed = true
   await router.push('/admin/projects/new')
-  assert.equal(router.currentRoute.value.path, '/admin/projects/new')
+  assert.equal(router.currentRoute.value.fullPath, '/admin/unavailable?reason=permission')
   await router.push('/admin')
   allowed = false
   await router.push('/admin/projects/new')

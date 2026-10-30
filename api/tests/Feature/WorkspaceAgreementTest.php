@@ -19,7 +19,7 @@ class WorkspaceAgreementTest extends TestCase
 
     private function payload(bool $enabled = true, string $date = '2026-10-30'): array
     {
-        return ['enabled' => $enabled, 'publish' => true, 'requireAgain' => false, 'baseRevision' => null, 'draft' => ['date' => $date, 'texts' => array_fill_keys(WorkspaceAgreements::LOCALES, [['type' => 'heading', 'content' => [['text' => 'Workspace agreement', 'bold' => true]]], ['type' => 'paragraph', 'content' => [['text' => 'Terms <img src=x onerror=alert(1)>', 'italic' => true]]]])]];
+        return ['enabled' => $enabled, 'publish' => true, 'requireAgain' => false, 'baseRevision' => null, 'draft' => ['enabledLocales' => WorkspaceAgreements::LOCALES, 'defaultLocale' => 'ru', 'date' => $date, 'texts' => array_fill_keys(WorkspaceAgreements::LOCALES, [['type' => 'heading', 'content' => [['text' => 'Workspace agreement', 'bold' => true]]], ['type' => 'paragraph', 'content' => [['text' => 'Terms <img src=x onerror=alert(1)>', 'italic' => true]]]])]];
     }
 
     private function publish(): array
@@ -72,6 +72,7 @@ class WorkspaceAgreementTest extends TestCase
         $this->actingAs($this->ownerFor($project));
         $payload = $this->payload(false);
         $payload['publish'] = false;
+        $original = $project->workspace->fresh()->administrator_agreement;
         $path = 'draft.texts.en.1.content.0';
         foreach (['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,test', 'vbscript:alert(1)', '//evil.test', '/relative', 'https:///evil.test', 'https://u:p@example.test', 'https://example.test\\@evil.test', "https://exam\nple.test/", 'mailto:a@example.test?subject=x', 'mailto:a@example.test%0aBcc:evil@example.test', ''] as $href) {
             $payload['draft']['texts']['en'][1]['content'][0]['href'] = $href;
@@ -83,7 +84,7 @@ class WorkspaceAgreementTest extends TestCase
             $tampered['draft']['texts']['en'][1]['content'][0][$attribute] = 'Injected';
             $this->putJson('/api/admin/settings/agreement', $tampered)->assertUnprocessable()->assertJsonValidationErrors($path);
         }
-        $this->assertNull($project->workspace->fresh()->administrator_agreement);
+        $this->assertSame($original, $project->workspace->fresh()->administrator_agreement);
     }
 
     public function test_default_is_disabled_and_invitation_preserves_existing_flow(): void

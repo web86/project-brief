@@ -1,4 +1,18 @@
 export default {
+  team95: {
+    superadmin: 'Assign as project superadministrator',
+    superadminHint:
+      'Allows full management of assigned projects: settings, clients, team, structure, notifications and trash. Does not grant workspace, integration or platform administration. Does not allow creation of new projects.',
+    superadminBadge: 'Project superadministrator',
+    assigned: 'Assigned',
+    invite: 'Invite a member to this project',
+    connected: 'Connected',
+    notConnected: 'Not connected',
+    chat: 'Project team chat',
+    accountProtection: 'Account protection',
+    securityIntro:
+      'Connect an authenticator app or a passkey to protect your account. Available methods and required steps follow the security policy.',
+  },
   clientStatus: {
     return: 'Return to approved',
     complete: 'Complete task',
@@ -7,6 +21,16 @@ export default {
     conflict: 'The task has changed. Review its current state before trying again.',
   },
   agreement: {
+    languageEnabled: 'Enabled',
+    defaultLanguage: 'Default',
+    chooseDefaultFirst:
+      'Choose another enabled default language first. The last language cannot be disabled.',
+    fillTemplate: 'Fill with example',
+    replaceTemplate: 'Replace the selected language with the example agreement?',
+    documentLanguage: 'Document language',
+    languageFallback:
+      'This agreement is shown in {language}: the interface language translation is not enabled.',
+
     settings: 'Administrator agreement',
     title: 'Rules and administrator agreement',
     label: 'Agreement',
@@ -15,7 +39,7 @@ export default {
     settingsHint:
       'Workspace owners manage this document. Draft changes remain private until publication.',
     publishHint:
-      'Publication requires a date and text in all four languages. Ordinary edits preserve prior acceptance. Requesting acceptance again requires a later revision date.',
+      'Publication requires a date and text in every enabled language. Ordinary edits preserve previous acceptance; requesting acceptance again requires a later revision date.',
     version: 'Revision date',
     languages: 'Document languages',
     publicPage: 'Public document',
@@ -1174,6 +1198,7 @@ export default {
       enabled: 'Enabled on this device',
     },
     events: {
+      team: { message_created: 'Project team chat' },
       client: {
         task_status_changed: 'Client changed task status',
         task_created: 'New idea',

@@ -112,9 +112,10 @@ class ProjectNotificationService
         if (! in_array($event->event, NotificationEvents::CODES, true)) {
             return;
         }
-        $comment = $event->projectCommentId ? Comment::find($event->projectCommentId) : null;
+        $team = $event->event === 'team.message_created';
+        $comment = $event->projectCommentId ? Comment::withoutGlobalScope('public_channel')->where('team_only', $team)->find($event->projectCommentId) : null;
         $task = $event->taskId ? Task::with(['project', 'projectSection'])->find($event->taskId) : null;
-        if ($event->projectCommentId && (! $comment || $comment->task_id !== null || $comment->author_type !== $event->actorType || $event->event !== $event->actorType.'.project_comment_created')) {
+        if ($event->projectCommentId && (! $comment || $comment->task_id !== null || $comment->author_type !== $event->actorType || ($team ? $event->actorType !== 'admin' : $event->event !== $event->actorType.'.project_comment_created'))) {
             return;
         }
         $project = $task?->project ?? ($comment ? Project::find($comment->project_id) : null);
@@ -127,7 +128,7 @@ class ProjectNotificationService
             return;
         }
         $preferences = $settings->delivery_mode === 'personal' ? ['email' => true, 'push' => true, 'telegram' => true] : $settings->preferences()[$event->event];
-        $toAdmin = str_starts_with($event->event, 'client.');
+        $toAdmin = NotificationEvents::toTeam($event->event);
         $recipients = $toAdmin ? ProjectAccess::recipients($project)->get() : $project->clients()->where('active', true)->whereHas('accessTokens', fn ($q) => $q->where('project_id', $project->id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())))->get();
         $dedup = $comment ? 'comment:'.$comment->id : (string) $event->historyId;
         $actorEmail = $event->actorType === 'admin' ? User::find($event->actorId)?->email : ProjectClient::find($event->actorId)?->email;
@@ -142,9 +143,9 @@ class ProjectNotificationService
             }
             $locale = $recipient->preferred_locale ?? ($toAdmin ? config('project_notifications.admin_locale') : 'en');
             $locale = SupportedLocales::resolve($locale);
-            $payload = $comment ? NotificationPayload::discussion($event->event, $comment, $event->actorName, $locale, $toAdmin) : NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
+            $payload = $comment ? ($team ? NotificationPayload::team($comment, $project, $locale) : NotificationPayload::discussion($event->event, $comment, $event->actorName, $locale, $toAdmin)) : NotificationPayload::make($event->event, $task, $event->actorName, $locale, $toAdmin, (string) $event->historyId);
             $personal = $recipient->notificationPreferences();
-            $email = $toAdmin ? $this->emailFor($project, $recipient) : $recipient->email;
+            $email = $team ? $recipient->notificationEmail() : ($toAdmin ? $this->emailFor($project, $recipient) : $recipient->email);
             // Avoid mail self-notification even if two personas share the same address.
             if ($preferences['email'] && $personal['email'] && filter_var($email, FILTER_VALIDATE_EMAIL) && (! $actorEmail || strcasecmp($actorEmail, $email) !== 0)) {
                 $this->attempt($project, $event->event, 'email', $type, $recipient->id, $dedup.':email:'.$type.':'.$recipient->id,

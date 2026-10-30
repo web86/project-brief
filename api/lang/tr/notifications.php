@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'team_heading' => 'Yeni ekip sohbeti mesajı',
+    'team_explanation' => 'Özel ekip mesajını okumak için projeyi açın.',
     'status_change' => 'Durum değişikliği',
     'project_request_heading' => 'Yeni proje talebi',
     'project_request_message' => 'Yeni bir proje talebi kararınızı bekliyor.',

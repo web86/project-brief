@@ -20,7 +20,7 @@ class CommentRequest extends FormRequest
             'submissionId' => ['required_with:attachments', 'nullable', 'uuid'],
             'attachments' => ['sometimes', 'array', 'min:1', 'max:5'],
             'attachments.*' => ['required', 'file', 'max:20480', new SafeAttachment],
-            'author' => ['prohibited'], 'author_type' => ['prohibited'], 'author_user_id' => ['prohibited'],
+            'team_only' => ['prohibited'], 'author' => ['prohibited'], 'author_type' => ['prohibited'], 'author_user_id' => ['prohibited'],
             'task_id' => ['prohibited'], 'project_id' => ['prohibited'], 'comment_id' => ['prohibited'],
             'project_client_id' => ['prohibited'], 'projectClientId' => ['prohibited']];
     }

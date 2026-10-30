@@ -5,7 +5,6 @@ import BaseDialog from './BaseDialog.vue'
 import NotificationToggle from './NotificationToggle.vue'
 import LoadingButton from './LoadingButton.vue'
 import { t, intlLocale } from '../i18n/index.js'
-import { defaultProjectPermissions } from '../services/projectPermissions.js'
 const props = defineProps({
   open: Boolean,
   kind: String,
@@ -28,14 +27,10 @@ const emit = defineEmits(['close', 'save', 'remove', 'invite', 'link'])
 const name = ref(''),
   email = ref(''),
   status = ref('active'),
-  canCreate = ref(false),
+  superadmin = ref(false),
   selected = ref([]),
   search = ref(''),
-  permissionProject = ref(''),
-  permissions = ref({}),
   delivery = ref('email')
-const keys = Object.keys(defaultProjectPermissions)
-const assigned = computed(() => props.projects.filter((p) => selected.value.includes(p.id)))
 const visible = computed(() =>
   props.projects.filter((p) =>
     p.name
@@ -51,27 +46,12 @@ watch(
     name.value = r?.user?.name || r?.name || ''
     email.value = r?.user?.email || r?.email || ''
     status.value = r?.status === 'inactive' ? 'inactive' : 'active'
-    canCreate.value = r?.canCreateProjects === true
+    superadmin.value = r?.isProjectSuperadmin === true
     selected.value = [...(r?.projects || [])]
     search.value = ''
     delivery.value = 'email'
-    permissions.value = Object.fromEntries(
-      selected.value.map((id) => [
-        id,
-        { ...defaultProjectPermissions, ...r?.projectPermissions?.[id] },
-      ]),
-    )
-    permissionProject.value = selected.value[0] || ''
   },
   { immediate: true },
-)
-watch(
-  selected,
-  (ids) => {
-    for (const id of ids) permissions.value[id] ||= { ...defaultProjectPermissions }
-    if (!ids.includes(permissionProject.value)) permissionProject.value = ids[0] || ''
-  },
-  { deep: true },
 )
 function save() {
   emit('save', {
@@ -79,8 +59,7 @@ function save() {
     email: email.value,
     status: status.value,
     projects: selected.value,
-    canCreateProjects: canCreate.value,
-    projectPermissions: Object.fromEntries(selected.value.map((id) => [id, permissions.value[id]])),
+    isProjectSuperadmin: superadmin.value,
     sendEmail: delivery.value === 'email',
     generateLink: delivery.value === 'link',
   })
@@ -139,11 +118,12 @@ function save() {
       <p v-if="kind === 'member'" class="small muted">{{ t('administrators.profileHint') }}</p>
       <div class="member-creation-permission">
         <NotificationToggle
-          :checked="canCreate"
+          :checked="superadmin"
           :disabled="busy"
-          :label="t('permissions.createProjects')"
-          @change="canCreate = $event.target.checked"
+          :label="t('team95.superadmin')"
+          @change="superadmin = $event.target.checked"
         />
+        <p class="small muted">{{ t('team95.superadminHint') }}</p>
       </div>
       <details class="management-section assigned-projects">
         <summary>{{ t('adminEditor.assigned', { count: selected.length }) }}</summary>
@@ -164,38 +144,6 @@ function save() {
           >
         </fieldset>
         <p v-if="!selected.length" class="small muted">{{ t('administrators.noProjects') }}</p>
-        <details v-if="assigned.length" class="project-rights">
-          <summary>{{ t('permissions.title') }}</summary>
-          <label class="field" for="administrator-permission-project"
-            >{{ t('permissions.project')
-            }}<select
-              id="administrator-permission-project"
-              v-model="permissionProject"
-              :disabled="busy"
-            >
-              <option v-for="p in assigned" :key="p.id" :value="p.id">{{ p.name }}</option>
-            </select></label
-          >
-          <div v-if="permissions[permissionProject]" class="member-permissions">
-            <div v-for="key in keys" :key="key" class="member-permission">
-              <NotificationToggle
-                :checked="permissions[permissionProject][key]"
-                :disabled="busy"
-                :label="t('permissions.' + key)"
-                @change="permissions[permissionProject][key] = $event.target.checked"
-              />
-              <p class="small muted">{{ t('permissions.' + key + 'Hint') }}</p>
-            </div>
-            <button
-              type="button"
-              class="button secondary"
-              :disabled="busy"
-              @click="permissions[permissionProject] = { ...defaultProjectPermissions }"
-            >
-              {{ t('permissions.reset') }}
-            </button>
-          </div>
-        </details>
       </details>
       <details class="management-section administrator-invitations">
         <summary>{{ t('team.invitations') }}</summary>

@@ -50,7 +50,7 @@ class AccountSecurity
 
     public function policyFingerprint(User $user): string
     {
-        return hash('sha256', (int) $user->platform_admin.'|'.$user->workspaceMembers()->orderBy('id')->get(['id', 'workspace_id', 'role', 'status', 'can_create_projects'])->toJson());
+        return hash('sha256', (int) $user->platform_admin.'|'.$user->workspaceMembers()->orderBy('id')->get(['id', 'workspace_id', 'role', 'status', 'can_create_projects', 'is_project_superadmin'])->toJson());
     }
 
     private function proofValid(Request $request, string $key): bool

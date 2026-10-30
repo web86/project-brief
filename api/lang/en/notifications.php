@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'team_heading' => 'New team chat message',
+    'team_explanation' => 'Open the project to read a private team message.',
     'status_change' => 'Status change',
     'project_request_heading' => 'New project request',
     'project_request_message' => 'A new project request is waiting for your decision.',

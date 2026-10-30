@@ -2,8 +2,9 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
-import { t, locale, setManualLocale, formatApiError } from '../i18n/index.js'
+import { t, locale, formatApiError } from '../i18n/index.js'
 import { appDestination } from '../services/session.js'
+import { documentLanguages, agreementLanguage } from '../utils/agreementLanguages.js'
 import { brandTokens } from '../services/branding.js'
 import { theme } from '../services/theme.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
@@ -19,6 +20,12 @@ const publicPage = computed(() => !!route.params.workspace)
 const tokens = computed(() =>
   brandTokens(state.value?.workspace.branding?.primaryColor, theme.resolved.value === 'dark'),
 )
+const selectedLanguage = ref(null)
+const availableLanguages = computed(() => documentLanguages(state.value?.document).enabled)
+const documentLanguage = computed(() =>
+  agreementLanguage(state.value?.document, selectedLanguage.value || locale.value),
+)
+const languageNames = { ru: 'Русский', en: 'English', tr: 'Türkçe', 'zh-CN': '简体中文' }
 const printDocument = () => window.print()
 let revision = 0
 async function load() {
@@ -46,7 +53,7 @@ async function accept() {
   try {
     await api.request('/api/admin/agreement/accept', {
       method: 'POST',
-      body: { revision: state.value.document.id, locale: locale.value },
+      body: { revision: state.value.document.id, locale: documentLanguage.value },
     })
     useAdminNavigationStore().clear()
     await router.replace((await appDestination(api.request)) || '/app')
@@ -73,7 +80,9 @@ async function logout() {
 watch(
   () => route.params.workspace,
   () => {
-    if (['ru', 'en', 'tr', 'zh-CN'].includes(route.query.lang)) setManualLocale(route.query.lang)
+    selectedLanguage.value = ['ru', 'en', 'tr', 'zh-CN'].includes(route.query.lang)
+      ? route.query.lang
+      : null
     load()
   },
   { immediate: true },
@@ -94,7 +103,22 @@ watch(
           <time :datetime="state.document.date">{{ state.document.date }}</time>
         </p>
         <p v-if="!publicPage" class="muted">{{ t('agreement.acceptHint') }}</p>
-        <AgreementDocument :blocks="state.document.texts[locale]" />
+        <label class="agreement-document-language"
+          >{{ t('agreement.documentLanguage') }}
+          <select
+            :value="documentLanguage"
+            @change="selectedLanguage = $event.target.value"
+            :aria-label="t('agreement.documentLanguage')"
+          >
+            <option v-for="lang in availableLanguages" :key="lang" :value="lang">
+              {{ languageNames[lang] }}
+            </option>
+          </select>
+        </label>
+        <p v-if="documentLanguage !== locale" class="small muted" role="status">
+          {{ t('agreement.languageFallback', { language: languageNames[documentLanguage] }) }}
+        </p>
+        <AgreementDocument :blocks="state.document.texts[documentLanguage]" />
       </template>
       <div v-if="!publicPage" class="agreement-actions">
         <button class="button secondary" type="button" :disabled="busy" @click="logout">
@@ -136,6 +160,17 @@ watch(
   margin: 0 0 14px;
   line-height: 1.25;
   font-size: clamp(1.45rem, 4vw, 2rem);
+}
+.agreement-document-language {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+}
+.agreement-document-language select {
+  width: auto;
+  max-width: 100%;
 }
 .agreement-actions {
   display: flex;

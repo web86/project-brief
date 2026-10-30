@@ -68,7 +68,7 @@ class NotificationSettingsController extends Controller
             $rules[$path.'.recipients'] = ['required', 'array:mode,ids'];
             $rules[$path.'.recipients.mode'] = ['required', 'in:all,selected'];
             $rules[$path.'.recipients.ids'] = ['present', 'array', 'max:500'];
-            $rules[$path.'.recipients.ids.*'] = ['required', 'distinct', str_starts_with($event, 'client.') ? 'integer' : 'uuid'];
+            $rules[$path.'.recipients.ids.*'] = ['required', 'distinct', NotificationEvents::toTeam($event) ? 'integer' : 'uuid'];
         }
         $data = $request->validate($rules);
         if (array_diff(array_keys($data['eventRules']), NotificationEvents::CODES)) {
@@ -76,7 +76,7 @@ class NotificationSettingsController extends Controller
         }
         $options = $this->recipientOptions($project);
         foreach ($data['eventRules'] as $event => &$rule) {
-            $team = str_starts_with($event, 'client.');
+            $team = NotificationEvents::toTeam($event);
             $ids = array_map($team ? fn ($id) => (int) $id : fn ($id) => mb_strtolower($id), $rule['recipients']['ids']);
             if (array_diff($ids, array_column($options[$team ? 'team' : 'clients'], 'id'))) {
                 throw ValidationException::withMessages(['eventRules' => 'Recipient does not have access to this project.']);

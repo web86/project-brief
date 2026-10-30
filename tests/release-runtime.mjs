@@ -1651,7 +1651,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.9.4',
+    '0.9.5',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /migrate --force/)
@@ -1774,10 +1774,10 @@ echo json_encode(['ok'=>true]);
           mutations.push(request.url())
       })
       await member.getByRole('button', { name: 'Edit', exact: true }).click()
-      await page.locator('.administrator-dialog .assigned-projects > summary').click()
-      await page.locator('.administrator-dialog .project-rights > summary').click()
-      const switches = page.locator('.administrator-dialog .member-permissions [role="switch"]')
-      for (let i = 1; i < 6; i++) await switches.nth(i).check()
+      await page
+        .locator('.administrator-dialog')
+        .getByRole('switch', { name: 'Assign as project superadministrator', exact: true })
+        .check()
       await page
         .locator('.administrator-dialog')
         .getByRole('button', { name: 'Save', exact: true })
@@ -1792,9 +1792,9 @@ echo json_encode(['ok'=>true]);
         if (!response.ok) throw new Error('Packaged team state unavailable')
         return (await response.json()).members.find(
           (member) => member.user.email === 'package-developer@example.test',
-        ).projectPermissions[project]
+        ).isProjectSuperadmin
       }, fixture.project)
-      assert.equal(Object.values(saved).filter(Boolean).length, 6)
+      assert.equal(saved, true)
 
       assert.deepEqual(await page.evaluate(() => window.packagedGet), [
         { active: true, dialog: false },

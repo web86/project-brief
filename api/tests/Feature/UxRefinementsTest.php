@@ -62,6 +62,8 @@ class UxRefinementsTest extends TestCase
         $this->actingAs($dev)->getJson('/api/admin/projects?q=private')->assertJsonPath('meta.total', 0);
         $this->getJson('/api/admin/projects?q=Studio')->assertJsonPath('meta.total', 1);
         $assignment->update(['permissions' => ['manage_clients' => true]]);
+        $this->getJson('/api/admin/projects?q=private')->assertJsonPath('meta.total', 0);
+        $member->update(['is_project_superadmin' => true]);
         $response = $this->getJson('/api/admin/projects?q=private')->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $project->uuid)->assertJsonMissing(['id' => $other->uuid]);
         $this->assertStringNotContainsString('private@example.test', $response->getContent());
         $this->getJson('/api/admin/me')->assertJsonMissingPath('workspace.branding.business')->assertJsonMissingPath('workspace.branding.contact');

@@ -3,11 +3,18 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import BrandLogo from './BrandLogo.vue'
-import { useWorkspaceAppearance } from '../services/workspaceAppearance.js'
+import {
+  useWorkspaceAppearance,
+  isEntryRoute,
+  entryBrandingReady,
+} from '../services/workspaceAppearance.js'
 defineProps({ compact: Boolean })
 const route = useRoute(),
   nav = useAdminNavigationStore()
-const switching = computed(() => route.meta.adminShell && nav.switching)
+const switching = computed(
+  () =>
+    (route.meta.adminShell && nav.switching) || (isEntryRoute(route) && !entryBrandingReady.value),
+)
 const { brand } = useWorkspaceAppearance()
 </script>
 <template>

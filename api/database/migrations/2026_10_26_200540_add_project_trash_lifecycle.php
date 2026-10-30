@@ -26,6 +26,10 @@ return new class extends Migration
         if (DB::table('projects')->whereNotNull('deleted_at')->exists() || DB::table('project_file_deletions')->exists()) {
             throw new RuntimeException('Restore or purge trashed projects and finish file cleanup before rollback.');
         }
+        if (DB::getDriverName() === 'mysql' && ! Schema::hasIndex('projects', 'projects_workspace_id_rollback_index')) {
+            // MariaDB may choose the composite index to back the workspace foreign key.
+            Schema::table('projects', fn (Blueprint $table) => $table->index('workspace_id', 'projects_workspace_id_rollback_index'));
+        }
         Schema::dropIfExists('project_file_deletions');
         Schema::table('projects', function (Blueprint $table): void {
             $table->dropIndex(['workspace_id', 'deleted_at']);

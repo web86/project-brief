@@ -31,6 +31,6 @@ class ProjectResource extends JsonResource
             'clientsCount' => $this->when($admin && isset($this->clients_count), (int) $this->clients_count),
             'teamCount' => $this->when($admin && isset($this->team_count), (int) $this->team_count),
             'sections' => $this->whenLoaded('briefSections', fn () => $this->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))),
-            'tasksCount' => $this->when($admin, $this->tasks_count), 'doneCount' => $this->when($admin, $this->done_count), 'unreadCommentCount' => $unreadComments, 'unreadCount' => $this->when($admin && isset($this->unread_count), (int) $this->unread_count)];
+            'teamUnreadCount' => $this->when($admin && isset($this->team_unread_count), (int) $this->team_unread_count), 'tasksCount' => $this->when($admin, $this->tasks_count), 'doneCount' => $this->when($admin, $this->done_count), 'unreadCommentCount' => $unreadComments, 'unreadCount' => $this->when($admin && isset($this->unread_count), (int) $this->unread_count)];
     }
 }

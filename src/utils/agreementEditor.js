@@ -41,12 +41,40 @@ export function readAgreementEditor(root) {
     }
     return [...node.childNodes].flatMap((child) => spans(child, next))
   }
-  for (const node of root.childNodes) {
+  const blockSelector = 'p,div,h1,h2,h3,ul,ol'
+  function append(node, fallback = 'paragraph') {
+    if (node.nodeType === 3) {
+      blocks.push({ type: fallback, content: spans(node) })
+      return
+    }
+    if (node.nodeType !== 1 || ['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT'].includes(node.tagName))
+      return
     if (['UL', 'OL'].includes(node.tagName)) {
       for (const item of node.children)
-        blocks.push({ type: node.tagName === 'UL' ? 'bullet' : 'number', content: spans(item) })
-    } else blocks.push({ type: types[node.tagName] || 'paragraph', content: spans(node) })
+        if (item.tagName === 'LI')
+          blocks.push({ type: node.tagName === 'UL' ? 'bullet' : 'number', content: spans(item) })
+      return
+    }
+    const type = types[node.tagName] || fallback
+    let content = []
+    const flush = () => {
+      if (content.length) blocks.push({ type, content })
+      content = []
+    }
+    // Native contenteditable can nest a list inside a heading after replacing a template.
+    for (const child of node.childNodes) {
+      if (
+        types[child.tagName] ||
+        ['UL', 'OL'].includes(child.tagName) ||
+        child.querySelector?.(blockSelector)
+      ) {
+        flush()
+        append(child, type)
+      } else content.push(...spans(child))
+    }
+    flush()
   }
+  for (const node of root.childNodes) append(node)
   return blocks.filter((block) => block.content.some((span) => span.text.trim()))
 }
 export function safeFooterUrl(value, email = false) {

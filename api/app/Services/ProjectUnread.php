@@ -26,7 +26,7 @@ class ProjectUnread
             $projects->select('projects.*');
         }
 
-        return $projects->addSelect(['unread_comment_count' => app(ProjectDiscussions::class)->unread(Comment::query(), $user)
+        return $projects->addSelect(['team_unread_count' => app(ProjectDiscussions::class)->unread(Comment::withoutGlobalScope('public_channel')->where('team_only', true), $user)->whereColumn('comments.project_id', 'projects.id')->selectRaw('COUNT(*)'), 'unread_comment_count' => app(ProjectDiscussions::class)->unread(Comment::withoutGlobalScope('public_channel'), $user)
             ->where(fn (Builder $comments) => $comments->whereHas('task', fn (Builder $tasks) => $tasks->whereColumn('tasks.project_id', 'projects.id'))
                 ->orWhere(fn (Builder $general) => $general->whereNull('task_id')->whereColumn('comments.project_id', 'projects.id')))
             ->selectRaw('COUNT(*)'), 'unread_count' => $this->relevant()->selectRaw('COUNT(*)')
