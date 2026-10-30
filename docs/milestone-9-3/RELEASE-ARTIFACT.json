@@ -1,0 +1,112 @@
+{
+  "milestone": "9.3 Administrators, SSO, Passkey, agreements and branded footer",
+  "version": "0.9.3",
+  "branch": "codex/milestone-9-3-admin-agreements",
+  "sourceCommit": "6dd988bd0de0a48e0a429e6d7ecde6e02ab46356",
+  "builtAt": "2026-10-30T09:52:14.542Z",
+  "archive": "release/project-brief-v0.9.3-6dd988b.zip",
+  "bytes": 39313874,
+  "sha256": "5c60ee9600f0f8e47f3dfad32411008ac19705dca8d304098b9193a11d78efaf",
+  "fileCount": 8894,
+  "fileCountIncludesManifest": true,
+  "checksummedFiles": 8893,
+  "archiveEntries": 10139,
+  "independentZipCrcAndInternalHashes": true,
+  "runtimeAndKnownLocalSecretExclusionsPassed": true,
+  "newScreenshotsCommitted": false,
+  "screenshotsLocalOnly": true,
+  "nativePhp": "8.5.10",
+  "phpTarget": "8.4",
+  "nodeTests": {
+    "tests": 389,
+    "passed": 389
+  },
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 987,
+    "passed": 987,
+    "assertions": 14008,
+    "duration_ms": 83775
+  },
+  "php84MariaDb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 119,
+    "assertions": 1309,
+    "passed": true,
+    "excludedTests": [
+      "ProjectPermissionsTest::test_ordinary_task_comments_attachments_and_personal_settings_remain_available_without_any_permissions"
+    ],
+    "exclusionReason": "Existing image fixture requires GD absent in QA image; native complete suite includes and passes it.",
+    "scope": "Focused business/security regression suite",
+    "upgradeRollbackFixture": "Isolated SQLite connection; real MariaDB uses fresh disposable schema"
+  },
+  "browser": {
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "widths": [1440, 390],
+    "themes": ["light", "dark"],
+    "management": {
+      "groups": 3,
+      "screenshotsLocalOnly": 64,
+      "jsErrors": 0
+    },
+    "agreements": {
+      "groups": 5,
+      "screenshotsLocalOnly": 54,
+      "jsErrors": 0
+    },
+    "parallelPasskey": {
+      "groups": 4,
+      "sameCookieSession": true,
+      "signedVirtualUV": true,
+      "jsErrors": 0,
+      "bothIndependentOperations": 200
+    },
+    "sso": {
+      "scenarios": 12,
+      "screenshotsLocalOnly": 9
+    },
+    "accountSecurity": {
+      "scenarios": 23
+    },
+    "extractedZip": {
+      "passed": true,
+      "agreementPublished": true,
+      "anonymousDocument": true,
+      "agreementApiGate": true,
+      "agreementAccepted": true,
+      "compiledAssets": true,
+      "productionVendor": true,
+      "origin": "https://brief.web86.site",
+      "rpId": "brief.web86.site",
+      "virtualUV": true,
+      "active": true,
+      "applicationDialogs": 0,
+      "mutations": 1,
+      "changedPermissions": 5,
+      "browser": "151.0.7922.34"
+    }
+  },
+  "boundaries": {
+    "pushed": false,
+    "deployed": false,
+    "productionDbChanged": false,
+    "liveJinoTested": false,
+    "physicalTouchIdTested": false,
+    "webKitTested": false
+  },
+  "passkeyDiagnosis": "Older shared-session challenge overwrite was already fixed by attemptId isolation in v0.9.2; retained and retested in v0.9.3. Current code is PK_CHALLENGE_INVALID; original PR-prefixed production incident is not verified.",
+  "extractedZipPhp84MariaDb": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "11.8.9-MariaDB-ubu2404",
+    "productionVendor": true,
+    "freshSchema": true,
+    "administratorRoutes": 8,
+    "newFields": 2,
+    "acceptanceTableAndUniqueIndex": true,
+    "phpLint": true,
+    "disposableDatabaseOnly": true
+  }
+}

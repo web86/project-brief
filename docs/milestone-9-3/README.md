@@ -25,4 +25,5 @@
 - [Passkey: первопричина и повторная проверка двух вкладок](PASSKEY.md).
 - [Результаты и границы проверок](TESTS.md).
 - [Обновление и rollback Jino](PRODUCTION.md).
-- Итоговый ZIP, byte size и SHA-256: `RELEASE-ARTIFACT.json` и `SHA256SUMS.txt` рядом с этим файлом.
+- [Production ZIP](../../release/project-brief-v0.9.3-6dd988b.zip) — **39313874 bytes**, source commit `6dd988b`.
+- [SHA-256](SHA256SUMS.txt) и [результаты релиза](RELEASE-ARTIFACT.json). Скриншоты сохранены только локально и исключены из Git.
