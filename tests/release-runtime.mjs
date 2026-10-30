@@ -1930,25 +1930,61 @@ echo json_encode(['ok'=>true]);
         'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"review"]);',
         fixture.exportTask,
       ])
-      await page.goto(publicOrigin + '/access/' + 'a'.repeat(64))
-      await page.goto(publicOrigin + `/project/${fixture.project}/task/${fixture.exportTask}`)
-      await page.locator('.client-status-buttons').waitFor()
+      const clientContext = await browser.newContext({ serviceWorkers: 'block' })
+      await clientContext.route('**/*', async (route) => {
+        const url = new URL(route.request().url())
+        if (url.origin !== publicOrigin) return route.abort()
+        await route.fulfill({
+          response: await route.fetch({ url: origin + url.pathname + url.search, maxRedirects: 0 }),
+        })
+      })
+      await clientContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+      const clientPage = await clientContext.newPage()
+      clientPage.setDefaultTimeout(20000)
+      clientPage.on('pageerror', (error) => errors.push(error.message))
+      await clientPage.goto(publicOrigin + '/access/' + 'a'.repeat(64))
+      await clientPage.goto(publicOrigin + `/project/${fixture.project}/task/${fixture.exportTask}`)
+      const initialClientState = await clientPage.evaluate(
+        async (id) => ({
+          session: await (
+            await fetch('/api/session', { headers: { Accept: 'application/json' } })
+          ).json(),
+          task: await (
+            await fetch('/api/client/tasks/' + id, { headers: { Accept: 'application/json' } })
+          ).json(),
+        }),
+        fixture.exportTask,
+      )
+      assert.equal(
+        initialClientState.session.type,
+        'client',
+        JSON.stringify(initialClientState.session),
+      )
+      assert.equal(
+        initialClientState.task.data?.status,
+        'review',
+        JSON.stringify({
+          status: initialClientState.task.data?.status,
+          code: initialClientState.task.code,
+        }),
+      )
+      await clientPage.locator('.client-status-buttons').waitFor()
       const clientWrites = []
-      page.on('request', (request) => {
+      clientPage.on('request', (request) => {
         if (request.method() === 'PATCH' && request.url().includes('/api/client/tasks/'))
           clientWrites.push(request.url())
       })
-      await page.locator('.client-status-buttons .primary').click()
-      const confirmation = page.locator('.client-complete-dialog')
+      await clientPage.locator('.client-status-buttons .primary').click()
+      const confirmation = clientPage.locator('.client-complete-dialog')
       await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click()
       assert.equal(clientWrites.length, 0)
-      await page.locator('.client-status-buttons .primary').click()
+      await clientPage.locator('.client-status-buttons .primary').click()
       await confirmation.getByRole('button', { name: 'Complete task', exact: true }).click()
       await confirmation.waitFor({ state: 'hidden' })
-      assert.equal(await page.locator('.client-status-buttons').count(), 0)
+      assert.equal(await clientPage.locator('.client-status-buttons').count(), 0)
       assert.equal(clientWrites.length, 1)
       assert.equal(
-        await page.evaluate(
+        await clientPage.evaluate(
           async (id) =>
             (
               await (
@@ -1960,6 +1996,7 @@ echo json_encode(['ok'=>true]);
         'done',
       )
       assert.deepEqual(errors, [])
+      await clientContext.close()
       await guest.close()
       const evidence = {
         passed: true,
