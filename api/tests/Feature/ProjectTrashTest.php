@@ -232,7 +232,7 @@ class ProjectTrashTest extends TestCase
         $this->actingAs($this->ownerFor($project));
         $this->postJson('/api/admin/projects/'.$project->uuid.'/trash')->assertOk();
         $this->getJson('/api/admin/projects/'.$other->uuid.'/team')->assertOk()->assertDontSee($project->uuid);
-        $this->patchJson('/api/admin/projects/'.$other->uuid.'/team/members/'.$member->id, ['projects' => [$other->uuid]])->assertOk();
+        $this->patchJson('/api/admin/administrators/members/'.$member->id, ['projects' => [$other->uuid]])->assertOk();
         $this->assertDatabaseHas('project_members', ['project_id' => $project->id, 'workspace_member_id' => $member->id]);
     }
 

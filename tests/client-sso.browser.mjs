@@ -15,7 +15,7 @@ const scratch = await mkdtemp(path.join(tmpdir(), 'brief-provisioning-'))
 const app = path.join(scratch, 'app')
 const mysql = !!process.env.PROVISIONING_MYSQL_PORT
 const productionBuild = true
-const output = path.join(root, 'artifacts/milestone-8-4/sso', mysql ? 'mysql' : 'sqlite')
+const output = path.join(root, 'artifacts/milestone-8-5/sso', mysql ? 'mysql' : 'sqlite')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, otherBackend, frontend, browser, smtp, tlsServer, areaServer, areaBackend
@@ -440,7 +440,15 @@ try {
   }
   await admin.goto(origin + '/admin/settings/integrations')
   await admin.getByRole('tab', { name: 'SSO', exact: true }).click()
-  await admin.locator('#sso-source').selectOption(fixture.source)
+  await admin
+    .locator('.sso-source-card')
+    .filter({
+      hasText: (await call(admin.context(), '/api/admin/integrations')).sources.find(
+        (source) => source.id === fixture.source,
+      ).name,
+    })
+    .locator('button')
+    .click()
   await admin.locator('#sso-origin').fill(areaOrigin)
   await admin.locator('#sso-enabled').check()
   await admin.locator('.sso-automatic').waitFor()
@@ -916,7 +924,15 @@ try {
     await admin.goto(origin + '/admin/settings/integrations')
     await admin.getByRole('tab', { name: 'SSO', exact: true }).click()
     await admin.getByRole('heading', { name: title, exact: true }).waitFor()
-    await admin.locator('#sso-source').selectOption(fixture.source)
+    await admin
+      .locator('.sso-source-card')
+      .filter({
+        hasText: (await call(admin.context(), '/api/admin/integrations')).sources.find(
+          (source) => source.id === fixture.source,
+        ).name,
+      })
+      .locator('button')
+      .click()
     assert.equal(await admin.locator('#sso-enabled').isChecked(), true)
     await capture(admin, 'sso-settings-' + locale + '-desktop-dark')
     await admin.setViewportSize({ width: 390, height: 844 })

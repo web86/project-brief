@@ -28,7 +28,7 @@ class WorkspaceMember extends Model
         static::deleting($invalidate);
     }
 
-    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'can_create_projects'];
+    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'can_create_projects', 'display_name'];
 
     protected function casts(): array
     {

@@ -203,7 +203,7 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
 
 export function isSecurityConfirmationScreen(path) {
   if (path === '/platform') return true
-  return /^\/admin(?:\/?$|\/account(?:\/|$)|\/settings\/(?:integrations|branding)(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
+  return /^\/admin(?:\/?$|\/administrators(?:\/|$)|\/account(?:\/|$)|\/settings\/(?:integrations|branding)(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
     path,
   )
 }
@@ -222,7 +222,7 @@ export function isSensitiveMutation(path, method) {
     )
   )
     return true
-  return /^\/api\/admin\/(?:account\/(?:email(?:\/confirm)?|password)|integrations(?:\/|$)|projects\/(?:trash(?:\/confirmation)?|[^/]+\/(?:team\/|clients\/|permanent(?:\/confirmation)?$)))/.test(
+  return /^\/api\/admin\/(?:account\/(?:email(?:\/confirm)?|password)|(?:integrations|administrators)(?:\/|$)|projects\/(?:trash(?:\/confirmation)?|[^/]+\/(?:team\/|clients\/|permanent(?:\/confirmation)?$)))/.test(
     path,
   )
 }

@@ -112,3 +112,42 @@ test('project menu fails closed and reflects every independent API capability in
   assert.ok(!html.includes('/test/settings'))
   assert.ok(html.includes('/test/discussions'))
 })
+
+test('global administrators navigation is owner-only in every locale and changes with workspace authority', async () => {
+  const Sidebar = (await server.ssrLoadModule('/src/components/AdminSidebar.vue')).default
+  for (const lang of ['ru', 'en', 'tr', 'zh-CN']) {
+    i18n.global.locale.value = lang
+    navStore().workspace = { id: 'workspace', name: 'Workspace' }
+    navStore().workspaces = [navStore().workspace]
+    navStore().user = { name: 'Owner', membershipRole: 'owner' }
+    const owner = await render(Sidebar, '/admin/administrators')
+    assert.ok(owner.includes('href="/admin/administrators"'))
+    assert.ok(owner.includes(i18n.global.t('administrators.title')))
+    navStore().user = { name: 'Developer', membershipRole: 'admin' }
+    const developer = await render(Sidebar, '/admin')
+    assert.ok(!developer.includes('href="/admin/administrators"'))
+    navStore().workspace = null
+    const unavailable = await render(Sidebar, '/admin')
+    assert.ok(!unavailable.includes('href="/admin/administrators"'))
+  }
+})
+
+test('administrator route guard checks current workspace owner without granting developer authority', async () => {
+  for (const membershipRole of ['owner', 'admin']) {
+    setActivePinia(createPinia())
+    const request = async (path) => {
+      if (path === '/api/admin/me')
+        return { user: { membershipRole }, workspace: { id: 'current', name: 'Current' } }
+      if (path === '/api/admin/workspaces') return { data: [{ id: 'current', name: 'Current' }] }
+      throw new Error(path)
+    }
+    const router = routerFactory({ history: createMemoryHistory(), apiMode: true, request })
+    await router.push('/admin/administrators')
+    assert.equal(
+      router.currentRoute.value.path,
+      membershipRole === 'owner' ? '/admin/administrators' : '/admin/unavailable',
+    )
+    if (membershipRole === 'admin')
+      assert.equal(router.currentRoute.value.query.reason, 'permission')
+  }
+})

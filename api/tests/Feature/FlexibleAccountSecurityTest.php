@@ -223,7 +223,7 @@ class FlexibleAccountSecurityTest extends TestCase
         $project = Project::factory()->create();
         $owner = $this->ownerFor($project);
         $this->actingAs($owner);
-        $root = '/api/admin/projects/'.$project->uuid.'/team';
+        $root = '/api/admin/administrators';
         DB::enableQueryLog();
         DB::flushQueryLog();
         $first = $this->getJson($root)->assertOk()->assertJsonPath('members.0.security.totp', true)->assertJsonPath('members.0.security.passkey', true);

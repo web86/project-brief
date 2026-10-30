@@ -360,6 +360,7 @@ test('preparation follows actual sensitive UI routes without warming ordinary ta
     '/admin/account/security',
     '/admin/settings/integrations',
     '/admin/projects/id/team',
+    '/admin/administrators',
     '/admin/projects/id/clients',
   ])
     assert.equal(isSecurityConfirmationScreen(path), true, path)

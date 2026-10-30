@@ -27,7 +27,7 @@ class DeveloperInvitation extends Model
 
     protected function casts(): array
     {
-        return ['project_ids' => 'array', 'expires_at' => 'datetime', 'accepted_at' => 'datetime', 'revoked_at' => 'datetime'];
+        return ['sent_at' => 'datetime', 'project_ids' => 'array', 'expires_at' => 'datetime', 'accepted_at' => 'datetime', 'revoked_at' => 'datetime'];
     }
 
     public function workspace(): BelongsTo

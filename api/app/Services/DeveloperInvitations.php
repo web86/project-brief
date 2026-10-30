@@ -52,8 +52,13 @@ class DeveloperInvitations
 
         $recipient = User::whereRaw('LOWER(TRIM(email)) = ?', [self::normalizeEmail($invitation->email)])->first();
 
-        return app(AccountMail::class)->localized($invitation->email, $recipient?->preferred_locale ?? $invitation->locale, 'invitation',
+        $sent = app(AccountMail::class)->localized($invitation->email, $recipient?->preferred_locale ?? $invitation->locale, 'invitation',
             rtrim(config('app.url'), '/').'/invitation#token='.$token, ['workspace' => $invitation->workspace->name]);
+        if ($sent) {
+            $invitation->forceFill(['sent_at' => now()])->save();
+        }
+
+        return $sent;
     }
 
     public function resolve(string $token, bool $lock = false): DeveloperInvitation
@@ -87,7 +92,7 @@ class DeveloperInvitations
             abort_unless(self::emailsMatch($user->email, $invitation->email), 403, 'Invitation email must match your account.');
             // The emailed single-use token proves the mailbox, while existing accounts also require authentication.
             $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
-            $member = WorkspaceMember::firstOrCreate(['workspace_id' => $invitation->workspace_id, 'user_id' => $user->id], ['role' => 'admin', 'status' => 'active', 'joined_at' => now()]);
+            $member = WorkspaceMember::firstOrCreate(['workspace_id' => $invitation->workspace_id, 'user_id' => $user->id], ['role' => 'admin', 'status' => 'active', 'joined_at' => now(), 'display_name' => $invitation->name]);
             if ($member->status !== 'active') {
                 $member->can_create_projects = false;
             }

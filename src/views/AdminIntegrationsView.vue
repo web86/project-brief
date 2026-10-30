@@ -16,6 +16,10 @@ const state = ref(null),
   loadFailed = ref(false),
   historyBusy = ref(false),
   copying = ref(false)
+const ssoCreateOpen = ref(false),
+  ssoNewName = ref(''),
+  ssoNewOrigin = ref(''),
+  ssoSearch = ref('')
 const ssoSourceId = ref(''),
   ssoEnabled = ref(false),
   ssoOrigin = ref(''),
@@ -27,20 +31,66 @@ const automaticSsoProjectIds = computed(
 )
 const manualSsoProjects = computed(() =>
   (state.value?.projects || []).filter(
-    (project) => !automaticSsoProjectIds.value.includes(project.id),
+    (project) =>
+      !automaticSsoProjectIds.value.includes(project.id) &&
+      project.name
+        .toLocaleLowerCase(intlLocale())
+        .includes(ssoSearch.value.trim().toLocaleLowerCase(intlLocale())),
   ),
 )
 watch(
   () => [state.value?.sources, ssoSourceId.value],
   () => {
     const sources = state.value?.sources || []
-    const source = sources.find((item) => item.id === ssoSourceId.value) || sources[0]
+    const source = sources.find((item) => item.id === ssoSourceId.value)
     ssoSourceId.value = source?.id || ''
     ssoEnabled.value = !!source?.ssoEnabled
     ssoOrigin.value = source?.ssoOrigin || ''
     ssoProjectIds.value = [...(source?.ssoProjectIds || [])]
   },
 )
+const selectedSsoSource = computed(() =>
+  state.value?.sources?.find((source) => source.id === ssoSourceId.value),
+)
+const automaticSsoProjects = computed(() =>
+  (state.value?.projects || []).filter((project) =>
+    automaticSsoProjectIds.value.includes(project.id),
+  ),
+)
+function hasSsoKey(source) {
+  return activeTokens.value.some(
+    (token) => token.sourceId === source.id && token.scopes.includes('clients:sso'),
+  )
+}
+function ssoCount(source) {
+  return new Set([...(source.automaticSsoProjectIds || []), ...(source.ssoProjectIds || [])]).size
+}
+function configureSso(source) {
+  ssoSourceId.value = source.id
+  ssoSearch.value = ''
+}
+async function createSsoSource() {
+  const result = await action('/sources', 'POST', {
+    name: ssoNewName.value,
+    origin: ssoNewOrigin.value,
+  })
+  if (result?.id) {
+    ssoSourceId.value = result.id
+    ssoCreateOpen.value = false
+    ssoNewName.value = ''
+    ssoNewOrigin.value = ''
+  }
+}
+async function createSsoKey(source) {
+  sourceId.value = source.id
+  sourceName.value = ''
+  name.value = source.name + ' SSO'
+  scopes.value = ['clients:sso']
+  tokenCreateOpen.value = true
+  selectTab('tokens')
+  await nextTick()
+  globalThis.document?.getElementById('token-name')?.focus()
+}
 async function saveSso() {
   if (ssoSourceId.value)
     await action('/sources/' + ssoSourceId.value + '/sso', 'PATCH', {
@@ -209,6 +259,11 @@ watch(
     hookCreateOpen.value = false
     sourceId.value = ''
     sourceName.value = ''
+    ssoSourceId.value = ''
+    ssoCreateOpen.value = false
+    ssoNewName.value = ''
+    ssoNewOrigin.value = ''
+    ssoSearch.value = ''
     deliveries.value = null
     operations.value = null
     operationPage.value = 1
@@ -612,55 +667,174 @@ async function confirmAction(key, path, method = 'POST') {
           role="tabpanel"
           aria-labelledby="integration-tab-sso"
         >
-          <form class="surface integration-form sso-settings" @submit.prevent="saveSso">
-            <h2>{{ t('sso.title') }}</h2>
+          <div class="surface integration-list sso-sources">
+            <div class="integration-actions">
+              <h2>{{ t('sso.title') }}</h2>
+              <button
+                type="button"
+                class="button primary"
+                :disabled="busy"
+                :aria-expanded="ssoCreateOpen"
+                @click="ssoCreateOpen = !ssoCreateOpen"
+              >
+                {{ t('ssoUx.addSource') }}
+              </button>
+            </div>
             <p class="small muted">{{ t('sso.hint') }}</p>
-            <p v-if="!state.sources?.length" class="muted">{{ t('sso.empty') }}</p>
-            <template v-else>
-              <label class="field" for="sso-source"
-                >{{ t('sso.source')
-                }}<select id="sso-source" v-model="ssoSourceId" :disabled="busy">
-                  <option v-for="source in state.sources" :key="source.id" :value="source.id">
-                    {{ source.name }}
-                  </option>
-                </select></label
-              >
-              <label class="integration-toggle"
-                ><input id="sso-enabled" v-model="ssoEnabled" type="checkbox" :disabled="busy" />{{
-                  t('sso.enabled')
-                }}</label
-              >
-              <label class="field" for="sso-origin"
+            <p v-if="validation && tab === 'sso'" class="field-error" role="alert">
+              {{ validationMessage }}
+            </p>
+            <form v-if="ssoCreateOpen" class="integration-form" @submit.prevent="createSsoSource">
+              <label class="field" for="sso-new-name"
+                >{{ t('integrations.name')
+                }}<input
+                  id="sso-new-name"
+                  v-model="ssoNewName"
+                  maxlength="100"
+                  required
+                  :disabled="busy"
+              /></label>
+              <label class="field" for="sso-new-origin"
                 >{{ t('sso.origin')
                 }}<input
-                  id="sso-origin"
-                  v-model="ssoOrigin"
+                  id="sso-new-origin"
+                  v-model="ssoNewOrigin"
                   type="url"
+                  placeholder="https://portal.example.com"
                   maxlength="255"
-                  :required="ssoEnabled"
+                  required
                   :disabled="busy"
               /></label>
               <p class="small muted">{{ t('sso.originHint') }}</p>
-              <p class="small muted sso-automatic">
-                {{ t('sso.automatic', { count: automaticSsoProjectIds.length }) }}
-              </p>
-              <fieldset class="integration-choices sso-projects" :disabled="busy">
-                <legend>{{ t('sso.projects') }}</legend>
-                <label v-for="project in manualSsoProjects" :key="project.id"
-                  ><input v-model="ssoProjectIds" type="checkbox" :value="project.id" />{{
-                    project.name
-                  }}</label
-                >
-              </fieldset>
-              <LoadingButton
-                type="submit"
-                class="button primary"
-                :busy="busy"
-                :disabled="busy || (ssoEnabled && !ssoOrigin)"
-                >{{ t('integrations.save') }}</LoadingButton
+              <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
+                t('integrations.create')
+              }}</LoadingButton>
+            </form>
+            <p v-if="!state.sources?.length" class="muted">{{ t('ssoUx.empty') }}</p>
+            <article
+              v-for="source in state.sources"
+              :key="source.id"
+              class="integration-item sso-source-card"
+            >
+              <div>
+                <h3>{{ source.name }}</h3>
+                <p class="small muted">{{ source.ssoOrigin || t('ssoUx.notConfigured') }}</p>
+                <p class="small">
+                  {{
+                    t(
+                      !source.ssoOrigin
+                        ? 'ssoUx.notConfigured'
+                        : source.ssoEnabled
+                          ? 'ssoUx.on'
+                          : 'ssoUx.off',
+                    )
+                  }}
+                  · {{ t(hasSsoKey(source) ? 'ssoUx.keyReady' : 'ssoUx.keyRequired') }}
+                </p>
+                <p class="small muted">
+                  {{ t('ssoUx.projectCount', { count: ssoCount(source) }) }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="button secondary"
+                :disabled="busy"
+                :aria-pressed="ssoSourceId === source.id"
+                @click="configureSso(source)"
               >
-            </template>
+                {{ t('ssoUx.configure') }}
+              </button>
+            </article>
+          </div>
+          <form
+            v-if="selectedSsoSource"
+            class="surface integration-form sso-settings"
+            @submit.prevent="saveSso"
+          >
+            <h2>{{ selectedSsoSource.name }}</h2>
+            <p class="small muted">{{ t('ssoUx.keyHint') }} <code>clients:sso</code></p>
+            <p role="status">
+              {{ t(hasSsoKey(selectedSsoSource) ? 'ssoUx.keyReady' : 'ssoUx.keyRequired') }}
+            </p>
+            <button
+              v-if="!hasSsoKey(selectedSsoSource)"
+              type="button"
+              class="button secondary"
+              :disabled="busy"
+              @click="createSsoKey(selectedSsoSource)"
+            >
+              {{ t('ssoUx.createKey') }}
+            </button>
+            <label class="integration-toggle"
+              ><input id="sso-enabled" v-model="ssoEnabled" type="checkbox" :disabled="busy" />{{
+                t('sso.enabled')
+              }}</label
+            >
+            <label class="field" for="sso-origin"
+              >{{ t('sso.origin')
+              }}<input
+                id="sso-origin"
+                v-model="ssoOrigin"
+                type="url"
+                maxlength="255"
+                :required="ssoEnabled"
+                :disabled="busy"
+            /></label>
+            <p class="small muted">{{ t('sso.originHint') }}</p>
+            <h3>{{ t('ssoUx.available') }}</h3>
+            <fieldset class="integration-choices sso-automatic" :disabled="busy">
+              <legend>{{ t('ssoUx.automatic', { count: automaticSsoProjects.length }) }}</legend>
+              <p v-if="!automaticSsoProjects.length" class="small muted">
+                {{ t('integrations.noProjects') }}
+              </p>
+              <ul v-else>
+                <li v-for="project in automaticSsoProjects" :key="project.id">
+                  {{ project.name }}
+                </li>
+              </ul>
+            </fieldset>
+            <fieldset class="integration-choices sso-projects" :disabled="busy">
+              <legend>
+                {{
+                  t('ssoUx.manual', {
+                    count: ssoProjectIds.filter((id) => !automaticSsoProjectIds.includes(id))
+                      .length,
+                  })
+                }}
+              </legend>
+              <p class="small muted">{{ t('ssoUx.manualHint') }}</p>
+              <label class="field" for="sso-project-search"
+                >{{ t('integrations.searchProjects')
+                }}<input id="sso-project-search" v-model="ssoSearch" type="search"
+              /></label>
+              <div class="integration-project-options">
+                <label v-for="project in manualSsoProjects" :key="project.id"
+                  ><input v-model="ssoProjectIds" type="checkbox" :value="project.id" /><span>{{
+                    project.name
+                  }}</span></label
+                >
+              </div>
+              <p v-if="!manualSsoProjects.length" class="small muted">
+                {{ t('integrations.noProjectMatches') }}
+              </p>
+            </fieldset>
+            <LoadingButton
+              type="submit"
+              class="button primary"
+              :busy="busy"
+              :disabled="busy || (ssoEnabled && !ssoOrigin)"
+              >{{ t('integrations.save') }}</LoadingButton
+            >
           </form>
+          <details class="surface integration-list sso-guide">
+            <summary>{{ t('ssoUx.guide') }}</summary>
+            <ol>
+              <li v-for="step in 6" :key="step">{{ t('ssoUx.step' + step) }}</li>
+            </ol>
+            <a href="/client-sso-guide.html" target="_blank" rel="noopener noreferrer">{{
+              t('ssoUx.docs')
+            }}</a>
+          </details>
         </section>
         <section
           v-show="tab === 'operations'"
@@ -1015,9 +1189,13 @@ async function confirmAction(key, path, method = 'POST') {
   overflow-wrap: anywhere;
 }
 
-.sso-projects {
-  max-height: 220px;
-  overflow: auto;
+.sso-projects .field {
+  display: grid;
+  justify-items: stretch;
+}
+.sso-projects input[type='search'] {
+  width: 100%;
+  min-width: 0;
 }
 .integrations-page {
   max-width: 960px;
@@ -1157,6 +1335,35 @@ async function confirmAction(key, path, method = 'POST') {
   .integration-choices code {
     width: 100%;
     padding-left: 24px;
+  }
+}
+</style>
+
+<style scoped>
+.sso-source-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  overflow-wrap: anywhere;
+}
+.sso-source-card > div {
+  min-width: 0;
+}
+.sso-guide {
+  margin-top: 20px;
+}
+.sso-guide summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.sso-guide li {
+  margin-block: 8px;
+}
+@media (max-width: 600px) {
+  .sso-source-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

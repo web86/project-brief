@@ -87,6 +87,16 @@ export function createProjectRouter({
             },
           },
           {
+            path: 'administrators',
+            component: () => import('../views/AdminAdministratorsView.vue'),
+            meta: {
+              ownerOnly: true,
+              get title() {
+                return t('administrators.title')
+              },
+            },
+          },
+          {
             path: 'requests',
             component: () => import('../views/AdminProjectRequestsView.vue'),
             meta: {

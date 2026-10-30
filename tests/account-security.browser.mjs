@@ -315,7 +315,7 @@ try {
   await page.emulateMedia({ colorScheme: 'light' })
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'light')
   results.push('System theme follows dark/light device changes on the security screen')
-  await page.goto(origin + '/admin/projects/' + fixture.project + '/team')
+  await page.goto(origin + '/admin/administrators')
   for (const language of LANGUAGE_CATALOG) {
     for (const [width, scheme] of [
       [1440, 'light'],
@@ -336,7 +336,7 @@ try {
       await page.locator('.team-member').first().waitFor()
       const text = await page.locator('.team-member').first().textContent()
       assert.ok(text.includes(language.messages.security.authenticator))
-      assert.ok(text.includes(language.messages.security.configured))
+      assert.ok(text.includes(language.messages.security.notConfigured))
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
@@ -381,10 +381,10 @@ try {
     .filter({ hasText: 'security-developer@example.test' })
   const teamMutations = []
   page.on('request', (incoming) => {
-    if (incoming.method() === 'PATCH' && incoming.url().includes('/team/members/'))
+    if (incoming.method() === 'PATCH' && incoming.url().includes('/administrators/members/'))
       teamMutations.push(incoming.url())
   })
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  await teamMember.getByRole('button', { name: 'Manage', exact: true }).click()
   const switches = teamMember.locator('.member-permissions [role="switch"]')
   for (let i = 1; i < 6; i++) await switches.nth(i).check()
   await teamMember.getByRole('button', { name: 'Save', exact: true }).dblclick()
@@ -395,7 +395,7 @@ try {
     { active: true, dialog: false },
   ])
   assert.equal(await page.evaluate(() => globalThis.m721Dialogs), 0)
-  const savedTeam = (await request('/api/admin/projects/' + fixture.project + '/team')).body
+  const savedTeam = (await request('/api/admin/administrators')).body
   const savedPermissions = savedTeam.members.find(
     (member) => member.user.email === 'security-developer@example.test',
   ).projectPermissions[fixture.project]
@@ -403,7 +403,7 @@ try {
   results.push(
     'Team Save -> synchronous user-activated real UV assertion -> exactly one PATCH with five changed permissions; no application dialog, including double click',
   )
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  await teamMember.getByRole('button', { name: 'Manage', exact: true }).click()
   await switches.nth(5).uncheck()
   await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
   await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
@@ -418,7 +418,7 @@ try {
     navigator.credentials.get = () =>
       Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
   })
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  await teamMember.getByRole('button', { name: 'Manage', exact: true }).click()
   await switches.nth(4).uncheck()
   const draft = await switches.evaluateAll((items) => items.map((item) => item.checked))
   const criticalBefore = await page.locator('.toast-error').count()
@@ -561,7 +561,7 @@ try {
     navigator.credentials.get = () =>
       Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
   })
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+  await teamMember.getByRole('button', { name: 'Manage', exact: true }).click()
   await switches.nth(4).check()
   await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
   await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).waitFor()
@@ -787,7 +787,7 @@ try {
       await compatibilityPage
         .getByRole('button', { name: 'Continue to workspace', exact: true })
         .waitFor()
-      await compatibilityPage.goto(origin + '/admin/projects/' + fixture.project + '/team')
+      await compatibilityPage.goto(origin + '/admin/administrators')
       await compatibilityPage.locator('.team-member').first().waitFor()
       php(['tests/account-security-fixture.php', 'expire-proof'])
       await compatibilityPage.evaluate(async () => {
@@ -805,7 +805,7 @@ try {
       const employee = compatibilityPage
         .locator('.team-member')
         .filter({ hasText: 'security-developer@example.test' })
-      await employee.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+      await employee.getByRole('button', { name: 'Manage', exact: true }).click()
       const permission = employee.locator('.member-permissions [role="switch"]').nth(5)
       await permission.setChecked(!(await permission.isChecked()))
       await employee.getByRole('button', { name: 'Save', exact: true }).click()

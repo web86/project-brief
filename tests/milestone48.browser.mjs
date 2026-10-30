@@ -192,15 +192,29 @@ try {
   const owner = await context(),
     dev = await context()
   await login(owner.page)
-  const teamRoot = `/api/admin/projects/${fixture.first}/team`
-  const teamPage = `/admin/projects/${fixture.first}/team`
+  const teamRoot = '/api/admin/administrators'
+  const teamPage = '/admin/administrators'
   await go(owner.page, teamPage)
-  await owner.page.getByRole('button', { name: 'Пригласить разработчика', exact: true }).click()
-  await owner.page.locator('#invite-email').fill('invited@example.test')
-  await owner.page.locator('#invite-name').fill('Новый разработчик')
+  await owner.page.getByRole('button', { name: 'Добавить администратора', exact: true }).click()
+  await owner.page.locator('#administrator-email').fill('invited@example.test')
+  await owner.page.locator('#administrator-name').fill('Новый разработчик')
   await owner.page.locator('.invitation-form input[type=checkbox]').first().check()
   await owner.page.locator('.invitation-form button[type=submit]').click()
   await owner.page.getByRole('status').filter({ hasText: 'Приглашение отправлено' }).waitFor()
+  const pending = (await call(owner.page, teamRoot)).json.invitations.find(
+    (item) => item.email === 'invited@example.test',
+  )
+  assert.equal(
+    (
+      await call(
+        owner.page,
+        teamRoot + '/invitations/' + pending.id,
+        { projects: [fixture.first] },
+        'PATCH',
+      )
+    ).status,
+    200,
+  )
   const token = await mailToken('token')
   await go(dev.page, '/invitation#token=' + token)
   await dev.page.getByRole('button', { name: 'Создать аккаунт', exact: true }).click()
@@ -214,7 +228,7 @@ try {
   assert.equal(projects.length, 1)
   const firstAssigned = projects[0].id,
     secondAssigned = firstAssigned === fixture.first ? fixture.second : fixture.first
-  assert.equal((await call(dev.page, teamRoot)).status, firstAssigned === fixture.first ? 403 : 404)
+  assert.equal((await call(dev.page, teamRoot)).status, 403)
   assert.equal((await call(dev.page, '/api/invitations/accept', { token })).status, 410)
   results.push(
     'Real SMTP sink → invitation-only registration → assigned-project list; token removed and single-use; developer cannot manage team',
@@ -372,7 +386,7 @@ try {
     await other.context.close()
   }
 
-  // Repeat invitation reuses the authenticated account and adds a second assignment.
+  // Existing members are identified, then assigned directly by the owner.
   assert.equal(
     (
       await call(owner.page, teamRoot + '/invitations', {
@@ -380,12 +394,22 @@ try {
         projects: [secondAssigned],
       })
     ).status,
-    201,
+    409,
   )
-  const secondToken = await mailToken('token')
-  await go(dev.page, '/invitation#token=' + secondToken)
-  await dev.page.locator('form button[type=submit]').click()
-  await dev.page.waitForURL(origin + '/admin')
+  const existing = (await call(owner.page, teamRoot)).json.members.find(
+    (item) => item.user.email === 'invited@example.test',
+  )
+  assert.equal(
+    (
+      await call(
+        owner.page,
+        teamRoot + '/members/' + existing.id,
+        { projects: [firstAssigned, secondAssigned] },
+        'PATCH',
+      )
+    ).status,
+    200,
+  )
   assert.equal((await call(dev.page, '/api/admin/projects')).json.data.length, 2)
   const members = (await call(owner.page, teamRoot)).json.members
   const member = members.find((item) => item.user.email === 'invited@example.test')
@@ -521,7 +545,7 @@ try {
         await fits(f.page)
         await shot(f.page, 'team-' + label)
         await f.page.locator('.team-heading > button').click()
-        await f.page.locator('#invite-email').fill('developer@example.test')
+        await f.page.locator('#administrator-email').fill('developer@example.test')
         const checks = await f.page.locator('.project-choices input').evaluateAll((nodes) =>
           nodes.map((node) => ({
             width: node.getBoundingClientRect().width,
@@ -533,6 +557,7 @@ try {
           'Project checkboxes keep their compact square size',
         )
         await shot(f.page, 'invitation-' + label)
+        await go(f.page, `/admin/projects/${fixture.first}/team`)
         let menu = f.page.locator('.admin-sidebar')
         if (width < 961) {
           await f.page.locator('.admin-menu-trigger').click()

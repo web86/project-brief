@@ -1606,12 +1606,12 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.9.0',
+    '0.9.1',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
     await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_29_211509_add_platform_administration/,
+    /2026_10_30_054311_add_administrator_management_fields/,
   )
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 
@@ -1689,7 +1689,7 @@ echo json_encode(['ok'=>true]);
           response.url().endsWith('/api/security/passkey/confirm/options') &&
           response.status() === 200,
       )
-      await page.goto(publicOrigin + '/admin/projects/' + fixture.project + '/team')
+      await page.goto(publicOrigin + '/admin/administrators')
       await readyOptions
       await page.locator('.team-member').first().waitFor()
       // Wait for the background options response and the UI to commit it.
@@ -1725,10 +1725,10 @@ echo json_encode(['ok'=>true]);
         .filter({ hasText: 'package-developer@example.test' })
       const mutations = []
       page.on('request', (request) => {
-        if (request.method() === 'PATCH' && request.url().includes('/team/members/'))
+        if (request.method() === 'PATCH' && request.url().includes('/administrators/members/'))
           mutations.push(request.url())
       })
-      await member.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
+      await member.getByRole('button', { name: 'Manage', exact: true }).click()
       const switches = member.locator('.member-permissions [role="switch"]')
       for (let i = 1; i < 6; i++) await switches.nth(i).check()
       await member.getByRole('button', { name: 'Save', exact: true }).dblclick()
@@ -1736,7 +1736,7 @@ echo json_encode(['ok'=>true]);
       await member.locator('.team-edit').waitFor({ state: 'hidden' })
       assert.equal(mutations.length, 1)
       const saved = await page.evaluate(async (project) => {
-        const response = await fetch('/api/admin/projects/' + project + '/team', {
+        const response = await fetch('/api/admin/administrators', {
           headers: { Accept: 'application/json' },
         })
         if (!response.ok) throw new Error('Packaged team state unavailable')

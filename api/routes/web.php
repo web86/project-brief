@@ -36,6 +36,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
 use App\Http\Controllers\TaskTrashController;
 use App\Http\Controllers\TelegramController;
+use App\Http\Controllers\WorkspaceAdministratorController;
 use App\Http\Controllers\WorkspaceBrandingController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\EnsurePlatformAdmin;
@@ -124,8 +125,19 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout']);
 });
 
+Route::middleware('admin')->prefix('/api/admin/administrators')->group(function (): void {
+    Route::get('/', [WorkspaceAdministratorController::class, 'index']);
+    Route::post('/invitations', [WorkspaceAdministratorController::class, 'invite'])->middleware('throttle:account-security');
+    Route::post('/invitations/{invitation}/resend', [WorkspaceAdministratorController::class, 'resend'])->middleware('throttle:account-security');
+    Route::patch('/invitations/{invitation}', [WorkspaceAdministratorController::class, 'updateInvitation']);
+    Route::delete('/invitations/{invitation}', [WorkspaceAdministratorController::class, 'revoke']);
+    Route::patch('/members/{member}', [WorkspaceAdministratorController::class, 'update']);
+    Route::delete('/members/{member}', [WorkspaceAdministratorController::class, 'destroy']);
+});
+
 Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/integrations')->group(function (): void {
     Route::get('/', [IntegrationController::class, 'index']);
+    Route::post('/sources', [IntegrationController::class, 'source']);
     Route::patch('/sources/{uuid}/sso', [IntegrationController::class, 'sourceSso']);
     Route::post('/tokens', [IntegrationController::class, 'token']);
     Route::patch('/tokens/{uuid}', [IntegrationController::class, 'updateToken']);
@@ -166,11 +178,8 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
     Route::get('/feedback', [ProjectFeedbackController::class, 'review']);
     Route::post('/feedback/request', [ProjectFeedbackController::class, 'request']);
     Route::get('/team', [ProjectTeamController::class, 'index']);
-    Route::post('/team/invitations', [ProjectTeamController::class, 'invite'])->middleware('throttle:account-security');
-    Route::post('/team/invitations/{invitation}/resend', [ProjectTeamController::class, 'resend'])->middleware('throttle:account-security');
-    Route::delete('/team/invitations/{invitation}', [ProjectTeamController::class, 'revoke']);
-    Route::patch('/team/members/{member}', [ProjectTeamController::class, 'update']);
-    Route::delete('/team/members/{member}', [ProjectTeamController::class, 'destroy']);
+    Route::post('/team/members', [ProjectTeamController::class, 'assign']);
+    Route::delete('/team/members/{member}', [ProjectTeamController::class, 'remove']);
     Route::post('/ai/task-assistant', AiTaskAssistantController::class);
     Route::post('/export', ProjectExportController::class)->middleware('project.permission:export_project');
     Route::post('/export-data', BrowserProjectExportController::class)->middleware(['project.permission:export_project', 'throttle:browser-pdf']);

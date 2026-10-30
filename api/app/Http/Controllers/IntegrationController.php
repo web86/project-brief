@@ -69,6 +69,32 @@ class IntegrationController extends Controller
         });
     }
 
+    public function source(Request $request): JsonResponse
+    {
+        $workspaceId = $this->workspace($request);
+        abort_if(array_diff(array_keys($request->all()), ['name', 'origin']), 422);
+        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'origin' => ['required', 'string', 'url:https', 'max:255']]);
+        $origin = $this->origin($data['origin']);
+
+        return DB::transaction(function () use ($request, $workspaceId, $data, $origin): JsonResponse {
+            IntegrationWrites::lockWorkspace($workspaceId);
+            $this->workspace($request);
+            abort_if(DB::table('integration_sources')->where('workspace_id', $workspaceId)->count() >= 100, 422, 'Source limit reached.');
+            $uuid = (string) Str::uuid();
+            DB::table('integration_sources')->insert(['uuid' => $uuid, 'workspace_id' => $workspaceId, 'name' => trim($data['name']), 'sso_origin' => $origin, 'sso_enabled' => false, 'created_at' => now(), 'updated_at' => now()]);
+
+            return response()->json(['id' => $uuid], 201)->header('Cache-Control', 'no-store');
+        }, 3);
+    }
+
+    private function origin(string $origin): string
+    {
+        $parts = parse_url($origin);
+        abort_if(! $parts || ($parts['scheme'] ?? '') !== 'https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) || ! in_array($parts['path'] ?? '', ['', '/'], true), 422);
+
+        return 'https://'.strtolower($parts['host']).(isset($parts['port']) && $parts['port'] !== 443 ? ':'.$parts['port'] : '');
+    }
+
     public function sourceSso(Request $request, string $uuid): JsonResponse
     {
         $workspaceId = $this->workspace($request);
@@ -76,9 +102,7 @@ class IntegrationController extends Controller
         $data = $request->validate(['ssoEnabled' => ['required', 'boolean'], 'ssoOrigin' => ['nullable', 'string', 'url:https', 'max:255'], 'projectIds' => ['present', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct']]);
         $origin = $data['ssoOrigin'] ?? null;
         if ($origin !== null) {
-            $parts = parse_url($origin);
-            abort_if(isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) || ! in_array($parts['path'] ?? '', ['', '/'], true), 422);
-            $origin = 'https://'.strtolower($parts['host']).(isset($parts['port']) && $parts['port'] !== 443 ? ':'.$parts['port'] : '');
+            $origin = $this->origin($origin);
         }
         abort_if($data['ssoEnabled'] && ! $origin, 422);
         DB::transaction(function () use ($request, $workspaceId, $uuid, $data, $origin): void {
