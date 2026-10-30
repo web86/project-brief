@@ -1,5 +1,6 @@
 // Standalone Node.js 20.19+ example. No LLM or third-party dependencies.
 import { createHash } from 'node:crypto'
+import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 export async function runAgent({
@@ -72,7 +73,7 @@ export async function runAgent({
   return { agentId: me.id, results }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
   try {
     process.stdout.write(JSON.stringify(await runAgent()) + '\n')
   } catch (error) {

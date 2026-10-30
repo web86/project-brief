@@ -11,6 +11,9 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(import.meta.dirname, '..')
 const mysql = true
 const packageRoot = process.env.M96_PACKAGE_ROOT
+const exampleScript = packageRoot
+  ? path.join(packageRoot, 'agent-api/examples/agent.mjs')
+  : path.join(root, 'docs/milestone-9-6/examples/agent.mjs')
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-live-sync-editor-'))
 const app = path.join(scratch, 'project-brief-app'),
   output = path.join('/tmp', packageRoot ? 'project-brief-m96-package-qa' : 'project-brief-m96-qa')
@@ -63,6 +66,7 @@ const env = {
 function php(args) {
   const result = spawnSync('php', args, { cwd: app, env, encoding: 'utf8' })
   assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.ok(!result.stdout.trimStart().startsWith('In '), result.stdout)
   return result.stdout
 }
 let backend, frontend, browser
@@ -79,7 +83,7 @@ try {
       recursive: true,
     })
     // QA-only factory autoload; the extracted production runtime remains otherwise unchanged.
-    const loader = `<?php\nrequire __DIR__.'/../vendor/autoload.php';\nspl_autoload_register(function ($class) { foreach (['Database\\\\Factories\\\\' => __DIR__.'/../database/factories/', 'Faker\\\\' => __DIR__.'/../vendor/fakerphp/faker/src/Faker/'] as $prefix => $dir) { if (str_starts_with($class, $prefix)) { $path = $dir.str_replace('\\\\', '/', substr($class, strlen($prefix))).'.php'; if (is_file($path)) { require_once $path; } } } });\n`
+    const loader = `<?php\nspl_autoload_register(function ($class) { foreach (['Database\\\\Factories\\\\' => __DIR__.'/../database/factories/', 'Faker\\\\' => __DIR__.'/../vendor/fakerphp/faker/src/Faker/'] as $prefix => $dir) { if (str_starts_with($class, $prefix)) { $path = $dir.str_replace('\\\\', '/', substr($class, strlen($prefix))).'.php'; if (is_file($path)) { require_once $path; } } } });\nrequire __DIR__.'/../vendor/autoload.php';\n`
     await mkdir(path.join(app, 'tests'), { recursive: true })
     await writeFile(path.join(app, 'tests/qa-autoload.php'), loader)
   }
@@ -151,16 +155,21 @@ try {
   const publicDir = packageRoot
     ? path.join(scratch, 'domains/brief.web86.site')
     : path.join(app, 'public')
-  backend = spawn(
-    'php',
-    ['-S', `127.0.0.1:${apiPort}`, '-t', publicDir, path.join(publicDir, 'index.php')],
-    {
-      cwd: app,
-      env,
-      stdio: 'ignore',
-      detached: mysql,
-    },
+  const routerFile = path.join(scratch, 'router.php')
+  await writeFile(
+    routerFile,
+    `<?php
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+if ($path !== '/' && $path !== '/index.html' && !preg_match('~^/(api|access|sanctum)(/|$)~', $path) && is_file($_SERVER['DOCUMENT_ROOT'].$path)) { return false; }
+require $_SERVER['DOCUMENT_ROOT'].'/index.php';
+`,
   )
+  backend = spawn('php', ['-S', `127.0.0.1:${apiPort}`, '-t', publicDir, routerFile], {
+    cwd: app,
+    env,
+    stdio: 'ignore',
+    detached: mysql,
+  })
   if (!packageRoot)
     frontend = await createServer({
       root,
@@ -260,7 +269,7 @@ try {
     .click()
   await page.locator('.agent-assignment').waitFor()
   const before = (await call('/api/admin/tasks/' + fixture.task)).data
-  const executor = spawn('node', [path.join(root, 'docs/milestone-9-6/examples/agent.mjs')], {
+  const executor = spawn('node', [exampleScript], {
     cwd: scratch,
     env: { PATH: process.env.PATH, PROJECT_BRIEF_URL: origin, PROJECT_BRIEF_AGENT_TOKEN: token },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -427,7 +436,7 @@ try {
     webhookUrl: null,
   })
   assert.equal((await agentCall('me')).status, 401)
-  const rejected = spawn('node', [path.join(root, 'docs/milestone-9-6/examples/agent.mjs')], {
+  const rejected = spawn('node', [exampleScript], {
     env: { PATH: process.env.PATH, PROJECT_BRIEF_URL: origin, PROJECT_BRIEF_AGENT_TOKEN: token },
     stdio: 'ignore',
   })
