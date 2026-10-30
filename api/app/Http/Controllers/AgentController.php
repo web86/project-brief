@@ -19,6 +19,7 @@ use App\Services\TaskAccess;
 use App\Services\WebhookDestination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -142,6 +143,9 @@ class AgentController extends Controller
         $workspace = $this->owner($request);
         AgentAccess::fields($request, ['scopes', 'expiresAt', 'replace']);
         $data = $request->validate(['scopes' => ['required', 'array', 'min:1', 'max:5'], 'scopes.*' => ['required', Rule::in(AgentAccess::SCOPES), 'distinct'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()], 'replace' => ['sometimes', 'boolean']]);
+        if (! empty($data['expiresAt'])) {
+            $data['expiresAt'] = Carbon::parse($data['expiresAt'])->utc();
+        }
 
         return DB::transaction(function () use ($request, $workspace, $uuid, $data): JsonResponse {
             IntegrationWrites::lockWorkspace($workspace);

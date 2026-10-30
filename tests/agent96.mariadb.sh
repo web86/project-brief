@@ -9,7 +9,7 @@ task_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 qa_root="$(mktemp -d /tmp/project-brief-m96-suite.XXXXXX)"
 trap 'rm -rf "$qa_root"' EXIT HUP INT TERM
 mkdir -p "$qa_root/api"
-for entry in app config database lang resources routes tests artisan composer.json composer.lock phpunit.xml; do
+for entry in app config database lang resources routes tests artisan composer.json composer.lock phpunit.xml .env.example .env.production.example; do
     cp -R "$task_root/api/$entry" "$qa_root/api/$entry"
 done
 mkdir -p "$qa_root/api/bootstrap/cache" "$qa_root/api/storage/framework/cache/data" "$qa_root/api/storage/framework/sessions" "$qa_root/api/storage/framework/views" "$qa_root/api/storage/app/private" "$qa_root/api/storage/logs"

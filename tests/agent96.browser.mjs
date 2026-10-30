@@ -364,8 +364,15 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     ).status,
     409,
   )
+  const foreignTask = await call('/api/admin/projects/' + fixture.reviewed + '/tasks', 'POST', {
+    title: 'Other project task',
+    location: 'Website',
+    description: 'Outside the agent grant',
+    priority: 'normal',
+  })
+  assert.equal((await agentCall('tasks/' + foreignTask.data.id)).status, 404)
   results.push(
-    'Unassigned task denied; immediate assignment revocation; stale-generation replay rejected after reassignment',
+    'Unassigned and foreign-project tasks denied; immediate assignment revocation; stale-generation replay rejected after reassignment',
   )
   const agent = (await call('/api/admin/integrations/agents')).data[0]
   const visuals = [
@@ -426,6 +433,14 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
             }
           }
     }
+  const rotated = await call('/api/admin/integrations/agents/' + agentId + '/tokens', 'POST', {
+    scopes: agent.tokens.find((credential) => !credential.revokedAt).scopes,
+    replace: true,
+  })
+  assert.equal((await agentCall('me')).status, 401)
+  headers.Authorization = 'Bearer ' + rotated.secret
+  assert.equal((await agentCall('me')).status, 200)
+  results.push('Real HTTP credential rotation: former bearer rejected, replacement accepted')
   results.push(await runWebhookQa({ app, env, agentId, taskId: fixture.task }))
   await call('/api/admin/integrations/agents/' + agentId, 'PATCH', {
     name: agent.name,
@@ -437,7 +452,11 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   })
   assert.equal((await agentCall('me')).status, 401)
   const rejected = spawn('node', [exampleScript], {
-    env: { PATH: process.env.PATH, PROJECT_BRIEF_URL: origin, PROJECT_BRIEF_AGENT_TOKEN: token },
+    env: {
+      PATH: process.env.PATH,
+      PROJECT_BRIEF_URL: origin,
+      PROJECT_BRIEF_AGENT_TOKEN: rotated.secret,
+    },
     stdio: 'ignore',
   })
   assert.equal(await new Promise((resolve) => rejected.once('exit', resolve)), 1)

@@ -207,6 +207,17 @@ class AgentApiTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_expiry_is_normalized_to_utc_and_expired_credentials_are_rejected(): void
+    {
+        [, , $agent] = $this->fixture();
+        $expires = now()->addHour()->startOfSecond();
+        $token = $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => ['agent:profile'], 'expiresAt' => $expires->copy()->timezone('Europe/Istanbul')->toIso8601String()])->assertCreated()->json();
+        $this->assertSame($expires->utc()->format('Y-m-d H:i:s'), DB::table('integration_tokens')->where('uuid', $token['id'])->value('expires_at'));
+        $this->getJson('/api/v1/agent/me', $this->headers($token))->assertOk();
+        $this->travel(61)->minutes();
+        $this->getJson('/api/v1/agent/me', $this->headers($token))->assertUnauthorized();
+    }
+
     public function test_unsafe_webhook_destinations_and_unknown_fields_are_rejected(): void
     {
         $project = Project::factory()->create();
