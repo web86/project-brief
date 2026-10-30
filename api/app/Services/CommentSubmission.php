@@ -14,14 +14,15 @@ class CommentSubmission
     {
         return AttachmentStorage::atomic(function (array &$paths) use ($request, $project, $task, $teamOnly) {
             // Serialize retries in this project before checking the unique submission key.
-            Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            if ($teamOnly) {
+                app(TeamChat::class)->authorize($request, $project, true);
+            }
+            $project = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
             if ($task) {
                 $task = TaskAccess::task($request, $task->uuid, true);
             }
             abort_if($task && $task->project_id !== $project->id, 422);
-            if ($teamOnly) {
-                app(TeamChat::class)->authorize($request, $project, true);
-            }
+            abort_if($teamOnly && $project->status !== 'active', 404);
             $admin = TaskAccess::isAdmin($request);
             $recipient = TaskAccess::recipient($request);
             $actor = $admin ? 'admin' : 'client';

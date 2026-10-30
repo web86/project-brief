@@ -123,7 +123,13 @@ async function send(text, files, submissionId) {
       </template>
       <p v-if="!chat.messages.length && !busy" class="muted">{{ t('discussions.empty') }}</p>
     </div>
-    <CommentForm :key="route.params.uuid" v-model="chat.draft" general :send-comment="send" />
+    <CommentForm
+      :key="route.params.uuid"
+      v-model="chat.draft"
+      :label="t('team95.message')"
+      general
+      :send-comment="send"
+    />
   </section>
 </template>
 <style scoped>

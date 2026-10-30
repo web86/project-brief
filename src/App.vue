@@ -26,6 +26,8 @@ import {
   useWorkspaceAppearance,
   loadEntryBranding,
   isEntryRoute,
+  isDocumentRoute,
+  setDocumentBranding,
 } from './services/workspaceAppearance.js'
 import { theme } from './services/theme.js'
 import { useRoute, useRouter } from 'vue-router'
@@ -48,6 +50,7 @@ const appearance = useWorkspaceAppearance()
 watch(
   () => route.path,
   () => {
+    if (isDocumentRoute(route)) setDocumentBranding(null, false)
     if (isEntryRoute(route))
       loadEntryBranding(route.meta.clientLogin ? route.params.uuid : undefined).catch(() => {})
   },

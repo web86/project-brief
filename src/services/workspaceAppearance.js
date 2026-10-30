@@ -6,6 +6,13 @@ import { brandTokens } from './branding.js'
 import { api } from '../api/client.js'
 import { theme } from './theme.js'
 
+export const documentBranding = ref(null)
+export const documentBrandingReady = ref(false)
+export const isDocumentRoute = (route) => !!(route.meta.agreement || route.meta.publicDocument)
+export function setDocumentBranding(branding, ready = true) {
+  documentBranding.value = branding
+  documentBrandingReady.value = ready
+}
 export const entryBranding = ref(null)
 export const entryBrandingReady = ref(false)
 let entryRevision = 0
@@ -36,6 +43,7 @@ export function activeWorkspaceBrand(route, admin, project) {
       ? admin.workspace?.branding || null
       : null
   }
+  if (isDocumentRoute(route)) return documentBranding.value
   if (isEntryRoute(route)) return entryBranding.value
   return route.meta.apiProject && !route.meta.admin && project.currentClient
     ? project.project.branding || null

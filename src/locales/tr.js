@@ -1,5 +1,6 @@
 export default {
   team95: {
+    message: 'Ekibe mesaj',
     superadmin: 'Proje süper yöneticisi olarak ata',
     superadminHint:
       'Atanan projelerin ayarları, müşterileri, ekibi, yapısı, bildirimleri ve çöp kutusu üzerinde tam yönetim sağlar. Çalışma alanı, entegrasyon veya platform yönetimi sağlamaz. Yeni proje oluşturma yetkisi vermez.',

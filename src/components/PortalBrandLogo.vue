@@ -7,13 +7,17 @@ import {
   useWorkspaceAppearance,
   isEntryRoute,
   entryBrandingReady,
+  isDocumentRoute,
+  documentBrandingReady,
 } from '../services/workspaceAppearance.js'
 defineProps({ compact: Boolean })
 const route = useRoute(),
   nav = useAdminNavigationStore()
 const switching = computed(
   () =>
-    (route.meta.adminShell && nav.switching) || (isEntryRoute(route) && !entryBrandingReady.value),
+    (route.meta.adminShell && nav.switching) ||
+    (isEntryRoute(route) && !entryBrandingReady.value) ||
+    (isDocumentRoute(route) && !documentBrandingReady.value),
 )
 const { brand } = useWorkspaceAppearance()
 </script>

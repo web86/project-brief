@@ -1,5 +1,6 @@
 export default {
   team95: {
+    message: '发送给团队的消息',
     superadmin: '设为项目超级管理员',
     superadminHint:
       '允许全面管理已分配项目的设置、客户、团队、结构、通知和回收站。不授予工作空间、集成或平台管理权限，也不允许创建新项目。',

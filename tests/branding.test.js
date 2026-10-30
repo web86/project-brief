@@ -6,7 +6,14 @@ import { createSSRApp } from 'vue'
 import { renderToString } from '@vue/server-renderer'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { brandTokens, brandPresets, contrast } from '../src/services/branding.js'
-let server, brandingStore, listingStore, api, listQuery, navigationStore, appearance
+let server,
+  brandingStore,
+  listingStore,
+  api,
+  listQuery,
+  navigationStore,
+  appearance,
+  setDocumentBranding
 before(async () => {
   server = await createServer({
     optimizeDeps: { noDiscovery: true, include: [] },
@@ -20,7 +27,9 @@ before(async () => {
   const load = (p) => server.ssrLoadModule('/src/' + p)
   brandingStore = (await load('stores/workspaceBranding.js')).useWorkspaceBrandingStore
   navigationStore = (await load('stores/adminNavigation.js')).useAdminNavigationStore
-  appearance = (await load('services/workspaceAppearance.js')).activeWorkspaceBrand
+  const appearanceModule = await load('services/workspaceAppearance.js')
+  appearance = appearanceModule.activeWorkspaceBrand
+  setDocumentBranding = appearanceModule.setDocumentBranding
   const listing = await load('stores/projectListing.js')
   listingStore = listing.useProjectListingStore
   listQuery = listing.listQuery
@@ -354,4 +363,16 @@ test('a late personal bootstrap cannot restore a former workspace brand after id
   })
   assert.equal(await operation, false)
   assert.equal(nav.workspace, null)
+})
+
+test('public and required agreement headers use their verified document workspace independently of the active admin workspace', () => {
+  const brand = { companyName: 'Document workspace', primaryColor: '#17695d' }
+  const admin = { ready: true, workspace: { branding: { companyName: 'Other workspace' } } }
+  setDocumentBranding(brand)
+  for (const meta of [{ publicDocument: true }, { agreement: true }]) {
+    assert.deepEqual(appearance({ path: '/document', meta }, admin, {}), brand)
+  }
+  setDocumentBranding(null, false)
+  assert.equal(appearance({ path: '/document', meta: { publicDocument: true } }, admin, {}), null)
+  setDocumentBranding(null)
 })

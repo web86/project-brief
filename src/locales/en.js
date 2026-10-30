@@ -1,5 +1,6 @@
 export default {
   team95: {
+    message: 'Message to the team',
     superadmin: 'Assign as project superadministrator',
     superadminHint:
       'Allows full management of assigned projects: settings, clients, team, structure, notifications and trash. Does not grant workspace, integration or platform administration. Does not allow creation of new projects.',

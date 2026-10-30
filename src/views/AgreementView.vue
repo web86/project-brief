@@ -1,11 +1,12 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, locale, formatApiError } from '../i18n/index.js'
 import { appDestination } from '../services/session.js'
 import { documentLanguages, agreementLanguage } from '../utils/agreementLanguages.js'
 import { brandTokens } from '../services/branding.js'
+import { setDocumentBranding } from '../services/workspaceAppearance.js'
 import { theme } from '../services/theme.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import AgreementDocument from '../components/AgreementDocument.vue'
@@ -28,8 +29,10 @@ const documentLanguage = computed(() =>
 const languageNames = { ru: 'Русский', en: 'English', tr: 'Türkçe', 'zh-CN': '简体中文' }
 const printDocument = () => window.print()
 let revision = 0
+onBeforeUnmount(() => revision++)
 async function load() {
   const current = ++revision
+  setDocumentBranding(null, false)
   state.value = null
   error.value = null
   try {
@@ -42,8 +45,12 @@ async function load() {
     if (!publicPage.value && !result.required)
       return router.replace((await appDestination(api.request)) || '/app')
     state.value = result
+    setDocumentBranding(result.workspace.branding)
   } catch (e) {
-    if (current === revision) error.value = e
+    if (current === revision) {
+      error.value = e
+      setDocumentBranding(null)
+    }
   }
 }
 async function accept() {
@@ -139,6 +146,23 @@ watch(
   </div>
 </template>
 <style scoped>
+.agreement-document-language {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+}
+.agreement-document-language select {
+  width: auto;
+  min-width: 140px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
 .legal-layout {
   display: flex;
   flex-direction: column;

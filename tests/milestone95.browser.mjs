@@ -309,6 +309,12 @@ try {
         for (const [url, name, ready] of pages) {
           await page.goto(origin + url)
           await page.locator(ready).first().waitFor()
+          if (name === 'public') {
+            await page.locator('.workspace-brand-logo').waitFor()
+            assert.ok(
+              (await page.locator('.workspace-brand-logo').textContent()).includes('Northline'),
+            )
+          }
           await page.locator('#bootstrap-splash').waitFor({ state: 'detached' })
           await page.evaluate(
             async ({ lang, mode }) => {

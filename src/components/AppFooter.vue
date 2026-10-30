@@ -6,6 +6,8 @@ import {
   useWorkspaceAppearance,
   isEntryRoute,
   entryBrandingReady,
+  isDocumentRoute,
+  documentBrandingReady,
 } from '../services/workspaceAppearance.js'
 import { safeFooterUrl } from '../utils/agreementEditor.js'
 import { t, locale } from '../i18n/index.js'
@@ -14,7 +16,9 @@ const route = useRoute(),
   nav = useAdminNavigationStore()
 const switching = computed(
   () =>
-    (route.meta.adminShell && nav.switching) || (isEntryRoute(route) && !entryBrandingReady.value),
+    (route.meta.adminShell && nav.switching) ||
+    (isEntryRoute(route) && !entryBrandingReady.value) ||
+    (isDocumentRoute(route) && !documentBrandingReady.value),
 )
 const { brand } = useWorkspaceAppearance()
 const current = computed(() => props.branding || brand.value || {})

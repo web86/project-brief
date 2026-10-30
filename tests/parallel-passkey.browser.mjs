@@ -10,9 +10,8 @@ import { LANGUAGE_CATALOG } from '../src/i18n/catalog.js'
 const { chromium, firefox, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(import.meta.dirname, '..')
 const temporary = await mkdtemp(path.join(tmpdir(), 'm7-security-'))
-const output = path.join(
-  root,
-  process.env.M93_EVIDENCE_DIRECTORY || 'artifacts/milestone-9-2/parallel',
+const output = path.resolve(
+  process.env.M93_EVIDENCE_DIRECTORY || path.join(root, 'artifacts/milestone-9-2/parallel'),
 )
 await mkdir(output, { recursive: true })
 const transportOrigin = 'https://localhost:5199'
@@ -217,6 +216,7 @@ try {
   await page.getByRole('button', { name: 'Later — continue to workspace', exact: true }).waitFor()
   results.push('Owner with saved TOTP recovery has full access without a Passkey')
   await request('/api/security/confirm', 'POST', { recovery_code: recoveryCodes[7] })
+  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByLabel('Device name', { exact: true }).fill('Parallel tab authenticator')
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
