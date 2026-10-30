@@ -1930,20 +1930,21 @@ echo json_encode(['ok'=>true]);
         'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"review"]);',
         fixture.exportTask,
       ])
+      // Client entry rotates its cookie: use the actual local origin rather than the WebAuthn HTTPS proxy.
       const clientContext = await browser.newContext({ serviceWorkers: 'block' })
-      await clientContext.route('**/*', async (route) => {
-        const url = new URL(route.request().url())
-        if (url.origin !== publicOrigin) return route.abort()
-        await route.fulfill({
-          response: await route.fetch({ url: origin + url.pathname + url.search, maxRedirects: 0 }),
-        })
-      })
+      await clientContext.route('**/*', (route) =>
+        new URL(route.request().url()).origin === origin ? route.continue() : route.abort(),
+      )
       await clientContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
       const clientPage = await clientContext.newPage()
       clientPage.setDefaultTimeout(20000)
       clientPage.on('pageerror', (error) => errors.push(error.message))
-      await clientPage.goto(publicOrigin + '/access/' + 'a'.repeat(64))
-      await clientPage.goto(publicOrigin + `/project/${fixture.project}/task/${fixture.exportTask}`)
+      const entry = await clientContext.request.get(origin + '/access/' + 'a'.repeat(64), {
+        maxRedirects: 0,
+      })
+      assert.equal(entry.status(), 302)
+      assert.equal(entry.headers().location, publicOrigin + '/project/' + fixture.project)
+      await clientPage.goto(origin + `/project/${fixture.project}/task/${fixture.exportTask}`)
       const initialClientState = await clientPage.evaluate(
         async (id) => ({
           session: await (
