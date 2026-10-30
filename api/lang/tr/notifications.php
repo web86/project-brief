@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'team_heading' => 'Yeni ekip sohbeti mesajı',
+    'team_explanation' => 'Özel ekip mesajını okumak için projeyi açın.',
+    'status_change' => 'Durum değişikliği',
     'project_request_heading' => 'Yeni proje talebi',
     'project_request_message' => 'Yeni bir proje talebi kararınızı bekliyor.',
     'open_request' => 'Talebi incele',
@@ -34,6 +37,7 @@ return [
     ],
     'events' => [
         'client' => [
+            'task_status_changed' => 'Müşteri görev durumunu değiştirdi',
             'task_created' => 'Müşteriden yeni fikir',
             'comment_created' => 'Yeni müşteri yorumu',
             'task_approved' => 'Müşteri görevi onayladı',
@@ -47,6 +51,7 @@ return [
     ],
     'explanations' => [
         'client' => [
+            'task_status_changed' => ':name, :project projesindeki görevin durumunu değiştirdi.',
             'task_created' => ':name, :project projesine yeni bir fikir ekledi.',
             'comment_created' => ':name müşteri olarak yorum yaptı:',
             'task_approved' => ':name, :project projesindeki görevi onayladı.',
@@ -60,6 +65,7 @@ return [
     ],
     'next' => [
         'client' => [
+            'task_status_changed' => 'Güncel durumunu görmek için görevi açın.',
             'task_created' => 'Fikri incelemek için görevi açın.',
             'comment_created' => 'Müşteriye yanıt vermek için görevi açın.',
             'task_approved' => 'Onaylanan kapsamı görmek için görevi açın.',

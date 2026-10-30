@@ -75,7 +75,7 @@ class LiveSync
         }
         $rows = DB::table('project_sync_events as events')->where('events.workspace_id', $workspaceId)->where('events.id', '>', $cursor['id'])
             ->when($member && $member->role !== 'owner', fn ($q) => $q->where('events.kind', '!=', 'requests'))
-            ->when($projectId, fn ($q) => $q->where('events.project_id', $projectId))
+            ->when($projectId, fn ($q) => $q->where('events.project_id', $projectId)->where('events.kind', '!=', 'team'))
             ->when($member, fn ($q) => $q->where(fn ($q) => $q->whereNull('events.project_id')->orWhereExists(ProjectAccess::forMember($member)->withTrashed()->whereColumn('projects.id', 'events.project_id')->selectRaw('1')->toBase())))
             ->leftJoin('projects', 'projects.id', '=', 'events.project_id')->orderBy('events.id')->limit(101)->get(['events.id', 'events.kind', 'events.project_id', 'projects.uuid']);
         $reset = $cursor['at'] < now()->subDays(6)->timestamp || $rows->count() > 100 || $rows->contains(fn ($row) => $row->project_id === null);

@@ -30,6 +30,7 @@ class SeamlessSecurityConfirmationTest extends TestCase
 
     public function test_uv_confirmation_preserves_the_account_workspace_and_version_then_saves_exact_permissions(): void
     {
+        $this->freezeTime();
         $project = Project::factory()->create();
         $owner = $this->ownerFor($project);
         $owner->passkeys()->delete();
@@ -40,7 +41,7 @@ class SeamlessSecurityConfirmationTest extends TestCase
         $device = new WebAuthnDevice;
         $options = $this->getJson('/api/security/passkey/register/options')->assertOk()->json('options');
         $this->postJson('/api/security/passkey/register', ['name' => 'Optional device', 'credential' => $device->registration($options)])->assertOk()->assertJsonPath('fresh', false);
-        $root = '/api/admin/projects/'.$project->uuid.'/team';
+        $root = '/api/admin/administrators';
         $this->getJson($root)->assertOk();
         $before = $this->getJson('/api/security/status')->assertOk()->assertJsonPath('freshFor', 0)->json();
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/D', $before['confirmationContext']);
@@ -88,6 +89,7 @@ class SeamlessSecurityConfirmationTest extends TestCase
 
     public function test_totp_alternative_never_accepts_password_only_and_preserves_one_use_codes(): void
     {
+        $this->freezeTime();
         $owner = User::factory()->owner()->create(['password' => 'Seamless-password!']);
         $this->actingAs($owner);
         $this->travel(301)->seconds();
@@ -119,7 +121,7 @@ class SeamlessSecurityConfirmationTest extends TestCase
         $membership = $owner->workspaceMembers()->first();
         $project->members()->create(['workspace_id' => $project->workspace_id, 'workspace_member_id' => $membership->id]);
         $membership->update(['role' => 'admin']);
-        $this->postJson('/api/admin/projects/'.$project->uuid.'/team/invitations', ['email' => 'new@example.test', 'projects' => [$project->uuid]])->assertForbidden();
+        $this->postJson('/api/admin/administrators/invitations', ['email' => 'new@example.test', 'projects' => [$project->uuid]])->assertForbidden();
         $this->assertDatabaseCount('developer_invitations', 0);
     }
 }

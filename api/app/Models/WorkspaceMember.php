@@ -21,18 +21,18 @@ class WorkspaceMember extends Model
             }
         };
         static::saving(function (self $member) use ($invalidate): void {
-            if (! $member->exists || $member->isDirty(['role', 'status', 'can_create_projects', 'workspace_id', 'user_id'])) {
+            if (! $member->exists || $member->isDirty(['role', 'status', 'can_create_projects', 'is_project_superadmin', 'workspace_id', 'user_id'])) {
                 $invalidate($member);
             }
         });
         static::deleting($invalidate);
     }
 
-    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'can_create_projects'];
+    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'can_create_projects', 'is_project_superadmin', 'display_name'];
 
     protected function casts(): array
     {
-        return ['workspace_id' => 'integer', 'user_id' => 'integer', 'joined_at' => 'datetime', 'can_create_projects' => 'boolean'];
+        return ['workspace_id' => 'integer', 'user_id' => 'integer', 'joined_at' => 'datetime', 'is_project_superadmin' => 'boolean', 'can_create_projects' => 'boolean'];
     }
 
     public function scopeActive(Builder $query): Builder

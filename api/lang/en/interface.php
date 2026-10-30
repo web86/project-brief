@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'client_status_only' => 'Send status changes separately from task content.',
+    'client_status_forbidden' => 'You cannot change the status of this task.',
+
     'sso_continue' => 'Continue',
     'task_changed' => 'Task updated',
     'client' => 'Client',

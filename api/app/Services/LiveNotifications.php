@@ -43,9 +43,10 @@ class LiveNotifications
             ->join('projects as p', 'p.id', '=', DB::raw('COALESCE(t.project_id, c.project_id)'))
             ->leftJoin('users as u', 'u.id', '=', 'c.author_user_id')->leftJoin('project_clients as pc', 'pc.id', '=', 'c.project_client_id')
             ->where(fn ($q) => $q->whereNull('c.task_id')->orWhereNull('t.deleted_at')), $member)
+            ->when(! TaskAccess::isAdmin($request), fn ($q) => $q->where('c.team_only', false))
             ->where('c.id', '>', $watermark['startComments'] ?? $watermark['comments'])
             ->where(fn ($query) => $query->where('c.id', '>', $watermark['comments'])->orWhere('c.created_at', '>=', $overlap))->orderBy('c.id')->limit(51)
-            ->get(['c.id', 'c.uuid', 'c.author_type as actor_type', 'c.author_user_id as actor_user_id', 'c.project_client_id', 'p.id as project_id', 'p.uuid as project_uuid', 'p.title as project', 't.uuid as task_uuid', 't.title as task', DB::raw('SUBSTR(c.text, 1, 220) as preview'), DB::raw('COALESCE(u.name, pc.name) as author'), DB::raw('COALESCE(u.email, pc.email) as actor_email')]);
+            ->get(['c.id', 'c.uuid', 'c.team_only', 'c.author_type as actor_type', 'c.author_user_id as actor_user_id', 'c.project_client_id', 'p.id as project_id', 'p.uuid as project_uuid', 'p.title as project', 't.uuid as task_uuid', 't.title as task', DB::raw("CASE WHEN c.team_only = 1 THEN '' ELSE SUBSTR(c.text, 1, 220) END as preview"), DB::raw('COALESCE(u.name, pc.name) as author'), DB::raw('COALESCE(u.email, pc.email) as actor_email')]);
         $settings = $history->isEmpty() && $comments->isEmpty() ? collect() : ProjectNotificationSetting::whereIn('project_id', $history->pluck('project_id')->merge($comments->pluck('project_id'))->unique())->get()->keyBy('project_id');
         $items = [];
         foreach ([...$history, ...$comments] as $row) {
@@ -55,7 +56,8 @@ class LiveNotifications
             if (! in_array($kind, ['created', 'status', 'comment'], true) || $self || ($row->actor_email && $recipient->email && strcasecmp($row->actor_email, $recipient->email) === 0)) {
                 continue;
             }
-            $event = $kind === 'created' ? 'client.task_created' : ($comment ? $row->actor_type.($row->task_uuid ? '.comment_created' : '.project_comment_created') : NotificationEvents::fromHistory($row->actor_type, $row->event_type, $row->old_value, $row->new_value));
+            $team = $comment && $row->team_only;
+            $event = $team ? 'team.message_created' : ($kind === 'created' ? 'client.task_created' : ($comment ? $row->actor_type.($row->task_uuid ? '.comment_created' : '.project_comment_created') : NotificationEvents::fromHistory($row->actor_type, $row->event_type, $row->old_value, $row->new_value)));
             if (! $this->allowed($settings->get($row->project_id), $recipient, $event)) {
                 continue;
             }
@@ -63,7 +65,7 @@ class LiveNotifications
             $url = $row->task_uuid ? $base.(TaskAccess::isAdmin($request) ? '/brief/task/' : '/task/').$row->task_uuid : $base.'/discussions';
             $items[] = ['id' => ($comment ? 'comment:' : 'history:').$row->id, 'kind' => $kind, 'project' => $this->text($row->project, 100), 'task' => $this->text($row->task ?? '', 100),
                 'author' => $this->text($row->author ?? '', 60), 'preview' => $comment ? $this->text($row->preview, 160) : '', 'old' => $row->old_value ?? null, 'status' => ($row->event_type ?? null) === 'approved' ? 'approved' : ($row->new_value ?? null),
-                'url' => $url.($comment ? '#comment-'.$row->uuid : '')];
+                'url' => $url.($comment ? ($team ? '#team-' : '#comment-').$row->uuid : '')];
         }
 
         return ['watermark' => [...$latest, 'startHistory' => $watermark['startHistory'] ?? $watermark['history'], 'startComments' => $watermark['startComments'] ?? $watermark['comments']], 'items' => array_slice($items, 0, 100), 'additional' => 0, 'overflow' => $history->count() > 50 || $comments->count() > 50];

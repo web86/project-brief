@@ -85,3 +85,9 @@ Desktop.ini
 *.rej
 
 /artifacts/live-sync-ui/
+
+# Local browser QA screenshots stay on disk, outside Git history
+/artifacts/**/*.png
+/artifacts/**/*.jpg
+/artifacts/**/*.jpeg
+/artifacts/**/*.webp

@@ -8,138 +8,97 @@ use App\Models\ProjectMember;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\AccountProfile;
+use App\Services\AccountSecurity;
+use App\Services\CurrentWorkspace;
 use App\Services\DeveloperInvitations;
 use App\Services\ProjectPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class ProjectTeamController extends Controller
 {
-    public function index(Request $request, Project $project, DeveloperInvitations $invitations): JsonResponse
+    private function manager(Request $request, Project $project): WorkspaceMember
     {
-        $owner = $invitations->owner($request);
+        ProjectPermissions::authorize($request, $project, 'manage_team', DB::transactionLevel() > 0);
+        if (! $request->isMethodSafe()) {
+            app(AccountSecurity::class)->requireFresh($request);
+        }
 
-        $projects = $owner->workspace->projects()->get();
-        $allProjectIds = $projects->pluck('uuid');
-
-        return response()->json([
-            'projects' => $projects->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]),
-            'members' => $owner->workspace->members()->active()->with(['user' => fn ($q) => $q->withExists(['passkeys as security_passkey_configured']), 'projectMemberships' => fn ($q) => $q->whereHas('project')->with('project')])->get()->map(fn ($m) => [
-                'id' => $m->id, 'canCreateProjects' => ProjectPermissions::canCreateProjects($m), 'user' => app(AccountProfile::class)->state($m->user), 'role' => $m->role, 'security' => ['passkey' => (bool) $m->user->security_passkey_configured, 'totp' => $m->user->hasEnabledTwoFactorAuthentication()], 'status' => 'active', 'joinedAt' => $m->joined_at?->toISOString(),
-                'projectPermissions' => $m->projectMemberships->mapWithKeys(fn ($p) => [$p->project->uuid => ProjectPermissions::normalize($p->permissions)]),
-                'projects' => $m->role === 'owner' ? $allProjectIds : $m->projectMemberships->map(fn ($p) => $p->project->uuid)]),
-            'invitations' => DeveloperInvitation::where('workspace_id', $owner->workspace_id)->whereNull('accepted_at')->whereNull('revoked_at')->latest()->get()->map(fn ($i) => [
-                'id' => $i->uuid, 'email' => $i->email, 'name' => $i->name, 'status' => $i->expires_at->isFuture() ? 'pending' : 'expired', 'expiresAt' => $i->expires_at->toISOString(),
-                'projects' => $projects->whereIn('id', $i->project_ids)->pluck('uuid')]),
-        ])->header('Cache-Control', 'no-store');
+        return app(CurrentWorkspace::class)->resolve($request, DB::transactionLevel() > 0);
     }
 
     public function invite(Request $request, Project $project, DeveloperInvitations $invitations): JsonResponse
     {
-        $owner = $invitations->owner($request);
-        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'name' => ['nullable', 'string', 'max:255'], 'projects' => ['required', 'array', 'min:1'], 'projects.*' => ['required', 'uuid', 'distinct']]);
-        $ids = $invitations->projects($owner, $data['projects']);
-        $sent = DB::transaction(function () use ($request, $owner, $data, $ids, $invitations): bool {
-            Workspace::whereKey($owner->workspace_id)->lockForUpdate()->firstOrFail();
-            app(DeveloperInvitations::class)->owner($request);
-            $email = mb_strtolower(trim($data['email']));
-            DeveloperInvitation::where('workspace_id', $owner->workspace_id)->where('email', $email)->whereNull('accepted_at')->whereNull('revoked_at')->update(['revoked_at' => now()]);
-            $invitation = DeveloperInvitation::create(['workspace_id' => $owner->workspace_id, 'invited_by' => $owner->user_id, 'email' => $email, 'name' => $data['name'] ?? null, 'project_ids' => $ids, 'locale' => $owner->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7)]);
+        $manager = $this->manager($request, $project);
+        abort_if(array_diff(array_keys($request->all()), ['email', 'name', 'generateLink']), 422);
+        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'name' => ['nullable', 'string', 'max:255'], 'generateLink' => ['sometimes', 'boolean']]);
 
-            return $invitations->deliver($invitation);
-        });
-
-        return response()->json(['sent' => $sent, 'code' => $sent ? null : 'account_mail_failed'], $sent ? 201 : 503);
-    }
-
-    public function resend(Request $request, Project $project, string $invitation, DeveloperInvitations $invitations): JsonResponse
-    {
-        $owner = $invitations->owner($request);
-        $sent = DB::transaction(function () use ($request, $owner, $invitation, $invitations): bool {
-            Workspace::whereKey($owner->workspace_id)->lockForUpdate()->firstOrFail();
-            app(DeveloperInvitations::class)->owner($request);
-            $item = DeveloperInvitation::where('workspace_id', $owner->workspace_id)->where('uuid', $invitation)->lockForUpdate()->firstOrFail();
-            abort_if($item->accepted_at || $item->revoked_at, 410);
-
-            return $invitations->deliver($item);
-        });
-
-        return response()->json(['sent' => $sent, 'code' => $sent ? null : 'account_mail_failed'], $sent ? 200 : 503);
-    }
-
-    public function revoke(Request $request, Project $project, string $invitation, DeveloperInvitations $invitations): JsonResponse
-    {
-        $owner = $invitations->owner($request);
-        DB::transaction(function () use ($request, $owner, $invitation): void {
-            Workspace::whereKey($owner->workspace_id)->lockForUpdate()->firstOrFail();
-            app(DeveloperInvitations::class)->owner($request);
-            $item = DeveloperInvitation::where('workspace_id', $owner->workspace_id)->where('uuid', $invitation)->lockForUpdate()->firstOrFail();
-            abort_if($item->accepted_at, 410);
-            $item->forceFill(['revoked_at' => now()])->save();
-        });
-
-        return response()->json(['revoked' => true]);
-    }
-
-    public function update(Request $request, Project $project, string $member, DeveloperInvitations $invitations): JsonResponse
-    {
-        $owner = $invitations->owner($request);
-        $data = $request->validate([
-            'projects' => ['present', 'array'], 'projects.*' => ['required', 'uuid', 'distinct'],
-            'canCreateProjects' => ['sometimes', function (string $attribute, mixed $value, \Closure $fail): void {
-                if (! is_bool($value)) {
-                    $fail('The option must be a boolean.');
+        return DB::transaction(function () use ($request, $project, $manager, $data, $invitations): JsonResponse {
+            Workspace::whereKey($manager->workspace_id)->lockForUpdate()->firstOrFail();
+            $this->manager($request, $project);
+            $email = DeveloperInvitations::normalizeEmail($data['email']);
+            $member = WorkspaceMember::where('workspace_id', $manager->workspace_id)->active()->whereHas('user', fn ($query) => $query->whereRaw('LOWER(TRIM(email)) = ?', [$email]))->first();
+            if ($member) {
+                if ($member->role !== 'owner') {
+                    ProjectMember::firstOrCreate(['project_id' => $project->id, 'workspace_member_id' => $member->id], ['workspace_id' => $manager->workspace_id]);
                 }
-            }],
-            'projectPermissions' => ['sometimes', 'array'],
-            'projectPermissions.*' => ['required', 'array:'.implode(',', array_keys(ProjectPermissions::DEFAULTS))],
-            'projectPermissions.*.*' => ['required', function (string $attribute, mixed $value, \Closure $fail): void {
-                if (! is_bool($value)) {
-                    $fail('Permissions must be booleans.');
-                }
-            }],
-            'role' => ['prohibited'], 'permissions' => ['prohibited'],
-        ]);
-        if (array_diff(array_keys($data['projectPermissions'] ?? []), $data['projects'])) {
-            throw ValidationException::withMessages(['projectPermissions' => 'Select the project before changing its permissions.']);
-        }
-        $ids = $invitations->projects($owner, $data['projects']);
-        DB::transaction(function () use ($request, $owner, $member, $ids, $data): void {
-            Workspace::whereKey($owner->workspace_id)->lockForUpdate()->firstOrFail();
-            app(DeveloperInvitations::class)->owner($request);
-            $target = WorkspaceMember::where('workspace_id', $owner->workspace_id)->active()->whereKey($member)->lockForUpdate()->firstOrFail();
-            abort_if($target->role === 'owner', 403);
-            if (array_key_exists('canCreateProjects', $data)) {
-                $target->update(['can_create_projects' => $data['canCreateProjects']]);
+
+                return response()->json(['assigned' => true]);
             }
-            ProjectMember::where('workspace_member_id', $target->id)->whereHas('project')->whereNotIn('project_id', $ids)->delete();
-            foreach ($ids as $id) {
-                $assignment = ProjectMember::firstOrCreate(['project_id' => $id, 'workspace_member_id' => $target->id], ['workspace_id' => $owner->workspace_id]);
-                $uuid = Project::whereKey($id)->value('uuid');
-                if (array_key_exists($uuid, $data['projectPermissions'] ?? [])) {
-                    $assignment->update(['permissions' => ProjectPermissions::normalize($data['projectPermissions'][$uuid])]);
-                }
+            $invitation = DeveloperInvitation::create(['workspace_id' => $manager->workspace_id, 'invited_by' => $manager->user_id, 'email' => $email, 'name' => $data['name'] ?? null,
+                'project_ids' => [$project->id], 'project_scoped' => true, 'is_project_superadmin' => false, 'locale' => $manager->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7)]);
+            $link = ($data['generateLink'] ?? false) ? $invitations->issue($invitation) : null;
+            $sent = $link ? false : $invitations->deliver($invitation);
+
+            return response()->json(['id' => $invitation->uuid, 'sent' => $sent, 'link' => $link], $link || $sent ? 201 : 503)->header('Cache-Control', 'no-store');
+        });
+    }
+
+    public function index(Request $request, Project $project, DeveloperInvitations $invitations): JsonResponse
+    {
+        $owner = $this->manager($request, $project);
+        $members = $owner->workspace->members()->active()->with(['user' => fn ($query) => $query->withExists(['passkeys as security_passkey_configured'])])->get();
+        $assigned = $project->members()->where('workspace_id', $owner->workspace_id)->pluck('workspace_member_id');
+        $state = fn ($m) => ['id' => $m->id, 'status' => $m->status, 'isProjectSuperadmin' => (bool) $m->is_project_superadmin, 'security' => ['totp' => $m->user->hasEnabledTwoFactorAuthentication(), 'passkey' => (bool) $m->user->security_passkey_configured], 'role' => $m->role, 'user' => [...app(AccountProfile::class)->state($m->user), 'name' => $m->display_name ?? $m->user->name]];
+
+        return response()->json([
+            'owner' => $members->where('role', 'owner')->map($state)->values()->first(),
+            'members' => $members->where('role', 'admin')->whereIn('id', $assigned)->map($state)->values(),
+            'available' => $members->where('role', 'admin')->whereNotIn('id', $assigned)->map($state)->values(),
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    public function assign(Request $request, Project $project, DeveloperInvitations $invitations): JsonResponse
+    {
+        $owner = $this->manager($request, $project);
+        abort_if(array_diff(array_keys($request->all()), ['members']), 422);
+        $data = $request->validate(['members' => ['required', 'array', 'min:1', 'max:1000'], 'members.*' => ['required', 'integer', 'distinct']]);
+        DB::transaction(function () use ($request, $project, $owner, $data): void {
+            Workspace::whereKey($owner->workspace_id)->lockForUpdate()->firstOrFail();
+            $this->manager($request, $project);
+            $members = WorkspaceMember::where('workspace_id', $owner->workspace_id)->active()->where('role', 'admin')->whereIn('id', $data['members'])->lockForUpdate()->get();
+            abort_unless($members->count() === count($data['members']), 422);
+            foreach ($members as $member) {
+                ProjectMember::firstOrCreate(['project_id' => $project->id, 'workspace_member_id' => $member->id], ['workspace_id' => $owner->workspace_id, 'permissions' => ProjectPermissions::DEFAULTS]);
             }
         });
 
         return response()->json(['saved' => true]);
     }
 
-    public function destroy(Request $request, Project $project, string $member, DeveloperInvitations $invitations): JsonResponse
+    public function remove(Request $request, Project $project, string $member, DeveloperInvitations $invitations): JsonResponse
     {
-        $owner = $invitations->owner($request);
-        DB::transaction(function () use ($request, $owner, $member): void {
+        $owner = $this->manager($request, $project);
+        abort_if($request->all(), 422);
+        DB::transaction(function () use ($request, $project, $member, $owner): void {
             Workspace::whereKey($owner->workspace_id)->lockForUpdate()->firstOrFail();
-            app(DeveloperInvitations::class)->owner($request);
+            $this->manager($request, $project);
             $target = WorkspaceMember::where('workspace_id', $owner->workspace_id)->whereKey($member)->lockForUpdate()->firstOrFail();
-            abort_if($target->role === 'owner', 403);
-            $target->projectMemberships()->delete();
-            $target->forceFill(['status' => 'inactive', 'can_create_projects' => false])->save();
-            DeveloperInvitation::where('workspace_id', $owner->workspace_id)->where('email', mb_strtolower($target->user->email))->whereNull('accepted_at')->update(['revoked_at' => now()]);
+            abort_unless($target->role === 'admin', 403);
+            ProjectMember::where('workspace_id', $owner->workspace_id)->where('project_id', $project->id)->where('workspace_member_id', $target->id)->delete();
         });
 
-        return response()->json(['revoked' => true]);
+        return response()->json(['saved' => true]);
     }
 }

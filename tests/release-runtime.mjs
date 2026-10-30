@@ -241,6 +241,10 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   })
   assert.equal(factor.status, 200)
   assert.equal((await factor.json()).state, 'authenticated')
+  assert.equal(
+    (await request('/api/platform/overview', { headers: { Accept: 'application/json' } })).status,
+    403,
+  )
   const ownerState = await (await request('/api/admin/me')).json()
   const liveSeed = await request(
     '/api/admin/sync?cursor=' + encodeURIComponent(ownerState.syncCursor),
@@ -282,6 +286,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(personal.pendingEmail, 'verified-release@example.test')
   assert.equal(personal.preferences.telegram, true)
   assert.equal(personal.notification_email_token_hash, undefined)
+  assert.equal(personal.workspace.id, fixture.workspace)
   const personalHeaders = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -325,6 +330,10 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(currentBrand.visual.companyName, changes.visual.companyName)
   assert.equal(currentBrand.business.account, changes.business.account)
   assert.equal(currentBrand.contact.email, changes.contact.email)
+  const brandedPersonal = await (await request('/api/admin/notifications')).json()
+  assert.equal(brandedPersonal.workspace.branding.companyName, changes.visual.companyName)
+  assert.equal(brandedPersonal.workspace.branding.primaryColor, changes.visual.primaryColor)
+  assert.equal(brandedPersonal.workspace.branding.business, undefined)
   assert.equal(
     (
       await brandCall('', 'PATCH', {
@@ -817,6 +826,46 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   })
   assert.equal(clientDraft.status, 201)
   const clientDraftId = (await clientDraft.json()).data.id
+  command([
+    '-r',
+    'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"review"]);',
+    clientDraftId,
+  ])
+  const clientStatusUrl = '/api/client/tasks/' + clientDraftId
+  const reviewedDraft = (await (await request(clientStatusUrl)).json()).data
+  const clientStatusWrite = (body) =>
+    request(clientStatusUrl, {
+      method: 'PATCH',
+      headers: clientHeaders,
+      body: JSON.stringify(body),
+    })
+  assert.equal((await clientStatusWrite({ status: 'done' })).status, 422)
+  assert.equal(
+    (await clientStatusWrite({ status: 'in_progress', editVersion: reviewedDraft.editVersion }))
+      .status,
+    403,
+  )
+  assert.equal(
+    (await clientStatusWrite({ status: 'done', editVersion: reviewedDraft.editVersion })).status,
+    200,
+  )
+  assert.equal(
+    (await clientStatusWrite({ status: 'approved', editVersion: reviewedDraft.editVersion }))
+      .status,
+    409,
+  )
+  const doneDraft = (await (await request(clientStatusUrl)).json()).data
+  assert.equal(doneDraft.status, 'done')
+  assert.equal(
+    (await clientStatusWrite({ status: 'approved', editVersion: doneDraft.editVersion })).status,
+    403,
+  )
+  command([
+    '-r',
+    'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"new"]);',
+    clientDraftId,
+  ])
+
   assert.equal(
     (
       await request('/api/client/tasks/' + clientDraftId, {
@@ -1602,13 +1651,10 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.8.4',
+    '0.9.5',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
-  assert.match(
-    await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_29_174316_add_client_sso_handoffs/,
-  )
+  assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /migrate --force/)
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 
   command(['artisan', 'down'])
@@ -1685,7 +1731,7 @@ echo json_encode(['ok'=>true]);
           response.url().endsWith('/api/security/passkey/confirm/options') &&
           response.status() === 200,
       )
-      await page.goto(publicOrigin + '/admin/projects/' + fixture.project + '/team')
+      await page.goto(publicOrigin + '/admin/administrators')
       await readyOptions
       await page.locator('.team-member').first().waitFor()
       // Wait for the background options response and the UI to commit it.
@@ -1706,13 +1752,16 @@ echo json_encode(['ok'=>true]);
         navigator.credentials.get = (options) => {
           window.packagedGet.push({
             active: navigator.userActivation.isActive,
-            dialog: !!document.querySelector('dialog[open]'),
+            dialog: !!document.querySelector(
+              'dialog[open][aria-labelledby="security-step-up-title"]',
+            ),
           })
           return get(options)
         }
         const show = HTMLDialogElement.prototype.showModal
         HTMLDialogElement.prototype.showModal = function () {
-          window.packagedDialogs++
+          if (this.getAttribute('aria-labelledby') === 'security-step-up-title')
+            window.packagedDialogs++
           return show.call(this)
         }
       })
@@ -1721,26 +1770,31 @@ echo json_encode(['ok'=>true]);
         .filter({ hasText: 'package-developer@example.test' })
       const mutations = []
       page.on('request', (request) => {
-        if (request.method() === 'PATCH' && request.url().includes('/team/members/'))
+        if (request.method() === 'PATCH' && request.url().includes('/administrators/members/'))
           mutations.push(request.url())
       })
-      await member.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
-      const switches = member.locator('.member-permissions [role="switch"]')
-      for (let i = 1; i < 6; i++) await switches.nth(i).check()
-      await member.getByRole('button', { name: 'Save', exact: true }).dblclick()
+      await member.getByRole('button', { name: 'Edit', exact: true }).click()
+      await page
+        .locator('.administrator-dialog')
+        .getByRole('switch', { name: 'Assign as project superadministrator', exact: true })
+        .check()
+      await page
+        .locator('.administrator-dialog')
+        .getByRole('button', { name: 'Save', exact: true })
+        .dblclick()
       await page.locator('.toast-success').filter({ hasText: 'Access updated' }).waitFor()
-      await member.locator('.team-edit').waitFor({ state: 'hidden' })
+      await page.locator('.administrator-dialog').waitFor({ state: 'hidden' })
       assert.equal(mutations.length, 1)
       const saved = await page.evaluate(async (project) => {
-        const response = await fetch('/api/admin/projects/' + project + '/team', {
+        const response = await fetch('/api/admin/administrators', {
           headers: { Accept: 'application/json' },
         })
         if (!response.ok) throw new Error('Packaged team state unavailable')
         return (await response.json()).members.find(
           (member) => member.user.email === 'package-developer@example.test',
-        ).projectPermissions[project]
+        ).isProjectSuperadmin
       }, fixture.project)
-      assert.equal(Object.values(saved).filter(Boolean).length, 6)
+      assert.equal(saved, true)
 
       assert.deepEqual(await page.evaluate(() => window.packagedGet), [
         { active: true, dialog: false },
@@ -1751,8 +1805,209 @@ echo json_encode(['ok'=>true]);
         path: path.join(output, 'packaged-team-success.png'),
         fullPage: true,
       })
+      const personalBrand = await page.evaluate(
+        async () =>
+          (
+            await (
+              await fetch('/api/admin/notifications', { headers: { Accept: 'application/json' } })
+            ).json()
+          ).workspace.branding,
+      )
+      for (const pathname of [
+        '/admin/account',
+        '/admin/account/security',
+        '/admin/settings/notifications',
+      ]) {
+        await page.goto(publicOrigin + pathname)
+        await page.waitForFunction(
+          (branding) =>
+            document.querySelector('.app-footer')?.textContent.includes(branding.companyName) &&
+            document.querySelector('.workspace-appearance')?.style.getPropertyValue('--action') ===
+              branding.primaryColor,
+          personalBrand,
+        )
+      }
+      await page.goto(publicOrigin + '/admin/settings/agreement')
+      await page.locator('.agreement-settings-form').waitFor()
+      await page.locator('.agreement-option input').first().check()
+      await page.locator('input[type=date]').fill('2026-10-30')
+      for (const language of ['ru', 'en', 'tr', 'zh-CN']) {
+        await page.locator('#agreement-tab-' + language).click()
+        await page
+          .locator('.editor-content')
+          .fill('Packaged agreement ' + language + ' <script>inert text</script>')
+      }
+      await page.locator('.agreement-settings-actions .primary').click()
+      await page.locator('.agreement-settings [role=status]').waitFor()
+      const published = await page.evaluate(async () =>
+        (
+          await fetch('/api/admin/settings/agreement', { headers: { Accept: 'application/json' } })
+        ).json(),
+      )
+      assert.equal(published.data.enabled, true)
+      assert.equal(published.publicUrl, '/w/' + fixture.workspace + '/agreement')
+      const invite = await page.evaluate(async () => {
+        const token = (await (await fetch('/api/csrf')).json()).token
+        const response = await fetch('/api/admin/administrators/invitations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': token,
+          },
+          body: JSON.stringify({
+            email: 'package-agreement@example.test',
+            sendEmail: false,
+            generateLink: true,
+          }),
+        })
+        if (!response.ok) throw new Error('Packaged invitation unavailable')
+        return response.json()
+      })
+      const guest = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        serviceWorkers: 'block',
+      })
+      await guest.routeWebSocket('**/*', (socket) => socket.close())
+      await guest.route('**/*', async (route) => {
+        const url = new URL(route.request().url())
+        if (url.origin !== publicOrigin) return route.abort()
+        const response = await route.fetch({
+          url: origin + url.pathname + url.search,
+          maxRedirects: 0,
+        })
+        await route.fulfill({ response })
+      })
+      await guest.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+      const documentPage = await guest.newPage()
+      documentPage.on('pageerror', (error) => errors.push(error.message))
+      await documentPage.goto(publicOrigin + published.publicUrl)
+      await documentPage.locator('.agreement-document').waitFor()
+      assert.equal(await documentPage.locator('.agreement-document script').count(), 0)
+      assert.ok(
+        (await documentPage.locator('.agreement-document').textContent()).includes(
+          '<script>inert text</script>',
+        ),
+      )
+      await documentPage.goto(invite.link)
+      await documentPage.locator('.invitation-entry-actions button').first().click()
+      await documentPage.locator('#invited-name').fill('Package agreement')
+      await documentPage.locator('#invited-password').fill('Package-agreement-password!')
+      await documentPage.locator('#invited-confirmation').fill('Package-agreement-password!')
+      await documentPage.locator('form button[type=submit]').click()
+      await documentPage.waitForURL('**/admin/agreement')
+      await documentPage.locator('.agreement-document').waitFor()
+      assert.equal(await documentPage.locator('.admin-sidebar').count(), 0)
+      assert.equal(
+        await documentPage.evaluate(
+          async () =>
+            (await fetch('/api/admin/projects', { headers: { Accept: 'application/json' } }))
+              .status,
+        ),
+        403,
+      )
+      await documentPage.screenshot({
+        path: path.join(output, 'packaged-agreement-mobile.png'),
+        fullPage: true,
+      })
+      await documentPage.locator('.agreement-actions .primary').click()
+      await documentPage.waitForURL('**/admin/security')
+      assert.equal(
+        await documentPage.evaluate(
+          async () =>
+            !!(
+              await (
+                await fetch('/api/session', { headers: { Accept: 'application/json' } })
+              ).json()
+            ).agreementRequired,
+        ),
+        false,
+      )
+      assert.deepEqual(errors, [])
+      // New client status UI is exercised from the extracted production bundle.
+      command([
+        '-r',
+        'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"review"]);',
+        fixture.exportTask,
+      ])
+      // Client entry rotates its cookie: use the actual local origin rather than the WebAuthn HTTPS proxy.
+      const clientContext = await browser.newContext({ serviceWorkers: 'block' })
+      await clientContext.route('**/*', (route) =>
+        new URL(route.request().url()).origin === origin ? route.continue() : route.abort(),
+      )
+      await clientContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+      const clientPage = await clientContext.newPage()
+      clientPage.setDefaultTimeout(20000)
+      clientPage.on('pageerror', (error) => errors.push(error.message))
+      const entry = await clientContext.request.get(origin + '/access/' + 'a'.repeat(64), {
+        maxRedirects: 0,
+      })
+      assert.equal(entry.status(), 302)
+      assert.equal(entry.headers().location, publicOrigin + '/project/' + fixture.project)
+      await clientPage.goto(origin + `/project/${fixture.project}/task/${fixture.exportTask}`)
+      const initialClientState = await clientPage.evaluate(
+        async (id) => ({
+          session: await (
+            await fetch('/api/session', { headers: { Accept: 'application/json' } })
+          ).json(),
+          task: await (
+            await fetch('/api/client/tasks/' + id, { headers: { Accept: 'application/json' } })
+          ).json(),
+        }),
+        fixture.exportTask,
+      )
+      assert.equal(
+        initialClientState.session.type,
+        'client',
+        JSON.stringify(initialClientState.session),
+      )
+      assert.equal(
+        initialClientState.task.data?.status,
+        'review',
+        JSON.stringify({
+          status: initialClientState.task.data?.status,
+          code: initialClientState.task.code,
+        }),
+      )
+      await clientPage.locator('.client-status-buttons').waitFor()
+      const clientWrites = []
+      clientPage.on('request', (request) => {
+        if (request.method() === 'PATCH' && request.url().includes('/api/client/tasks/'))
+          clientWrites.push(request.url())
+      })
+      await clientPage.locator('.client-status-buttons .primary').click()
+      const confirmation = clientPage.locator('.client-complete-dialog')
+      await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click()
+      assert.equal(clientWrites.length, 0)
+      await clientPage.locator('.client-status-buttons .primary').click()
+      await confirmation.getByRole('button', { name: 'Complete task', exact: true }).click()
+      await confirmation.waitFor({ state: 'hidden' })
+      assert.equal(await clientPage.locator('.client-status-buttons').count(), 0)
+      assert.equal(clientWrites.length, 1)
+      assert.equal(
+        await clientPage.evaluate(
+          async (id) =>
+            (
+              await (
+                await fetch('/api/client/tasks/' + id, { headers: { Accept: 'application/json' } })
+              ).json()
+            ).data.status,
+          fixture.exportTask,
+        ),
+        'done',
+      )
+      assert.deepEqual(errors, [])
+      await clientContext.close()
+      await guest.close()
       const evidence = {
         passed: true,
+        agreementPublished: true,
+        personalWorkspaceBrand: true,
+        clientCompletion: true,
+        clientCancelNoMutation: true,
+        anonymousDocument: true,
+        agreementApiGate: true,
+        agreementAccepted: true,
         compiledAssets: true,
         productionVendor: true,
         origin: publicOrigin,
@@ -1775,6 +2030,95 @@ echo json_encode(['ok'=>true]);
       await browser.close()
     }
   }
+  // Platform diagnostics must also run with the ZIP's optimized no-dev vendor.
+  const platformFixture = path.join(fixtureRoot, 'platform-fixture.php')
+  await writeFile(
+    platformFixture,
+    `<?php
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$owner = \\App\\Models\\User::where('email', 'release@example.test')->firstOrFail();
+$user = \\App\\Models\\User::forceCreate(['name'=>'Package platform', 'email'=>'platform-package@example.test', 'password'=>\\Illuminate\\Support\\Facades\\Hash::make('Package-platform-only!90'), 'platform_admin'=>true, 'two_factor_secret'=>$owner->two_factor_secret, 'two_factor_confirmed_at'=>now(), 'recovery_codes_acknowledged_at'=>now(), 'two_factor_recovery_codes'=>\\Laravel\\Fortify\\Fortify::currentEncrypter()->encrypt(json_encode(['Package-platform-recovery']))]);
+echo $user->id;
+`,
+  )
+  const platformId = command([platformFixture, application]).trim()
+  await request('/api/admin/logout', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+  })
+  const platformLogin = await request('/api/admin/login', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+    body: JSON.stringify({
+      email: 'platform-package@example.test',
+      password: 'Package-platform-only!90',
+    }),
+  })
+  assert.equal(platformLogin.status, 200)
+  assert.equal((await platformLogin.json()).state, 'pending_2fa')
+  assert.equal(
+    (await request('/api/platform/overview', { headers: { Accept: 'application/json' } })).status,
+    401,
+  )
+  const platformFactor = await request('/api/security/challenge', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': (await (await request('/api/csrf')).json()).token,
+    },
+    body: JSON.stringify({ recovery_code: 'Package-platform-recovery' }),
+  })
+  assert.equal(platformFactor.status, 200)
+  assert.equal((await (await request('/api/session')).json()).type, 'platform')
+  assert.equal((await request('/platform')).status, 200)
+  const platformOverview = await request('/api/platform/overview')
+  assert.equal(platformOverview.status, 200)
+  assert.match(platformOverview.headers.get('cache-control'), /no-store/)
+  for (const endpoint of [
+    '/api/platform/workspaces',
+    '/api/platform/workspaces/' + fixture.workspace,
+    '/api/platform/usage',
+    '/api/platform/audit',
+  ]) {
+    const response = await request(endpoint)
+    assert.equal(response.status, 200, endpoint + ': ' + (await response.clone().text()))
+    assert.doesNotMatch(
+      await response.text(),
+      /secret_hash|two_factor_secret|authorization|"password"/,
+    )
+  }
+  assert.equal(
+    (
+      await request('/api/admin/projects/' + fixture.project, {
+        headers: { Accept: 'application/json' },
+      })
+    ).status,
+    403,
+  )
+  assert.match(
+    command(
+      ['artisan', 'platform:admin', platformId, '--revoke'],
+      'REVOKE PLATFORM ADMIN ' + platformId + '\n',
+    ),
+    /Global privilege updated/,
+  )
+  assert.equal(
+    (await request('/api/platform/overview', { headers: { Accept: 'application/json' } })).status,
+    401,
+  )
+  console.log(
+    'PASS: Packaged platform-only MFA/session, ordinary-owner denial, cross-workspace diagnostics, safe usage/audit, project isolation and interactive revoke/session invalidation',
+  )
   assert.doesNotMatch(serverErrors, /PHP (Fatal error|Warning)|Uncaught/)
   console.log(
     'PASS: Packaged comments/files Read API and quiet cron stdout/stderr; token revocation/audit and webhook history cascade; project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.',

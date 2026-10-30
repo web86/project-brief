@@ -1,3 +1,23 @@
+# Релиз v0.9.5
+
+Актуальные обновление и безопасный rollback: [Milestone 9.5](docs/milestone-9-5/PRODUCTION.md). Обычный возврат v0.9.4 на текущую БД недопустим из-за приватного канала.
+
+> Milestone 9.0 / Project Brief 0.9.0 — Platform Admin & Usage Monitoring.
+
+Текущий release 0.9.3 / Milestone 9.3: [deployment и rollback](docs/milestone-9-3/PRODUCTION.md).
+
+Предыдущий release 0.9.2 / Milestone 9.2: [deployment и rollback](docs/milestone-9-2/PRODUCTION.md).
+
+Предыдущий release 0.9.1: [deployment и rollback](docs/milestone-8-5/PRODUCTION.md).
+
+> До переключения: backup runtime, БД, `.env`, APP_KEY и storage; проверить Jino PHP 8.4/MariaDB и budget дополнительного DB-соединения/worker. В maintenance выполнить `php artisan migrate --force --no-interaction`, `php artisan optimize:clear`, штатные cache-команды и `php artisan up`. Миграция добавляет default-false platform_admin, api_usage_hours/platform_audit и created_at-индексы webhook history; измерить DDL locks на копии большой БД.
+>
+> Первичное назначение — только через доверенную интерактивную SSH-сессию: `php artisan platform:admin USER_ID` для существующего пользователя с подтверждённым TOTP и сохранёнными recovery codes. После независимой проверки личности ввести `GRANT PLATFORM ADMIN USER_ID`; сессии будут отозваны, нужен новый вход и MFA. Отзыв: `php artisan platform:admin USER_ID --revoke` с фразой `REVOKE PLATFORM ADMIN USER_ID`. `/platform` не даёт членство или доступ к содержимому чужих workspace.
+>
+> Optional метрики: `PLATFORM_API_METRICS_ENABLED=false` отключает новые измерения; после изменения выполнить штатный config clear/cache. Перед включением проверить на Jino connection/worker budget, SET SESSION innodb_lock_wait_timeout=1, ошибки/429 и latency baseline. Новый cron не нужен. Аудит доступа обязателен, при его отказе панель закрыта. Локальные результаты PHP 8.4/MariaDB не являются Jino-проверкой.
+>
+> Rollback: вернуть runtime/public предыдущего 0.8.4, сохранить `.env`, APP_KEY, storage и additive schema; выполнить optimize:clear/cache. Не запускать migrate:rollback, не удалять audit, grants и metrics. Старый runtime игнорирует новые поля/таблицы. Полные инструкции и QA evidence находятся в репозитории: [Milestone 9.0](docs/milestone-9-0/PRODUCTION.md).
+
 > Milestone 8.4 / Project Brief 0.8.4: [UX, live notifications, обновление и rollback](docs/milestone-8-4/PRODUCTION.md).
 
 > Milestone 8.2 / Project Brief 0.8.3: [Trusted Handoff — обновление и безопасный откат](docs/milestone-8-2/PRODUCTION.md).

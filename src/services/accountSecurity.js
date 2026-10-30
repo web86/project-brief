@@ -20,8 +20,10 @@ export function createPasskeyClient({
     let created = false
     client.resetCsrf()
     try {
-      let options = preparedOptions
-      if (!options) ({ options } = await client.request(`/api/security/passkey/${purpose}/options`))
+      let options = preparedOptions?.options || preparedOptions
+      let attemptId = preparedOptions?.attemptId
+      if (!options)
+        ({ options, attemptId } = await client.request(`/api/security/passkey/${purpose}/options`))
       stage = 'authenticator'
       const credential = await (purpose === 'register' ? register : authenticate)({
         optionsJSON: options,
@@ -30,7 +32,11 @@ export function createPasskeyClient({
       stage = 'submit'
       return await client.request(`/api/security/passkey/${purpose}`, {
         method: 'POST',
-        body: { ...(purpose === 'register' ? { name } : {}), credential },
+        body: {
+          ...(purpose === 'register' ? { name } : {}),
+          ...(attemptId ? { attemptId } : {}),
+          credential,
+        },
         securityRetry: false,
       })
     } catch (cause) {

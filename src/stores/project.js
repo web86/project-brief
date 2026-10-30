@@ -1,3 +1,4 @@
+import { canChangeClientStatus } from '../utils/clientTaskStatus.js'
 import { useClientDiscussionsStore } from './discussions.js'
 import { toast } from '../services/toast.js'
 import {
@@ -877,6 +878,45 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  const clientStatusWrites = new Set()
+  async function changeClientStatus(id, status, version = findTask(id)?.editVersion) {
+    const task = findTask(id)
+    if (
+      isDeveloper.value ||
+      storageBlocked.value ||
+      !canChangeClientStatus(task, status) ||
+      clientStatusWrites.has(id)
+    )
+      return false
+    if (!API_MODE) {
+      const previous = task.status
+      task.status = status
+      addHistory(
+        task,
+        'status',
+        t('ui.statusChanged', { arg0: STATUSES[previous].label, arg1: STATUSES[status].label }),
+        { oldValue: previous, newValue: status },
+      )
+      return true
+    }
+    const current = apiRevision
+    clientStatusWrites.add(id)
+    try {
+      const saved = await mutateTask(id, '', 'PATCH', { status, editVersion: version })
+      if (!saved && apiError.value?.status === 409 && current === apiRevision) {
+        try {
+          const result = await api.request(`${actorPath()}/tasks/${id}`)
+          if (current === apiRevision) replaceTask(result.data)
+        } catch {
+          /* The original conflict remains visible, with explicit refresh available. */
+        }
+      }
+      return saved
+    } finally {
+      clientStatusWrites.delete(id)
+    }
+  }
+
   function changeStatus(id, status) {
     if (API_MODE)
       return !isDeveloper.value || findTask(id)?.status === status
@@ -1084,6 +1124,7 @@ export const useProjectStore = defineStore('project', () => {
     addTask,
     updateTask,
     deleteTask,
+    changeClientStatus,
     changeStatus,
     approveTask,
     addComment,

@@ -12,10 +12,11 @@ function normalize(value) {
   const result = JSON.parse(JSON.stringify(value))
   result.deliveryMode ||= 'legacy'
   result.recipientOptions ||= { team: [], clients: [] }
-  result.eventRules ||= Object.fromEntries(
+  const savedRules = result.eventRules || {}
+  result.eventRules = Object.fromEntries(
     notificationEvents.map((event) => [
       event,
-      {
+      savedRules[event] || {
         enabled: Object.values(result.events?.[event] || { email: true, push: true }).some(Boolean),
         recipients: { mode: 'all', ids: [] },
       },
@@ -25,9 +26,9 @@ function normalize(value) {
   for (const event of notificationEvents) {
     const recipients = result.eventRules[event].recipients
     const allowed = new Set(
-      result.recipientOptions[event.startsWith('client.') ? 'team' : 'clients'].map(
-        (person) => person.id,
-      ),
+      result.recipientOptions[
+        event.startsWith('client.') || event === 'team.message_created' ? 'team' : 'clients'
+      ].map((person) => person.id),
     )
     const previous = recipients.ids.length
     recipients.ids = recipients.ids.filter((id) => allowed.has(id))
@@ -78,7 +79,9 @@ async function save() {
   }
 }
 function candidates(event) {
-  return settings.value.recipientOptions[event.startsWith('client.') ? 'team' : 'clients']
+  return settings.value.recipientOptions[
+    event.startsWith('client.') || event === 'team.message_created' ? 'team' : 'clients'
+  ]
 }
 function legacyChannels(event) {
   return (

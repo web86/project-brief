@@ -83,7 +83,7 @@ class AccountSecurityTest extends TestCase
         foreach (['/api/admin/me', '/api/admin/projects', '/api/admin/projects/trash', '/api/admin/workspaces', '/api/admin/account', '/api/admin/integrations'] as $path) {
             $this->getJson($path)->assertForbidden()->assertJsonPath('code', 'account_security_required');
         }
-        foreach (['/api/admin/projects', '/api/admin/projects/fake/export', '/api/admin/projects/fake/team/invitations', '/api/admin/projects/fake/clients', '/api/admin/workspaces/fake/select', '/api/admin/integrations/tokens', '/api/invitations/accept'] as $path) {
+        foreach (['/api/admin/projects', '/api/admin/projects/fake/export', '/api/admin/administrators/invitations', '/api/admin/projects/fake/clients', '/api/admin/workspaces/fake/select', '/api/admin/integrations/tokens', '/api/invitations/accept'] as $path) {
             $this->postJson($path)->assertForbidden();
         }
         $this->getJson('/api/session')->assertJsonPath('authenticated', false)->assertJsonPath('state', 'enrollment_required');

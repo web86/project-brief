@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "php": "8.4.26",
+  "database": "11.8.9-MariaDB-ubu2404",
+  "productionVendor": true,
+  "freshSchema": true,
+  "administratorRoutes": 8,
+  "newFields": 2,
+  "acceptanceTableAndUniqueIndex": true,
+  "phpLint": true,
+  "disposableDatabaseOnly": true
+}

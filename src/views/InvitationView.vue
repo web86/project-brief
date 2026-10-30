@@ -1,5 +1,7 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { setEntryBranding } from '../services/workspaceAppearance.js'
+import AppFooter from '../components/AppFooter.vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
@@ -39,13 +41,14 @@ const {
     await router.replace('/admin')
   },
 })
+watch(state, (value) => setEntryBranding(value?.branding || null))
 function securityReady() {
   securityPending.value = false
   return load()
 }
 const errorMessage = computed(() =>
   error.value
-    ? error.value.status === 410 || !token
+    ? error.value.status === 410
       ? t('account.invalidLink')
       : formatApiError(error.value)
     : '',
@@ -59,12 +62,7 @@ onMounted(async () => {
   <div class="admin-login invitation-page" :aria-busy="busy">
     <h1>{{ t('account.invitation') }}</h1>
     <p v-if="errorMessage" role="alert" class="field-error">{{ errorMessage }}</p>
-    <button
-      v-if="error && error.status !== 410 && token"
-      class="text-button"
-      :disabled="busy"
-      @click="load"
-    >
+    <button v-if="error && error.status !== 410" class="text-button" :disabled="busy" @click="load">
       {{ t('ui.tryAgain') }}
     </button>
     <AccountSecurityPanel onboarding v-if="securityPending" @ready="securityReady" />
@@ -174,4 +172,5 @@ onMounted(async () => {
       </template>
     </form>
   </div>
+  <AppFooter compact :branding="state?.branding || {}" />
 </template>

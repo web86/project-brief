@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'team_heading' => 'Новое сообщение в чате команды',
+    'team_explanation' => 'Откройте проект, чтобы прочитать приватное сообщение команды.',
+    'status_change' => 'Изменение статуса',
     'project_request_heading' => 'Новая заявка на проект',
     'project_request_message' => 'Поступила новая заявка на проект, ожидающая вашего решения.',
     'open_request' => 'Рассмотреть заявку',
@@ -34,6 +37,7 @@ return [
     ],
     'events' => [
         'client' => [
+            'task_status_changed' => 'Клиент изменил статус задачи',
             'task_created' => 'Новая идея клиента',
             'comment_created' => 'Новый комментарий клиента',
             'task_approved' => 'Клиент согласовал задачу',
@@ -47,6 +51,7 @@ return [
     ],
     'explanations' => [
         'client' => [
+            'task_status_changed' => ':name изменил(а) статус задачи в проекте :project.',
             'task_created' => ':name добавил(а) новую идею в проект :project.',
             'comment_created' => ':name оставил(а) комментарий клиента:',
             'task_approved' => ':name согласовал(а) задачу в проекте :project.',
@@ -60,6 +65,7 @@ return [
     ],
     'next' => [
         'client' => [
+            'task_status_changed' => 'Откройте задачу, чтобы посмотреть её текущий статус.',
             'task_created' => 'Откройте задачу, чтобы ознакомиться с идеей.',
             'comment_created' => 'Откройте задачу, чтобы ответить клиенту.',
             'task_approved' => 'Откройте задачу, чтобы посмотреть согласованный объём работ.',

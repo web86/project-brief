@@ -4,7 +4,9 @@ import { useRoute } from 'vue-router'
 import { t, formatDate, formatApiError } from '../i18n/index.js'
 import { useDiscussionsStore, useClientDiscussionsStore } from '../stores/discussions.js'
 import { toast } from '../services/toast.js'
-import CommentForm from '../components/CommentForm.vue'
+import TeamChat from '../components/TeamChat.vue'
+import AppIcon from '../components/AppIcon.vue'
+import { useTeamChatStore } from '../stores/teamChat.js'
 import AttachmentList from '../components/AttachmentList.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 const route = useRoute()
@@ -13,21 +15,22 @@ const discussions = client ? useClientDiscussionsStore() : useDiscussionsStore()
 const checkingMessages = ref(false)
 const pending = ref(false),
   targetError = ref('')
-const kinds = ['general', 'tasks']
-const activeKind = ref(discussions.kindForComment(route.hash.slice(9)) || 'general')
+const chat = useTeamChatStore()
+const kinds = client ? ['tasks'] : ['team', 'tasks']
+const activeKind = ref(
+  discussions.kindForComment(route.hash.slice(9)) || (client ? 'tasks' : 'team'),
+)
 let active = true,
   revealRevision = 0
 onUnmounted(() => {
   active = false
   revealRevision++
 })
-const text = computed({
-  get: () => discussions.drafts[route.params.uuid] || '',
-  set: (value) => {
-    discussions.drafts[route.params.uuid] = value
-  },
-})
 async function reveal() {
+  if (!client && route.hash.startsWith('#team-')) {
+    activeKind.value = 'team'
+    return
+  }
   const current = ++revealRevision,
     id = route.params.uuid,
     uuid = /^#comment-([a-zA-Z0-9-]+)$/.exec(route.hash)?.[1]
@@ -51,7 +54,7 @@ async function reveal() {
 watch(
   () => route.params.uuid,
   () => {
-    activeKind.value = 'general'
+    activeKind.value = client ? 'tasks' : 'team'
   },
 )
 watch([() => route.hash, () => route.params.uuid, () => discussions.projectId], reveal, {
@@ -63,9 +66,12 @@ function selectTab(kind) {
   activeKind.value = kind
 }
 async function keyTab(event, index) {
-  const destination = { ArrowRight: (index + 1) % 2, ArrowLeft: (index + 1) % 2, Home: 0, End: 1 }[
-    event.key
-  ]
+  const destination = {
+    ArrowRight: (index + 1) % kinds.length,
+    ArrowLeft: (index + kinds.length - 1) % kinds.length,
+    Home: 0,
+    End: kinds.length - 1,
+  }[event.key]
   if (destination === undefined) return
   event.preventDefault()
   selectTab(kinds[destination])
@@ -100,9 +106,6 @@ function loadMore(kind) {
     if (active && route.params.uuid === id) toast.error(() => formatApiError(error))
   })
 }
-async function send(text, files, submissionId) {
-  return discussions.send(text, files, submissionId)
-}
 </script>
 <template>
   <div class="discussion-page" :aria-busy="pending">
@@ -119,18 +122,25 @@ async function send(text, files, submissionId) {
         @click="selectTab(kind)"
         @keydown="keyTab($event, index)"
       >
-        <span>{{ t('discussions.' + kind) }}</span
+        <AppIcon v-if="kind === 'team'" name="message" /><span>{{
+          t(kind === 'team' ? 'team95.chat' : 'discussions.' + kind)
+        }}</span
         ><span
-          v-if="discussions.unreadCounts[kind]"
+          v-if="kind === 'team' ? chat.unread : discussions.unreadCounts[kind]"
           class="discussion-badge"
-          :aria-label="t('discussions.unreadLabel', { count: discussions.unreadCounts[kind] })"
-          >{{ discussions.unreadCounts[kind] }}</span
+          :aria-label="
+            t('discussions.unreadLabel', {
+              count: kind === 'team' ? chat.unread : discussions.unreadCounts[kind],
+            })
+          "
+          >{{ kind === 'team' ? chat.unread : discussions.unreadCounts[kind] }}</span
         >
       </button>
     </div>
     <p v-if="targetError" class="field-error" role="alert">{{ targetError }}</p>
+    <TeamChat v-if="!client" v-show="activeKind === 'team'" :active="activeKind === 'team'" />
     <section
-      v-for="kind in kinds"
+      v-for="kind in ['tasks']"
       v-show="activeKind === kind"
       :id="'discussion-panel-' + kind"
       :key="kind"
@@ -148,7 +158,7 @@ async function send(text, files, submissionId) {
           @click="checkMessages"
           >{{ t('liveSync.checkMessages') }}</LoadingButton
         >
-        <h2 class="sr-only">{{ t('discussions.' + kind) }}</h2>
+        <h2 class="sr-only">{{ t(kind === 'team' ? 'team95.chat' : 'discussions.' + kind) }}</h2>
         <button
           v-if="discussions.targetWindows[kind]"
           class="text-button"
@@ -159,7 +169,7 @@ async function send(text, files, submissionId) {
         </button>
         <button
           class="text-button"
-          :disabled="pending || !discussions.unreadCounts[kind]"
+          :disabled="pending || !(kind === 'team' ? chat.unread : discussions.unreadCounts[kind])"
           @click="run(() => discussions.mark(route.params.uuid, [], true, kind))"
         >
           {{ t('discussions.markTab') }}
@@ -225,13 +235,6 @@ async function send(text, files, submissionId) {
         @click="loadMore(kind)"
         >{{ t('discussions.more') }}</LoadingButton
       >
-      <CommentForm
-        v-if="kind === 'general'"
-        :key="route.params.uuid"
-        v-model="text"
-        general
-        :send-comment="send"
-      />
     </section>
   </div>
 </template>

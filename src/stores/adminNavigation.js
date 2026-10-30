@@ -1,6 +1,7 @@
 import { useProjectRequestsStore } from './projectRequests.js'
 import { usePersonalNotificationsStore } from './personalNotifications.js'
 import { useTaskWorkspaceStore } from './taskWorkspace.js'
+import { useTeamChatStore } from './teamChat.js'
 import { useDiscussionsStore, useClientDiscussionsStore } from './discussions.js'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -39,6 +40,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     projectsPath.value = '/admin'
     useProjectStore().clearApiState()
     useProjectManagementStore().clear()
+    useTeamChatStore().clear()
     useDiscussionsStore().clear()
     useClientDiscussionsStore().clear()
     useTaskWorkspaceStore().clear()
@@ -110,10 +112,13 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
       personal.adoptSettings(state)
       user.value = state.user
       workspaces.value = state.workspaces || []
-      if (!workspaces.value.some((item) => item.id === workspace.value?.id)) {
+      const selected = state.workspace || null
+      if (workspace.value?.id !== selected?.id) {
         clearProjectState()
-        workspace.value = null
+        syncCursor.value = null
       }
+      workspace.value = selected
+      if (!selected) pendingRequests.value = 0
       useProjectStore().admin = state.user
       applyClientLocale(state.user.preferredLocale)
       ready.value = true
@@ -201,6 +206,9 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     workspace.value = {
       ...workspace.value,
       branding: {
+        ...workspace.value.branding,
+        companyUrl: settings.footer?.website ? settings.contact.website : null,
+        supportEmail: settings.footer?.support ? settings.contact.email : null,
         companyName: settings.visual.companyName,
         primaryColor: settings.visual.primaryColor,
         logoUrl: settings.assets.logo,

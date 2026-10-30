@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
 use App\Http\Middleware\EnsureProjectPermission;
+use App\Http\Middleware\MeasureApiUsage;
 use App\Http\Middleware\SecurityResponseHeaders;
 use App\Http\Middleware\SetRequestLocale;
 use App\Http\Middleware\ThrottleBootstrap;
@@ -29,7 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->prepend([SecurityResponseHeaders::class, ThrottleBootstrap::class]);
+        $middleware->trimStrings(except: ['draft.texts.*.*.content.*.text']);
+        $middleware->prepend([MeasureApiUsage::class, SecurityResponseHeaders::class, ThrottleBootstrap::class]);
         $middleware->prependToPriorityList(ThrottleRequests::class, EnsureClientProjectAccess::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);
         $middleware->prependToPriorityList(EnsureAdmin::class, EnsureAccountSecurity::class);

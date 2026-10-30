@@ -211,6 +211,7 @@ try {
     navigator.credentials.create = () =>
       Promise.reject(new DOMException('User cancelled', 'NotAllowedError'))
   })
+  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByLabel('Device name', { exact: true }).fill('Virtual authenticator')
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   const stepUp = page.getByRole('dialog')
@@ -244,16 +245,13 @@ try {
   await page.route('**/api/security/passkey/register', async (route) => {
     if (!rejectOnce) return route.fallback()
     rejectOnce = false
-    await page.evaluate(async () => {
-      const { api } = await import('/src/api/client.js')
-      await api.request('/api/security/passkey/register/options')
-    })
+    php(['tests/account-security-fixture.php', 'expire-register'])
     await route.fallback()
   })
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page
     .locator('form:has(#passkey-name) [role="alert"]')
-    .filter({ hasText: 'PK_CHALLENGE_MISMATCH' })
+    .filter({ hasText: 'PK_CHALLENGE_EXPIRED' })
     .waitFor()
   await page.locator('.toast-error').filter({ hasText: 'expired or was replaced' }).waitFor()
   const afterFailure = (await request('/api/security/status')).body
@@ -315,7 +313,7 @@ try {
   await page.emulateMedia({ colorScheme: 'light' })
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'light')
   results.push('System theme follows dark/light device changes on the security screen')
-  await page.goto(origin + '/admin/projects/' + fixture.project + '/team')
+  await page.goto(origin + '/admin/administrators')
   for (const language of LANGUAGE_CATALOG) {
     for (const [width, scheme] of [
       [1440, 'light'],
@@ -336,7 +334,7 @@ try {
       await page.locator('.team-member').first().waitFor()
       const text = await page.locator('.team-member').first().textContent()
       assert.ok(text.includes(language.messages.security.authenticator))
-      assert.ok(text.includes(language.messages.security.configured))
+      assert.ok(text.includes(language.messages.security.notConfigured))
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
@@ -366,13 +364,14 @@ try {
     navigator.credentials.get = (options) => {
       globalThis.m721Assertions.push({
         active: navigator.userActivation.isActive,
-        dialog: !!document.querySelector('dialog[open]'),
+        dialog: !!document.querySelector('dialog[open][aria-labelledby="security-step-up-title"]'),
       })
       return globalThis.m721RealGet(options)
     }
     const show = HTMLDialogElement.prototype.showModal
     HTMLDialogElement.prototype.showModal = function () {
-      globalThis.m721Dialogs++
+      if (this.getAttribute('aria-labelledby') === 'security-step-up-title')
+        globalThis.m721Dialogs++
       return show.call(this)
     }
   })
@@ -381,32 +380,45 @@ try {
     .filter({ hasText: 'security-developer@example.test' })
   const teamMutations = []
   page.on('request', (incoming) => {
-    if (incoming.method() === 'PATCH' && incoming.url().includes('/team/members/'))
+    if (incoming.method() === 'PATCH' && incoming.url().includes('/administrators/members/'))
       teamMutations.push(incoming.url())
   })
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
-  const switches = teamMember.locator('.member-permissions [role="switch"]')
-  for (let i = 1; i < 6; i++) await switches.nth(i).check()
-  await teamMember.getByRole('button', { name: 'Save', exact: true }).dblclick()
+  await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
+  if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
+    await page.locator('.administrator-dialog .assigned-projects > summary').click()
+  const superadminSwitch = page
+    .locator('.administrator-dialog')
+    .getByRole('switch', { name: 'Assign as project superadministrator', exact: true })
+  const switches = superadminSwitch
+  await superadminSwitch.check()
+  await page
+    .locator('.administrator-dialog')
+    .getByRole('button', { name: 'Save', exact: true })
+    .dblclick()
   await page.locator('.toast-success').filter({ hasText: 'Access updated' }).waitFor()
-  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  await page.locator('.administrator-dialog').waitFor({ state: 'hidden' })
   assert.equal(teamMutations.length, 1)
   assert.deepEqual(await page.evaluate(() => globalThis.m721Assertions), [
     { active: true, dialog: false },
   ])
   assert.equal(await page.evaluate(() => globalThis.m721Dialogs), 0)
-  const savedTeam = (await request('/api/admin/projects/' + fixture.project + '/team')).body
+  const savedTeam = (await request('/api/admin/administrators')).body
   const savedPermissions = savedTeam.members.find(
     (member) => member.user.email === 'security-developer@example.test',
-  ).projectPermissions[fixture.project]
-  assert.equal(Object.values(savedPermissions).filter(Boolean).length, 6)
+  ).isProjectSuperadmin
+  assert.equal(savedPermissions, true)
   results.push(
-    'Team Save -> synchronous user-activated real UV assertion -> exactly one PATCH with five changed permissions; no application dialog, including double click',
+    'Team Save -> synchronous user-activated real UV assertion -> exactly one PATCH with the project superadministrator grant; no application dialog, including double click',
   )
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
-  await switches.nth(5).uncheck()
-  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
-  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
+  if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
+    await page.locator('.administrator-dialog .assigned-projects > summary').click()
+  await superadminSwitch.uncheck()
+  await page
+    .locator('.administrator-dialog')
+    .getByRole('button', { name: 'Save', exact: true })
+    .click()
+  await page.locator('.administrator-dialog').waitFor({ state: 'hidden' })
   assert.equal(teamMutations.length, 2)
   assert.equal(await page.evaluate(() => globalThis.m721Assertions.length), 1)
   results.push('Existing five-minute proof saves immediately without another ceremony')
@@ -418,19 +430,26 @@ try {
     navigator.credentials.get = () =>
       Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
   })
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
-  await switches.nth(4).uncheck()
+  await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
+  if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
+    await page.locator('.administrator-dialog .assigned-projects > summary').click()
+  await superadminSwitch.check()
   const draft = await switches.evaluateAll((items) => items.map((item) => item.checked))
   const criticalBefore = await page.locator('.toast-error').count()
-  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
-  const fallback = page.getByRole('dialog')
+  await page
+    .locator('.administrator-dialog')
+    .getByRole('button', { name: 'Save', exact: true })
+    .click()
+  const fallback = page.locator('dialog[aria-labelledby="security-step-up-title"]')
   await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).waitFor()
   assert.equal(teamMutations.length, 2)
   assert.equal(await page.locator('.toast-error').count(), criticalBefore)
   // Measure actual action colors before and after theme transitions, not just theme attributes.
   await page.waitForFunction(() => !document.querySelector('.toast-success'))
   await page.waitForFunction(() => {
-    const retry = document.querySelector('dialog[open] .primary')
+    const retry = document.querySelector(
+      'dialog[open][aria-labelledby="security-step-up-title"] .primary',
+    )
     return retry && !retry.disabled
   })
   const contrastSamples = []
@@ -538,13 +557,16 @@ try {
     navigator.credentials.get = () =>
       Promise.reject(new DOMException('Unavailable', 'NotSupportedError'))
   })
-  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
+  await page
+    .locator('.administrator-dialog')
+    .getByRole('button', { name: 'Save', exact: true })
+    .click()
   await fallback.getByRole('button', { name: 'Another confirmation method', exact: true }).click()
   assert.equal(await fallback.locator('input[type="password"]').count(), 0)
   await fallback.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
   await fallback.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[6])
   await fallback.getByRole('button', { name: 'Confirm identity', exact: true }).click()
-  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  await page.locator('.administrator-dialog').waitFor({ state: 'hidden' })
   assert.equal(teamMutations.length, 3)
   await page.evaluate(() => {
     navigator.credentials.get = globalThis.m721RealGet
@@ -561,16 +583,21 @@ try {
     navigator.credentials.get = () =>
       Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
   })
-  await teamMember.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
-  await switches.nth(4).check()
-  await teamMember.getByRole('button', { name: 'Save', exact: true }).click()
+  await teamMember.getByRole('button', { name: 'Edit', exact: true }).click()
+  if (!(await page.locator('.administrator-dialog .assigned-projects').evaluate((el) => el.open)))
+    await page.locator('.administrator-dialog .assigned-projects > summary').click()
+  await superadminSwitch.check()
+  await page
+    .locator('.administrator-dialog')
+    .getByRole('button', { name: 'Save', exact: true })
+    .click()
   await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).waitFor()
   assert.equal(teamMutations.length, 3)
   await page.evaluate(() => {
     navigator.credentials.get = globalThis.m721RealGet
   })
   await fallback.getByRole('button', { name: 'Retry with Passkey', exact: true }).click()
-  await teamMember.locator('.team-edit').waitFor({ state: 'hidden' })
+  await page.locator('.administrator-dialog').waitFor({ state: 'hidden' })
   assert.equal(teamMutations.length, 4)
   results.push('Explicit Retry with Passkey invokes a new real UV assertion and continues once')
 
@@ -787,7 +814,7 @@ try {
       await compatibilityPage
         .getByRole('button', { name: 'Continue to workspace', exact: true })
         .waitFor()
-      await compatibilityPage.goto(origin + '/admin/projects/' + fixture.project + '/team')
+      await compatibilityPage.goto(origin + '/admin/administrators')
       await compatibilityPage.locator('.team-member').first().waitFor()
       php(['tests/account-security-fixture.php', 'expire-proof'])
       await compatibilityPage.evaluate(async () => {
@@ -797,7 +824,9 @@ try {
         navigator.credentials.get = () => {
           globalThis.m721EngineActivation = {
             active: navigator.userActivation.isActive,
-            dialog: !!document.querySelector('dialog[open]'),
+            dialog: !!document.querySelector(
+              'dialog[open][aria-labelledby="security-step-up-title"]',
+            ),
           }
           return Promise.reject(new DOMException('Device unavailable', 'NotAllowedError'))
         }
@@ -805,11 +834,26 @@ try {
       const employee = compatibilityPage
         .locator('.team-member')
         .filter({ hasText: 'security-developer@example.test' })
-      await employee.getByRole('button', { name: 'Projects and permissions', exact: true }).click()
-      const permission = employee.locator('.member-permissions [role="switch"]').nth(5)
+      await employee.getByRole('button', { name: 'Edit', exact: true }).click()
+      if (
+        !(await compatibilityPage
+          .locator('.administrator-dialog .assigned-projects')
+          .evaluate((el) => el.open))
+      )
+        await compatibilityPage
+          .locator('.administrator-dialog .assigned-projects > summary')
+          .click()
+      const permission = compatibilityPage
+        .locator('.administrator-dialog')
+        .getByRole('switch', { name: 'Assign as project superadministrator', exact: true })
       await permission.setChecked(!(await permission.isChecked()))
-      await employee.getByRole('button', { name: 'Save', exact: true }).click()
-      const engineFallback = compatibilityPage.getByRole('dialog')
+      await compatibilityPage
+        .locator('.administrator-dialog')
+        .getByRole('button', { name: 'Save', exact: true })
+        .click()
+      const engineFallback = compatibilityPage.locator(
+        'dialog[aria-labelledby="security-step-up-title"]',
+      )
       await engineFallback
         .getByRole('button', { name: 'Another confirmation method', exact: true })
         .waitFor()
@@ -824,7 +868,7 @@ try {
       await engineFallback.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
       await engineFallback.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[4])
       await engineFallback.getByRole('button', { name: 'Confirm identity', exact: true }).click()
-      await employee.locator('.team-edit').waitFor({ state: 'hidden' })
+      await compatibilityPage.locator('.administrator-dialog').waitFor({ state: 'hidden' })
       await compatibilityPage
         .locator('.toast-success')
         .filter({ hasText: 'Access updated' })

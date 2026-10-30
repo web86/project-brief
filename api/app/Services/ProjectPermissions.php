@@ -12,6 +12,7 @@ class ProjectPermissions
 {
     public const DEFAULTS = [
         'manage_structure' => true,
+        'manage_team' => false,
         'manage_clients' => false,
         'manage_project_settings' => false,
         'manage_project_notifications' => false,
@@ -21,7 +22,7 @@ class ProjectPermissions
 
     public static function canCreateProjects(WorkspaceMember $member): bool
     {
-        return $member->status === 'active' && ($member->role === 'owner' || ($member->role === 'admin' && $member->can_create_projects));
+        return $member->status === 'active' && $member->role === 'owner';
     }
 
     public static function normalize(?array $permissions): array
@@ -38,6 +39,7 @@ class ProjectPermissions
             $context = [
                 'workspace' => $member->workspace_id,
                 'owner' => $member->role === 'owner',
+                'superadmin' => (bool) $member->is_project_superadmin,
                 'projects' => $member->role === 'owner' ? [] : ProjectMember::where('workspace_id', $member->workspace_id)
                     ->where('workspace_member_id', $member->id)->when($lock, fn ($query) => $query->lockForUpdate())->get()->keyBy('project_id'),
             ];
@@ -50,7 +52,15 @@ class ProjectPermissions
         $assignment = $context['projects'][$project->id] ?? null;
         abort_unless($assignment, 404);
 
-        return self::normalize($assignment->permissions);
+        if ($context['superadmin']) {
+            return array_fill_keys(array_keys(self::DEFAULTS), true);
+        }
+        $permissions = self::normalize($assignment->permissions);
+        foreach (['manage_clients', 'manage_team', 'manage_project_settings', 'manage_project_notifications', 'manage_trash'] as $key) {
+            $permissions[$key] = false;
+        }
+
+        return $permissions;
     }
 
     public static function authorize(Request $request, Project $project, string $permission, bool $lock = false): void

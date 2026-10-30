@@ -1,0 +1,73 @@
+{
+  "milestone": "9.0 Platform Admin & Usage Monitoring",
+  "version": "0.9.0",
+  "branch": "codex/milestone-9-0-platform-admin",
+  "sourceCommit": "55600dfe4f151bd23dba9c717073c422889e03ef",
+  "builtAt": "2026-10-29T21:49:03.753Z",
+  "archive": "release/project-brief-v0.9.0-55600df.zip",
+  "bytes": 39276075,
+  "sha256": "74eda88c3f3b736d04ccfdd435a015b361461a75ebbe1bd814405ed3f4ca8e0b",
+  "fileCount": 8874,
+  "checksummedFiles": 8873,
+  "archiveEntries": 10119,
+  "fileCountIncludesManifest": true,
+  "nativePhp": "8.5.10",
+  "phpTarget": "8.4",
+  "testOnlyMemoryLimitMiB": 512,
+  "phpunit": {
+    "tests": 953,
+    "assertions": 13548,
+    "passed": true
+  },
+  "nodeTests": {
+    "tests": 381,
+    "passed": 381
+  },
+  "php84MariaDb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 131,
+    "assertions": 1390,
+    "passed": true,
+    "readOnlySourceMount": true
+  },
+  "browser": {
+    "selectedConfigurations": 8,
+    "expiredProofDialog": true,
+    "javascriptErrors": 0,
+    "compiledProductionUI": false,
+    "evidence": "artifacts/milestone-9-0/browser/results.json"
+  },
+  "performance": "artifacts/milestone-9-0/performance.json",
+  "independentZipCrcAndInternalHashes": true,
+  "runtimeAndKnownLocalSecretExclusionsPassed": true,
+  "canonicalProductionRuntime": {
+    "passed": true,
+    "signedWebAuthnEnrollment": true,
+    "platformOnlyMfaSessionAndDiagnostics": true,
+    "ordinaryOwnerDenied": true,
+    "projectIsolation": true,
+    "interactiveRevokeAndSessionInvalidation": true,
+    "existingIntegrationAndWebhookRegressions": true
+  },
+  "newMigrations": 1,
+  "noDependenciesChanged": true,
+  "liveJino": false,
+  "push": false,
+  "merge": false,
+  "deployment": false,
+  "previousArchivesPreserved": true,
+  "php84ProductionRuntime": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "11.8.9-MariaDB-ubu2404",
+    "productionVendor": true,
+    "sourceCommit": "55600dfe4f151bd23dba9c717073c422889e03ef",
+    "phpSyntaxChecked": true,
+    "freshSchema": true,
+    "platformRoutes": 6,
+    "atomicUsageWrites": true,
+    "audit": true,
+    "disposableDatabaseOnly": true
+  }
+}

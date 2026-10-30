@@ -39,6 +39,14 @@ if (($argv[1] ?? '') === 'branding-workspaces') {
     echo json_encode(['first' => $workspace->uuid, 'second' => $other->uuid]);
     exit;
 }
+if (($argv[1] ?? '') === 'platform-owner') {
+    User::where('email', 'security-owner@example.test')->firstOrFail()->forceFill(['platform_admin' => true])->save();
+    exit;
+}
+if (in_array($argv[1] ?? '', ['expire-register', 'expire-confirm'], true)) {
+    DB::table('account_security_challenges')->where('purpose', ($argv[1] === 'expire-register' ? 'passkey_register' : 'passkey_confirm'))->update(['expires_at' => now()->subSecond()]);
+    exit;
+}
 if (($argv[1] ?? '') === 'code') {
     $user = User::where('email', ($argv[2] ?? '') === 'developer' ? 'security-developer@example.test' : 'security-owner@example.test')->firstOrFail();
     $secret = Fortify::currentEncrypter()->decrypt($user->pending_two_factor_secret ?: $user->two_factor_secret);

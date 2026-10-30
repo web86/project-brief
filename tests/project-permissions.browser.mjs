@@ -184,7 +184,7 @@ export async function permissionVisual({
   )
   await go(page, teamPage)
   const row = page.locator('.team-member').filter({ hasText: 'maria@example.test' })
-  await row.locator('.team-actions button').first().click()
+  await row.locator('.administrator-manage').click()
   const form = row.locator('.team-edit'),
     selector = form.locator('select')
   await selector.selectOption(fixture.first)
@@ -222,7 +222,7 @@ export async function permissionVisual({
   assert.equal(saved.projectPermissions[fixture.first].manage_project_settings, false)
   assert.equal(saved.projectPermissions[fixture.second].manage_clients, false)
   assert.equal(saved.projectPermissions[fixture.second].manage_project_settings, true)
-  await row.locator('.team-actions button').first().click()
+  await row.locator('.administrator-manage').click()
   await selector.selectOption(fixture.first)
   await form.locator('.member-permissions > button').click()
   assert.deepEqual(
@@ -234,7 +234,8 @@ export async function permissionVisual({
   )
   const resetResponse = page.waitForResponse(
     (response) =>
-      response.request().method() === 'PATCH' && response.url().includes('/team/members/'),
+      response.request().method() === 'PATCH' &&
+      response.url().includes('/administrators/members/'),
   )
   await form.locator('button[type=submit]').click()
   assert.equal((await resetResponse).status(), 200)

@@ -1,0 +1,63 @@
+{
+  "runtime": {
+    "php": "8.4.26",
+    "database": "11.8.9-MariaDB-ubu2404"
+  },
+  "concurrency": {
+    "workers": 8,
+    "requests": 1600,
+    "elapsed_ms": 1565.345554,
+    "p50_ms": 2.94599,
+    "p95_ms": 5.14483,
+    "p99_ms": 17.029229,
+    "counts": {
+      "dimension_key": "6e99bd2d9cc0a578a8a3362073c6913e855cc6f03f4325eccca9bfeaa111a060",
+      "hour": "2026-10-29 21:00:00",
+      "workspace_id": null,
+      "integration_source_id": null,
+      "integration_token_id": null,
+      "method": "GET",
+      "route": "/api/v1/projects/{uuid}",
+      "requests": 1600,
+      "responses_2xx": 400,
+      "responses_4xx": 800,
+      "responses_5xx": 400,
+      "responses_429": 400,
+      "duration_us": 160800000,
+      "max_duration_us": 200000
+    }
+  },
+  "benchmark": {
+    "cold_ms": 7.555168,
+    "p50_ms": 1.786246,
+    "p95_ms": 2.405574,
+    "p99_ms": 2.961639,
+    "sql_statements": 201,
+    "writes": 201,
+    "lock_wait_seconds": 1
+  },
+  "http": [
+    {
+      "enabled": false,
+      "samples": 55,
+      "handled_p50_ms": 1.696689,
+      "handled_p95_ms": 2.237892,
+      "worker_p50_ms": 1.827551,
+      "worker_p95_ms": 2.397519
+    },
+    {
+      "enabled": true,
+      "samples": 55,
+      "handled_p50_ms": 1.878537,
+      "handled_p95_ms": 2.731521,
+      "worker_p50_ms": 3.929235,
+      "worker_p95_ms": 5.563807
+    }
+  ],
+  "failure": {
+    "status": 200,
+    "body": "{\"ok\":true}",
+    "terminate_ms": 1012.292061
+  },
+  "limits": "Local Docker runtime, warmed Laravel kernel, empty project list; not Jino/FPM production measurements."
+}

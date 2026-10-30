@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { api } from '../api/client.js'
 import { t } from '../i18n/index.js'
 import { svgRaster, normalizeCompanyWebsite, validCompanyWebsite } from '../services/branding.js'
-const sections = ['visual', 'business', 'contact', 'export', 'email']
+const sections = ['visual', 'business', 'contact', 'export', 'email', 'footer']
 const copy = (value) => JSON.parse(JSON.stringify(value))
 export const useWorkspaceBrandingStore = defineStore('workspaceBranding', () => {
   const settings = ref(null),

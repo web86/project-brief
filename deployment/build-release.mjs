@@ -150,13 +150,18 @@ try {
     path.join(staging, 'deployment/rollback-public.htaccess'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-8-4/PRODUCTION.md'),
+    path.join(root, 'docs/milestone-9-5/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   const deploymentGuide = path.join(staging, 'DEPLOY-JINO.md')
   await writeFile(
     deploymentGuide,
     (await readFile(deploymentGuide, 'utf8'))
+      .replaceAll('(docs/milestone-9-5/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-9-4/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-9-2/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-8-5/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-9-0/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-8-4/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-8-2/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-8-1/PRODUCTION.md)', '(PRODUCTION.md)')
@@ -171,7 +176,7 @@ try {
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.8.4', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.9.5', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }
@@ -200,7 +205,7 @@ try {
   const secrets = await knownLocalSecrets()
   const fileCount = await validateRelease(staging, secrets)
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
-  const archive = path.join(releaseRoot, `project-brief-v0.8.4-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(releaseRoot, `project-brief-v0.9.5-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
   // Test the actual ZIP in a fresh directory, never an existing installation.

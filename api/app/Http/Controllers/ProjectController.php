@@ -26,8 +26,8 @@ class ProjectController extends Controller
         if (mb_strlen($search) >= 3) {
             $query->where(function ($match) use ($search, $member): void {
                 $match->where('title', 'like', '%'.$search.'%')->orWhere(function ($clients) use ($search, $member): void {
-                    if ($member->role !== 'owner') {
-                        $clients->whereHas('members', fn ($assignment) => $assignment->where('workspace_member_id', $member->id)->where('permissions->manage_clients', true));
+                    if ($member->role !== 'owner' && ! $member->is_project_superadmin) {
+                        $clients->whereRaw('1 = 0');
                     }
                     $clients->whereHas('clients', fn ($client) => $client->where(fn ($fields) => $fields->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%')));
                 });

@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "php": "8.4.26",
+  "database": "11.8.9-MariaDB-ubu2404",
+  "productionVendor": true,
+  "freshSchema": true,
+  "administratorRoutes": 8,
+  "newFields": 4,
+  "sessionPurposeIndex": true,
+  "phpLint": true,
+  "disposableDatabaseOnly": true,
+  "evidence": "artifacts/milestone-9-2/package/php84-production-runtime.json"
+}

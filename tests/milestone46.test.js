@@ -63,6 +63,7 @@ const events = [
   'client.task_created',
   'client.comment_created',
   'client.task_approved',
+  'client.task_status_changed',
   'admin.clarification_requested',
   'admin.comment_created',
   'admin.task_review',
@@ -138,7 +139,7 @@ async function settle() {
 
 test('project settings render events and recipients with explicit migration consent, without personal channel controls', async () => {
   const html = await render(ProjectSettings, { projectId: 'project', initialSettings: settings() })
-  assert.equal((html.match(/class="notification-event-row"/g) || []).length, 9)
+  assert.equal((html.match(/class="notification-event-row"/g) || []).length, 10)
   assert.match(html, /Previous delivery rules are still active/)
   assert.match(html, /Confirm switch and save/)
   assert.match(html, /href="\/admin\/settings\/notifications"/)
@@ -156,7 +157,7 @@ test('project settings selected recipients use project-scoped candidates and pre
   assert.match(html, /Anna/)
   assert.match(html, /Alex/)
   assert.match(html, /Nobody selected/)
-  assert.equal((html.match(/<select[^>]*disabled/g) || []).length, 9)
+  assert.equal((html.match(/<select[^>]*disabled/g) || []).length, 10)
 })
 test('status dots occur only for in_progress and approved has a different green treatment from done', async () => {
   const active = await render(Status, { status: 'in_progress' }),

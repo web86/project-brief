@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "results": [
+    "Native editing: H1/H2/paragraph, bold active state, preserved selection, unsafe URL refusal, insert/edit/remove links and native Undo/Redo including renamed link",
+    "Four document languages retain drafts across tabs; thirty-two desktop/mobile light/dark/localized editor captures; save/reload/public document/invited acceptance screen preserve safe links and formatting"
+  ],
+  "screenshots": 32,
+  "errors": [],
+  "laravelFocused": {
+    "tests": 12,
+    "assertions": 227
+  },
+  "frontendTests": 403,
+  "productionBuild": true,
+  "screenshotsCommitted": false,
+  "database": "Disposable SQLite only",
+  "mariadb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 12,
+    "assertions": 227,
+    "passed": true
+  }
+}

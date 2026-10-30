@@ -7,7 +7,8 @@ import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const router = useRouter()
 async function ready() {
   useAdminNavigationStore().clear()
-  await router.replace('/admin')
+  const session = await api.request('/api/session')
+  await router.replace(session.type === 'platform' ? '/platform' : '/admin')
 }
 async function logout() {
   await api.request('/api/admin/logout', { method: 'POST' })
@@ -17,10 +18,23 @@ async function logout() {
 }
 </script>
 <template>
-  <div class="account-page">
-    <h1>{{ t('security.title') }}</h1>
+  <div class="account-page enrollment-page">
+    <h1>{{ t('team95.accountProtection') }}</h1>
+    <p class="muted onboarding-intro">{{ t('team95.securityIntro') }}</p>
     <AccountSecurityPanel onboarding @ready="ready" /><button class="text-button" @click="logout">
       {{ t('account.logout') }}
     </button>
   </div>
 </template>
+
+<style scoped>
+.enrollment-page {
+  max-width: 940px;
+}
+.enrollment-page > .text-button {
+  margin-top: 1rem;
+}
+.onboarding-intro {
+  margin: 0.75rem 0 1.5rem;
+}
+</style>

@@ -30,7 +30,7 @@ class DeveloperInvitationsTest extends TestCase
 
     private function root(?Project $project = null): string
     {
-        return '/api/admin/projects/'.($project ?? $this->project)->uuid.'/team';
+        return '/api/admin/administrators';
     }
 
     private function invite(string $email = 'new@example.test', ?array $projects = null): array
@@ -106,8 +106,10 @@ class DeveloperInvitationsTest extends TestCase
         $user = User::factory()->memberOf($other->workspace)->create(['email' => 'developer@example.test']);
         [$invitation,$token] = $this->invite($user->email);
         $this->actingAs($user)->postJson('/api/invitations/accept', ['token' => $token])->assertOk();
-        [$repeat,$next] = $this->invite($user->email, [$second->uuid]);
-        $this->actingAs($user)->postJson('/api/invitations/accept', ['token' => $next])->assertOk();
+        $member = $user->workspaceMembers()->where('workspace_id', $this->project->workspace_id)->firstOrFail();
+        $this->actingAs($this->owner)->postJson($this->root().'/invitations', ['email' => $user->email])->assertConflict()->assertJsonPath('code', 'administrator_exists');
+        $this->patchJson($this->root().'/members/'.$member->id, ['projects' => [$this->project->uuid, $second->uuid]])->assertOk();
+        $this->actingAs($user);
         $this->assertSame(2, $user->workspaceMembers()->count());
         $this->assertDatabaseCount('users', 3);
         $this->getJson('/api/admin/workspaces')->assertOk()->assertJsonCount(2, 'data');
@@ -138,7 +140,7 @@ class DeveloperInvitationsTest extends TestCase
         $foreign = Project::factory()->create();
         $this->postJson($this->root().'/invitations', ['email' => 'hacker@example.test', 'projects' => [$foreign->uuid]])->assertUnprocessable();
         $this->patchJson($this->root().'/members/'.$member->id, ['projects' => [$foreign->uuid]])->assertUnprocessable();
-        $this->getJson($this->root($foreign))->assertNotFound();
+        $this->getJson('/api/admin/projects/'.$foreign->uuid.'/team')->assertNotFound();
         $this->assertDatabaseHas('workspace_members', ['id' => $ownerMember->id, 'role' => 'owner', 'status' => 'active']);
     }
 
@@ -146,10 +148,11 @@ class DeveloperInvitationsTest extends TestCase
     {
         config(['mail.default' => 'log']);
         $this->actingAs($this->owner)->postJson($this->root().'/invitations', ['email' => 'new@example.test', 'projects' => [$this->project->uuid]])->assertStatus(503);
+        $resend = $this->root().'/invitations/'.DeveloperInvitation::latest('id')->firstOrFail()->uuid.'/resend';
         Mail::assertNothingSent();
         for ($i = 0; $i < 4; $i++) {
-            $this->postJson($this->root().'/invitations', ['email' => 'new@example.test', 'projects' => [$this->project->uuid]])->assertStatus(503);
+            $this->postJson($resend)->assertStatus(503);
         }
-        $this->postJson($this->root().'/invitations', ['email' => 'new@example.test', 'projects' => [$this->project->uuid]])->assertTooManyRequests();
+        $this->postJson($resend)->assertTooManyRequests();
     }
 }

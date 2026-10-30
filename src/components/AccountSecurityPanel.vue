@@ -9,6 +9,7 @@ import LoadingButton from './LoadingButton.vue'
 import SecurityError from './SecurityError.vue'
 import { toast } from '../services/toast.js'
 const props = defineProps({ onboarding: Boolean })
+const showPasskeyForm = ref(!props.onboarding)
 const emit = defineEmits(['ready'])
 const state = ref(null),
   setup = ref(null),
@@ -215,12 +216,15 @@ function finish() {
         :pending="state.state === 'pending_2fa'"
         @confirmed="refreshed"
       />
-      <template v-else-if="state.state !== 'guest'">
+      <div
+        v-else-if="state.state !== 'guest'"
+        :class="{ 'onboarding-security-grid': props.onboarding }"
+      >
         <section class="surface admin-form">
           <h2>
             {{ t('security.authenticator') }}
             <span class="small muted">{{
-              t(state.owner ? 'security.required' : 'security.optional')
+              t(state.owner || state.platformAdmin ? 'security.required' : 'security.optional')
             }}</span>
           </h2>
           <p>{{ t(state.totp ? 'security.totpActive' : 'security.totpHelp') }}</p>
@@ -257,7 +261,7 @@ function finish() {
             </button>
           </form>
           <template v-if="state.totp">
-            <template v-if="!state.owner">
+            <template v-if="!(state.owner || state.platformAdmin)">
               <button
                 class="text-button danger"
                 :disabled="busy"
@@ -312,22 +316,40 @@ function finish() {
             {{ t('security.passkeys') }}
             <span class="small muted">{{ t('security.optional') }}</span>
           </h2>
-          <p>{{ t(state.owner ? 'security.passkeysRequired' : 'security.passkeysOptional') }}</p>
+          <p>
+            {{
+              t(
+                state.owner || state.platformAdmin
+                  ? 'security.passkeysRequired'
+                  : 'security.passkeysOptional',
+              )
+            }}
+          </p>
           <p v-if="!passkeysSupported()" role="status">{{ t('security.unsupported') }}</p>
-          <p v-if="state.owner && (!state.totp || !state.recoverySaved)">
+          <p v-if="(state.owner || state.platformAdmin) && (!state.totp || !state.recoverySaved)">
             {{ t('security.finishTotp') }}
           </p>
-          <form v-else-if="passkeysSupported()" class="admin-form" @submit.prevent="register">
-            <SecurityError v-if="errorContext === 'passkey'" :error="error" />
-            <div class="field">
-              <label for="passkey-name">{{ t('security.deviceName') }}</label
-              ><input id="passkey-name" v-model="name" maxlength="100" required />
-            </div>
-            <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
-              t('security.addPasskey')
-            }}</LoadingButton>
-          </form>
-          <ul class="security-passkeys">
+          <template v-else-if="passkeysSupported()"
+            ><button
+              v-if="!showPasskeyForm"
+              class="button secondary"
+              :disabled="busy"
+              @click="showPasskeyForm = true"
+            >
+              {{ t('security.addPasskey') }}
+            </button>
+            <form v-else class="admin-form" @submit.prevent="register">
+              <SecurityError v-if="errorContext === 'passkey'" :error="error" />
+              <div class="field">
+                <label for="passkey-name">{{ t('security.deviceName') }}</label
+                ><input id="passkey-name" v-model="name" maxlength="100" required />
+              </div>
+              <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
+                t('security.addPasskey')
+              }}</LoadingButton>
+            </form>
+          </template>
+          <ul v-if="state.passkeys?.length" class="security-passkeys">
             <li v-for="key in state.passkeys" :key="key.id">
               <strong>{{ key.name }}</strong>
               <p class="small muted">
@@ -390,16 +412,52 @@ function finish() {
         </section>
         <button
           v-if="props.onboarding && state.state === 'authenticated'"
-          class="button primary"
+          class="button secondary onboarding-continue"
           @click="finish"
         >
           {{ t(state.recommendationsPending ? 'security.later' : 'security.continue') }}
         </button>
-      </template>
+      </div>
     </template>
   </section>
 </template>
 <style scoped>
+.onboarding-security-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.onboarding-security-grid > .admin-form {
+  margin-bottom: 0;
+}
+.onboarding-security-grid > .surface {
+  min-height: 0;
+  height: auto;
+  gap: 0.75rem;
+}
+.onboarding-security-grid > .surface h2 {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+}
+.onboarding-security-grid > .surface p {
+  margin: 0;
+}
+.onboarding-security-grid > .onboarding-continue {
+  justify-self: start;
+  grid-column: 1 / -1;
+}
+.onboarding-security-grid > .security-actions {
+  grid-column: 1 / -1;
+}
+@media (max-width: 700px) {
+  .onboarding-security-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .account-security-panel {
   display: grid;
   gap: 1rem;

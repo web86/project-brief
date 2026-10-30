@@ -104,9 +104,12 @@ class ClientDraftTest extends TestCase
         $this->client($own->project);
         $this->patchJson('/api/client/tasks/'.$other->uuid, ['title' => 'Tampered'])->assertNotFound();
         $this->deleteJson('/api/client/tasks/'.$other->uuid)->assertNotFound();
-        foreach (['status' => 'done', 'client_approved' => true, 'position' => 99, 'project_section_id' => $other->project_section_id, 'project_client_id' => 99, 'estimateHours' => 20, 'price' => 10, 'developerNotes' => 'secret'] as $key => $value) {
+        foreach (['client_approved' => true, 'position' => 99, 'project_section_id' => $other->project_section_id, 'project_client_id' => 99, 'estimateHours' => 20, 'price' => 10, 'developerNotes' => 'secret'] as $key => $value) {
             $this->patchJson('/api/client/tasks/'.$own->uuid, [$key => $value])->assertUnprocessable()->assertJsonValidationErrors($key);
         }
+        $this->patchJson('/api/client/tasks/'.$own->uuid, ['status' => 'done'])->assertUnprocessable()->assertJsonValidationErrors('editVersion');
+        $version = $this->getJson('/api/client/tasks/'.$own->uuid)->assertOk()->json('data.editVersion');
+        $this->patchJson('/api/client/tasks/'.$own->uuid, ['status' => 'done', 'editVersion' => $version])->assertForbidden();
         $this->assertModelExists($other);
         $this->assertSame('new', $own->fresh()->status);
     }

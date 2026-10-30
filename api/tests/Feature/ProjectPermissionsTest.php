@@ -50,7 +50,7 @@ class ProjectPermissionsTest extends TestCase
         if ($other) {
             $projects[] = $other->uuid;
         }
-        $this->actingAs($this->owner)->patchJson($this->root().'/team/members/'.$this->assignment->workspace_member_id, [
+        $this->actingAs($this->owner)->patchJson('/api/admin/administrators/members/'.$this->assignment->workspace_member_id, [
             'projects' => $projects, 'projectPermissions' => [$this->project->uuid => $permissions],
         ])->assertOk();
         $this->actingAs($this->developer);
@@ -62,7 +62,7 @@ class ProjectPermissionsTest extends TestCase
         $this->actingAs($this->developer)->getJson($this->root())->assertJsonPath('data.permissions', ProjectPermissions::DEFAULTS);
         $this->getJson('/api/admin/projects')->assertJsonPath('data.0.permissions', ProjectPermissions::DEFAULTS);
         $this->actingAs($this->owner)->getJson($this->root())->assertJsonPath('data.permissions', array_fill_keys(array_keys(ProjectPermissions::DEFAULTS), true));
-        $this->getJson($this->root().'/team')->assertJsonPath('members.1.projectPermissions.'.$this->project->uuid, ProjectPermissions::DEFAULTS);
+        $this->getJson('/api/admin/administrators')->assertJsonPath('members.1.projectPermissions.'.$this->project->uuid, ProjectPermissions::DEFAULTS);
         $this->assertDatabaseCount('project_members', 1);
     }
 
@@ -101,7 +101,7 @@ class ProjectPermissionsTest extends TestCase
 
     public static function abilities(): array
     {
-        return array_map(fn ($key) => [$key], array_keys(ProjectPermissions::DEFAULTS));
+        return array_map(fn ($key) => [$key], ['manage_structure', 'export_project']);
     }
 
     #[DataProvider('abilities')]
@@ -132,10 +132,10 @@ class ProjectPermissionsTest extends TestCase
     {
         $other = Project::factory()->for($this->project->workspace)->create();
         $this->savePermissions(['manage_clients' => true], $other);
-        $this->getJson($this->root().'/clients')->assertOk();
+        $this->getJson($this->root().'/clients')->assertForbidden();
         $this->getJson($this->root($other).'/clients')->assertForbidden();
         $this->getJson($this->root($other))->assertJsonPath('data.permissions', ProjectPermissions::DEFAULTS);
-        $this->actingAs($this->owner)->patchJson($this->root().'/team/members/'.$this->assignment->workspace_member_id, ['projects' => [$other->uuid]])->assertOk();
+        $this->actingAs($this->owner)->patchJson('/api/admin/administrators/members/'.$this->assignment->workspace_member_id, ['projects' => [$other->uuid]])->assertOk();
         $this->actingAs($this->developer)->getJson($this->root())->assertNotFound();
         $this->getJson('/api/admin/projects')->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $other->uuid);
         $this->getJson($this->root($other).'/tasks')->assertOk();
@@ -148,16 +148,16 @@ class ProjectPermissionsTest extends TestCase
 
     public function test_owner_update_rejects_unknown_permissions_roles_non_boolean_and_unassigned_projects(): void
     {
-        $path = $this->root().'/team/members/'.$this->assignment->workspace_member_id;
+        $path = '/api/admin/administrators/members/'.$this->assignment->workspace_member_id;
         $this->actingAs($this->owner);
-        foreach ([['manage_team' => true], ['manage_clients' => 'true'], ['manage_clients' => 1], ['create_workspace' => true]] as $permissions) {
+        foreach ([['platform_admin' => true], ['manage_clients' => 'true'], ['manage_clients' => 1], ['create_workspace' => true]] as $permissions) {
             $this->patchJson($path, ['projects' => [$this->project->uuid], 'projectPermissions' => [$this->project->uuid => $permissions]])->assertUnprocessable();
         }
         $foreign = Project::factory()->create();
         $this->patchJson($path, ['projects' => [$this->project->uuid], 'projectPermissions' => [$foreign->uuid => ['manage_clients' => true]]])->assertUnprocessable();
         $this->patchJson($path, ['projects' => [$foreign->uuid]])->assertUnprocessable();
         $this->patchJson($path, ['projects' => [$this->project->uuid], 'role' => 'owner'])->assertUnprocessable();
-        $this->patchJson($this->root().'/team/members/'.$this->owner->workspaceMembers()->first()->id, ['projects' => []])->assertForbidden();
+        $this->patchJson('/api/admin/administrators/members/'.$this->owner->workspaceMembers()->first()->id, ['projects' => []])->assertForbidden();
         $this->actingAs($this->developer)->patchJson($path, ['projects' => [$this->project->uuid], 'projectPermissions' => [$this->project->uuid => ['manage_clients' => true]]])->assertForbidden();
         $this->getJson($this->root())->assertJsonPath('data.permissions', ProjectPermissions::DEFAULTS);
         $this->assignment->update(['permissions' => ['manage_team' => true, 'manage_clients' => 'true']]);
@@ -185,52 +185,23 @@ class ProjectPermissionsTest extends TestCase
         $this->getJson('/api/admin/notifications')->assertOk();
         $this->patchJson($taskPath, ['status' => 'new'])->assertOk();
         $this->deleteJson($taskPath)->assertOk();
-        $this->savePermissions(['manage_trash' => true]);
+        $this->assignment->workspaceMember->update(['is_project_superadmin' => true]);
         $this->postJson($taskPath.'/restore')->assertOk()->assertJsonPath('data.comments.0.text', 'Comment preserved')->assertJsonCount(1, 'data.attachments');
         $this->assignment->workspaceMember->update(['status' => 'inactive']);
         $this->getJson($this->root().'/trash')->assertForbidden();
     }
 
-    public function test_creation_permission_is_off_by_default_owner_controlled_and_scoped_to_workspace(): void
+    public function test_legacy_creation_grant_and_new_superadministrator_never_allow_project_creation(): void
     {
-        $path = $this->root().'/team/members/'.$this->assignment->workspace_member_id;
-        $this->actingAs($this->developer)->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', false);
-        $this->postJson('/api/admin/projects', ['title' => 'Denied', 'canCreateProjects' => true])->assertForbidden();
-        $this->patchJson($path, ['projects' => [$this->project->uuid], 'canCreateProjects' => true])->assertForbidden();
-        $this->actingAs($this->owner);
-        foreach (['true', 1, null, []] as $value) {
-            $this->patchJson($path, ['projects' => [$this->project->uuid], 'canCreateProjects' => $value])->assertUnprocessable();
-        }
-        $this->patchJson($path, ['projects' => [$this->project->uuid], 'canCreateProjects' => true])->assertOk();
-        $this->actingAs($this->developer)->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', true);
-        $this->getJson('/api/admin/notifications')->assertJsonPath('user.canCreateProjects', true);
-        $createdId = $this->postJson('/api/admin/projects', ['title' => 'Own project', 'permissions' => ['manage_team' => true, 'manage_clients' => true]])->assertCreated()->assertJsonPath('data.permissions', ProjectPermissions::DEFAULTS)->json('data.id');
-        $created = Project::where('uuid', $createdId)->firstOrFail();
-        $this->assertSame($this->project->workspace_id, $created->workspace_id);
-        $this->assertDatabaseHas('project_members', ['workspace_member_id' => $this->assignment->workspace_member_id, 'project_id' => $created->id]);
-        $this->getJson($this->root($created).'/team')->assertForbidden();
-        $this->getJson($this->root($created).'/clients')->assertForbidden();
-        $other = Project::factory()->create();
-        $other->workspace->members()->create(['user_id' => $this->developer->id, 'role' => 'admin', 'status' => 'active']);
-        $this->postJson('/api/admin/workspaces/'.$other->workspace->uuid.'/select')->assertOk();
-        $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', false);
-        $this->postJson('/api/admin/projects', ['title' => 'Wrong workspace'])->assertForbidden();
-        $this->postJson('/api/admin/workspaces/'.$this->project->workspace->uuid.'/select')->assertOk();
-        $this->actingAs($this->owner)->patchJson($path, ['projects' => [$this->project->uuid, $createdId], 'canCreateProjects' => false])->assertOk();
-        $this->actingAs($this->developer)->postJson('/api/admin/projects', ['title' => 'Revoked'])->assertForbidden();
-        $this->getJson($this->root($created))->assertOk();
-        $this->getJson('/api/admin/notifications')->assertJsonPath('user.canCreateProjects', false);
-    }
-
-    public function test_developer_with_no_assigned_projects_can_create_when_owner_explicitly_allows_it(): void
-    {
-        $path = $this->root().'/team/members/'.$this->assignment->workspace_member_id;
-        $this->actingAs($this->owner)->patchJson($path, ['projects' => [], 'canCreateProjects' => true])->assertOk();
+        $path = '/api/admin/administrators/members/'.$this->assignment->workspace_member_id;
+        $this->actingAs($this->owner)->patchJson($path, ['projects' => [$this->project->uuid], 'canCreateProjects' => true, 'isProjectSuperadmin' => true])->assertOk();
+        $this->actingAs($this->developer)->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', false)->assertJsonPath('user.isProjectSuperadmin', true);
+        $this->postJson('/api/admin/projects', ['title' => 'Denied'])->assertForbidden();
+        $this->patchJson($path, ['projects' => [], 'isProjectSuperadmin' => true])->assertForbidden();
+        $this->actingAs($this->owner)->patchJson($path, ['projects' => [], 'isProjectSuperadmin' => true])->assertOk();
         $this->actingAs($this->developer)->getJson('/api/admin/projects')->assertJsonCount(0, 'data');
-        $createdId = $this->postJson('/api/admin/projects', ['title' => 'First own project'])->assertCreated()->json('data.id');
-        $this->getJson('/api/admin/projects')->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $createdId);
-        $this->actingAs($this->owner)->getJson('/api/admin/projects/'.$createdId)->assertOk();
-        $this->assertDatabaseCount('workspaces', 1);
+        $this->postJson('/api/admin/projects', ['title' => 'Still denied'])->assertForbidden();
+        $this->getJson($this->root())->assertNotFound();
     }
 
     public function test_empty_project_can_receive_ideas_in_the_system_general_section_without_structure_rights(): void
@@ -258,10 +229,10 @@ class ProjectPermissionsTest extends TestCase
             $this->actingAs($this->developer)->postJson('/api/invitations/accept', ['token' => $token])->assertOk();
         };
         $accept();
-        $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', true);
-        $this->getJson($this->root())->assertJsonPath('data.permissions.manage_clients', true);
-        $this->actingAs($this->owner)->deleteJson($this->root().'/team/members/'.$this->assignment->workspace_member_id)->assertOk();
-        $this->assertDatabaseHas('workspace_members', ['id' => $this->assignment->workspace_member_id, 'status' => 'inactive', 'can_create_projects' => false]);
+        $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', false);
+        $this->getJson($this->root())->assertJsonPath('data.permissions.manage_clients', false);
+        $this->actingAs($this->owner)->deleteJson('/api/admin/administrators/members/'.$this->assignment->workspace_member_id)->assertOk();
+        $this->assertDatabaseMissing('workspace_members', ['id' => $this->assignment->workspace_member_id]);
         $accept();
         $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', false);
         $this->getJson($this->root())->assertJsonPath('data.permissions', ProjectPermissions::DEFAULTS);

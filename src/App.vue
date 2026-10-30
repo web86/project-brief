@@ -1,4 +1,5 @@
 <script setup>
+import AppFooter from './components/AppFooter.vue'
 import SecurityStepUpDialog from './components/SecurityStepUpDialog.vue'
 import BrandLogo from './components/PortalBrandLogo.vue'
 import ClientSidebar from './components/ClientSidebar.vue'
@@ -7,6 +8,7 @@ import { usePersonalNotificationsStore } from './stores/personalNotifications.js
 import TaskHeaderNavigation from './components/TaskHeaderNavigation.vue'
 import TaskNavigator from './components/TaskNavigator.vue'
 import { useTaskWorkspaceStore } from './stores/taskWorkspace.js'
+import { useTeamChatStore } from './stores/teamChat.js'
 import { useDiscussionsStore, useClientDiscussionsStore } from './stores/discussions.js'
 import ClientDrawer from './components/ClientDrawer.vue'
 import ClientPageNavigation from './components/ClientPageNavigation.vue'
@@ -20,7 +22,13 @@ import { createLiveNotifications } from './services/liveNotifications.js'
 import { createLiveSync } from './services/liveSync.js'
 import { useProjectListingStore } from './stores/projectListing.js'
 import { useProjectRequestsStore } from './stores/projectRequests.js'
-import { useWorkspaceAppearance } from './services/workspaceAppearance.js'
+import {
+  useWorkspaceAppearance,
+  loadEntryBranding,
+  isEntryRoute,
+  isDocumentRoute,
+  setDocumentBranding,
+} from './services/workspaceAppearance.js'
 import { theme } from './services/theme.js'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminNavigationStore } from './stores/adminNavigation.js'
@@ -39,6 +47,15 @@ const task = computed(() => route.meta.taskDetail && store.findTask(route.params
 const navigationPending = router.navigationPending
 const personal = usePersonalNotificationsStore()
 const appearance = useWorkspaceAppearance()
+watch(
+  () => route.path,
+  () => {
+    if (isDocumentRoute(route)) setDocumentBranding(null, false)
+    if (isEntryRoute(route))
+      loadEntryBranding(route.meta.clientLogin ? route.params.uuid : undefined).catch(() => {})
+  },
+  { immediate: true },
+)
 const originalIcons = new Map()
 watch(
   () => [route.fullPath, appearance.brand.value],
@@ -105,6 +122,14 @@ const live = createLiveSync({
           preserveTaskId: route.meta.editTask ? route.params.id : undefined,
         }),
       )
+    const chat = useTeamChatStore()
+    if (
+      route.meta.adminShell &&
+      route.meta.projectSection === 'discussions' &&
+      chat.projectId === route.params.uuid &&
+      (result.reset || result.projects.includes(chat.projectId))
+    )
+      work.push(chat.load(chat.projectId))
     const discussions = route.meta.adminShell ? useDiscussionsStore() : useClientDiscussionsStore()
     if (
       discussions.projectId &&
@@ -200,6 +225,14 @@ watch(
       router.replace(destination)
     }
   },
+)
+function agreementRequired() {
+  useAdminNavigationStore().clear()
+  router.replace('/admin/agreement')
+}
+globalThis.window?.addEventListener?.('administrator-agreement-required', agreementRequired)
+onBeforeUnmount(() =>
+  globalThis.window?.removeEventListener?.('administrator-agreement-required', agreementRequired),
 )
 store.loadFromStorage()
 watch(
@@ -304,6 +337,10 @@ watch(
           /><RouterView />
         </main>
       </div>
+      <AppFooter
+        v-if="!route.meta.agreement && !route.meta.publicDocument && route.path !== '/invitation'"
+        :compact="!clientShell"
+      />
     </div>
   </div>
   <LoadingOverlay :active="navigationPending" class="navigation-loading" />

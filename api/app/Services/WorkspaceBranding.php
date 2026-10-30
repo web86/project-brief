@@ -15,6 +15,8 @@ class WorkspaceBranding
 
     public const EXPORT_DEFAULTS = ['logo' => true, 'companyName' => true, 'address' => false, 'contact' => false, 'business' => false, 'platform' => true];
 
+    public const FOOTER_DEFAULTS = ['support' => false, 'website' => false];
+
     public const EMAIL_DEFAULTS = ['enabled' => false, 'logo' => true, 'companyName' => true, 'contact' => false, 'accent' => true];
 
     public function settings(Workspace $workspace): array
@@ -24,6 +26,7 @@ class WorkspaceBranding
         return ['visual' => array_replace(array_fill_keys(array_keys(self::FIELDS['visual']), ''), $stored['visual'] ?? []),
             'business' => array_replace(array_fill_keys(array_keys(self::FIELDS['business']), ''), $stored['business'] ?? []),
             'contact' => array_replace(array_fill_keys(array_keys(self::FIELDS['contact']), ''), $stored['contact'] ?? []),
+            'footer' => array_replace(self::FOOTER_DEFAULTS, $stored['footer'] ?? []),
             'export' => array_replace(self::EXPORT_DEFAULTS, $stored['export'] ?? []),
             'email' => array_replace(self::EMAIL_DEFAULTS, $stored['email'] ?? []),
             'assets' => $stored['assets'] ?? []];
@@ -51,14 +54,14 @@ class WorkspaceBranding
 
     public function versions(Workspace $workspace): array
     {
-        return array_map(fn (array $values): string => hash('sha256', json_encode($values, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), array_intersect_key($this->settings($workspace), array_flip(['visual', 'business', 'contact', 'export', 'email'])));
+        return array_map(fn (array $values): string => hash('sha256', json_encode($values, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), array_intersect_key($this->settings($workspace), array_flip(['visual', 'business', 'contact', 'export', 'email', 'footer'])));
     }
 
     public function portal(Workspace $workspace): array
     {
         $visual = $this->settings($workspace)['visual'];
 
-        return ['companyName' => $visual['companyName'], 'primaryColor' => $visual['primaryColor'], 'logoUrl' => $this->assetUrl($workspace, 'logo'), 'faviconUrl' => $this->assetUrl($workspace, 'favicon'), 'faviconType' => ! empty($workspace->branding['assets']['favicon']['svgPath']) ? 'image/svg+xml' : ($workspace->branding['assets']['favicon']['mime'] ?? 'image/png')];
+        return ['agreementUrl' => app(WorkspaceAgreements::class)->publicUrl($workspace), 'supportEmail' => $this->settings($workspace)['footer']['support'] ? (filter_var($this->settings($workspace)['contact']['email'], FILTER_VALIDATE_EMAIL) ?: null) : null, 'companyUrl' => $this->settings($workspace)['footer']['website'] && CompanyWebsite::valid($this->settings($workspace)['contact']['website']) ? CompanyWebsite::normalize($this->settings($workspace)['contact']['website']) : null, 'companyName' => $visual['companyName'], 'primaryColor' => $visual['primaryColor'], 'logoUrl' => $this->assetUrl($workspace, 'logo'), 'faviconUrl' => $this->assetUrl($workspace, 'favicon'), 'faviconType' => ! empty($workspace->branding['assets']['favicon']['svgPath']) ? 'image/svg+xml' : ($workspace->branding['assets']['favicon']['mime'] ?? 'image/png')];
     }
 
     public function contact(array $values, bool $address): array

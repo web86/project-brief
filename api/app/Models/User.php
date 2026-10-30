@@ -15,7 +15,7 @@ use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 #[Fillable(['name', 'email', 'password', 'preferred_locale'])]
-#[Hidden(['security_recommendations_seen_at', 'security_recovery_token_hash', 'security_recovery_expires_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pending_two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'passkeys', 'password', 'remember_token', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_path', 'auth_session_version'])]
+#[Hidden(['security_recommendations_seen_at', 'security_recovery_token_hash', 'security_recovery_expires_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pending_two_factor_secret', 'last_totp_step', 'recovery_codes_acknowledged_at', 'passkeys', 'password', 'remember_token', 'notification_preferences', 'notification_email', 'notification_email_resolved_at', 'pending_notification_email', 'notification_email_token_hash', 'notification_email_expires_at', 'pending_email', 'email_change_token_hash', 'email_change_expires_at', 'avatar_path', 'auth_session_version', 'platform_admin'])]
 /** Legacy users.role has no authorization meaning; active workspace memberships grant access. */
 class User extends Authenticatable implements PasskeyUser
 {
@@ -57,6 +57,7 @@ class User extends Authenticatable implements PasskeyUser
             'two_factor_confirmed_at' => 'datetime',
             'recovery_codes_acknowledged_at' => 'datetime',
             'last_totp_step' => 'integer',
+            'platform_admin' => 'boolean',
             'email_verified_at' => 'datetime',
             'email_change_expires_at' => 'datetime',
             'auth_session_version' => 'integer',

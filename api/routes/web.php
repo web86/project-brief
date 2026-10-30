@@ -15,10 +15,12 @@ use App\Http\Controllers\ClientProjectLoginController;
 use App\Http\Controllers\ClientSsoController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DeveloperInvitationController;
+use App\Http\Controllers\EntryBrandingController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LiveSyncController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\PasswordRecoveryController;
+use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
@@ -34,9 +36,13 @@ use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
 use App\Http\Controllers\TaskTrashController;
+use App\Http\Controllers\TeamChatController;
 use App\Http\Controllers\TelegramController;
+use App\Http\Controllers\WorkspaceAdministratorController;
+use App\Http\Controllers\WorkspaceAgreementController;
 use App\Http\Controllers\WorkspaceBrandingController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\ProjectStructure;
@@ -47,6 +53,16 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
+Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(function (): void {
+    Route::get('/platform', SpaController::class)->name('platform.enter');
+    Route::prefix('/api/platform')->controller(PlatformController::class)->group(function (): void {
+        Route::get('/overview', 'overview')->name('platform.overview');
+        Route::get('/workspaces', 'workspaces')->name('platform.workspaces');
+        Route::get('/workspaces/{uuid}', 'workspace')->whereUuid('uuid')->name('platform.workspace');
+        Route::get('/usage', 'usage')->name('platform.usage');
+        Route::get('/audit', 'audit')->name('platform.audit');
+    });
+});
 Route::get('/', SpaController::class);
 Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cache-Control', 'no-store'))
     ->withoutMiddleware([
@@ -56,6 +72,14 @@ Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cac
     ]);
 Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'));
 Route::get('/api/session', SessionController::class);
+Route::get('/api/public/workspaces/{workspace}/agreement', [WorkspaceAgreementController::class, 'published'])->whereUuid('workspace')
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class]);
+Route::middleware('admin')->controller(WorkspaceAgreementController::class)->group(function (): void {
+    Route::get('/api/admin/settings/agreement', 'settings');
+    Route::put('/api/admin/settings/agreement', 'save')->middleware('throttle:integration-settings');
+    Route::get('/api/admin/agreement', 'document');
+    Route::post('/api/admin/agreement/accept', 'accept')->middleware('throttle:account-security');
+});
 Route::prefix('/api/security')->controller(AccountSecurityController::class)->group(function (): void {
     Route::get('/status', 'show');
     Route::post('/challenge', 'challenge')->middleware('throttle:security-challenge')->block();
@@ -83,6 +107,7 @@ Route::prefix('/api/security')->controller(AccountSecurityController::class)->gr
         Route::delete('/passkeys/{id}', 'deletePasskey')->whereNumber('id')->block();
     });
 });
+Route::get('/api/entry/branding', EntryBrandingController::class)->middleware('throttle:invitation-resolve');
 Route::post('/api/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login')->block();
 Route::post('/api/invitations/resolve', [DeveloperInvitationController::class, 'show'])->middleware('throttle:invitation-resolve');
 Route::post('/api/invitations/accept', [DeveloperInvitationController::class, 'accept'])->middleware('throttle:invitation-accept');
@@ -112,8 +137,21 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout']);
 });
 
+Route::middleware('admin')->prefix('/api/admin/administrators')->group(function (): void {
+    Route::get('/', [WorkspaceAdministratorController::class, 'index']);
+    Route::post('/invitations', [WorkspaceAdministratorController::class, 'invite'])->middleware('throttle:account-security');
+    Route::post('/invitations/{invitation}/link', [WorkspaceAdministratorController::class, 'link'])->middleware('throttle:account-security');
+    Route::post('/invitations/{invitation}/resend', [WorkspaceAdministratorController::class, 'resend'])->middleware('throttle:account-security');
+    Route::patch('/invitations/{invitation}', [WorkspaceAdministratorController::class, 'updateInvitation']);
+    Route::delete('/invitations/{invitation}', [WorkspaceAdministratorController::class, 'revoke']);
+    Route::patch('/members/{member}', [WorkspaceAdministratorController::class, 'update']);
+    Route::delete('/members/{member}', [WorkspaceAdministratorController::class, 'destroy']);
+});
+
 Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/integrations')->group(function (): void {
     Route::get('/', [IntegrationController::class, 'index']);
+    Route::post('/sources', [IntegrationController::class, 'source']);
+    Route::delete('/sources/{uuid}', [IntegrationController::class, 'deleteSource']);
     Route::patch('/sources/{uuid}/sso', [IntegrationController::class, 'sourceSso']);
     Route::post('/tokens', [IntegrationController::class, 'token']);
     Route::patch('/tokens/{uuid}', [IntegrationController::class, 'updateToken']);
@@ -154,14 +192,17 @@ Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(funct
     Route::get('/feedback', [ProjectFeedbackController::class, 'review']);
     Route::post('/feedback/request', [ProjectFeedbackController::class, 'request']);
     Route::get('/team', [ProjectTeamController::class, 'index']);
-    Route::post('/team/invitations', [ProjectTeamController::class, 'invite'])->middleware('throttle:account-security');
-    Route::post('/team/invitations/{invitation}/resend', [ProjectTeamController::class, 'resend'])->middleware('throttle:account-security');
-    Route::delete('/team/invitations/{invitation}', [ProjectTeamController::class, 'revoke']);
-    Route::patch('/team/members/{member}', [ProjectTeamController::class, 'update']);
-    Route::delete('/team/members/{member}', [ProjectTeamController::class, 'destroy']);
+    Route::post('/team/invitations', [ProjectTeamController::class, 'invite'])->middleware('throttle:invitation-accept');
+    Route::post('/team/members', [ProjectTeamController::class, 'assign']);
+    Route::delete('/team/members/{member}', [ProjectTeamController::class, 'remove']);
     Route::post('/ai/task-assistant', AiTaskAssistantController::class);
     Route::post('/export', ProjectExportController::class)->middleware('project.permission:export_project');
     Route::post('/export-data', BrowserProjectExportController::class)->middleware(['project.permission:export_project', 'throttle:browser-pdf']);
+    Route::get('/team-chat', [TeamChatController::class, 'index']);
+    Route::post('/team-chat', [TeamChatController::class, 'store'])->middleware('throttle:comments');
+    Route::post('/team-chat/read', [TeamChatController::class, 'read']);
+    Route::get('/team-chat/messages/{message}', [TeamChatController::class, 'show']);
+    Route::get('/team-chat/files/{attachment}/{mode}', [TeamChatController::class, 'file']);
     Route::get('/discussions', [ProjectDiscussionController::class, 'index']);
     Route::post('/discussions', [ProjectDiscussionController::class, 'store'])->middleware('throttle:comments');
     Route::post('/discussions/read', [ProjectDiscussionController::class, 'read']);

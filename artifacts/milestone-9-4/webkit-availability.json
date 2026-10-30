@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "testedApplication": false,
+  "engine": "Playwright WebKit mac14 special 2251",
+  "attempts": [
+    "headless",
+    "headed"
+  ],
+  "failure": "Browser launches, creates context, then newPage stalls until bounded 25-second probe timeout; headed stderr reports native layout recursion",
+  "limitation": "iOS Safari and physical Android/iOS devices remain unverified; Chromium uses native trusted touch event emulation"
+}

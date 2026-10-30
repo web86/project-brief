@@ -1,0 +1,34 @@
+{
+  "origin": "https://localhost:5199",
+  "rpId": "localhost",
+  "isolatedLocalTransport": true,
+  "results": [
+    "Owner with saved TOTP recovery has full access without a Passkey",
+    "Compact TOTP/recovery step-up needs no password and safely continues registration options once",
+    "Cancelled optional WebAuthn preserves account access and permits explicit retry",
+    "Created but unsaved credential: real challenge rejection, toast + form reference, full access and safe fresh retry",
+    "Owner password: restricted enrollment, reload, real TOTP, saved recovery, fresh recovery step-up, optional real UV Passkey, unlocked workspace",
+    "RU/EN/TR/ZH-CN security UI: 1440px light + 390px dark; no horizontal overflow",
+    "System theme follows dark/light device changes on the security screen",
+    "Owner team: textual factor indicators, RU/EN/TR/ZH-CN, desktop/mobile and light/dark without overflow",
+    "Team Save -> synchronous user-activated real UV assertion -> exactly one PATCH with five changed permissions; no application dialog, including double click",
+    "Existing five-minute proof saves immediately without another ceremony",
+    "Cancelled Passkey: no mutation or critical toast; fallback in four locales/themes, Cancel retains exact permission draft",
+    "Unavailable Passkey uses allowed compact recovery alternative and continues the exact draft once",
+    "Explicit Retry with Passkey invokes a new real UV assertion and continues once",
+    "Actual settings/integrations route prepares a confirmation challenge without opening an application dialog",
+    "Real discoverable UV Passkey login without password or TOTP",
+    "Password requires recovery challenge before workspace access",
+    "CSRF enforced on security mutation over real HTTP",
+    "Developer password remains usable without TOTP or Passkey",
+    "Developer without factors gets compact current-password confirmation and setup continues without a second click",
+    "Developer voluntarily enrolls TOTP, password login requires recovery, fresh MFA + password alternative permits disabling",
+    "Existing client link and client task session unchanged",
+    "Firefox: real engine serializer compatibility with minimal WebAuthn API shape (mock authenticator; no hardware assertion)",
+    "Firefox: native get invoked with real user activation and no app dialog; cancelled provider -> compact recovery -> original team draft saved (mock provider, real server)"
+  ],
+  "errors": [],
+  "limitations": [
+    "Real WebKit not run: use M7_TEST_WEBKIT=1 on a compatible host. Safari API shapes covered by frontend tests; physical Touch ID not tested."
+  ]
+}

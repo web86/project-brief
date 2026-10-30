@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "php": "8.4.26",
+  "database": "11.8.9-MariaDB-ubu2404",
+  "productionVendor": true,
+  "upgradeFrom": "0.9.3",
+  "newMigrations": 0,
+  "workspaceAndBrandRetained": true,
+  "sessionSerialization": true,
+  "clientPolicy": true,
+  "agreementLinks": true,
+  "clientRoutes": 8,
+  "phpLint": true,
+  "disposableDatabaseOnly": true
+}

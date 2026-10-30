@@ -1,0 +1,17 @@
+{
+  "results": [
+    "Global brand survives SPA/profile/security/notifications, direct URL, reload/history; workspace switching hides former identity until new context is ready; platform retains its own style",
+    "Client review: cancel sends no mutation; failed save preserves review; confirmed double click sends one PATCH; return uses approved; concurrent admin edit yields 409 and actual in_progress; locked states show no selector/actions",
+    "Android Chrome touch emulation: trusted native pointer stream opens/closes drawer; vertical scrolling, text input, horizontal content and touchcancel do not open; hamburger/backdrop/Escape remain functional",
+    "Trusted native touch opens/closes existing client menu and task navigation drawer",
+    "System theme reacts to media preference changes and preserves active workspace branding",
+    "Four languages × 1440/390 × light/dark: global personal brands/footers and client review/confirmation/locked done, 96 local screenshots without horizontal overflow"
+  ],
+  "errors": [],
+  "smtpMessages": 4,
+  "apiRequests": 446,
+  "nativeTouch": true,
+  "phpWorkers": 1,
+  "database": "SQLite",
+  "screenshots": 96
+}

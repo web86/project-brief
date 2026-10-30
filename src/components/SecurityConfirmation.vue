@@ -64,7 +64,12 @@ async function confirm(passkey = false) {
   <form class="admin-form" @submit.prevent="confirm()">
     <p>{{ t(pending ? 'security.challengeHelp' : 'security.stepUpHelp') }}</p>
     <div
-      v-if="status && !status.totp && (!compact || !status.owner) && (!pending || status.signedIn)"
+      v-if="
+        status &&
+        !status.totp &&
+        (!compact || !(status.owner || status.platformAdmin)) &&
+        (!pending || status.signedIn)
+      "
       class="field"
     >
       <label for="security-password">{{ t('account.currentPassword') }}</label>

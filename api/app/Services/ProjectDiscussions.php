@@ -33,13 +33,13 @@ class ProjectDiscussions
 
     public function count(Project $project, User|ProjectClient $user): int
     {
-        return $this->unread($this->query($project), $user)->count();
+        return $this->unread($this->query($project)->when($user instanceof User, fn ($query) => $query->withoutGlobalScope('public_channel')), $user)->count();
     }
 
     /** @return array{general: int, tasks: int} */
     public function counts(Project $project, User|ProjectClient $user): array
     {
-        $counts = $this->unread($this->query($project), $user)->toBase()
+        $counts = $this->unread($this->query($project)->when($user instanceof User, fn ($query) => $query->withoutGlobalScope('public_channel')), $user)->toBase()
             ->selectRaw('COUNT(CASE WHEN comments.task_id IS NULL THEN 1 END) AS general, COUNT(CASE WHEN comments.task_id IS NOT NULL THEN 1 END) AS tasks')->first();
 
         return ['general' => (int) $counts->general, 'tasks' => (int) $counts->tasks];

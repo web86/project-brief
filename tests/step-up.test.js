@@ -360,6 +360,7 @@ test('preparation follows actual sensitive UI routes without warming ordinary ta
     '/admin/account/security',
     '/admin/settings/integrations',
     '/admin/projects/id/team',
+    '/admin/administrators',
     '/admin/projects/id/clients',
   ])
     assert.equal(isSecurityConfirmationScreen(path), true, path)
@@ -372,4 +373,68 @@ test('preparation follows actual sensitive UI routes without warming ordinary ta
     '/access/token',
   ])
     assert.equal(isSecurityConfirmationScreen(path), false, path)
+})
+
+test('Passkey client submits the exact attempt id alongside its own signed options', async () => {
+  const calls = []
+  const client = {
+    resetCsrf() {},
+    async request(path, options) {
+      calls.push({ path, ...options })
+      return path.endsWith('/options')
+        ? { options: { challenge: 'attempt-one' }, attemptId: 'attempt-id-one' }
+        : { fresh: true }
+    },
+  }
+  const ceremony = createPasskeyClient({
+    client,
+    authenticate: async ({ optionsJSON }) => {
+      assert.equal(optionsJSON.challenge, 'attempt-one')
+      return { rawId: 'signed' }
+    },
+  })
+  await ceremony('confirm')
+  assert.equal(calls.at(-1).body.attemptId, 'attempt-id-one')
+  assert.equal(calls.at(-1).body.credential.rawId, 'signed')
+  await ceremony('confirm', undefined, {
+    options: { challenge: 'attempt-one' },
+    attemptId: 'prepared-attempt',
+  })
+  assert.equal(calls.at(-1).body.attemptId, 'prepared-attempt')
+  assert.equal(calls.filter((c) => c.path.endsWith('/options')).length, 1)
+})
+
+test('independent tab flows retain their own prepared attempts and duplicate warming is coalesced', async () => {
+  const gate = deferred(),
+    seen = []
+  let preparations = 0
+  const a = fixture({
+    options: async () => {
+      preparations++
+      await gate.promise
+      return { options: { challenge: 'A' }, attemptId: 'A-id' }
+    },
+    passkey: async (envelope) => {
+      seen.push(envelope)
+      return a.approved()
+    },
+  })
+  const b = fixture({
+    options: async () => ({ options: { challenge: 'B' }, attemptId: 'B-id' }),
+    passkey: async (envelope) => {
+      seen.push(envelope)
+      return b.approved()
+    },
+  })
+  const first = a.flow.prepare(),
+    duplicate = a.flow.prepare()
+  await tick()
+  assert.equal(preparations, 1)
+  gate.resolve()
+  await Promise.all([first, duplicate, b.flow.prepare()])
+  const operation = a.flow.ensure()
+  assert.equal(seen[0].attemptId, 'A-id')
+  await operation
+  await b.flow.ensure()
+  assert.equal(seen[1].attemptId, 'B-id')
 })

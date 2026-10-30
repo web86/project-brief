@@ -48,11 +48,16 @@ class TaskPermissionsTest extends TestCase
     }
 
     #[DataProvider('protectedFields')]
-    public function test_client_cannot_write_protected_fields_with_422(string $field, mixed $value): void
+    public function test_client_cannot_write_protected_fields_or_forbidden_status(string $field, mixed $value): void
     {
         $task = Task::factory()->create();
         $this->client($task->project);
-        $this->patchJson('/api/client/tasks/'.$task->uuid, [$field => $value])->assertUnprocessable()->assertJsonValidationErrors($field);
+        if ($field === 'status') {
+            $version = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->json('data.editVersion');
+            $this->patchJson('/api/client/tasks/'.$task->uuid, [$field => $value, 'editVersion' => $version])->assertForbidden();
+        } else {
+            $this->patchJson('/api/client/tasks/'.$task->uuid, [$field => $value])->assertUnprocessable()->assertJsonValidationErrors($field);
+        }
         $this->assertSame('new', $task->fresh()->status);
         $this->assertNull($task->fresh()->price);
     }

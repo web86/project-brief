@@ -1,0 +1,100 @@
+{
+  "laravel": {
+    "runtime": "PHP 8.5.10 / SQLite",
+    "tests": 953,
+    "assertions": 13548,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "frontend": {
+    "tests": 381,
+    "passed": 381
+  },
+  "php84_mariadb": {
+    "php": "8.4.26",
+    "mariadb": "11.8.9",
+    "tests": 131,
+    "assertions": 1390
+  },
+  "browser": {
+    "results": [
+      {
+        "locale": "ru",
+        "theme": "light",
+        "viewport": "desktop",
+        "passed": true
+      },
+      {
+        "locale": "ru",
+        "theme": "dark",
+        "viewport": "mobile",
+        "passed": true
+      },
+      {
+        "locale": "en",
+        "theme": "light",
+        "viewport": "desktop",
+        "passed": true
+      },
+      {
+        "expiredProofDialog": true
+      },
+      {
+        "locale": "en",
+        "theme": "dark",
+        "viewport": "mobile",
+        "passed": true
+      },
+      {
+        "locale": "tr",
+        "theme": "light",
+        "viewport": "desktop",
+        "passed": true
+      },
+      {
+        "locale": "tr",
+        "theme": "dark",
+        "viewport": "mobile",
+        "passed": true
+      },
+      {
+        "locale": "zh-CN",
+        "theme": "light",
+        "viewport": "desktop",
+        "passed": true
+      },
+      {
+        "locale": "zh-CN",
+        "theme": "dark",
+        "viewport": "mobile",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "jino_live_verified": false,
+  "push": false,
+  "merge": false,
+  "deployment": false,
+  "canonicalProductionZip": {
+    "passed": true,
+    "archive": "release/project-brief-v0.9.0-55600df.zip",
+    "crc": true,
+    "internalSha256Files": 8873,
+    "knownLocalSecretScan": true
+  },
+  "php84ProductionRuntime": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "11.8.9-MariaDB-ubu2404",
+    "productionVendor": true,
+    "sourceCommit": "55600dfe4f151bd23dba9c717073c422889e03ef",
+    "phpSyntaxChecked": true,
+    "freshSchema": true,
+    "platformRoutes": 6,
+    "atomicUsageWrites": true,
+    "audit": true,
+    "disposableDatabaseOnly": true
+  }
+}

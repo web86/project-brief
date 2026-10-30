@@ -41,7 +41,7 @@ class AccountSecurity
 
             return 'guest';
         }
-        if (($user->isWorkspaceOwner() || $user->hasEnabledTwoFactorAuthentication()) && ! $this->enrolled($user)) {
+        if (($user->platform_admin || $user->isWorkspaceOwner() || $user->hasEnabledTwoFactorAuthentication()) && ! $this->enrolled($user)) {
             return 'enrollment_required';
         }
 
@@ -50,7 +50,7 @@ class AccountSecurity
 
     public function policyFingerprint(User $user): string
     {
-        return hash('sha256', $user->workspaceMembers()->orderBy('id')->get(['id', 'workspace_id', 'role', 'status', 'can_create_projects'])->toJson());
+        return hash('sha256', (int) $user->platform_admin.'|'.$user->workspaceMembers()->orderBy('id')->get(['id', 'workspace_id', 'role', 'status', 'can_create_projects', 'is_project_superadmin'])->toJson());
     }
 
     private function proofValid(Request $request, string $key): bool
@@ -82,7 +82,7 @@ class AccountSecurity
         }
 
         return $valid
-            && (in_array($method, ['mfa', 'passkey_uv'], true) || ($method === 'password' && ! $user->isWorkspaceOwner() && ! $user->hasEnabledTwoFactorAuthentication()));
+            && (in_array($method, ['mfa', 'passkey_uv'], true) || ($method === 'password' && ! ($user->platform_admin || $user->isWorkspaceOwner()) && ! $user->hasEnabledTwoFactorAuthentication()));
     }
 
     public function setupFresh(Request $request): bool
@@ -165,9 +165,11 @@ class AccountSecurity
     public function challenge(Request $request, string $purpose, string $options, ?User $user = null): string
     {
         DB::table('account_security_challenges')->where('expires_at', '<=', now())->delete();
-        DB::table('account_security_challenges')->where('session_hash', $this->sessionHash($request))->where('purpose', $purpose)->delete();
+        if (! str_starts_with($purpose, 'passkey_')) {
+            DB::table('account_security_challenges')->where('session_hash', $this->sessionHash($request))->where('purpose', $purpose)->delete();
+        }
         $id = (string) Str::uuid();
-        DB::table('account_security_challenges')->insert(['id' => $id, 'user_id' => $user?->id, 'session_version' => $user ? (int) $user->auth_session_version : null, 'session_hash' => $this->sessionHash($request), 'purpose' => $purpose, 'options' => $options, 'expires_at' => now()->addMinutes(in_array($purpose, ['password_2fa', 'step_up', 'recovery_enrollment'], true) ? 5 : 2)]);
+        DB::table('account_security_challenges')->insert(['id' => $id, 'user_id' => $user?->id, 'session_version' => $user ? (int) $user->auth_session_version : null, 'session_hash' => $this->sessionHash($request), 'purpose' => $purpose, 'context_hash' => in_array($purpose, ['passkey_confirm', 'passkey_register'], true) ? $this->confirmationContext($request) : null, 'options' => $options, 'expires_at' => now()->addMinutes(in_array($purpose, ['password_2fa', 'step_up', 'recovery_enrollment'], true) ? 5 : 2)]);
 
         return $id;
     }
@@ -181,7 +183,13 @@ class AccountSecurity
             $this->valid((bool) $row, 'PK_CHALLENGE_INVALID');
             $this->valid(hash_equals($row->session_hash, $this->sessionHash($request)), 'PK_CHALLENGE_SESSION');
             $this->valid($row->expires_at > now()->toDateTimeString(), 'PK_CHALLENGE_EXPIRED');
-            $this->valid(DB::table('account_security_challenges')->where('id', $row->id)->delete() === 1, 'PK_CHALLENGE_INVALID');
+            if ($purpose !== 'passkey_login') {
+                $this->valid($request->user()?->id === (int) $row->user_id, 'PK_VERIFY_FAILED');
+            }
+            if ($row->context_hash) {
+                $this->valid(hash_equals($row->context_hash, (string) $this->confirmationContext($request)), 'PK_SESSION_CHANGED');
+            }
+            $this->valid(DB::table('account_security_challenges')->where('id', $row->id)->where('session_hash', $this->sessionHash($request))->where('purpose', $purpose)->where('expires_at', '>', now())->delete() === 1, 'PK_CHALLENGE_INVALID');
             if ($row->user_id) {
                 $this->valid((int) User::whereKey($row->user_id)->value('auth_session_version') === (int) $row->session_version, 'PK_SESSION_CHANGED');
             }
@@ -195,6 +203,24 @@ class AccountSecurity
         }
 
         return $row;
+    }
+
+    public function confirmationContext(Request $request): ?string
+    {
+        $user = $request->user()?->fresh();
+
+        return $user ? hash_hmac('sha256', json_encode([$user->id, (int) $user->auth_session_version, $request->session()->get(CurrentWorkspace::SESSION_KEY), $this->policyFingerprint($user)], JSON_THROW_ON_ERROR), (string) config('app.key')) : null;
+    }
+
+    public function rotateConfirmationSession(Request $request): void
+    {
+        $user = $request->user()->fresh();
+        $previous = $this->sessionHash($request);
+        $request->session()->regenerate(true);
+        $request->session()->regenerateToken();
+        DB::table('account_security_challenges')->whereIn('purpose', ['passkey_confirm', 'passkey_register'])->where('session_hash', $previous)
+            ->where('user_id', $user->id)->where('session_version', (int) $user->auth_session_version)->where('expires_at', '>', now())
+            ->update(['session_hash' => $this->sessionHash($request)]);
     }
 
     private function sessionHash(Request $request): string
@@ -260,6 +286,9 @@ class AccountSecurity
 
     public function audit(User $user, string $event): void
     {
+        if ($user->platform_admin) {
+            app(PlatformAudit::class)->record($user->id, $event, 'user', (string) $user->id);
+        }
         Log::notice('account_security', ['user_id' => $user->id, 'event' => $event]);
     }
 

@@ -25,12 +25,16 @@ class TaskRequest extends FormRequest
                 'developerNotes' => ['nullable', 'string', 'max:10000']];
         }
 
+        if (! TaskAccess::isAdmin($this) && ! $this->isMethod('POST')) {
+            $rules['status'] = ['sometimes', Rule::in(array_keys(TaskAudit::STATUSES))];
+        }
+
         if ($this->isMethod('POST')) {
             $rules += AttachmentRequest::fileRules();
         }
 
         if (! $this->isMethod('POST')) {
-            $rules['editVersion'] = ['sometimes', 'string', 'regex:/^[a-f0-9]{64}$/D'];
+            $rules['editVersion'] = [! TaskAccess::isAdmin($this) && $this->has('status') ? 'required' : 'sometimes', 'string', 'regex:/^[a-f0-9]{64}$/D'];
         }
 
         return $rules;
@@ -46,6 +50,9 @@ class TaskRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            if (! TaskAccess::isAdmin($this) && $this->has('status') && array_diff(array_keys($this->all()), ['status', 'editVersion'])) {
+                $validator->errors()->add('status', trans('interface.client_status_only'));
+            }
             foreach (array_diff(array_keys($this->all()), array_keys($this->rules())) as $key) {
                 $validator->errors()->add($key, 'Это поле нельзя изменять.');
             }

@@ -15,7 +15,11 @@ const scratch = await mkdtemp(path.join(tmpdir(), 'brief-provisioning-'))
 const app = path.join(scratch, 'app')
 const mysql = !!process.env.PROVISIONING_MYSQL_PORT
 const productionBuild = true
-const output = path.join(root, 'artifacts/milestone-8-4/sso', mysql ? 'mysql' : 'sqlite')
+const output = path.join(
+  root,
+  process.env.M93_EVIDENCE_DIRECTORY || 'artifacts/milestone-9-2/sso',
+  mysql ? 'mysql' : 'sqlite',
+)
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, otherBackend, frontend, browser, smtp, tlsServer, areaServer, areaBackend
@@ -440,9 +444,18 @@ try {
   }
   await admin.goto(origin + '/admin/settings/integrations')
   await admin.getByRole('tab', { name: 'SSO', exact: true }).click()
-  await admin.locator('#sso-source').selectOption(fixture.source)
+  await admin
+    .locator('.sso-source-card')
+    .filter({
+      hasText: (await call(admin.context(), '/api/admin/integrations')).sources.find(
+        (source) => source.id === fixture.source,
+      ).name,
+    })
+    .locator('.sso-configure')
+    .click()
   await admin.locator('#sso-origin').fill(areaOrigin)
-  await admin.locator('#sso-enabled').check()
+  await admin.locator('#sso-enabled input').check()
+  await admin.locator('.sso-source-dialog .sso-projects > summary').click()
   await admin.locator('.sso-automatic').waitFor()
   assert.match(await admin.locator('.sso-automatic').innerText(), /2/)
   for (const id of [project.projectId, secondProject.projectId])
@@ -453,7 +466,7 @@ try {
         response.url().endsWith('/sources/' + fixture.source + '/sso') &&
         response.request().method() === 'PATCH',
     ),
-    admin.locator('.sso-settings button[type=submit]').click(),
+    admin.locator('.sso-source-dialog button[form="sso-source-editor"]').click(),
   ])
   assert.equal(saved[0].status(), 200, 'Owner saves source permissions through the existing UI')
   await admin.getByRole('tab', { name: 'API tokens', exact: true }).click()
@@ -916,8 +929,16 @@ try {
     await admin.goto(origin + '/admin/settings/integrations')
     await admin.getByRole('tab', { name: 'SSO', exact: true }).click()
     await admin.getByRole('heading', { name: title, exact: true }).waitFor()
-    await admin.locator('#sso-source').selectOption(fixture.source)
-    assert.equal(await admin.locator('#sso-enabled').isChecked(), true)
+    await admin
+      .locator('.sso-source-card')
+      .filter({
+        hasText: (await call(admin.context(), '/api/admin/integrations')).sources.find(
+          (source) => source.id === fixture.source,
+        ).name,
+      })
+      .locator('.sso-configure')
+      .click()
+    assert.equal(await admin.locator('#sso-enabled input').isChecked(), true)
     await capture(admin, 'sso-settings-' + locale + '-desktop-dark')
     await admin.setViewportSize({ width: 390, height: 844 })
     await capture(admin, 'sso-settings-' + locale + '-mobile-dark')

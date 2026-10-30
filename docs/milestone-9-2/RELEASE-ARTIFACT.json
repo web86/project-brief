@@ -1,0 +1,107 @@
+{
+  "milestone": "9.2 Administrators & SSO UX + Passkey Reliability",
+  "version": "0.9.2",
+  "branch": "codex/milestone-9-2-admin-sso-passkey",
+  "sourceCommit": "8bf88e97c2341804f949d8de2f1ad7772073eda4",
+  "builtAt": "2026-10-30T08:55:39.240Z",
+  "archive": "release/project-brief-v0.9.2-8bf88e9.zip",
+  "bytes": 39295991,
+  "sha256": "ec1c69ead5f1dc68d0c454c48b9abc2daa78624b1805fbe6e2216debef543065",
+  "fileCount": 8881,
+  "fileCountIncludesManifest": true,
+  "checksummedFiles": 8880,
+  "archiveEntries": 10126,
+  "independentZipCrcAndInternalHashes": true,
+  "runtimeAndKnownLocalSecretExclusionsPassed": true,
+  "nativePhp": "8.5.10",
+  "phpTarget": "8.4",
+  "nodeTests": {
+    "tests": 385,
+    "passed": 385
+  },
+  "php84MariaDb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 108,
+    "assertions": 1129,
+    "passed": true,
+    "excludedTests": [
+      "ProjectPermissionsTest::test_ordinary_task_comments_attachments_and_personal_settings_remain_available_without_any_permissions"
+    ],
+    "exclusionReason": "Existing image fixture requires GD absent in QA image; native complete suite includes and passes it."
+  },
+  "browser": {
+    "screens": 4,
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "widths": [1440, 390],
+    "themes": ["light", "dark"],
+    "screenshots": 64,
+    "javascriptErrors": 0,
+    "ssoTwoHttpsSiteScenarios": 12,
+    "securityScenarios": 23,
+    "physicalTouchId": false,
+    "webkit": false
+  },
+  "parallelPasskey": {
+    "passed": true,
+    "sharedSession": true,
+    "realVirtualUvSignatures": true,
+    "tabs": ["/admin/settings/integrations", "/platform"],
+    "firstConfirmationStatus": 200,
+    "secondConfirmationStatus": 200,
+    "apiKeyMutations": 1,
+    "replay": "422 PK_CHALLENGE_INVALID",
+    "expiry": "422 PK_CHALLENGE_EXPIRED",
+    "explicitRetry": true,
+    "cancelPreservesDraft": true,
+    "totpFallback": true,
+    "evidence": "artifacts/milestone-9-2/parallel/results.json"
+  },
+  "canonicalProductionRuntime": {
+    "passed": true,
+    "signedWebAuthnEnrollment": true,
+    "compiledModalEditorUvSinglePatch": true,
+    "localTransportMappedCanonicalOrigin": true,
+    "platformRegressions": true,
+    "ssoAndIntegrationRegressions": true,
+    "evidence": "artifacts/milestone-9-2/package/canonical-runtime.txt",
+    "sourceCommit": "8bf88e97c2341804f949d8de2f1ad7772073eda4"
+  },
+  "newMigrations": 1,
+  "newNullableColumns": 4,
+  "newIndexes": 1,
+  "newTables": 0,
+  "noDependenciesChanged": true,
+  "liveJino": false,
+  "push": false,
+  "merge": false,
+  "deployment": false,
+  "previousArchivesPreserved": true,
+  "phpunit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 976,
+    "passed": 976,
+    "assertions": 13828,
+    "duration_ms": 80449
+  },
+  "php84ProductionRuntime": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "11.8.9-MariaDB-ubu2404",
+    "productionVendor": true,
+    "freshSchema": true,
+    "administratorRoutes": 8,
+    "newFields": 4,
+    "sessionPurposeIndex": true,
+    "phpLint": true,
+    "disposableDatabaseOnly": true,
+    "evidence": "artifacts/milestone-9-2/package/php84-production-runtime.json"
+  },
+  "previous091Archive": {
+    "archive": "release/project-brief-v0.9.1-ef31316.zip",
+    "bytes": 39288950,
+    "sha256": "481713fea36367ee6ef550dd5189ea51e28e461c3a6a7b4dc828ed9413ae9d9f",
+    "preserved": true
+  }
+}

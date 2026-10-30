@@ -10,7 +10,8 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
     prepared,
     preparing,
     epoch = 0,
-    active
+    active,
+    retrying
   function remember(value) {
     status = value
     deadline = now() + Math.max(0, Math.min(300, value?.freshFor || 0)) * 1000
@@ -53,8 +54,9 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
         adapters.supported() &&
         (!prepared || prepared.until <= now())
       ) {
-        const { options } = await adapters.options()
-        if (version === epoch) prepared = { options, until: now() + 90000 }
+        const { options, attemptId } = await adapters.options()
+        if (version === epoch)
+          prepared = { options: attemptId ? { options, attemptId } : options, until: now() + 90000 }
       }
     })()
     preparing = task
@@ -105,17 +107,27 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
   }
   async function warmRetry(operation = active) {
     if (!operation || prepared?.until > now()) return
-    update({ busy: true })
-    try {
-      const { options } = await adapters.options()
-      if (active === operation) prepared = { options, until: now() + 90000 }
-    } catch (cause) {
-      if (active === operation) {
-        update({ error: cause })
-        adapters.error?.(cause)
+    if (retrying?.operation === operation) return retrying.promise
+    const task = (async () => {
+      update({ busy: true })
+      try {
+        const { options, attemptId } = await adapters.options()
+        if (active === operation)
+          prepared = { options: attemptId ? { options, attemptId } : options, until: now() + 90000 }
+      } catch (cause) {
+        if (active === operation) {
+          update({ error: cause })
+          adapters.error?.(cause)
+        }
+      } finally {
+        if (active === operation) update({ busy: false })
       }
+    })()
+    retrying = { operation, promise: task }
+    try {
+      await task
     } finally {
-      if (active === operation) update({ busy: false })
+      if (retrying?.promise === task) retrying = null
     }
   }
   async function start(operation) {
@@ -202,13 +214,15 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
 }
 
 export function isSecurityConfirmationScreen(path) {
-  return /^\/admin(?:\/?$|\/account(?:\/|$)|\/settings\/(?:integrations|branding)(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
+  if (path === '/platform') return true
+  return /^\/admin(?:\/?$|\/administrators(?:\/|$)|\/account(?:\/|$)|\/settings\/(?:integrations|branding|agreement)(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
     path,
   )
 }
 
 export function isSensitiveMutation(path, method) {
-  if (!['POST', 'PATCH', 'DELETE'].includes(method)) return false
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return false
+  if (path === '/api/admin/settings/agreement') return true
   if (
     /^\/api\/admin\/workspaces\/[^/]+\/branding(?:\/(?:sanitize-svg|reset|assets\/(?:logo|favicon)))?$/.test(
       path,
@@ -221,7 +235,7 @@ export function isSensitiveMutation(path, method) {
     )
   )
     return true
-  return /^\/api\/admin\/(?:account\/(?:email(?:\/confirm)?|password)|integrations(?:\/|$)|projects\/(?:trash(?:\/confirmation)?|[^/]+\/(?:team\/|clients\/|permanent(?:\/confirmation)?$)))/.test(
+  return /^\/api\/admin\/(?:account\/(?:email(?:\/confirm)?|password)|(?:integrations|administrators)(?:\/|$)|projects\/(?:trash(?:\/confirmation)?|[^/]+\/(?:team\/|clients\/|permanent(?:\/confirmation)?$)))/.test(
     path,
   )
 }

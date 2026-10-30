@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Exceptions\AccountSecurityFailure;
 use App\Models\User;
 use App\Services\AccountSecurity;
-use App\Services\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,12 +37,13 @@ class AccountSecurityController extends Controller
         return response()->json([
             'state' => $this->security->state($request),
             'signedIn' => (bool) $user,
+            'platformAdmin' => (bool) $user?->platform_admin,
             'owner' => $user?->isWorkspaceOwner() ?? false,
             'totp' => $user?->hasEnabledTwoFactorAuthentication() ?? false,
             'recoverySaved' => (bool) $user?->recovery_codes_acknowledged_at,
             'fresh' => $fresh,
             'freshFor' => $fresh ? max(0, min(300, (int) $request->session()->get('security.step_up.at') + 300 - now()->timestamp)) : 0,
-            'confirmationContext' => $user ? hash_hmac('sha256', json_encode([$user->id, (int) $user->auth_session_version, $request->session()->get(CurrentWorkspace::SESSION_KEY), $this->security->policyFingerprint($user)], JSON_THROW_ON_ERROR), (string) config('app.key')) : null,
+            'confirmationContext' => $this->security->confirmationContext($request),
             'setupFresh' => $this->security->setupFresh($request),
             'recoveryFresh' => $this->security->recoveryFresh($request),
             'confirmationMethod' => $fresh ? $request->session()->get('security.step_up.method') : null,
@@ -85,8 +85,7 @@ class AccountSecurityController extends Controller
 
             return $user;
         });
-        $request->session()->regenerate(true);
-        $request->session()->regenerateToken();
+        $this->security->rotateConfirmationSession($request);
         $this->security->confirm($request, $user, $user->hasEnabledTwoFactorAuthentication() ? 'mfa' : 'password');
 
         return $this->show($request);
@@ -193,28 +192,28 @@ class AccountSecurityController extends Controller
         }
         if ($purpose === 'register') {
             $this->security->requireFresh($request);
-            abort_if($user->isWorkspaceOwner() && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->recovery_codes_acknowledged_at), 403);
+            abort_if(($user->platform_admin || $user->isWorkspaceOwner()) && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->recovery_codes_acknowledged_at), 403);
             abort_if($user->passkeys()->count() >= 20, 422);
         }
         $options = $purpose === 'register' ? app(GenerateRegistrationOptions::class)($user) : app(GenerateVerificationOptions::class)($purpose === 'confirm' ? $user : null);
         $id = $this->security->challenge($request, 'passkey_'.$purpose, WebAuthn::toJson($options), $purpose === 'login' ? null : $user);
         $request->session()->put('security.passkey_'.$purpose, $id);
 
-        return response()->json(['options' => WebAuthn::toBrowserArray($options)])->header('Cache-Control', 'no-store');
+        return response()->json(['options' => WebAuthn::toBrowserArray($options), 'attemptId' => $id])->header('Cache-Control', 'no-store');
     }
 
     public function passkey(Request $request, string $purpose): JsonResponse
     {
         $request->attributes->set('security.stage', 'request');
         $this->transport();
-        $request->validate(['credential' => ['required', 'array'], 'credential.rawId' => ['required', 'string', 'max:2048'], 'name' => [$purpose === 'register' ? 'required' : 'nullable', 'string', 'max:100']]);
+        $request->validate(['credential' => ['required', 'array'], 'credential.rawId' => ['required', 'string', 'max:2048'], 'attemptId' => ['nullable', 'uuid'], 'name' => [$purpose === 'register' ? 'required' : 'nullable', 'string', 'max:100']]);
         if ($purpose !== 'login') {
             abort_unless($request->user(), 401);
         }
         if ($purpose === 'register') {
             $this->security->requireFresh($request);
         }
-        $row = $this->security->consume($request, 'passkey_'.$purpose, $request->session()->pull('security.passkey_'.$purpose));
+        $row = $this->security->consume($request, 'passkey_'.$purpose, $request->input('attemptId') ?? $request->session()->pull('security.passkey_'.$purpose));
         try {
             $request->attributes->set('security.stage', 'deserialize');
             $credential = WebAuthn::fromJson(json_encode($request->input('credential'), JSON_THROW_ON_ERROR), PublicKeyCredential::class);
@@ -224,7 +223,7 @@ class AccountSecurityController extends Controller
                     $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
                     $this->security->requireFresh($request);
                     $this->security->valid((int) $row->user_id === $user->id && (int) $row->session_version === (int) $user->auth_session_version, 'PK_SESSION_CHANGED');
-                    abort_if($user->isWorkspaceOwner() && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->recovery_codes_acknowledged_at), 403);
+                    abort_if(($user->platform_admin || $user->isWorkspaceOwner()) && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->recovery_codes_acknowledged_at), 403);
                     abort_if($user->passkeys()->count() >= 20, 422);
                     app(StorePasskey::class)($user, $request->input('name'), $credential, WebAuthn::fromJson($row->options, PublicKeyCredentialCreationOptions::class));
                     if ($this->security->enrolled($user)) {
@@ -243,7 +242,7 @@ class AccountSecurityController extends Controller
                     if ($purpose === 'confirm') {
                         $this->security->valid($user->id === $request->user()->id && (int) $row->user_id === $user->id && (int) $row->session_version === (int) $user->auth_session_version, 'PK_VERIFY_FAILED');
                     }
-                    $this->security->valid($user->workspaceMembers()->active()->exists(), 'PK_VERIFY_FAILED');
+                    $this->security->valid(($user->platform_admin || $user->workspaceMembers()->active()->exists()), 'PK_VERIFY_FAILED');
                     $this->security->valid((string) ($credential->response->userHandle ?? '') === $user->getPasskeyUserHandle(), 'PK_VERIFY_FAILED');
                     app(VerifyPasskey::class)($credential, WebAuthn::fromJson($row->options, PublicKeyCredentialRequestOptions::class), $user);
 
@@ -276,8 +275,7 @@ class AccountSecurityController extends Controller
             $this->security->complete($request, $user, 'passkey_uv');
             $this->security->audit($user, 'passkey_login');
         } elseif ($purpose === 'confirm') {
-            $request->session()->regenerate(true);
-            $request->session()->regenerateToken();
+            $this->security->rotateConfirmationSession($request);
             $this->security->confirm($request, $user, 'passkey_uv');
         }
 
@@ -307,7 +305,7 @@ class AccountSecurityController extends Controller
             $this->security->requireFresh($request);
             if ($user->passkeys()->count() <= 1) {
                 $this->security->valid(Hash::check($request->string('current_password')->toString(), $user->password), 'SEC_ALTERNATIVE_REQUIRED');
-                abort_if($user->isWorkspaceOwner() && ! $this->security->enrolled($user), 409);
+                abort_if(($user->platform_admin || $user->isWorkspaceOwner()) && ! $this->security->enrolled($user), 409);
                 if ($user->hasEnabledTwoFactorAuthentication() && $request->session()->get('security.step_up.method') !== 'mfa') {
                     $this->security->valid($this->security->verifyFactor($user, $this->factorInput($request)));
                 }
@@ -331,7 +329,7 @@ class AccountSecurityController extends Controller
         $this->security->requireFresh($request);
         DB::transaction(function () use ($request): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
-            if ($user->isWorkspaceOwner()) {
+            if ($user->platform_admin || $user->isWorkspaceOwner()) {
                 throw new AccountSecurityFailure('SEC_OWNER_TOTP_REQUIRED', 403);
             }
             $this->security->requireFresh($request);

@@ -23,12 +23,12 @@ class AuthenticateIntegration
         if (! $token) {
             return response()->json(['code' => 'invalid_token', 'message' => 'A valid bearer token is required.'], 401)->header('WWW-Authenticate', 'Bearer')->header('Cache-Control', 'no-store');
         }
+        $request->attributes->set('integration_token', $token);
         $workspaceKey = 'integration-workspace:'.$token->workspace_id;
         if (RateLimiter::tooManyAttempts($workspaceKey, 60)) {
             return $this->limited($workspaceKey);
         }
         RateLimiter::hit($workspaceKey, 60);
-        $request->attributes->set('integration_token', $token);
         DB::table('integration_tokens')->where('id', $token->id)->update(['last_used_at' => now()]);
 
         $response = $next($request);

@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'team_heading' => '新的团队聊天消息',
+    'team_explanation' => '打开项目以阅读团队私密消息。',
+    'status_change' => '状态变更',
     'project_request_heading' => '新的项目申请',
     'project_request_message' => '有新的项目申请等待您审核。',
     'open_request' => '审核申请',
@@ -34,6 +37,7 @@ return [
     ],
     'events' => [
         'client' => [
+            'task_status_changed' => '客户更改了任务状态',
             'task_created' => '客户添加了新创意',
             'comment_created' => '客户有新评论',
             'task_approved' => '客户已确认任务',
@@ -47,6 +51,7 @@ return [
     ],
     'explanations' => [
         'client' => [
+            'task_status_changed' => ':name 更改了项目 :project 中的任务状态。',
             'task_created' => ':name 在项目 :project 中添加了新创意。',
             'comment_created' => ':name 作为客户发表了评论：',
             'task_approved' => ':name 确认了项目 :project 中的任务。',
@@ -60,6 +65,7 @@ return [
     ],
     'next' => [
         'client' => [
+            'task_status_changed' => '打开任务查看当前状态。',
             'task_created' => '打开任务以查看创意。',
             'comment_created' => '打开任务以回复客户。',
             'task_approved' => '打开任务以查看已确认的工作范围。',

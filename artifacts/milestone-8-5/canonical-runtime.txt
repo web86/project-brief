@@ -1,0 +1,10 @@
+PASS: Packaged signed WebAuthn enrollment {"passed":true,"php":"8.5.10","origin":"https://brief.web86.site","rpId":"brief.web86.site","productionVendor":true,"flow":"TOTP -> saved recovery -> full access without Passkey -> fresh recovery proof -> signed UV registration -> proof cleared; TOTP replay rejected"}
+PASS: Packaged client invitation creation/replay, completed-project feedback request, single prompt claim/dismissal, feedback HTTP replay, foreign-project denial and durable owner mail intent
+PASS: Packaged provisioning/contact/membership, failed mail durability, idempotency/external-ID recovery, language/description and protected canonical URL
+PASS: Packaged project requests pending/approval, existing provisioning, failed SMTP durability, final-decision replay/conflict, scope boundary and protected canonical URL
+PASS: Packaged SSO-only bearer, explicit project grant, stateless bridge, own client session, canonical 303, replay denial and no logged code
+PASS: Extracted ZIP compiled UI -> real UV step-up -> team mutation once, without app dialog
+PASS: Packaged platform-only MFA/session, ordinary-owner denial, cross-workspace diagnostics, safe usage/audit, project isolation and interactive revoke/session invalidation
+PASS: Packaged comments/files Read API and quiet cron stdout/stderr; token revocation/audit and webhook history cascade; project-filter migration/FKs/selection and safe client comment events; stateless v1 API/auth/scopes/idempotency/tenant isolation/sections, cron command, integration specification; comment multipart/thumbnail/original/download/idempotency, atomic placement, soft deletion by admin and client, trash/restore, preserved attachments/comments, personal preferences, verification email templates and single-use proof, split HOME layout, CLI checks, repeated install/key preservation, migrations, optimized routes, SPA reload, assets, CSRF, admin login, client access and maintenance mode.
+PASS: Release validation (8879 files), checksums and runtime tests.
+Archive: /Users/sonoma/Desktop/project-brief/release/project-brief-v0.9.1-ef31316.zip

@@ -1,4 +1,5 @@
 <script setup>
+import AppFooter from '../components/AppFooter.vue'
 import BrandLogo from '../components/PortalBrandLogo.vue'
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -10,6 +11,7 @@ import { api } from '../api/client.js'
 import { toast } from '../services/toast.js'
 import { useWorkspaceBrandingStore } from '../stores/workspaceBranding.js'
 import { confirmDeveloperLeave } from '../utils/developerEditor.js'
+import { attachDrawerSwipe } from '../utils/drawerSwipe.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t, formatApiError } from '../i18n/index.js'
 import TaskHeaderNavigation from '../components/TaskHeaderNavigation.vue'
@@ -40,6 +42,7 @@ const menu = ref(null),
 const drawer = createAdminDrawer({ dialog: () => dialog.value, trigger: () => menu.value })
 const drawerOpen = drawer.open
 const task = computed(() => route.meta.taskDetail && store.findTask(route.params.id))
+let disposeSwipe
 let breakpoint
 function resize() {
   if (!route.meta.taskDetail && breakpoint?.matches && drawerOpen.value) drawer.close(false)
@@ -47,8 +50,17 @@ function resize() {
 onMounted(() => {
   breakpoint = window.matchMedia?.('(min-width: 961px)')
   breakpoint?.addEventListener('change', resize)
+  disposeSwipe = attachDrawerSwipe({
+    mobile: () => breakpoint?.matches === false,
+    isOpen: () => drawerOpen.value,
+    canOpen: () => !route.meta.taskDetail && nav.ready,
+    open: showMenu,
+    close: closeMenu,
+    dialog: () => dialog.value,
+  })
 })
 onUnmounted(() => {
+  disposeSwipe?.()
   breakpoint?.removeEventListener('change', resize)
   drawer.close(false)
 })
@@ -231,6 +243,7 @@ async function logout() {
         </template>
         <LoadingOverlay v-else active />
       </main>
+      <AppFooter />
     </div>
     <dialog
       id="admin-drawer"

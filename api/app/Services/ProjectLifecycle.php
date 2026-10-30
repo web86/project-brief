@@ -35,7 +35,7 @@ class ProjectLifecycle
         $this->lockEndpoints($project);
         $taskIds = Task::withTrashed()->where('project_id', $project->id)->select('id');
         $commentIds = DB::table('comments')->where('project_id', $project->id)->orWhereIn('task_id', $taskIds)->select('id');
-        Attachment::where(fn ($query) => $query->whereIn('task_id', $taskIds)->orWhereIn('comment_id', $commentIds))->orderBy('id')->chunkById(200, function ($files): void {
+        Attachment::withoutGlobalScope('public_channel')->where(fn ($query) => $query->whereIn('task_id', $taskIds)->orWhereIn('comment_id', $commentIds))->orderBy('id')->chunkById(200, function ($files): void {
             foreach ($files as $file) {
                 foreach (array_filter([$file->path, $file->thumbnail_path]) as $path) {
                     DB::table('project_file_deletions')->insert(['disk' => $file->disk, 'path' => $path]);

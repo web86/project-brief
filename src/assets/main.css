@@ -6634,3 +6634,140 @@ button.attachment-item:hover {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.management-dialog {
+  overflow-wrap: anywhere;
+  width: min(720px, calc(100% - 32px));
+  overflow: hidden;
+}
+.management-dialog .modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+}
+.management-dialog .modal-header {
+  padding: 20px 24px;
+  margin: 0;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--divider);
+}
+.management-dialog .modal-header h2 {
+  font-size: 19px;
+}
+.management-dialog .management-body {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 20px 24px;
+  display: grid;
+  gap: 18px;
+}
+.management-dialog .modal-footer {
+  padding: 16px 24px;
+  margin: 0;
+  flex-shrink: 0;
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.management-dialog .management-delete {
+  margin-right: auto;
+}
+.management-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.management-fields .field,
+.management-section .field {
+  margin: 0;
+  min-width: 0;
+}
+.management-short {
+  max-width: 320px;
+}
+.management-section {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+}
+.management-section > summary,
+.project-rights > summary {
+  cursor: pointer;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.management-section[open] > summary,
+.project-rights[open] > summary {
+  margin-bottom: 16px;
+}
+.management-section .management-choices {
+  margin-top: 14px;
+}
+.management-choices {
+  display: grid;
+  gap: 12px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.management-choices label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 400;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.management-choices input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  flex: 0 0 18px;
+  accent-color: var(--action);
+  margin-top: 2px;
+}
+.management-choices input + span {
+  min-width: 0;
+}
+.project-rights {
+  margin-top: 18px;
+}
+.administrator-invitations > .small,
+.assigned-projects > .small {
+  margin-top: 12px;
+}
+.administrator-invitations .management-inline-actions {
+  margin-block: 12px;
+}
+.management-security {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--page);
+}
+.management-security p {
+  margin: 6px 0 0;
+}
+.management-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+@media (max-width: 600px) {
+  .management-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .management-dialog .modal-header,
+  .management-dialog .management-body,
+  .management-dialog .modal-footer {
+    padding: 16px;
+  }
+  .management-dialog .modal-footer .button {
+    padding: 10px 12px;
+  }
+}

@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'team_heading' => 'New team chat message',
+    'team_explanation' => 'Open the project to read a private team message.',
+    'status_change' => 'Status change',
     'project_request_heading' => 'New project request',
     'project_request_message' => 'A new project request is waiting for your decision.',
     'open_request' => 'Review request',
@@ -34,6 +37,7 @@ return [
     ],
     'events' => [
         'client' => [
+            'task_status_changed' => 'Client changed task status',
             'task_created' => 'New client idea',
             'comment_created' => 'New client comment',
             'task_approved' => 'Task approved by client',
@@ -47,6 +51,7 @@ return [
     ],
     'explanations' => [
         'client' => [
+            'task_status_changed' => ':name changed the task status in project :project.',
             'task_created' => ':name added a new idea in project :project.',
             'comment_created' => ':name left a client comment:',
             'task_approved' => ':name approved the task in project :project.',
@@ -60,6 +65,7 @@ return [
     ],
     'next' => [
         'client' => [
+            'task_status_changed' => 'Open the task to view its current status.',
             'task_created' => 'Open the task to review the idea.',
             'comment_created' => 'Open the task to reply to the client.',
             'task_approved' => 'Open the task to view the approved scope.',

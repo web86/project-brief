@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AccountProfile;
+use App\Services\CurrentWorkspace;
 use App\Services\PersonalNotifications;
 use App\Services\ProjectNotificationService;
 use App\Services\ProjectPermissions;
@@ -14,11 +15,16 @@ class AdminNotificationController extends Controller
     public function show(Request $request, PersonalNotifications $personal, ProjectNotificationService $delivery): JsonResponse
     {
         $user = $request->user()->fresh();
-        $member = $user->workspaceMembers()->active()->orderByRaw('CASE WHEN workspace_id = ? THEN 0 ELSE 1 END', [$request->session()->get('workspace_id', 0)])->first();
+        $memberships = $user->workspaceMembers()->active()->with('workspace')->orderBy('workspace_id')->get();
+        $selected = $request->session()->get(CurrentWorkspace::SESSION_KEY);
+        $member = $request->session()->has(CurrentWorkspace::SESSION_KEY)
+            ? (is_int($selected) && $selected > 0 ? $memberships->firstWhere('workspace_id', $selected) : null)
+            : ($memberships->count() === 1 ? $memberships->first() : null);
 
         return response()->json([
-            'user' => [...app(AccountProfile::class)->state($user), 'membershipRole' => $member?->role, 'canCreateProjects' => $member ? ProjectPermissions::canCreateProjects($member) : false],
-            'workspaces' => $user->workspaceMembers()->active()->with('workspace')->get()->map(fn ($member) => ['id' => $member->workspace->uuid, 'name' => $member->workspace->name])->values(),
+            'user' => [...app(AccountProfile::class)->state($user), 'isProjectSuperadmin' => (bool) $member?->is_project_superadmin, 'membershipRole' => $member?->role, 'canCreateProjects' => $member ? ProjectPermissions::canCreateProjects($member) : false],
+            'workspace' => $member ? app(CurrentWorkspace::class)->state($member, true) : null,
+            'workspaces' => $memberships->map(fn ($member) => ['id' => $member->workspace->uuid, 'name' => $member->workspace->name])->values(),
             'preferences' => $user->notificationPreferences(), 'email' => $user->notificationEmail(), 'accountEmail' => $user->email,
             'emailUnified' => $user->notification_email_resolved_at !== null, 'pendingEmail' => $user->pending_notification_email,
             'verificationExpiresAt' => $user->notification_email_expires_at?->toISOString(), 'emailAvailable' => $delivery->mailAvailable(),

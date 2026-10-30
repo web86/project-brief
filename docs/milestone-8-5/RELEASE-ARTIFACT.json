@@ -1,0 +1,75 @@
+{
+  "milestone": "8.5 Centralized Administrators & SSO UX",
+  "version": "0.9.1",
+  "branch": "codex/milestone-8-5-administrators-sso",
+  "sourceCommit": "ef31316125e5dd0d9f41976bbe8b972c1ea13acf",
+  "builtAt": "2026-10-30T06:08:29.908Z",
+  "archive": "release/project-brief-v0.9.1-ef31316.zip",
+  "bytes": 39288950,
+  "sha256": "481713fea36367ee6ef550dd5189ea51e28e461c3a6a7b4dc828ed9413ae9d9f",
+  "fileCount": 8880,
+  "checksummedFiles": 8879,
+  "archiveEntries": 10125,
+  "independentZipCrcAndInternalHashes": true,
+  "runtimeAndKnownLocalSecretExclusionsPassed": true,
+  "phpunit": {
+    "tests": 964,
+    "assertions": 13701,
+    "passed": true
+  },
+  "nodeTests": {
+    "tests": 383,
+    "passed": 383
+  },
+  "nativePhp": "8.5.10",
+  "phpTarget": "8.4",
+  "php84MariaDb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 86,
+    "assertions": 880,
+    "passed": true,
+    "excludedTests": [
+      "ProjectPermissionsTest::test_ordinary_task_comments_attachments_and_personal_settings_remain_available_without_any_permissions"
+    ],
+    "exclusionReason": "Existing GD image fixture: GD absent in QA image; test passes in complete native suite."
+  },
+  "browser": {
+    "screens": 4,
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "widths": [1440, 390],
+    "themes": ["light", "dark"],
+    "screenshots": 64,
+    "javascriptErrors": 0,
+    "ssoTwoHttpsSiteScenarios": 12,
+    "securityScenarios": 23,
+    "physicalTouchId": false,
+    "webkit": false
+  },
+  "canonicalProductionRuntime": {
+    "passed": true,
+    "signedWebAuthnEnrollment": true,
+    "compiledUiFreshUvSingleAdministratorPatch": true,
+    "platformRegressions": true,
+    "ssoAndIntegrationRegressions": true,
+    "localTransportMappedCanonicalOrigin": true
+  },
+  "newMigrations": 1,
+  "noDependenciesChanged": true,
+  "liveJino": false,
+  "push": false,
+  "merge": false,
+  "deployment": false,
+  "previousArchivesPreserved": true,
+  "php84ProductionRuntime": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "11.8.9-MariaDB-ubu2404",
+    "productionVendor": true,
+    "freshSchema": true,
+    "administratorRoutes": 7,
+    "phpLint": true,
+    "disposableDatabaseOnly": true
+  },
+  "fileCountIncludesManifest": true
+}

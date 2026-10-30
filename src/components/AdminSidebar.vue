@@ -95,6 +95,14 @@ async function select(event) {
         <AppIcon name="mail" :size="20" /><span>{{ t('requests.title') }}</span
         ><span v-if="nav.pendingRequests" class="unread-badge">{{ nav.pendingRequests }}</span>
       </RouterLink>
+      <RouterLink
+        v-if="nav.user?.membershipRole === 'owner'"
+        to="/admin/administrators"
+        class="sidebar-request-link"
+        :aria-current="route.path === '/admin/administrators' ? 'page' : undefined"
+        @click="emit('navigate')"
+        ><AppIcon name="users" :size="20" /><span>{{ t('administrators.title') }}</span></RouterLink
+      >
     </nav>
     <PersonalSettingsNav @navigate="emit('navigate')" />
     <AdminAccount

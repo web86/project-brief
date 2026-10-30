@@ -231,6 +231,7 @@ class TenantIsolationTest extends TestCase
         app(ProjectNotificationService::class)->settings($data['projectA'])->update(['notification_email' => 'legacy-mailbox@example.test']);
         $this->actingAs($data['ownerA'])->postJson('/api/admin/projects/'.$data['projectA']->uuid.'/notifications/test', ['channel' => 'email'])->assertOk();
         $data['projectA']->members()->first()->update(['permissions' => ['manage_project_notifications' => true]]);
+        $data['adminA']->workspaceMembers()->where('workspace_id', $data['projectA']->workspace_id)->update(['is_project_superadmin' => true]);
         $this->actingAs($data['adminA'])->postJson('/api/admin/projects/'.$data['projectA']->uuid.'/notifications/test', ['channel' => 'email'])->assertOk();
         Mail::assertSentCount(2);
         Mail::assertSent(ProjectActivityMail::class, fn ($mail) => $mail->hasTo('legacy-mailbox@example.test'));

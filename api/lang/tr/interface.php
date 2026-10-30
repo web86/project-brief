@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'client_status_only' => 'Durum değişikliklerini görev içeriğinden ayrı gönderin.',
+    'client_status_forbidden' => 'Bu görevin durumunu değiştiremezsiniz.',
+
     'sso_continue' => 'Devam et',
     'task_changed' => 'Görev güncellendi',
     'client' => 'Müşteri',

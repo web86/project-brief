@@ -2,7 +2,7 @@ export const projectMenu = [
   { section: 'brief', icon: 'grid' },
   { section: 'discussions', icon: 'comment' },
   { section: 'clients', icon: 'users', permission: 'manage_clients' },
-  { section: 'team', icon: 'user-check', owner: true },
+  { section: 'team', icon: 'user-check', permission: 'manage_team' },
   { section: 'structure', permission: 'manage_structure', icon: 'list-tree' },
   { section: 'notifications', permission: 'manage_project_notifications', icon: 'bell' },
   { section: 'settings', permission: 'manage_project_settings', icon: 'settings' },
@@ -16,11 +16,13 @@ export const accountMenu = [
 
 export const settingsMenu = [
   ...accountMenu,
+  { to: '/platform', label: 'platform.title', icon: 'shield', platform: true },
   {
     to: '/admin/settings/integrations',
     label: 'integrations.title',
     icon: 'settings',
     owner: true,
   },
+  { to: '/admin/settings/agreement', label: 'agreement.settings', icon: 'file', owner: true },
   { to: '/admin/settings/branding', label: 'branding.title', icon: 'palette', owner: true },
 ]

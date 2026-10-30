@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Project Brief — Client SSO integration</title>
+  <style>
+    body {
+      font:
+        16px/1.65 system-ui,
+        sans-serif;
+      max-width: 78ch;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #24313d;
+      background: #fafbfc;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #eef1f4;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    code {
+      font-size: 0.9em;
+    }
+    a {
+      color: #17695d;
+    }
+    li {
+      margin: 8px 0;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        color: #e4e9ed;
+        background: #151c21;
+      }
+      pre {
+        background: #232d34;
+      }
+      a {
+        color: #73d7c2;
+      }
+    }
+  </style>
+  <main>
+    <h1>Connect an external client area</h1>
+    <p>
+      Trusted sign-in lets a signed-in customer open their existing Project Brief projects from your
+      website. It requires server-side integration. Keep the API key on your server.
+    </p>
+    <ol>
+      <li>In Settings → Integrations → SSO, add a source for the external client area.</li>
+      <li>
+        Set its exact HTTPS origin, for example <code>https://portal.example.com</code>. Do not
+        include a path, query, fragment or credentials.
+      </li>
+      <li>
+        Create an API key with <code>clients:sso</code> permission for that source. Copy the secret
+        when it is displayed, then store it in your server's private configuration.
+      </li>
+      <li>
+        Implement the server-to-server handoff below. Your server must verify its customer session
+        and the customer's confirmed email.
+      </li>
+      <li>
+        Enable SSO and choose available projects. Projects created or approved through this source
+        connect automatically. Add an existing project manually when its customer needs to open it
+        from this client area.
+      </li>
+      <li>
+        Test with an active customer who already belongs to an active allowed project. Then check
+        source/key revocation and the email sign-in fallback.
+      </li>
+    </ol>
+    <h2>Server API</h2>
+    <p>Send an authenticated server-to-server request to your Project Brief origin:</p>
+    <pre><code>POST /api/v1/client-sso/handoffs
+Authorization: Bearer YOUR_SERVER_API_KEY
+Content-Type: application/json
+
+{
+  "projectId": "SAVED_PROJECT_UUID",
+  "externalUserId": "STABLE_CUSTOMER_ID",
+  "email": "customer@example.com",
+  "emailVerified": true
+}</code></pre>
+    <p>
+      Use the project UUID saved in your own trusted order or account records. Do not accept the
+      project, email or external customer ID directly from browser input. The API does not create
+      customers or projects.
+    </p>
+    <p>
+      A successful response includes <code>data.code</code>, <code>data.postUrl</code> and
+      <code>data.expiresAt</code>. The code is single use and expires after 60 seconds. Send it
+      immediately from the external client area using an HTTPS form POST to the fixed
+      <code>/client-sso/enter</code> URL on your Project Brief origin. Use a hidden form field named
+      <code>code</code>. Set <code>Referrer-Policy: origin</code> on the transfer page; the browser
+      must send the exact configured Origin.
+    </p>
+    <p>
+      Never put the API key or handoff code in URLs, browser storage, analytics or request-body
+      logs. Verify TLS certificates. Do not accept an arbitrary transfer URL from customer input.
+      Provide a normal form submit button if JavaScript is disabled.
+    </p>
+    <h2>Identity, project access and revocation</h2>
+    <p>
+      The first handoff binds the source, stable external customer ID and normalized email. Changing
+      identity requires resolving the conflict on the server; the integration never silently rebinds
+      a customer. Workspace administrators and owners cannot use client SSO to obtain staff access.
+    </p>
+    <p>
+      Keep provisioning and SSO credentials attached to the same persistent source when automatic
+      project access is needed. Rotate credentials by issuing a new key for the same source and
+      revoking the old one. Each source can have separate keys and its own manually allowed
+      projects.
+    </p>
+    <p>
+      Disabling or changing source settings revokes its SSO handoffs and sessions. Revoked or
+      expired keys, removed project permission, inactive customers/projects and a changed email deny
+      access. Existing sessions for a different identity are preserved. The ordinary email sign-in
+      link remains available.
+    </p>
+    <h2>Errors</h2>
+    <p>
+      <code>401</code>: invalid, expired or revoked key. <code>403</code>: scope, source, project or
+      customer access denied. <code>404</code>: project unavailable in this workspace.
+      <code>409</code>: identity binding conflict. <code>413/415/422</code>: invalid request.
+      <code>429</code>: wait before retrying.
+    </p>
+    <p>
+      Implement the flow in trusted server code and test the complete journey across both HTTPS
+      sites. Keep a normal email sign-in option available to customers.
+    </p>
+  </main>
+</html>

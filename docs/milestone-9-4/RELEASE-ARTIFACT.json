@@ -1,0 +1,125 @@
+{
+  "version": "0.9.4",
+  "branch": "codex/milestone-9-4-branding-swipe-statuses",
+  "sourceCommit": "7cb36abd75fb08c1c42947c81eccdc50aa6cf342",
+  "builtAt": "2026-10-30T15:54:43.443Z",
+  "archive": "project-brief-v0.9.4-7cb36ab.zip",
+  "bytes": 39320704,
+  "sha256": "6bbf2ea6a90b3b6bef76fce9698c51e40f6f7bda193ebaf6ba7f1c73dfb7147c",
+  "phpTarget": "8.4",
+  "canonicalBuild": true,
+  "frontendTests": 403,
+  "laravel": {
+    "php": "8.5.10",
+    "tests": 1001,
+    "assertions": 14729,
+    "passed": 1001
+  },
+  "mariadbSource": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 71,
+    "assertions": 1607,
+    "isolatedDatabase": "projectbrief_m94_qa",
+    "productionChanged": false,
+    "scope": [
+      "ClientTaskStatusTest",
+      "GlobalWorkspaceBrandingTest",
+      "CentralizedNotificationsTest",
+      "ProjectNotificationTest",
+      "LiveSyncTest",
+      "ProjectPermissionsTest except GD upload case (included in native full suite)"
+    ]
+  },
+  "archiveVerification": {
+    "crc": true,
+    "internalChecksums": 8894,
+    "entries": 10140,
+    "files": 8895,
+    "excludedDevArtifacts": true
+  },
+  "archiveSecretAndAllowlistScan": true,
+  "compiledUi": {
+    "passed": true,
+    "agreementPublished": true,
+    "personalWorkspaceBrand": true,
+    "clientCompletion": true,
+    "clientCancelNoMutation": true,
+    "anonymousDocument": true,
+    "agreementApiGate": true,
+    "agreementAccepted": true,
+    "compiledAssets": true,
+    "productionVendor": true,
+    "origin": "https://brief.web86.site",
+    "rpId": "brief.web86.site",
+    "virtualUV": true,
+    "active": true,
+    "applicationDialogs": 0,
+    "mutations": 1,
+    "changedPermissions": 5,
+    "browser": "151.0.7922.34"
+  },
+  "packagedPhp84Upgrade": {
+    "passed": true,
+    "php": "8.4.26",
+    "database": "11.8.9-MariaDB-ubu2404",
+    "productionVendor": true,
+    "upgradeFrom": "0.9.3",
+    "newMigrations": 0,
+    "workspaceAndBrandRetained": true,
+    "sessionSerialization": true,
+    "clientPolicy": true,
+    "agreementLinks": true,
+    "clientRoutes": 8,
+    "phpLint": true,
+    "disposableDatabaseOnly": true
+  },
+  "browser": {
+    "sqliteFunctionalGroups": 6,
+    "mysqlFunctionalGroups": 6,
+    "localScreenshots": 96,
+    "locales": ["ru", "en", "tr", "zh-CN"],
+    "widths": [1440, 390],
+    "themes": ["light", "dark", "system"],
+    "nativeTrustedTouch": true,
+    "concurrentClientPairs": 10,
+    "eachPairResults": [200, 409],
+    "parallelPasskeyGroups": 4,
+    "javascriptErrors": 0
+  },
+  "limitations": [
+    "Physical iOS Safari and Android Chrome were not tested. Local WebKit stalls before page creation; Chromium native trusted touch emulation passed.",
+    "Jino/FPM and physical Touch ID were not tested.",
+    "Source MariaDB subset excludes the GD upload test; full native Laravel suite includes it."
+  ],
+  "qaScreenshotsCommitted": false,
+  "qaScreenshotsPackaged": false,
+  "pushPerformed": false,
+  "deploymentPerformed": false,
+  "productionDatabaseChanged": false,
+  "agreementEditor": {
+    "passed": true,
+    "results": [
+      "Native editing: H1/H2/paragraph, bold active state, preserved selection, unsafe URL refusal, insert/edit/remove links and native Undo/Redo including renamed link",
+      "Four document languages retain drafts across tabs; thirty-two desktop/mobile light/dark/localized editor captures; save/reload/public document/invited acceptance screen preserve safe links and formatting"
+    ],
+    "screenshots": 32,
+    "errors": [],
+    "laravelFocused": {
+      "tests": 12,
+      "assertions": 227
+    },
+    "frontendTests": 403,
+    "productionBuild": true,
+    "screenshotsCommitted": false,
+    "database": "Disposable SQLite only",
+    "mariadb": {
+      "php": "8.4.26",
+      "database": "MariaDB 11.8.9",
+      "tests": 12,
+      "assertions": 227,
+      "passed": true
+    }
+  }
+}

@@ -41,6 +41,11 @@ class Task extends Model
         return hash_hmac('sha256', json_encode($values, JSON_THROW_ON_ERROR), config('app.key'));
     }
 
+    public function canClientChangeStatusTo(string $status): bool
+    {
+        return $this->status === 'review' && in_array($status, ['approved', 'done'], true);
+    }
+
     public function isClientEditable(): bool
     {
         return ! $this->client_approved && in_array($this->status, ['new', 'clarification']);

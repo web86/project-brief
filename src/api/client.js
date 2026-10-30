@@ -241,6 +241,8 @@ export function createApiClient({
         'security_confirmation_cancelled',
       )
     }
+    if (data.code === 'administrator_agreement_required')
+      globalThis.window?.dispatchEvent(new Event('administrator-agreement-required'))
     if (!response.ok) {
       if ([401, 419].includes(response.status)) csrf = null
       const messages = {

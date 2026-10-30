@@ -3,11 +3,14 @@ import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
+import { useWorkspaceAppearance } from '../services/workspaceAppearance.js'
+import { attachDrawerSwipe } from '../utils/drawerSwipe.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
 import UnreadBadge from './UnreadBadge.vue'
 import { useClientNavigation } from '../services/clientNavigation.js'
+const { tokens } = useWorkspaceAppearance()
 const route = useRoute(),
   store = useProjectStore(),
   workspace = useTaskWorkspaceStore()
@@ -41,6 +44,7 @@ watch(
   () => route.fullPath,
   () => close(false),
 )
+let disposeSwipe
 let breakpoint
 function resize() {
   if (breakpoint?.matches && !route.meta.taskDetail) close(false)
@@ -48,8 +52,17 @@ function resize() {
 onMounted(() => {
   breakpoint = window.matchMedia?.('(min-width: 961px)')
   breakpoint?.addEventListener('change', resize)
+  disposeSwipe = attachDrawerSwipe({
+    mobile: () => breakpoint?.matches === false,
+    isOpen: () => open.value,
+    canOpen: () => !route.meta.taskDetail && !!store.currentClient,
+    open: () => workspace.openClient(),
+    close,
+    dialog: () => dialog.value,
+  })
 })
 onUnmounted(() => {
+  disposeSwipe?.()
   breakpoint?.removeEventListener('change', resize)
   close(false)
 })
@@ -70,6 +83,7 @@ onUnmounted(() => {
     <dialog
       ref="dialog"
       id="client-drawer"
+      :style="tokens"
       class="admin-drawer task-management-drawer client-drawer"
       :aria-label="t('clientWorkspace.menu')"
       @keydown="keydown"

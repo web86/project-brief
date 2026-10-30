@@ -7,7 +7,12 @@ import { useProjectStore } from '../stores/project'
 import AppIcon from './AppIcon.vue'
 import FileUploader from './FileUploader.vue'
 import { toast } from '../services/toast.js'
-const props = defineProps({ taskId: String, general: Boolean, sendComment: Function })
+const props = defineProps({
+  taskId: String,
+  label: String,
+  general: Boolean,
+  sendComment: Function,
+})
 const store = useProjectStore()
 const text = defineModel({ type: String, default: '' })
 const files = ref([])
@@ -107,9 +112,10 @@ async function submit() {
     @drop.prevent="drop"
   >
     <label :for="general ? 'project-comment' : 'comment-text'">{{
-      general
+      label ||
+      (general
         ? t('discussions.message')
-        : t(store.isDeveloper ? 'flow.writeToClient' : 'flow.writeToDeveloper')
+        : t(store.isDeveloper ? 'flow.writeToClient' : 'flow.writeToDeveloper'))
     }}</label
     ><textarea
       :id="general ? 'project-comment' : 'comment-text'"

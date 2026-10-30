@@ -202,6 +202,7 @@ class FlexibleAccountSecurityTest extends TestCase
         $project = Project::factory()->create();
         $user = User::factory()->memberOf($project->workspace)->create(['password' => 'Flexible-password!']);
         $membership = $user->workspaceMembers()->first();
+        $membership->update(['is_project_superadmin' => true]);
         $assignment = $project->members()->create(['workspace_id' => $project->workspace_id, 'workspace_member_id' => $membership->id, 'permissions' => ['manage_clients' => true]]);
         $client = $project->clients()->first();
         $task = Task::factory()->for($project)->create();
@@ -210,11 +211,12 @@ class FlexibleAccountSecurityTest extends TestCase
         $root = '/api/admin/projects/'.$project->uuid;
         $this->postJson($root.'/clients/'.$client->uuid.'/access-links')->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
         $this->postJson('/api/admin/tasks/'.$task->uuid.'/comments', ['text' => 'Ordinary comment'])->assertOk();
-        $this->getJson($root.'/team')->assertForbidden();
+        $this->getJson($root.'/team')->assertOk();
         $this->postJson('/api/admin/integrations/tokens', ['name' => 'No owner privilege', 'scopes' => ['projects:read']])->assertForbidden();
         $this->postJson('/api/security/confirm', ['current_password' => 'Flexible-password!'])->assertOk();
         $token = $this->postJson($root.'/clients/'.$client->uuid.'/access-links')->assertCreated()->json('id');
         $assignment->update(['permissions' => ['manage_clients' => false]]);
+        $membership->update(['is_project_superadmin' => false]);
         $this->deleteJson($root.'/clients/'.$client->uuid.'/access-links/'.$token)->assertForbidden();
     }
 
@@ -223,7 +225,7 @@ class FlexibleAccountSecurityTest extends TestCase
         $project = Project::factory()->create();
         $owner = $this->ownerFor($project);
         $this->actingAs($owner);
-        $root = '/api/admin/projects/'.$project->uuid.'/team';
+        $root = '/api/admin/administrators';
         DB::enableQueryLog();
         DB::flushQueryLog();
         $first = $this->getJson($root)->assertOk()->assertJsonPath('members.0.security.totp', true)->assertJsonPath('members.0.security.passkey', true);
