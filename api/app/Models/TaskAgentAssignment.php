@@ -10,6 +10,8 @@ class TaskAgentAssignment extends Model
 {
     use HasUuids;
 
+    protected $attributes = ['state' => 'pending'];
+
     protected $fillable = ['workspace_id', 'task_id', 'external_agent_id', 'state', 'revoked_at'];
 
     protected function casts(): array

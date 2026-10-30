@@ -184,6 +184,7 @@ class AgentApiTest extends TestCase
         Http::preventStrayRequests();
         [$project, $owner, $agent, $token, $task, $assignment, , $secret] = $this->fixture(webhook: true);
         $body = DB::table('webhook_events')->first()->body;
+        $this->assertSame('pending', json_decode($body, true)['state']);
         foreach (['description', 'Allowed description', 'PRIVATE-NOTES', 'price', $token['secret']] as $private) {
             $this->assertStringNotContainsString($private, $body);
         }
