@@ -4,16 +4,18 @@
 
 ## Подтверждено
 
-Полный Laravel/frontend suite выполняется каноническим builder; итоговые числа записываются в RELEASE.md после завершения сборки.
+Канонический builder завершился успешно: Laravel 1004 / 1004 (14838 assertions), frontend 407 / 407. Извлечённый ZIP прошёл runtime, signed WebAuthn и compiled UI проверки. Точная контрольная сумма и ограничения — [RELEASE.md](RELEASE.md).
 
 - PHP 8.5 / Laravel 13, Vue 3; без новых зависимостей. Pint и production Vite build проходят.
 - Focused SQLite: 21 тест / 434 assertions для миграции, корзины и новых сценариев; после расширения MFA отдельный Milestone95Test — 8 / 115.
-- MariaDB 11.8.9 на локальном Docker, host PHP с GD: 84 / 1634, все успешны. Сюда входят соглашения, права/корзина, назначения, приглашения, чаты/файлы/unread/notifications/Live Sync и workspace isolation. Первый прогон PHP 8.4 Docker выявил отсутствие GD в QA image; успешный полный выбранный набор повторён host PHP с GD. Production dependencies отдельно проверяются каноническим builder.
+- MariaDB 11.8.9 на локальном Docker, host PHP с GD: 84 / 1634, все успешны. Сюда входят соглашения, права/корзина, назначения, приглашения, чаты/файлы/unread/notifications/Live Sync и workspace isolation. Первый прогон PHP 8.4 Docker выявил отсутствие GD в QA image; успешный полный выбранный набор повторён host PHP с GD. Production dependencies проверены каноническим builder. Финальные затронутые тесты дополнительно прошли на PHP 8.5/MariaDB и PHP 8.4.26/MariaDB: по 25 тестов / 393 assertions.
 - WebAuthn browser suite: 23 успешных сценария на изолированном HTTPS — enrollment/recovery, необязательный Passkey, нативная user activation, один PATCH при двойном клике, отмена и сохранение черновика, новый challenge/retry, реальная подписанная Chromium assertion, discoverable login, MFA и fallback. Firefox проверен с mock provider/реальным сервером; это не аппаратная подпись Firefox.
-- Milestone 9.5 browser: templates/language toggle/publish/reload; team card; private messages; одинаковый submissionId из двух реальных вкладок; подтверждённое приглашение + F5; отсутствие чата у клиента и отказ прямому API. В визуальной матрице HTML lang и data-theme проверяются явно: RU/EN/TR/ZH-CN × 1440/390 × light/dark/system, включая длинный бренд, соглашения, карточки, чат, security, публичный документ и футер. Дополнительно снимаются открытый admin modal и форма project invitation. Скриншоты только вне Git. SQLite-прогон: 193 снимка и успешные сценарии; отдельная WYSIWYG-регрессия: 32 снимка, ссылки/Undo/Redo/списки сохраняются. Браузер MariaDB использует четыре PHP workers и POST из двух реальных вкладок.
+- Milestone 9.5 browser: templates/language toggle/publish/reload; team card; private messages; одинаковый submissionId из двух реальных вкладок; подтверждённое приглашение + F5; отсутствие чата у клиента и отказ прямому API. В визуальной матрице HTML lang и data-theme проверяются явно: RU/EN/TR/ZH-CN × 1440/390 × light/dark/system, включая длинный бренд, соглашения, карточки, чат, security, публичный документ и футер. Дополнительно снимаются открытый admin modal и форма project invitation. Скриншоты только вне Git. SQLite-прогон: 193 снимка и успешные сценарии; отдельная WYSIWYG-регрессия: 32 снимка, ссылки/Undo/Redo/списки сохраняются. Браузер MariaDB использует четыре PHP workers и POST из двух реальных вкладок: успешный прогон, 193 снимка.
 - Визуально просмотрены desktop/mobile light/dark на разных языках. Найденное прилипание формы приглашения к карточке владельца исправлено; добавлены нормальные padding/gap и мобильная колонка. Уменьшены пустые области security; разделитель даты чата не содержит время сообщения. Проверяются горизонтальное переполнение, Escape модального окна, активные tool buttons и уникальные language labels.
 
 Общий header публичного документа и обязательного принятия получает бренд из проверенного ответа документа, независимо от выбранного административного workspace; при загрузке не показывается чужой бренд. Для этого добавлена отдельная регрессия, 31 focused frontend test прошёл.
+
+Отдельный двухвкладочный Passkey browser прогон Integrations + /platform прошёл 4 группы / 0 ошибок с настоящими virtual UV signatures, TTL/replay/cancel/retry/TOTP fallback.
 
 ## Регрессионные гарантии
 
