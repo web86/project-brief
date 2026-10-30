@@ -15,6 +15,8 @@ const known = new Set([
   'reordered',
 ])
 export function historyText(event) {
+  if (event.actorType === 'agent' && event.type.startsWith('agent_'))
+    return t('agents.history.' + event.type, { name: event.actorName || t('agents.kind.ai') })
   if (['trashed', 'restored'].includes(event.type)) return t(`management.${event.type}`)
   if (!known.has(event.type)) return event.text || t('flow.unknownHistory')
   const actor =

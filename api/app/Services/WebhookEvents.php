@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class WebhookEvents
 {
-    public const TYPES = ['project_request.created', 'project_request.approved', 'project_request.rejected', 'project.created', 'project.updated', 'project.invitation_changed', 'task.created', 'task.updated', 'task.status_changed', 'task.approved', 'task.client_comment_created', 'project.client_comment_created'];
+    public const TYPES = ['agent.task.assigned', 'agent.task.updated', 'agent.task.unassigned', 'agent.task.cancelled', 'project_request.created', 'project_request.approved', 'project_request.rejected', 'project.created', 'project.updated', 'project.invitation_changed', 'task.created', 'task.updated', 'task.status_changed', 'task.approved', 'task.client_comment_created', 'project.client_comment_created'];
 
     public function projectRequest(ProjectRequest $row, string $decision): void
     {
@@ -61,6 +61,9 @@ class WebhookEvents
             default => ['title' => $task->title, 'location' => $task->location, 'priority' => $task->priority, 'sectionId' => $task->projectSection?->uuid],
         };
         $this->emit($task->project, $task, $type, $changes);
+        foreach ($task->agentAssignments as $assignment) {
+            AgentAssignments::event($assignment, 'agent.task.updated');
+        }
     }
 
     public function clientComment(Comment $comment, Project $project, ?Task $task): void
@@ -87,7 +90,7 @@ class WebhookEvents
     public function enqueue(int $workspaceId, string $type, array $payload, ?int $onlyEndpoint = null): ?string
     {
         return DB::transaction(function () use ($workspaceId, $type, $payload, $onlyEndpoint): ?string {
-            $endpoints = DB::table('webhook_endpoints')->where('workspace_id', $workspaceId)->where('enabled', true)->when($onlyEndpoint, fn ($q) => $q->where('id', $onlyEndpoint))->lockForUpdate()->get()->filter(fn ($e) => ($onlyEndpoint || in_array($type, json_decode($e->events, true), true)) && app(WebhookProjectFilter::class)->matches($e, $type, $payload['projectId'] ?? null));
+            $endpoints = DB::table('webhook_endpoints')->where('workspace_id', $workspaceId)->where('enabled', true)->when($onlyEndpoint, fn ($q) => $q->where('id', $onlyEndpoint))->lockForUpdate()->get()->filter(fn ($e) => (! $e->external_agent_id || (str_starts_with($type, 'agent.task.') && AgentAccess::deliveryAllowed($e, $payload))) && ($onlyEndpoint || in_array($type, json_decode($e->events, true), true)) && app(WebhookProjectFilter::class)->matches($e, $type, $payload['projectId'] ?? null));
             if ($endpoints->isEmpty()) {
                 return null;
             }

@@ -49,12 +49,16 @@ class IntegrationWrites
             $required = $request->attributes->get('integration_required_scope');
             abort_if($required && ! in_array($required, json_decode($current->scopes, true), true), 403);
             abort_if($required === 'projects:provision' && ! $current->provisioning_enabled, 403);
+            if ($current->external_agent_id) {
+                $assignment = AgentAccess::assignment($request, (string) $request->route('task'));
+                abort_unless(hash_equals($assignment->uuid, (string) $request->input('assignmentId')), 409);
+            }
             $previous = DB::table('integration_requests')->where('workspace_id', $token->workspace_id)->where('key_hash', $keyHash)->first();
             if ($previous) {
                 abort_unless(hash_equals($previous->body_hash, $bodyHash), 409, 'Idempotency key was already used with another body.');
                 $response = json_decode($previous->response, true, 512, JSON_THROW_ON_ERROR);
                 $projectUuid = $response['data']['projectId'] ?? $response['data']['id'] ?? null;
-                if ($projectUuid && ! $request->is('api/v1/project-requests*')) {
+                if ($projectUuid && ! $current->external_agent_id && ! $request->is('api/v1/project-requests*')) {
                     Project::where('workspace_id', $token->workspace_id)->where('uuid', $projectUuid)->firstOrFail();
                 }
 

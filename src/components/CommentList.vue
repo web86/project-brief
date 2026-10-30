@@ -69,17 +69,41 @@ onUnmounted(() => {
         class="comment-avatar"
       />
       <span v-else class="comment-avatar"
-        ><AppIcon :name="comment.author === 'developer' ? 'code' : 'user'" :size="17"
+        ><AppIcon
+          :name="
+            comment.author === 'agent' ? 'bot' : comment.author === 'developer' ? 'code' : 'user'
+          "
+          :size="17"
       /></span>
       <div class="comment-content">
         <div class="comment-heading">
           <strong>{{
-            (comment.authorId ? comment.authorName : null) ||
+            (comment.authorId || comment.author === 'agent' ? comment.authorName : null) ||
             (comment.author === 'developer' ? t('ui.developer') : t('ui.client'))
           }}</strong
+          ><span v-if="comment.author === 'agent'" class="status-pill">{{
+            t('agents.kind.' + (comment.agentKind || 'ai'))
+          }}</span
           ><time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
         </div>
         <p v-if="comment.text">{{ comment.text }}</p>
+        <div v-if="comment.agentReport" class="agent-comment-result">
+          <span class="status-pill">{{ t('agents.state.' + comment.agentReport.state) }}</span>
+          <a
+            v-if="comment.agentReport.pullRequestUrl"
+            :href="comment.agentReport.pullRequestUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ t('agents.pullRequest') }}</a
+          >
+          <a
+            v-if="comment.agentReport.resultUrl"
+            :href="comment.agentReport.resultUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ t('agents.result') }}</a
+          >
+        </div>
         <AttachmentList :attachments="comment.attachments || []" compact />
       </div>
     </article>
@@ -88,3 +112,13 @@ onUnmounted(() => {
     <p>{{ t('ui.noCommentsYet') }}</p>
   </div>
 </template>
+
+<style scoped>
+.agent-comment-result {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+</style>

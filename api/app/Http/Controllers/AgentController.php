@@ -1,0 +1,226 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ExternalAgent;
+use App\Models\Project;
+use App\Models\ProjectMember;
+use App\Models\TaskAgentAssignment;
+use App\Services\AccountSecurity;
+use App\Services\AgentAccess;
+use App\Services\AgentAssignments;
+use App\Services\AgentAudit;
+use App\Services\CurrentWorkspace;
+use App\Services\IntegrationTokens;
+use App\Services\IntegrationWrites;
+use App\Services\ProjectAccess;
+use App\Services\ProjectPermissions;
+use App\Services\TaskAccess;
+use App\Services\WebhookDestination;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+class AgentController extends Controller
+{
+    private function owner(Request $request): int
+    {
+        $member = app(CurrentWorkspace::class)->resolve($request, DB::transactionLevel() > 0);
+        abort_unless($member->role === 'owner', 403);
+        if (! $request->isMethodSafe()) {
+            app(AccountSecurity::class)->requireFresh($request);
+        }
+
+        return $member->workspace_id;
+    }
+
+    private function row(int $workspace, string $uuid): ExternalAgent
+    {
+        return ExternalAgent::where('workspace_id', $workspace)->where('uuid', $uuid)->firstOrFail();
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $workspace = $this->owner($request);
+        $rows = ExternalAgent::where('workspace_id', $workspace)->orderBy('id')->get()->map(function ($agent): array {
+            $tokens = DB::table('integration_tokens')->where('external_agent_id', $agent->id)->orderByDesc('id')->get(['uuid', 'scopes', 'revoked_at', 'last_used_at', 'expires_at']);
+            $endpoint = DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->first();
+            $delivery = $endpoint ? DB::table('webhook_deliveries')->where('webhook_endpoint_id', $endpoint->id)->orderByDesc('id')->first() : null;
+
+            return [...$agent->publicState(), 'projectCount' => ProjectMember::where('external_agent_id', $agent->id)->count(),
+                'projectIds' => Project::where('workspace_id', $agent->workspace_id)->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->select('project_id'))->pluck('uuid'),
+                'successfulRequests' => (int) $agent->successful_requests, 'failedRequests' => (int) $agent->failed_requests,
+                'tokens' => $tokens->map(fn ($t) => ['id' => $t->uuid, 'scopes' => json_decode($t->scopes, true), 'revokedAt' => $t->revoked_at, 'lastUsedAt' => $t->last_used_at, 'expiresAt' => $t->expires_at]),
+                'webhook' => $endpoint ? ['id' => $endpoint->uuid, 'url' => $endpoint->url, 'enabled' => (bool) $endpoint->enabled, 'status' => $delivery?->status, 'lastError' => $delivery?->error_code] : null];
+        });
+
+        return response()->json(['data' => $rows, 'scopes' => AgentAccess::SCOPES, 'projects' => Project::where('workspace_id', $workspace)->orderBy('title')->get()->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title])])->header('Cache-Control', 'no-store');
+    }
+
+    public function save(Request $request, ?string $uuid = null): JsonResponse
+    {
+        $workspace = $this->owner($request);
+        AgentAccess::fields($request, ['name', 'description', 'kind', 'active', 'projectIds', 'webhookUrl']);
+        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'description' => ['nullable', 'string', 'max:1000'], 'kind' => ['required', Rule::in(['ai', 'automation', 'service'])],
+            'active' => ['required', 'boolean'], 'projectIds' => ['present', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct'], 'webhookUrl' => ['nullable', 'string', 'max:2048']]);
+        if (! empty($data['webhookUrl'])) {
+            app(WebhookDestination::class)->resolve($data['webhookUrl']);
+        }
+
+        return DB::transaction(function () use ($request, $workspace, $uuid, $data): JsonResponse {
+            IntegrationWrites::lockWorkspace($workspace);
+            $this->owner($request);
+            $agent = $uuid ? $this->row($workspace, $uuid) : new ExternalAgent(['workspace_id' => $workspace]);
+            $projects = Project::where('workspace_id', $workspace)->whereIn('uuid', $data['projectIds'])->get();
+            abort_unless($projects->count() === count($data['projectIds']), 422);
+            $agent->fill(['name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $data['kind'], 'active' => $data['active']])->save();
+            foreach (Project::withTrashed()->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->whereNotIn('project_id', $projects->modelKeys())->select('project_id'))->get() as $project) {
+                AgentAssignments::removeProject($request, $agent, $project);
+            }
+            DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->delete();
+            foreach ($projects as $project) {
+                DB::table('agent_project_grants')->insert(['external_agent_id' => $agent->id, 'workspace_id' => $workspace, 'project_id' => $project->id]);
+            }
+            $secret = null;
+            $endpoint = DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->first();
+            if (($endpoint?->url ?? '') !== ($data['webhookUrl'] ?? '')) {
+                if ($endpoint) {
+                    DB::table('webhook_endpoints')->where('id', $endpoint->id)->delete();
+                }
+                if (! empty($data['webhookUrl'])) {
+                    $secret = 'whsec_'.bin2hex(random_bytes(32));
+                    DB::table('webhook_endpoints')->insert(['uuid' => (string) Str::uuid(), 'workspace_id' => $workspace, 'external_agent_id' => $agent->id, 'name' => $agent->name,
+                        'url' => $data['webhookUrl'], 'events' => json_encode(['agent.task.assigned', 'agent.task.updated', 'agent.task.unassigned', 'agent.task.cancelled']),
+                        'enabled' => $agent->active, 'secret' => Crypt::encryptString($secret), 'secret_version' => 1, 'project_filter' => 'all', 'created_at' => now(), 'updated_at' => now()]);
+                }
+            }
+            DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->update(['enabled' => $agent->active]);
+            if (! $agent->active) {
+                $this->disable($request, $agent);
+            }
+            app(AccountSecurity::class)->audit($request->user(), 'agent_saved:'.$agent->id);
+
+            return response()->json(['data' => $agent->publicState(), 'webhookSecret' => $secret], $uuid ? 200 : 201)->header('Cache-Control', 'no-store');
+        }, 3);
+    }
+
+    private function disable(Request $request, ExternalAgent $agent): void
+    {
+        DB::table('integration_tokens')->where('external_agent_id', $agent->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
+        $endpoints = DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->pluck('id');
+        DB::table('webhook_endpoints')->whereIn('id', $endpoints)->update(['enabled' => false]);
+        DB::table('webhook_deliveries')->whereIn('webhook_endpoint_id', $endpoints)->whereIn('status', ['pending', 'processing'])->update(['status' => 'cancelled', 'error_code' => 'agent_revoked', 'updated_at' => now()]);
+        foreach (TaskAgentAssignment::where('external_agent_id', $agent->id)->whereNull('revoked_at')->whereHas('task')->get() as $row) {
+            AgentAssignments::revoke($request, $row, 'agent.task.cancelled');
+        }
+    }
+
+    public function destroy(Request $request, string $uuid): JsonResponse
+    {
+        $workspace = $this->owner($request);
+        AgentAccess::fields($request, []);
+        DB::transaction(function () use ($request, $workspace, $uuid): void {
+            IntegrationWrites::lockWorkspace($workspace);
+            $this->owner($request);
+            $agent = $this->row($workspace, $uuid);
+            $this->disable($request, $agent);
+            ProjectMember::where('external_agent_id', $agent->id)->delete();
+            DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->delete();
+            $agent->update(['active' => false]);
+            $agent->delete();
+            app(AccountSecurity::class)->audit($request->user(), 'agent_deleted:'.$agent->id);
+        }, 3);
+
+        return response()->json(['deleted' => true]);
+    }
+
+    public function token(Request $request, string $uuid): JsonResponse
+    {
+        $workspace = $this->owner($request);
+        AgentAccess::fields($request, ['scopes', 'expiresAt', 'replace']);
+        $data = $request->validate(['scopes' => ['required', 'array', 'min:1', 'max:5'], 'scopes.*' => ['required', Rule::in(AgentAccess::SCOPES), 'distinct'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()], 'replace' => ['sometimes', 'boolean']]);
+
+        return DB::transaction(function () use ($request, $workspace, $uuid, $data): JsonResponse {
+            IntegrationWrites::lockWorkspace($workspace);
+            $this->owner($request);
+            $agent = $this->row($workspace, $uuid);
+            abort_unless($agent->active, 422);
+            if ($data['replace'] ?? false) {
+                DB::table('integration_tokens')->where('external_agent_id', $agent->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
+            }
+            $token = app(IntegrationTokens::class)->create($workspace, [...$data, 'name' => $agent->name, 'agentId' => $agent->id]);
+            app(AccountSecurity::class)->audit($request->user(), 'agent_token_created:'.$agent->id);
+
+            return response()->json($token, 201)->header('Cache-Control', 'no-store');
+        }, 3);
+    }
+
+    public function revokeToken(Request $request, string $uuid, string $credential): JsonResponse
+    {
+        $workspace = $this->owner($request);
+        AgentAccess::fields($request, []);
+        DB::transaction(function () use ($request, $workspace, $uuid, $credential): void {
+            IntegrationWrites::lockWorkspace($workspace);
+            $this->owner($request);
+            $agent = $this->row($workspace, $uuid);
+            $token = DB::table('integration_tokens')->where('external_agent_id', $agent->id)->where('uuid', $credential)->firstOrFail();
+            DB::table('integration_tokens')->where('id', $token->id)->update(['revoked_at' => now()]);
+            app(AccountSecurity::class)->audit($request->user(), 'agent_token_revoked:'.$agent->id);
+        }, 3);
+
+        return response()->json(['revoked' => true]);
+    }
+
+    public function team(Request $request, Project $project, string $uuid): JsonResponse
+    {
+        AgentAccess::fields($request, []);
+        DB::transaction(function () use ($request, $project, $uuid): void {
+            IntegrationWrites::lockWorkspace($project->workspace_id);
+            ProjectAccess::project($request, $project->uuid);
+            ProjectPermissions::authorize($request, $project, 'manage_team', true);
+            app(AccountSecurity::class)->requireFresh($request);
+            $agent = $this->row($project->workspace_id, $uuid);
+            if ($request->isMethod('DELETE')) {
+                AgentAssignments::removeProject($request, $agent, $project);
+            } else {
+                abort_unless($agent->active && DB::table('agent_project_grants')->where('workspace_id', $project->workspace_id)->where('external_agent_id', $agent->id)->where('project_id', $project->id)->exists(), 422);
+                ProjectMember::firstOrCreate(['project_id' => $project->id, 'external_agent_id' => $agent->id], ['workspace_id' => $project->workspace_id, 'permissions' => []]);
+            }
+            app(AccountSecurity::class)->audit($request->user(), 'agent_project_assignment:'.$agent->id);
+        }, 3);
+
+        return response()->json(['saved' => true]);
+    }
+
+    public function task(Request $request, string $task): JsonResponse
+    {
+        AgentAccess::fields($request, ['agentId']);
+        $data = $request->validate(['agentId' => ['required', 'uuid']]);
+        $project = TaskAccess::task($request, $task)->project;
+        DB::transaction(function () use ($request, $task, $project, $data): void {
+            IntegrationWrites::lockWorkspace($project->workspace_id);
+            $model = TaskAccess::task($request, $task, true);
+            ProjectPermissions::effective($request, $project, true);
+            $agent = $this->row($project->workspace_id, $data['agentId']);
+            $existing = TaskAgentAssignment::where('task_id', $model->id)->where('external_agent_id', $agent->id)->whereNull('revoked_at')->first();
+            if ($request->isMethod('DELETE')) {
+                if ($existing) {
+                    AgentAssignments::revoke($request, $existing);
+                }
+            } else {
+                abort_unless($project->status === 'active' && $agent->active && ProjectMember::where('project_id', $project->id)->where('external_agent_id', $agent->id)->where('workspace_id', $project->workspace_id)->exists()
+                    && DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->where('project_id', $project->id)->where('workspace_id', $project->workspace_id)->exists(), 422);
+                if (! $existing) {
+                    $row = TaskAgentAssignment::create(['workspace_id' => $project->workspace_id, 'task_id' => $model->id, 'external_agent_id' => $agent->id]);
+                    AgentAssignments::event($row, 'agent.task.assigned');
+                    AgentAudit::task($request, $row, 'agent_assigned');
+                }
+            }
+        }, 3);
+
+        return response()->json(['saved' => true]);
+    }
+}

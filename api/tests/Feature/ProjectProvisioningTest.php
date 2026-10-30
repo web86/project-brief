@@ -16,6 +16,7 @@ use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -291,11 +292,14 @@ class ProjectProvisioningTest extends TestCase
         $client = $project->clients()->first();
         $token = $this->token($project->workspace, ['projects:read']);
         $migration = require database_path('migrations/2026_10_29_092022_add_project_provisioning_foundation.php');
+        $this->assertDatabaseCount('project_requests', 0);
+        Schema::table('project_requests', fn ($table) => $table->dropForeign(['project_provisioning_id']));
         $migration->down();
         $this->assertDatabaseHas('projects', ['uuid' => $project->uuid]);
         $this->assertDatabaseHas('project_clients', ['uuid' => $client->uuid]);
         $this->assertDatabaseHas('integration_tokens', ['uuid' => $token['id']]);
         $migration->up();
+        Schema::table('project_requests', fn ($table) => $table->foreign('project_provisioning_id')->references('id')->on('project_provisionings')->restrictOnDelete());
         $this->assertDatabaseHas('integration_tokens', ['uuid' => $token['id'], 'provisioning_enabled' => false]);
         $this->getJson('/api/v1/projects/'.$project->uuid, $this->headers($token))->assertOk();
     }

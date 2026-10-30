@@ -12,6 +12,7 @@ import AppIcon from '../components/AppIcon.vue'
 import ClientTaskStatusActions from '../components/ClientTaskStatusActions.vue'
 import TaskStatus from '../components/TaskStatus.vue'
 import TaskPriority from '../components/TaskPriority.vue'
+import TaskAgents from '../components/TaskAgents.vue'
 import TaskDetails from '../components/TaskDetails.vue'
 import CommentList from '../components/CommentList.vue'
 import CommentForm from '../components/CommentForm.vue'
@@ -185,6 +186,13 @@ function focusClarification() {
       <div class="task-layout" :class="{ 'has-developer': store.isDeveloper }">
         <div class="task-main-column">
           <TaskDetails :task="task" />
+          <TaskAgents
+            v-if="store.isDeveloper && store.apiMode"
+            :task="task"
+            :agents="store.project.agents || []"
+            :project-id="route.params.uuid"
+            @changed="checkMessages"
+          />
           <DeveloperNotes v-if="store.isDeveloper" :task="editorTask" />
           <section class="surface comments-panel">
             <h2>

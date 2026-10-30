@@ -176,15 +176,32 @@ class IntegrationsTest extends TestCase
     public function test_integration_migration_rolls_back_and_reapplies_without_touching_business_data(): void
     {
         $project = Project::factory()->create();
+        $original = DB::getDefaultConnection();
+        $config = config('database.connections.'.$original);
+        $config['prefix'] = 'i_';
+        config(['database.connections.integration_migration_qa' => $config]);
+        DB::setDefaultConnection('integration_migration_qa');
         $migration = require database_path('migrations/2026_10_26_065515_create_integration_tables.php');
         try {
+            // Test the historical migration against its own schema, without later FK dependents.
+            foreach (['workspaces', 'projects'] as $table) {
+                Schema::create($table, fn ($t) => $t->id());
+                DB::table($table)->insert(['id' => 1]);
+            }
+            $migration->up();
+            $this->assertTrue(Schema::hasTable('integration_tokens'));
             $migration->down();
             $this->assertFalse(Schema::hasTable('webhook_events'));
-            $this->assertDatabaseHas('projects', ['uuid' => $project->uuid]);
-        } finally {
+            $this->assertSame(1, DB::table('projects')->count());
             $migration->up();
+            $this->assertTrue(Schema::hasTable('webhook_events'));
+        } finally {
+            $migration->down();
+            Schema::dropIfExists('projects');
+            Schema::dropIfExists('workspaces');
+            DB::setDefaultConnection($original);
+            DB::purge('integration_migration_qa');
         }
-        $this->assertTrue(Schema::hasTable('webhook_events'));
         $this->assertDatabaseHas('projects', ['uuid' => $project->uuid]);
     }
 

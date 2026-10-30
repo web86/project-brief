@@ -59,9 +59,9 @@ class ProjectDiscussions
     {
         return [
             ...(request()->is('api/admin/*') && $comment->author_type === 'admin' && $comment->authorUser ? ['avatarUrl' => app(AccountProfile::class)->state($comment->authorUser)['avatarUrl']] : []),
-            'id' => $comment->uuid, 'author' => $comment->author_type === 'admin' ? 'developer' : 'client',
-            'authorId' => $comment->author_type === 'admin' ? $comment->author_user_id : $comment->projectClient?->uuid,
-            'authorName' => $comment->author_type === 'admin' ? $comment->authorUser?->name : $comment->projectClient?->name,
+            'agentKind' => $comment->agent?->kind, 'agentReport' => $comment->author_type === 'agent' ? $comment->agentReport?->data() : null, 'id' => $comment->uuid, 'author' => $comment->author_type === 'agent' ? 'agent' : ($comment->author_type === 'admin' ? 'developer' : 'client'),
+            'authorId' => $comment->agent?->uuid ?? ($comment->author_type === 'admin' ? $comment->author_user_id : $comment->projectClient?->uuid),
+            'authorName' => $comment->agent?->name ?? ($comment->author_type === 'admin' ? $comment->authorUser?->name : $comment->projectClient?->name),
             'attachments' => $comment->attachments->map(fn ($file) => $file->data(TaskAccess::isAdmin(request()) ? 'admin' : 'client'))->values(), 'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString(), 'unread' => $unread,
             'task' => $comment->task ? ['id' => $comment->task->uuid, 'title' => $comment->task->title, 'section' => $comment->task->projectSection?->name] : null];
     }

@@ -1,6 +1,6 @@
-# Релиз v0.9.5
+# Релиз v0.9.6
 
-Актуальные обновление и безопасный rollback: [Milestone 9.5](docs/milestone-9-5/PRODUCTION.md). Обычный возврат v0.9.4 на текущую БД недопустим из-за приватного канала.
+Актуальные обновление и безопасный rollback: [Milestone 9.6](docs/milestone-9-6/PRODUCTION.md). Откат требует совместимого runtime либо согласованной пары БД/storage/runtime; идентичности агентов и приватный чат должны сохраняться.
 
 > Milestone 9.0 / Project Brief 0.9.0 — Platform Admin & Usage Monitoring.
 
@@ -441,3 +441,7 @@ PDF теперь создаётся только в браузере; PHPWord п
 ## Milestone 7.3 — Apache and HTTP hardening
 
 See [the hardening update and rollback guide](docs/milestone-7-3/PRODUCTION.md) before replacing public `.htaccess`. Bootstrap IP limiting and the native error-page override remain disabled until Jino preflight. No migration, session-lifetime change, client-link format change or dependency update is included. The ZIP contains the prior canonical file outside public at `deployment/rollback-public.htaccess`; preserve the actual installed file separately.
+
+## v0.9.6: внешние исполнители
+
+Обновление с v0.9.5, новые таблицы и безопасный rollback описаны в [Milestone 9.6](docs/milestone-9-6/PRODUCTION.md). Agent API не запускает AI или присланный код на Jino. Используется существующий ограниченный webhook cron; новый worker не нужен. Создание агента и разрешение проектов требуют осознанного согласия владельца на передачу содержимого назначенных задач внешнему исполнителю. Документация и независимый Node.js пример входят в ZIP в `agent-api/`.

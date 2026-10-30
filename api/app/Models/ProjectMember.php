@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProjectMember extends Model
 {
-    protected $fillable = ['workspace_id', 'project_id', 'workspace_member_id', 'permissions'];
+    protected $fillable = ['workspace_id', 'project_id', 'workspace_member_id', 'external_agent_id', 'permissions'];
 
     protected function casts(): array
     {

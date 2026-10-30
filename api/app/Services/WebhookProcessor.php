@@ -52,6 +52,10 @@ class WebhookProcessor
         }
 
         return DB::transaction(function () use ($delivery, $owner): bool|array {
+            $recipient = DB::table('webhook_endpoints')->find($delivery->webhook_endpoint_id);
+            if ($recipient?->external_agent_id) {
+                IntegrationWrites::lockWorkspace($recipient->workspace_id);
+            }
             $lease = DB::table('integration_locks')->where('name', 'webhooks')->lockForUpdate()->first();
             if (! $lease || $lease->owner !== $owner) {
                 return false;
@@ -70,6 +74,11 @@ class WebhookProcessor
             $payload = json_decode($event->body, true, 512, JSON_THROW_ON_ERROR);
             if ($event->workspace_id !== $endpoint->workspace_id || ! app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null)) {
                 DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => 'cancelled', 'error_code' => 'project_filtered', 'updated_at' => now()]);
+
+                return true;
+            }
+            if ($endpoint->external_agent_id && ! AgentAccess::deliveryAllowed($endpoint, $payload)) {
+                DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => 'cancelled', 'error_code' => 'agent_access_revoked', 'updated_at' => now()]);
 
                 return true;
             }

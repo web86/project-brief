@@ -32,6 +32,8 @@ class ApiUsageTest extends TestCase
                 return DB::connection();
             }
         });
+        // Real MariaDB metrics use an independent connection and can outlive other fixtures.
+        DB::table('api_usage_hours')->delete();
     }
 
     private function token(): array

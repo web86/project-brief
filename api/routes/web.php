@@ -6,6 +6,7 @@ use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminProjectRequestController;
+use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AiTaskAssistantController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BrowserProjectExportController;
@@ -149,6 +150,12 @@ Route::middleware('admin')->prefix('/api/admin/administrators')->group(function 
 });
 
 Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/integrations')->group(function (): void {
+    Route::get('/agents', [AgentController::class, 'index']);
+    Route::post('/agents', [AgentController::class, 'save']);
+    Route::patch('/agents/{uuid}', [AgentController::class, 'save']);
+    Route::delete('/agents/{uuid}', [AgentController::class, 'destroy']);
+    Route::post('/agents/{uuid}/tokens', [AgentController::class, 'token']);
+    Route::delete('/agents/{uuid}/tokens/{credential}', [AgentController::class, 'revokeToken']);
     Route::get('/', [IntegrationController::class, 'index']);
     Route::post('/sources', [IntegrationController::class, 'source']);
     Route::delete('/sources/{uuid}', [IntegrationController::class, 'deleteSource']);
@@ -191,6 +198,8 @@ Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
 Route::middleware('admin')->prefix('/api/admin/projects/{project}')->group(function () {
     Route::get('/feedback', [ProjectFeedbackController::class, 'review']);
     Route::post('/feedback/request', [ProjectFeedbackController::class, 'request']);
+    Route::post('/team/agents/{uuid}', [AgentController::class, 'team']);
+    Route::delete('/team/agents/{uuid}', [AgentController::class, 'team']);
     Route::get('/team', [ProjectTeamController::class, 'index']);
     Route::post('/team/invitations', [ProjectTeamController::class, 'invite'])->middleware('throttle:invitation-accept');
     Route::post('/team/members', [ProjectTeamController::class, 'assign']);
@@ -276,6 +285,7 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);
 });
 
+Route::match(['POST', 'DELETE'], '/api/admin/tasks/{task}/agents', [AgentController::class, 'task'])->middleware('admin');
 Route::post('/api/admin/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['admin', 'throttle:comments']);
 Route::post('/api/client/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['client', 'throttle:comments']);
 

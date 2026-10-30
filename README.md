@@ -1,6 +1,8 @@
 # Планировщик ТЗ / Project Brief
 
-Milestone 9.5 / Project Brief 0.9.5: [Agreements, team management, invitations and private team chat](docs/milestone-9-5/README.md).
+Milestone 9.6 / Project Brief 0.9.6: [Universal Agent API & External Executors](docs/milestone-9-6/README.md).
+
+Previous Milestone 9.5 / Project Brief 0.9.5: [Agreements, team management, invitations and private team chat](docs/milestone-9-5/README.md).
 
 Previous Milestone 9.4 / Project Brief 0.9.4: [Global branding, mobile swipe navigation and client task statuses](docs/milestone-9-4/README.md).
 
@@ -662,3 +664,14 @@ retry перепроверяют актуальную выборку. Новые
 [Архитектура и примеры](docs/milestone-5-0-1/README.md),
 [проверки и screenshots](docs/milestone-5-0-1/VERIFICATION.md),
 [миграция production и откат](docs/milestone-5-0-1/PRODUCTION.md).
+
+## Milestone 9.6 — Universal Agent API
+
+Внешние AI-агенты, автоматизации и сервисы получают отдельную workspace-идентичность, ограниченные credentials, назначения в существующей команде проекта и доступ только к своим задачам. Отчёты, комментарии и файлы сохраняют авторство агента; клиентское согласование и статусы задач остаются под контролем человека. Управление — в настройках интеграций, назначение — в команде и карточке задачи. Никакой коммерческий AI-провайдер, MCP-сервер или биллинг не подключён.
+
+- [Agent API и scopes](docs/milestone-9-6/AGENT-API.md), [OpenAPI](docs/milestone-9-6/openapi.json).
+- [Webhooks](docs/milestone-9-6/AGENT-WEBHOOKS.md), [безопасность](docs/milestone-9-6/AGENT-SECURITY.md).
+- [Независимый пример агента](docs/milestone-9-6/AGENT-EXAMPLE.md), [Node.js README](docs/milestone-9-6/examples/README.md).
+- [Обновление и rollback Jino](docs/milestone-9-6/PRODUCTION.md).
+
+Push, deployment и изменения production DB в scope этого milestone не входят.

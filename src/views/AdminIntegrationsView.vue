@@ -7,6 +7,7 @@ import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import LoadingButton from '../components/LoadingButton.vue'
 import AppIcon from '../components/AppIcon.vue'
+import WorkspaceAgents from '../components/WorkspaceAgents.vue'
 import SsoSourceDialog from '../components/SsoSourceDialog.vue'
 const nav = useAdminNavigationStore()
 const allowed = computed(() => !!nav.workspace && nav.user?.membershipRole === 'owner')
@@ -483,7 +484,7 @@ async function confirmAction(key, path, method = 'POST') {
       </button>
       <div class="integration-tabs" role="tablist" :aria-label="t('integrations.title')">
         <button
-          v-for="item in ['tokens', 'webhooks', 'sso', 'operations']"
+          v-for="item in ['tokens', 'webhooks', 'sso', 'operations', 'agents']"
           :id="'integration-tab-' + item"
           :key="item"
           role="tab"
@@ -493,7 +494,15 @@ async function confirmAction(key, path, method = 'POST') {
           :class="tab === item ? 'primary' : 'secondary'"
           @click="selectTab(item)"
         >
-          {{ t(item === 'operations' ? 'provisioning.operations' : 'integrations.' + item) }}
+          {{
+            t(
+              item === 'agents'
+                ? 'agents.title'
+                : item === 'operations'
+                  ? 'provisioning.operations'
+                  : 'integrations.' + item,
+            )
+          }}
         </button>
       </div>
       <p v-if="loading" role="status">{{ t('nav.loading') }}</p>
@@ -501,6 +510,14 @@ async function confirmAction(key, path, method = 'POST') {
         {{ t('ui.tryAgain') }}
       </button>
       <template v-else>
+        <section
+          v-if="tab === 'agents'"
+          id="integration-panel-agents"
+          role="tabpanel"
+          aria-labelledby="integration-tab-agents"
+        >
+          <WorkspaceAgents />
+        </section>
         <section
           v-show="tab === 'tokens'"
           id="integration-panel-tokens"

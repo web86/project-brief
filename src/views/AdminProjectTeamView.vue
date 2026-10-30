@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
+import { formatDate } from '../constants/project.js'
 import { api } from '../api/client.js'
 import { toast } from '../services/toast.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
@@ -180,6 +181,50 @@ function remove(member) {
             t('administrators.title')
           }}</RouterLink>
         </p>
+      </section>
+      <section class="surface team-list" data-team-agents>
+        <h3>{{ t('agents.executors') }}</h3>
+        <article
+          v-for="agent in state.agents || []"
+          :key="agent.id"
+          class="team-member project-team-member"
+        >
+          <div class="team-identity">
+            <span class="task-account-avatar user-avatar"><AppIcon name="bot" :size="24" /></span>
+            <div>
+              <strong>{{ agent.name }}</strong>
+              <p class="small muted">{{ t('agents.kind.' + agent.kind) }}</p>
+            </div>
+          </div>
+          <div class="project-team-status">
+            <span class="status-pill">{{
+              t(agent.active ? 'agents.active' : 'agents.disabled')
+            }}</span
+            ><span
+              >{{ t('agents.lastActivity') }}:
+              {{ agent.lastActivityAt ? formatDate(agent.lastActivityAt) : '—' }}</span
+            >
+          </div>
+          <button
+            class="text-button danger"
+            :disabled="busy"
+            @click="action('/agents/' + agent.id, 'DELETE')"
+          >
+            {{ t('projectTeam.remove') }}
+          </button>
+        </article>
+        <p v-if="!state.agents?.length" class="muted">{{ t('agents.noExecutors') }}</p>
+        <div class="team-actions">
+          <button
+            v-for="agent in state.availableAgents || []"
+            :key="agent.id"
+            class="button secondary"
+            :disabled="busy"
+            @click="action('/agents/' + agent.id, 'POST')"
+          >
+            <AppIcon name="plus" :size="16" />{{ agent.name }}
+          </button>
+        </div>
       </section>
       <form
         v-if="adding"

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\ExternalAgent;
 use App\Services\LiveSync;
 use App\Services\ProjectDiscussions;
 use App\Services\ProjectFeedbacks;
@@ -24,6 +25,7 @@ class ProjectResource extends JsonResource
         $unreadComments = $client ? app(ProjectDiscussions::class)->count($this->resource, $client) : $this->when($admin && isset($this->unread_comment_count), (int) $this->unread_comment_count);
 
         return ['syncCursor' => $this->when(! $admin, fn () => app(LiveSync::class)->seed($request)), 'id' => $this->uuid, 'name' => $this->title, 'website' => $this->website_url ?? '', 'description' => $this->description ?? '', 'language' => $this->language, 'currency' => $this->currency,
+            'agents' => $this->when($admin && $this->resource->relationLoaded('briefSections'), fn () => ExternalAgent::where('workspace_id', $this->workspace_id)->whereIn('id', $this->members()->whereNotNull('external_agent_id')->select('external_agent_id'))->get()->map(fn ($agent) => $agent->publicState())),
             'permissions' => $this->when($admin, fn () => ProjectPermissions::effective($request, $this->resource)),
             'status' => $this->status, 'updatedAt' => $this->updated_at?->toISOString(),
             'branding' => $this->when($request->attributes->has('project_client'), fn () => app(WorkspaceBranding::class)->portal($this->workspace)),

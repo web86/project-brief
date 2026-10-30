@@ -61,9 +61,14 @@ class Task extends Model
         return $this->belongsTo(ProjectSection::class);
     }
 
+    public function agentAssignments(): HasMany
+    {
+        return $this->hasMany(TaskAgentAssignment::class)->whereNull('revoked_at')->with('agent');
+    }
+
     public function comments(): HasMany
     {
-        return $this->hasMany(Comment::class)->with(['attachments.projectClient', 'authorUser'])->orderBy('id');
+        return $this->hasMany(Comment::class)->with(['attachments.projectClient', 'authorUser', 'agent', 'agentReport'])->orderBy('id');
     }
 
     public function attachments(): HasMany

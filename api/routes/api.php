@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentApiController;
 use App\Http\Controllers\ClientSsoController;
 use App\Http\Controllers\IntegrationApiController;
 use App\Http\Controllers\IntegrationReadController;
@@ -10,6 +11,10 @@ use App\Http\Middleware\RecordProvisioningOperation;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(function (): void {
+    Route::get('/agent/me', [AgentApiController::class, 'me']);
+    Route::get('/agent/tasks', [AgentApiController::class, 'index']);
+    Route::get('/agent/tasks/{task}', [AgentApiController::class, 'show']);
+    Route::post('/agent/tasks/{task}/{operation}', [AgentApiController::class, 'write'])->whereIn('operation', ['reports', 'comments', 'attachments']);
     Route::post('/client-sso/handoffs', [ClientSsoController::class, 'store']);
     Route::post('/project-requests', [ProjectRequestController::class, 'store'])->middleware(RecordProvisioningOperation::class);
     Route::get('/project-requests', [ProjectRequestController::class, 'index']);
