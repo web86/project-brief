@@ -13,5 +13,12 @@
   "frontendTests": 403,
   "productionBuild": true,
   "screenshotsCommitted": false,
-  "database": "Disposable SQLite only"
+  "database": "Disposable SQLite only",
+  "mariadb": {
+    "php": "8.4.26",
+    "database": "MariaDB 11.8.9",
+    "tests": 12,
+    "assertions": 227,
+    "passed": true
+  }
 }

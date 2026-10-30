@@ -41,5 +41,5 @@ Laravel сам проверяет клиентскую сессию, проек�
 
 Push и deployment не выполняются. Скриншоты — только локально, исключены из Git и production ZIP.
 
-- [Production ZIP](../../release/project-brief-v0.9.4-413e8a9.zip) — **39317101 bytes**, source commit `413e8a9`.
+- [Production ZIP](../../release/project-brief-v0.9.4-7cb36ab.zip) — **39320704 bytes**, source commit `7cb36ab`.
 - [SHA-256](SHA256SUMS.txt) и [итоговый отчёт](RELEASE-ARTIFACT.json).

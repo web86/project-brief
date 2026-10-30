@@ -6,7 +6,7 @@
 - `GlobalWorkspaceBrandingTest`: выбранный, единственный, неоднозначный, чужой и устаревший workspace; отсутствие membership; A→B→A; глобальность personal preferences; приватные реквизиты не публикуются.
 - Frontend: store write guard, одна запись без оптимистичного изменения, 409→загрузка состояния, четыре языка, locked states; passive gesture intent/distance/timeout/selection, controls/horizontal areas, touchcancel/navigation, cleanup.
 - Focused native PHP после session lock: **41 тест / 843 assertions**, включая Passkey parallel confirmation и security fallback. PHP 8.4.26 + MariaDB 11.8.9: **71 тест / 1607 assertions**. Один GD upload case не включён в этот ограниченный контейнер; он остаётся в полном native Laravel suite.
-- Полный frontend до финальной сборки: **400/400 PASS**. Финальная canonical сборка: **400/400 frontend; 999/999 Laravel, 14 660 assertions**. Pint и форматирование изменённых файлов — PASS. Старые ожидания запрета поля status обновлены на version validation и server transition denial. В точных тестах freshFor=300 зафиксированы часы, чтобы пересечение секунды не давало случайное 299; TTL приложения не изменён.
+- Полный frontend до финальной сборки: **403/403 PASS**. Финальная canonical сборка: **403/403 frontend; 1001/1001 Laravel, 14 729 assertions**. Pint и форматирование изменённых файлов — PASS. Старые ожидания запрета поля status обновлены на version validation и server transition denial. В точных тестах freshFor=300 зафиксированы часы, чтобы пересечение секунды не давало случайное 299; TTL приложения не изменён.
 
 ## Браузер
 
@@ -30,7 +30,7 @@ PHP 8.4/MariaDB проверка самого извлечённого ZIP и о
 
 ## Итог извлечённого архива
 
-`./bin/build-release` — **PASS**, source commit `413e8a9`. Независимо проверены CRC и **8894 внутренних checksum**, 8895 файлов (включая manifest checksums), 10140 ZIP entries. Архив **39317101 bytes**; точный SHA-256 — в SHA256SUMS.txt. Allowlist/secret scan — PASS; QA screenshots отсутствуют в ZIP и новых коммитах.
+`./bin/build-release` — **PASS**, source commit `7cb36ab`. Независимо проверены CRC и **8894 внутренних checksum**, 8895 файлов (включая manifest checksums), 10140 ZIP entries. Архив **39320704 bytes**; точный SHA-256 — в SHA256SUMS.txt. Allowlist/secret scan — PASS; QA screenshots отсутствуют в ZIP и новых коммитах.
 
 Извлечённые compiled assets с no-dev vendor прошли UV step-up/одну team mutation, публикацию/публичный документ/приглашение/API gate/принятие соглашения, бренд персональных страниц и client completion/cancel. Клиент входит в отдельной сессии через фактический localhost origin с проверкой canonical 302, затем серверных client role и review; HTTPS proxy применяется к виртуальному production origin/RP ID WebAuthn. Этот тест не обращается к реальному сайту.
 
