@@ -30,6 +30,7 @@ class SeamlessSecurityConfirmationTest extends TestCase
 
     public function test_uv_confirmation_preserves_the_account_workspace_and_version_then_saves_exact_permissions(): void
     {
+        $this->freezeTime();
         $project = Project::factory()->create();
         $owner = $this->ownerFor($project);
         $owner->passkeys()->delete();
@@ -88,6 +89,7 @@ class SeamlessSecurityConfirmationTest extends TestCase
 
     public function test_totp_alternative_never_accepts_password_only_and_preserves_one_use_codes(): void
     {
+        $this->freezeTime();
         $owner = User::factory()->owner()->create(['password' => 'Seamless-password!']);
         $this->actingAs($owner);
         $this->travel(301)->seconds();
