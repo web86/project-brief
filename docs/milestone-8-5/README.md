@@ -16,4 +16,4 @@ SSO использует существующие integration_sources. Вкла�
 
 - Проверки: [TESTS.md](TESTS.md).
 - Jino deployment/rollback: [PRODUCTION.md](PRODUCTION.md).
-- Финальный архив и checksum: RELEASE-ARTIFACT.json / SHA256SUMS.txt после канонической сборки.
+- Финальный архив и checksum: [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json) / [SHA256SUMS.txt](SHA256SUMS.txt). Канонический ZIP `release/project-brief-v0.9.1-ef31316.zip`: **39 288 950 bytes**, SHA-256 `481713fea36367ee6ef550dd5189ea51e28e461c3a6a7b4dc828ed9413ae9d9f`.

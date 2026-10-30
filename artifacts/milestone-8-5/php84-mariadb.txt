@@ -1,0 +1,16 @@
+PHP 8.4.26 (cli) (built: Sep 24 2026 19:11:24) (NTS)
+Copyright (c) The PHP Group
+Built by https://github.com/docker-library/php
+Zend Engine v4.4.26, Copyright (c) Zend Technologies
+    with Zend OPcache v8.4.26, Copyright (c), by Zend Technologies
+PHPUnit 12.5.38 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /tmp/m85-api/phpunit.xml
+
+................................................................. 65 / 86 ( 75%)
+.....................                                             86 / 86 (100%)
+
+Time: 00:25.259, Memory: 89.00 MB
+
+OK (86 tests, 880 assertions)

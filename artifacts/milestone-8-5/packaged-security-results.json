@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "compiledAssets": true,
+  "productionVendor": true,
+  "origin": "https://brief.web86.site",
+  "rpId": "brief.web86.site",
+  "virtualUV": true,
+  "active": true,
+  "applicationDialogs": 0,
+  "mutations": 1,
+  "changedPermissions": 5,
+  "browser": "151.0.7922.34"
+}
