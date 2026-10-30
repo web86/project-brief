@@ -205,4 +205,16 @@ class WorkspaceAgreementTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id]);
         $this->assertDatabaseHas('workspace_agreement_acceptances', ['workspace_id' => $project->workspace_id, 'user_id' => $user->id, 'workspace_member_id' => null, 'version' => $document['date'], 'locale' => 'en']);
     }
+
+    public function test_published_inline_formatting_preserves_spaces_between_text_runs(): void
+    {
+        [$project, $owner, $document] = $this->publish();
+        $payload = $this->payload();
+        $payload['baseRevision'] = $document['id'];
+        $runs = [['text' => 'Before '], ['text' => 'bold', 'bold' => true], ['text' => ' and '], ['text' => 'italic', 'italic' => true], ['text' => ' after.']];
+        $payload['draft']['texts']['en'] = [['type' => 'paragraph', 'content' => $runs]];
+        $this->actingAs($owner)->putJson('/api/admin/settings/agreement', $payload)->assertOk()->assertJsonPath('data.published.texts.en.0.content', $runs);
+        $this->postJson('/api/admin/logout')->assertOk();
+        $this->getJson('/api/public/workspaces/'.$project->workspace->uuid.'/agreement')->assertOk()->assertJsonPath('document.texts.en.0.content', $runs);
+    }
 }

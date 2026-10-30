@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trimStrings(except: ['draft.texts.*.*.content.*.text']);
         $middleware->prepend([MeasureApiUsage::class, SecurityResponseHeaders::class, ThrottleBootstrap::class]);
         $middleware->prependToPriorityList(ThrottleRequests::class, EnsureClientProjectAccess::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);

@@ -349,6 +349,24 @@ try {
   assert.equal(settings.data.enabled, true)
   assert.equal(settings.data.published.texts['zh-CN'][0].type, 'heading')
   assert.equal(settings.publicUrl, `/w/${f.workspace}/agreement`)
+  settings.data.draft.texts.en.push({
+    type: 'paragraph',
+    content: [
+      { text: 'Before ' },
+      { text: 'bold', bold: true },
+      { text: ' and ' },
+      { text: 'italic', italic: true },
+      { text: ' after.' },
+    ],
+  })
+  settings = await call(owner, '/api/admin/settings/agreement', 'PUT', {
+    enabled: true,
+    publish: true,
+    requireAgain: false,
+    baseRevision: settings.data.published.id,
+    draft: settings.data.draft,
+  })
+
   assert.equal(
     await admin.locator('.app-footer a').filter({ hasText: 'Rules and agreement' }).count(),
     1,
@@ -385,6 +403,11 @@ try {
     publicDoc = await guest.newPage()
   await publicDoc.goto(origin + settings.publicUrl)
   await publicDoc.locator('.agreement-document').waitFor()
+  assert.ok(
+    (await publicDoc.locator('.agreement-document').textContent()).includes(
+      'Before bold and italic after.',
+    ),
+  )
   assert.equal(
     await publicDoc.locator('.agreement-document img, .agreement-document script').count(),
     0,

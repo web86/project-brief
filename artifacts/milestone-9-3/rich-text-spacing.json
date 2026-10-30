@@ -1,0 +1,37 @@
+{
+  "before": {
+    "tool": "phpunit",
+    "result": "failed",
+    "tests": 1,
+    "passed": 0,
+    "assertions": 3,
+    "duration_ms": 401,
+    "failed": 1,
+    "failures": [
+      {
+        "test": "Tests\\Feature\\WorkspaceAgreementTest::test_published_inline_formatting_preserves_spaces_between_text_runs",
+        "file": "/Users/sonoma/Desktop/project-brief/api/tests/Feature/WorkspaceAgreementTest.php",
+        "line": 215,
+        "message": "Failed asserting that two arrays are identical.\n--- Expected\n+++ Actual\n@@ @@\n Array &0 [\n 0 => Array &1 [\n- 'text' => 'Before ',\n+ 'text' => 'Before',\n ],\n 1 => Array &2 [\n 'text' => 'bold',\n@@ @@\n 'bold' => true,\n ],\n 2 => Array &3 [\n- 'text' => ' and ',\n+ 'text' => 'and',\n ],\n 3 => Array &4 [\n 'text' => 'italic',\n@@ @@\n 'italic' => true,\n ],\n 4 => Array &5 [\n- 'text' => ' after.',\n+ 'text' => 'after.',\n ],\n ]",
+        "trace": [
+          "/Users/sonoma/Desktop/project-brief/api/vendor/laravel/framework/src/Illuminate/Testing/AssertableJsonString.php:258",
+          "/Users/sonoma/Desktop/project-brief/api/tests/Feature/WorkspaceAgreementTest.php:215"
+        ]
+      }
+    ]
+  },
+  "after": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 10,
+    "passed": 10,
+    "assertions": 158,
+    "duration_ms": 1327
+  },
+  "browser": {
+    "passed": 5,
+    "errors": 0,
+    "screenshotsLocalOnly": 54,
+    "mixedInlineRunText": "Before bold and italic after."
+  }
+}

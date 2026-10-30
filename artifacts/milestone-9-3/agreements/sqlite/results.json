@@ -54,6 +54,10 @@
       "method": "GET"
     },
     {
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
       "url": "/api/admin/me",
       "method": "GET"
     },
@@ -98,7 +102,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/admin/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/branding",
+      "url": "/api/admin/workspaces/01a18c35-27ff-7398-815b-d936216321fb/branding",
       "method": "GET"
     },
     {
@@ -106,15 +110,15 @@
       "method": "GET"
     },
     {
-      "url": "/api/security/passkey/confirm/options",
-      "method": "GET"
-    },
-    {
       "url": "/api/csrf",
       "method": "GET"
     },
     {
-      "url": "/api/admin/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/branding",
+      "url": "/api/security/passkey/confirm/options",
+      "method": "GET"
+    },
+    {
+      "url": "/api/admin/workspaces/01a18c35-27ff-7398-815b-d936216321fb/branding",
       "method": "PATCH"
     },
     {
@@ -142,7 +146,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -298,7 +302,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -334,7 +338,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -370,7 +374,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -406,7 +410,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -442,7 +446,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -478,7 +482,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -514,7 +518,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -550,7 +554,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -586,7 +590,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -622,7 +626,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -658,7 +662,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -694,7 +698,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -730,7 +734,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -766,7 +770,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -802,7 +806,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -838,7 +842,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/public/workspaces/01a18c23-faca-739c-92da-a681cbeb9e50/agreement",
+      "url": "/api/public/workspaces/01a18c35-27ff-7398-815b-d936216321fb/agreement",
       "method": "GET"
     },
     {
@@ -1059,6 +1063,10 @@
     },
     {
       "url": "/api/security/status",
+      "method": "GET"
+    },
+    {
+      "url": "/api/security/passkey/confirm/options",
       "method": "GET"
     },
     {
@@ -1206,7 +1214,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/client/project/01a18c23-fd21-7185-bc60-f67cceb5f7f5",
+      "url": "/api/client/project/01a18c35-2acc-7253-8ccf-02d4dfde194f",
       "method": "GET"
     },
     {
@@ -1218,7 +1226,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/client/project/01a18c23-fd21-7185-bc60-f67cceb5f7f5/feedback",
+      "url": "/api/client/project/01a18c35-2acc-7253-8ccf-02d4dfde194f/feedback",
       "method": "GET"
     },
     {
@@ -1291,10 +1299,6 @@
     },
     {
       "url": "/api/admin/projects/trash",
-      "method": "GET"
-    },
-    {
-      "url": "/api/security/passkey/confirm/options",
       "method": "GET"
     }
   ]
