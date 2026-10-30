@@ -10,7 +10,8 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
     prepared,
     preparing,
     epoch = 0,
-    active
+    active,
+    retrying
   function remember(value) {
     status = value
     deadline = now() + Math.max(0, Math.min(300, value?.freshFor || 0)) * 1000
@@ -53,8 +54,9 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
         adapters.supported() &&
         (!prepared || prepared.until <= now())
       ) {
-        const { options } = await adapters.options()
-        if (version === epoch) prepared = { options, until: now() + 90000 }
+        const { options, attemptId } = await adapters.options()
+        if (version === epoch)
+          prepared = { options: attemptId ? { options, attemptId } : options, until: now() + 90000 }
       }
     })()
     preparing = task
@@ -105,17 +107,27 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
   }
   async function warmRetry(operation = active) {
     if (!operation || prepared?.until > now()) return
-    update({ busy: true })
-    try {
-      const { options } = await adapters.options()
-      if (active === operation) prepared = { options, until: now() + 90000 }
-    } catch (cause) {
-      if (active === operation) {
-        update({ error: cause })
-        adapters.error?.(cause)
+    if (retrying?.operation === operation) return retrying.promise
+    const task = (async () => {
+      update({ busy: true })
+      try {
+        const { options, attemptId } = await adapters.options()
+        if (active === operation)
+          prepared = { options: attemptId ? { options, attemptId } : options, until: now() + 90000 }
+      } catch (cause) {
+        if (active === operation) {
+          update({ error: cause })
+          adapters.error?.(cause)
+        }
+      } finally {
+        if (active === operation) update({ busy: false })
       }
+    })()
+    retrying = { operation, promise: task }
+    try {
+      await task
     } finally {
-      if (active === operation) update({ busy: false })
+      if (retrying?.promise === task) retrying = null
     }
   }
   async function start(operation) {

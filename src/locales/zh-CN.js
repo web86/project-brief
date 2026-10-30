@@ -1,4 +1,37 @@
 export default {
+  adminEditor: {
+    pendingSecurity: '接受邀请后可查看安全状态。',
+    edit: '编辑',
+    active: '活跃',
+    inactive: '已停用',
+    invited: '已邀请',
+    delete: '删除',
+    assigned: '已分配项目（{count}）',
+    delivery: '邀请方式',
+    getLink: '获取邀请链接',
+    later: '保存但不发送',
+    linkHint: '新链接将替换旧链接，有效期为 7 天。请私下分享给受邀人员。',
+    linkReady: '邀请链接已生成',
+    joined: '此账户已加入工作区。',
+    securityHint: '安全验证方式由账户持有人管理。此表单不会关闭他人的多重身份验证。',
+    confirmDelete:
+      '要永久移除 {name} 在此工作区的访问权限吗？此处的项目分配和待处理邀请将被撤销。账户、其他工作区和项目数据将保留。',
+    openExisting: '编辑现有管理员',
+    invitationLink: '邀请链接',
+    linkOnce:
+      '此链接仅显示一次。请在关闭前复制。生成新链接会使旧链接失效。手动分享的链接不会验证账户邮箱。',
+  },
+  sourceEditor: {
+    key: 'API 密钥',
+    boundKeys: '这些密钥已绑定此来源。来源绑定不可更改；如有需要，请创建新密钥。',
+    keyName: '新 API 密钥名称',
+    saveFirst: '请先保存来源，然后打开设置创建 API 密钥。',
+    noAutomatic: '没有自动连接的项目。',
+    confirmDelete:
+      '要删除来源“{name}”吗？其所有 API 密钥和 SSO 访问权限将被撤销。历史申请和项目来源记录将保留。',
+    deleteNamed: '删除来源 {name}',
+  },
+
   administrators: {
     title: '管理员',
     hint: '管理当前工作区的管理员和项目访问权限。',

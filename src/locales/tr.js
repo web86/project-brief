@@ -1,4 +1,40 @@
 export default {
+  adminEditor: {
+    pendingSecurity: 'Güvenlik durumu davet kabul edildikten sonra görünür.',
+    edit: 'Düzenle',
+    active: 'Aktif',
+    inactive: 'Pasif',
+    invited: 'Davet edildi',
+    delete: 'Sil',
+    assigned: 'Atanan projeler ({count})',
+    delivery: 'Davet gönderimi',
+    getLink: 'Davet bağlantısı al',
+    later: 'Göndermeden kaydet',
+    linkHint:
+      'Yeni bağlantı öncekinin yerini alır ve 7 gün geçerlidir. Davet edilen kişiyle özel olarak paylaşın.',
+    linkReady: 'Davet bağlantısı hazır',
+    joined: 'Bu hesap çalışma alanına zaten katılmış.',
+    securityHint:
+      'Güvenlik yöntemlerini hesap sahibi yönetir. Bu form başka birinin MFA korumasını kapatmaz.',
+    confirmDelete:
+      '{name} bu çalışma alanından kalıcı olarak çıkarılsın mı? Buradaki proje erişimi ve bekleyen davetleri iptal edilir. Hesap, diğer çalışma alanları ve proje verileri korunur.',
+    openExisting: 'Mevcut yöneticiyi düzenle',
+    invitationLink: 'Davet bağlantısı',
+    linkOnce:
+      'Bağlantı yalnızca bir kez gösterilir. Kapatmadan önce kopyalayın. Yeni bağlantı eskisini geçersiz kılar. Elle paylaşılan bağlantı hesabın e-postasını doğrulamaz.',
+  },
+  sourceEditor: {
+    key: 'API anahtarı',
+    boundKeys:
+      'Bu anahtarlar zaten bu kaynağa bağlıdır. Kaynak bağlantısı değiştirilemez; gerekirse yeni anahtar oluşturun.',
+    keyName: 'Yeni API anahtarı adı',
+    saveFirst: 'Önce kaynağı kaydedin, ardından API anahtarı oluşturmak için ayarlarını açın.',
+    noAutomatic: 'Otomatik bağlanmış proje yok.',
+    confirmDelete:
+      '“{name}” kaynağı silinsin mi? Tüm API anahtarları ve SSO erişimi iptal edilir. Geçmiş talepler ve projelerin kaynağı korunur.',
+    deleteNamed: '{name} kaynağını sil',
+  },
+
   administrators: {
     title: 'Yöneticiler',
     hint: 'Bu çalışma alanındaki yöneticileri ve proje erişimini yönetin.',

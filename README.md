@@ -1,6 +1,8 @@
 # Планировщик ТЗ / Project Brief
 
-Milestone 8.5 / Project Brief 0.9.1: [Centralized Administrators & SSO UX](docs/milestone-8-5/README.md).
+Milestone 9.2 / Project Brief 0.9.2: [Administrators & SSO UX + Passkey Reliability](docs/milestone-9-2/README.md).
+
+База Milestone 8.5 / Project Brief 0.9.1: [Centralized Administrators & SSO UX](docs/milestone-8-5/README.md).
 
 База Milestone 9.0 / Project Brief 0.9.0: [Platform Admin & Usage Monitoring](docs/milestone-9-0/README.md).
 Milestone 8.4 / Project Brief 0.8.4: [UX Polish & Live Notifications](docs/milestone-8-4/README.md).

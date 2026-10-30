@@ -4,42 +4,34 @@ import { api } from '../api/client.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import { toast } from '../services/toast.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
-import { defaultProjectPermissions } from '../services/projectPermissions.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
-import NotificationToggle from '../components/NotificationToggle.vue'
+import AdministratorDialog from '../components/AdministratorDialog.vue'
+import BaseDialog from '../components/BaseDialog.vue'
 import AppIcon from '../components/AppIcon.vue'
 import UserAvatar from '../components/UserAvatar.vue'
-import LoadingButton from '../components/LoadingButton.vue'
-const nav = useAdminNavigationStore()
+const nav = useAdminNavigationStore(),
+  root = '/api/admin/administrators'
 const allowed = computed(() => !!nav.workspace && nav.user?.membershipRole === 'owner')
-const root = '/api/admin/administrators'
 const state = ref(null),
   busy = ref(false),
   error = ref(''),
-  loading = ref(false)
-const adding = ref(false),
-  email = ref(''),
-  name = ref(''),
-  sendEmail = ref(true)
-const search = ref(''),
+  loading = ref(false),
+  search = ref(''),
   query = ref(''),
-  status = ref('all'),
-  notice = ref(''),
-  highlighted = ref('')
-const editing = ref(null),
-  editName = ref(''),
-  selected = ref([]),
-  projectSearch = ref(''),
-  canCreate = ref(false),
-  permissionProject = ref(''),
-  permissionValues = ref({})
-const keys = Object.keys(defaultProjectPermissions)
+  status = ref('all')
+const open = ref(false),
+  kind = ref('create'),
+  record = ref(null),
+  modalError = ref(''),
+  duplicate = ref(null),
+  link = ref(''),
+  copying = ref(false)
 let revision = 0,
   timer
-watch(search, (value) => {
+watch(search, (v) => {
   clearTimeout(timer)
   timer = setTimeout(() => {
-    query.value = value
+    query.value = v
   }, 300)
 })
 function matches(name, email) {
@@ -49,37 +41,24 @@ function matches(name, email) {
 }
 const members = computed(() =>
   (state.value?.members || []).filter(
-    (member) =>
-      member.role !== 'owner' &&
-      (status.value === 'all' || status.value === member.status) &&
-      matches(member.user.name, member.user.email),
+    (m) =>
+      m.role !== 'owner' &&
+      (status.value === 'all' || status.value === m.status) &&
+      matches(m.user.name, m.user.email),
   ),
 )
 const invitations = computed(() =>
   (state.value?.invitations || []).filter(
-    (item) =>
-      (status.value === 'all' || status.value === 'invited') &&
-      matches(item.name || '', item.email),
+    (i) => (status.value === 'all' || status.value === 'invited') && matches(i.name || '', i.email),
   ),
 )
-const projects = computed(() =>
-  (state.value?.projects || []).filter((project) =>
-    project.name
-      .toLocaleLowerCase(intlLocale())
-      .includes(projectSearch.value.trim().toLocaleLowerCase(intlLocale())),
-  ),
-)
-const assigned = computed(() =>
-  (state.value?.projects || []).filter((project) => selected.value.includes(project.id)),
-)
-watch(
-  selected,
-  (ids) => {
-    for (const id of ids) permissionValues.value[id] ||= { ...defaultProjectPermissions }
-    if (!ids.includes(permissionProject.value)) permissionProject.value = ids[0] || ''
-  },
-  { deep: true },
-)
+function edit(item = null, type = 'create') {
+  record.value = item
+  kind.value = type
+  modalError.value = ''
+  duplicate.value = null
+  open.value = true
+}
 async function load(current = revision) {
   const result = await api.request(root)
   if (current === revision && allowed.value) state.value = result
@@ -89,17 +68,13 @@ watch(
   async () => {
     const current = ++revision
     state.value = null
+    open.value = false
+    link.value = ''
     error.value = ''
-    notice.value = ''
-    highlighted.value = ''
-    editing.value = null
-    adding.value = false
-    name.value = ''
-    email.value = ''
+    busy.value = false
     search.value = ''
     query.value = ''
     status.value = 'all'
-    busy.value = false
     clearTimeout(timer)
     loading.value = true
     try {
@@ -116,109 +91,98 @@ watch(
 onBeforeUnmount(() => {
   revision++
   clearTimeout(timer)
+  link.value = ''
 })
-async function action(path, method, body, successKey = 'team.saved') {
+async function action(path, method, body, { close = false, success = 'team.saved' } = {}) {
   if (busy.value || !allowed.value) return
   const current = revision
   busy.value = true
+  modalError.value = ''
   error.value = ''
-  notice.value = ''
-  highlighted.value = ''
+  duplicate.value = null
   try {
     const result = await api.request(root + path, { method, body })
     if (current !== revision) return
     await load(current)
     if (current !== revision) return
-    toast.success(() => t(successKey))
+    if (close) open.value = false
+    else if (record.value && kind.value === 'invitation')
+      record.value = state.value.invitations.find((i) => i.id === record.value.id) || record.value
+    if (result.link) link.value = result.link
+    toast.success(() => t(success))
     return result
   } catch (cause) {
     if (current !== revision || isSecurityCancellation(cause)) return
-    await load(current).catch(() => {})
-    if (current !== revision) return
-    if (cause.code === 'administrator_exists' || cause.code === 'administrator_invitation_exists') {
-      search.value = ''
-      query.value = ''
-      status.value = 'all'
-      notice.value = t(
+    let message =
+      cause.code === 'account_mail_failed' ? t('account.mailFailed') : formatApiError(cause)
+    if (['administrator_exists', 'administrator_invitation_exists'].includes(cause.code)) {
+      await load(current).catch(() => {})
+      if (current !== revision) return
+      message = t(
         cause.code === 'administrator_exists'
           ? 'administrators.exists'
           : 'administrators.invitationExists',
       )
-      highlighted.value = String(cause.errors?.memberId || cause.errors?.invitationId || '')
-      const member = state.value?.members.find((item) => item.id === cause.errors?.memberId)
-      if (member?.role === 'admin') edit(member)
-    } else {
-      error.value =
-        cause.code === 'account_mail_failed' ? t('account.mailFailed') : formatApiError(cause)
-      toast.error(() => formatApiError(cause))
+      const member = state.value?.members.find(
+        (m) => m.id === cause.errors?.memberId && m.role !== 'owner',
+      )
+      const invitation = state.value?.invitations.find((i) => i.id === cause.errors?.invitationId)
+      duplicate.value = member
+        ? { record: member, kind: 'member' }
+        : invitation
+          ? { record: invitation, kind: 'invitation' }
+          : null
     }
+    if (open.value) modalError.value = message
+    else error.value = message
+    if (cause.code === 'account_mail_failed') await load(current).catch(() => {})
   } finally {
     if (current === revision) busy.value = false
   }
 }
-async function add() {
-  const result = await action(
-    '/invitations',
-    'POST',
-    { name: name.value, email: email.value, sendEmail: sendEmail.value },
-    sendEmail.value ? 'team.sent' : 'administrators.draftSaved',
+function save(data) {
+  if (kind.value === 'create') return action('/invitations', 'POST', data, { close: true })
+  const { email, sendEmail, generateLink, status: memberStatus, ...values } = data
+  return action(
+    `/${kind.value === 'member' ? 'members' : 'invitations'}/${record.value.id}`,
+    'PATCH',
+    { ...values, ...(kind.value === 'member' ? { status: memberStatus } : {}) },
+    { close: true },
   )
-  if (result) {
-    adding.value = false
-    name.value = ''
-    email.value = ''
+}
+function remove() {
+  if (
+    window.confirm(
+      t('adminEditor.confirmDelete', {
+        name: record.value?.user?.name || record.value?.name || record.value?.email,
+      }),
+    )
+  )
+    return action(
+      `/${kind.value === 'member' ? 'members' : 'invitations'}/${record.value.id}`,
+      'DELETE',
+      undefined,
+      { close: true },
+    )
+}
+function invitationAction(mode) {
+  return action(`/invitations/${record.value.id}/${mode}`, 'POST', undefined, {
+    success: mode === 'link' ? 'adminEditor.linkReady' : 'team.sent',
+  })
+}
+async function copyLink() {
+  const value = link.value,
+    current = revision
+  if (!value || copying.value) return
+  copying.value = true
+  try {
+    await navigator.clipboard.writeText(value)
+    if (current === revision && value === link.value) toast.success(() => t('integrations.copied'))
+  } catch {
+    if (current === revision) toast.error(() => t('ui.weCouldNotCompleteThisActionPleaseTry'))
+  } finally {
+    if (current === revision) copying.value = false
   }
-}
-function edit(member) {
-  editing.value = member.id
-  editName.value = member.user.name
-  selected.value = [...member.projects]
-  canCreate.value = member.canCreateProjects
-  projectSearch.value = ''
-  permissionValues.value = Object.fromEntries(
-    member.projects.map((id) => [
-      id,
-      { ...defaultProjectPermissions, ...member.projectPermissions?.[id] },
-    ]),
-  )
-  permissionProject.value = member.projects[0] || ''
-}
-async function save(member) {
-  const result = await action('/members/' + member.id, 'PATCH', {
-    name: editName.value,
-    projects: selected.value,
-    canCreateProjects: canCreate.value,
-    projectPermissions: Object.fromEntries(
-      selected.value.map((id) => [id, permissionValues.value[id]]),
-    ),
-  })
-  if (result) editing.value = null
-}
-function editInvitation(invitation) {
-  editing.value = invitation.id
-  editName.value = invitation.name || ''
-  selected.value = [...invitation.projects]
-  projectSearch.value = ''
-}
-async function saveInvitation(invitation) {
-  const result = await action('/invitations/' + invitation.id, 'PATCH', {
-    name: editName.value,
-    projects: selected.value,
-  })
-  if (result) editing.value = null
-}
-function deactivate(member) {
-  if (window.confirm(t('administrators.confirmDeactivate', { name: member.user.name })))
-    action('/members/' + member.id, 'DELETE')
-}
-function revoke(invitation) {
-  if (window.confirm(t('team.confirmRevoke'))) action('/invitations/' + invitation.id, 'DELETE')
-}
-function reinvite(member) {
-  adding.value = true
-  name.value = member.user.name
-  email.value = member.user.email
-  sendEmail.value = true
 }
 </script>
 <template>
@@ -228,21 +192,15 @@ function reinvite(member) {
         <h1>{{ t('administrators.title') }}</h1>
         <p class="muted">{{ t('administrators.hint') }}</p>
       </div>
-      <button
-        class="button primary"
-        :disabled="busy"
-        :aria-expanded="adding"
-        @click="adding = !adding"
-      >
+      <button class="button primary" :disabled="busy" @click="edit()">
         <AppIcon name="plus" :size="18" />{{ t('administrators.add') }}
       </button>
     </div>
     <div class="administrator-filters surface">
       <label class="field" for="administrator-search"
         >{{ t('administrators.search')
-        }}<input id="administrator-search" v-model="search" type="search"
-      /></label>
-      <label class="field" for="administrator-status"
+        }}<input id="administrator-search" v-model="search" type="search" /></label
+      ><label class="field" for="administrator-status"
         >{{ t('administrators.status')
         }}<select id="administrator-status" v-model="status">
           <option
@@ -256,7 +214,6 @@ function reinvite(member) {
       >
     </div>
     <p v-if="error" role="alert" class="field-error">{{ error }}</p>
-    <p v-if="notice" role="status" class="account-success">{{ notice }}</p>
     <p v-if="loading" role="status" class="muted">{{ t('nav.loading') }}</p>
     <button
       v-if="!state && !loading"
@@ -265,34 +222,8 @@ function reinvite(member) {
     >
       {{ t('integrations.refresh') }}
     </button>
-    <template v-if="state">
-      <form v-if="adding" class="surface admin-form invitation-form" @submit.prevent="add">
-        <h2>{{ t('administrators.add') }}</h2>
-        <label class="field" for="administrator-name"
-          >{{ t('administrators.name')
-          }}<input id="administrator-name" v-model="name" maxlength="255" :disabled="busy" required
-        /></label>
-        <label class="field" for="administrator-email"
-          >{{ t('team.email')
-          }}<input
-            id="administrator-email"
-            v-model="email"
-            type="email"
-            maxlength="254"
-            :disabled="busy"
-            required
-        /></label>
-        <label class="administrator-check"
-          ><input v-model="sendEmail" type="checkbox" :disabled="busy" />{{
-            t('administrators.sendEmail')
-          }}</label
-        >
-        <p class="small muted">{{ t('administrators.inviteHint') }}</p>
-        <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
-          t(sendEmail ? 'team.send' : 'account.save')
-        }}</LoadingButton>
-      </form>
-      <p
+    <template v-if="state"
+      ><p
         v-if="!members.length && !invitations.length"
         class="surface team-list muted"
         role="status"
@@ -304,7 +235,6 @@ function reinvite(member) {
           v-for="member in members"
           :key="member.id"
           class="surface administrator-card team-member"
-          :class="{ 'administrator-highlight': highlighted === String(member.id) }"
         >
           <div class="team-identity">
             <UserAvatar :user="member.user" />
@@ -314,7 +244,7 @@ function reinvite(member) {
             </div>
           </div>
           <div class="person-badges">
-            <span class="client-state">{{ t('administrators.' + member.status) }}</span
+            <span class="client-state">{{ t('adminEditor.' + member.status) }}</span
             ><span class="person-role">{{
               t('administrators.projectCount', { count: member.projects.length })
             }}</span>
@@ -322,133 +252,40 @@ function reinvite(member) {
           <p v-if="!member.projects.length" class="small muted">
             {{ t('administrators.noProjects') }}
           </p>
-          <p class="small muted security-indicators">
-            <span
-              ><AppIcon name="shield" :size="15" />{{ t('security.authenticator') }}:
-              {{ t(member.security.totp ? 'security.configured' : 'security.notConfigured') }}</span
-            ><span
-              ><AppIcon name="shield" :size="15" />{{ t('security.passkeys') }}:
-              {{
-                t(member.security.passkey ? 'security.configured' : 'security.notConfigured')
+          <div class="administrator-security small muted">
+            <span :title="t('security.authenticator')"
+              ><AppIcon name="shield" :size="15" /><span class="sr-only">{{
+                t('security.authenticator')
               }}</span
+              ><span class="sr-only">{{ t('security.authenticator') }}</span
+              >TOTP <AppIcon :name="member.security.totp ? 'check' : 'close'" :size="14" /><span
+                class="sr-only"
+                >{{
+                  t(member.security.totp ? 'security.configured' : 'security.notConfigured')
+                }}</span
+              ></span
+            ><span :title="t('security.passkeys')"
+              >{{ t('security.passkeys') }}
+              <AppIcon :name="member.security.passkey ? 'check' : 'close'" :size="14" /><span
+                class="sr-only"
+                >{{
+                  t(member.security.passkey ? 'security.configured' : 'security.notConfigured')
+                }}</span
+              ></span
             >
-          </p>
-          <p class="small">
-            {{ t('permissions.createProjects') }}:
-            {{ t(member.canCreateProjects ? 'administrators.yes' : 'administrators.no') }}
-          </p>
+          </div>
           <button
-            v-if="member.status === 'active'"
             class="button secondary administrator-manage"
             :disabled="busy"
-            :aria-expanded="editing === member.id"
-            @click="editing === member.id ? (editing = null) : edit(member)"
+            @click="edit(member, 'member')"
           >
-            <AppIcon name="settings" :size="16" />{{ t('administrators.manage') }}
+            <AppIcon name="edit" :size="16" />{{ t('adminEditor.edit') }}
           </button>
-          <button v-else class="button secondary" :disabled="busy" @click="reinvite(member)">
-            {{ t('administrators.reinvite') }}
-          </button>
-          <form
-            v-if="editing === member.id"
-            class="team-edit administrator-editor"
-            @submit.prevent="save(member)"
-          >
-            <label class="field" :for="'administrator-name-' + member.id"
-              >{{ t('administrators.name')
-              }}<input
-                :id="'administrator-name-' + member.id"
-                v-model="editName"
-                maxlength="255"
-                required
-                :disabled="busy"
-            /></label>
-            <p class="small muted">{{ t('administrators.profileHint') }}</p>
-            <fieldset class="project-choices" :disabled="busy">
-              <legend>{{ t('team.projects') }}</legend>
-              <label class="field" :for="'administrator-project-search-' + member.id"
-                >{{ t('integrations.searchProjects')
-                }}<input
-                  :id="'administrator-project-search-' + member.id"
-                  v-model="projectSearch"
-                  type="search"
-              /></label>
-              <div class="administrator-project-options">
-                <label v-for="project in projects" :key="project.id"
-                  ><input v-model="selected" type="checkbox" :value="project.id" />{{
-                    project.name
-                  }}</label
-                >
-              </div>
-              <p v-if="!selected.length" class="small muted">
-                {{ t('administrators.noProjects') }}
-              </p>
-            </fieldset>
-            <div class="member-creation-permission">
-              <NotificationToggle
-                :checked="canCreate"
-                :disabled="busy"
-                :label="t('permissions.createProjects')"
-                @change="canCreate = $event.target.checked"
-              />
-            </div>
-            <fieldset v-if="assigned.length" class="member-permissions" :disabled="busy">
-              <legend>{{ t('permissions.title') }}</legend>
-              <label class="field" :for="'administrator-permission-project-' + member.id"
-                >{{ t('permissions.project')
-                }}<select
-                  :id="'administrator-permission-project-' + member.id"
-                  v-model="permissionProject"
-                >
-                  <option v-for="project in assigned" :key="project.id" :value="project.id">
-                    {{ project.name }}
-                  </option>
-                </select></label
-              >
-              <p class="small muted">{{ t('permissions.hint') }}</p>
-              <template v-if="permissionValues[permissionProject]"
-                ><div v-for="key in keys" :key="key" class="member-permission">
-                  <NotificationToggle
-                    :checked="permissionValues[permissionProject][key]"
-                    :disabled="busy"
-                    :label="t('permissions.' + key)"
-                    @change="permissionValues[permissionProject][key] = $event.target.checked"
-                  />
-                  <p class="small muted">{{ t('permissions.' + key + 'Hint') }}</p>
-                </div></template
-              >
-              <button
-                type="button"
-                class="button secondary"
-                :disabled="busy"
-                @click="permissionValues[permissionProject] = { ...defaultProjectPermissions }"
-              >
-                {{ t('permissions.reset') }}
-              </button>
-            </fieldset>
-            <div class="team-actions">
-              <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
-                t('account.save')
-              }}</LoadingButton
-              ><button class="text-button" type="button" :disabled="busy" @click="editing = null">
-                {{ t('account.cancel') }}
-              </button>
-            </div>
-            <button
-              class="text-button danger"
-              type="button"
-              :disabled="busy"
-              @click="deactivate(member)"
-            >
-              {{ t('administrators.deactivate') }}
-            </button>
-          </form>
         </article>
         <article
           v-for="invitation in invitations"
           :key="invitation.id"
           class="surface administrator-card team-member"
-          :class="{ 'administrator-highlight': highlighted === invitation.id }"
         >
           <div class="team-identity">
             <UserAvatar :user="{ name: invitation.name || invitation.email }" />
@@ -458,78 +295,82 @@ function reinvite(member) {
             </div>
           </div>
           <div class="person-badges">
-            <span class="client-state">{{
+            <span class="client-state">{{ t('adminEditor.invited') }}</span
+            ><span class="person-role">{{
+              t('administrators.projectCount', { count: invitation.projects.length })
+            }}</span>
+          </div>
+          <p class="small muted">
+            {{
               t(
                 invitation.status === 'draft'
                   ? 'administrators.draft'
                   : 'team.' + invitation.status,
               )
-            }}</span
-            ><span class="person-role">{{
-              t('administrators.projectCount', { count: invitation.projects.length })
-            }}</span>
-          </div>
-          <p v-if="!invitation.projects.length" class="small muted">
-            {{ t('administrators.noProjects') }}
+            }}
           </p>
-          <button
-            class="button secondary"
-            :disabled="busy"
-            :aria-expanded="editing === invitation.id"
-            @click="editing === invitation.id ? (editing = null) : editInvitation(invitation)"
+          <div
+            class="administrator-security small muted"
+            :title="t('adminEditor.pendingSecurity')"
+            :aria-label="t('adminEditor.pendingSecurity')"
           >
-            {{ t('administrators.manage') }}
-          </button>
-          <form
-            v-if="editing === invitation.id"
-            class="team-edit administrator-editor"
-            @submit.prevent="saveInvitation(invitation)"
-          >
-            <label class="field" for="invitation-edit-name"
-              >{{ t('administrators.name')
-              }}<input
-                id="invitation-edit-name"
-                v-model="editName"
-                maxlength="255"
-                :disabled="busy"
-            /></label>
-            <fieldset class="project-choices" :disabled="busy">
-              <legend>{{ t('team.projects') }}</legend>
-              <label class="field" for="invitation-project-search"
-                >{{ t('integrations.searchProjects')
-                }}<input id="invitation-project-search" v-model="projectSearch" type="search"
-              /></label>
-              <div class="administrator-project-options">
-                <label v-for="project in projects" :key="project.id"
-                  ><input v-model="selected" type="checkbox" :value="project.id" />{{
-                    project.name
-                  }}</label
-                >
-              </div>
-              <p v-if="!selected.length" class="small muted">
-                {{ t('administrators.noProjects') }}
-              </p>
-            </fieldset>
-            <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
-              t('account.save')
-            }}</LoadingButton>
-          </form>
-          <div class="team-actions">
-            <button
-              class="button secondary"
-              :disabled="busy"
-              @click="
-                action('/invitations/' + invitation.id + '/resend', 'POST', undefined, 'team.sent')
-              "
-            >
-              {{ t(invitation.status === 'draft' ? 'team.send' : 'team.resend') }}</button
-            ><button class="text-button danger" :disabled="busy" @click="revoke(invitation)">
-              {{ t('team.revoke') }}
-            </button>
+            <span>TOTP —</span><span>{{ t('security.passkeys') }} —</span>
           </div>
+          <button
+            class="button secondary administrator-manage"
+            :disabled="busy"
+            @click="edit(invitation, 'invitation')"
+          >
+            <AppIcon name="edit" :size="16" />{{ t('adminEditor.edit') }}
+          </button>
         </article>
       </div>
     </template>
+    <AdministratorDialog
+      :open="open"
+      :kind="kind"
+      :record="record"
+      :projects="state?.projects || []"
+      :busy="busy"
+      :error="modalError"
+      @close="open = false"
+      @save="save"
+      @remove="remove"
+      @invite="invitationAction('resend')"
+      @link="invitationAction('link')"
+      ><template #error-actions
+        ><button
+          v-if="duplicate"
+          type="button"
+          class="button secondary"
+          @click="edit(duplicate.record, duplicate.kind)"
+        >
+          {{ t('adminEditor.openExisting') }}
+        </button></template
+      ></AdministratorDialog
+    >
+    <BaseDialog
+      :open="!!link"
+      :title="t('adminEditor.linkReady')"
+      id="invitation-link-title"
+      class="management-dialog invitation-link-dialog"
+      @close="link = ''"
+    >
+      <div class="management-body">
+        <p>{{ t('adminEditor.linkHint') }}</p>
+        <label class="field" for="administrator-invitation-link"
+          >{{ t('adminEditor.invitationLink')
+          }}<textarea id="administrator-invitation-link" :value="link" readonly rows="3" />
+        </label>
+        <p class="small muted">{{ t('adminEditor.linkOnce') }}</p>
+      </div>
+      <template #footer
+        ><button class="button secondary" @click="link = ''">{{ t('integrations.close') }}</button
+        ><button class="button primary" :disabled="copying" @click="copyLink">
+          {{ t('integrations.copy') }}
+        </button></template
+      >
+    </BaseDialog>
   </div>
 </template>
 <style scoped>
@@ -550,7 +391,7 @@ function reinvite(member) {
 }
 .administrator-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 20px;
   align-items: start;
 }
@@ -558,31 +399,24 @@ function reinvite(member) {
   min-width: 0;
   padding: 20px;
   overflow-wrap: anywhere;
+  margin: 0;
 }
-.administrator-highlight {
-  outline: 2px solid var(--action);
-}
-.administrator-check,
-.security-indicators span {
+.administrator-security {
   display: flex;
-  gap: 8px;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.administrator-security > span {
+  display: inline-flex;
+  gap: 5px;
   align-items: center;
 }
-.security-indicators {
-  display: grid;
-  gap: 6px;
+.administrator-manage {
+  margin-top: 8px;
 }
-.administrator-project-options {
-  max-height: 260px;
-  overflow-y: auto;
-  display: grid;
-  gap: 12px;
-}
-.administrator-editor {
-  display: grid;
-  gap: 16px;
-  border-top: 1px solid var(--divider);
-  padding-top: 20px;
+.administrator-card .person-badges {
+  margin-top: 14px;
 }
 @media (max-width: 600px) {
   .administrator-filters {

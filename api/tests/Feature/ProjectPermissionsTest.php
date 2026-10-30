@@ -261,7 +261,7 @@ class ProjectPermissionsTest extends TestCase
         $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', true);
         $this->getJson($this->root())->assertJsonPath('data.permissions.manage_clients', true);
         $this->actingAs($this->owner)->deleteJson('/api/admin/administrators/members/'.$this->assignment->workspace_member_id)->assertOk();
-        $this->assertDatabaseHas('workspace_members', ['id' => $this->assignment->workspace_member_id, 'status' => 'inactive', 'can_create_projects' => false]);
+        $this->assertDatabaseMissing('workspace_members', ['id' => $this->assignment->workspace_member_id]);
         $accept();
         $this->getJson('/api/admin/me')->assertJsonPath('user.canCreateProjects', false);
         $this->getJson($this->root())->assertJsonPath('data.permissions', ProjectPermissions::DEFAULTS);

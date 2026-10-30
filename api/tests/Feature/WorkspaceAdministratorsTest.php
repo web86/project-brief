@@ -141,7 +141,7 @@ class WorkspaceAdministratorsTest extends TestCase
         $credentials = $admin->fresh()->getAttributes();
         $this->actingAs($owner)->deleteJson(self::ROOT.'/members/'.$member->id)->assertOk();
         $this->assertNotNull($invitation->fresh()->revoked_at);
-        $this->assertSame('inactive', $member->fresh()->status);
+        $this->assertNull($member->fresh());
         $this->assertSame($credentials, $admin->fresh()->getAttributes());
         $this->assertSame('active', $elsewhere->fresh()->status);
         $this->actingAs($admin)->withSession(['workspace_id' => $project->workspace_id])->getJson('/api/admin/projects/'.$project->uuid)->assertForbidden();

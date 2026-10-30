@@ -128,6 +128,7 @@ Route::middleware('admin')->prefix('/api/admin')->group(function () {
 Route::middleware('admin')->prefix('/api/admin/administrators')->group(function (): void {
     Route::get('/', [WorkspaceAdministratorController::class, 'index']);
     Route::post('/invitations', [WorkspaceAdministratorController::class, 'invite'])->middleware('throttle:account-security');
+    Route::post('/invitations/{invitation}/link', [WorkspaceAdministratorController::class, 'link'])->middleware('throttle:account-security');
     Route::post('/invitations/{invitation}/resend', [WorkspaceAdministratorController::class, 'resend'])->middleware('throttle:account-security');
     Route::patch('/invitations/{invitation}', [WorkspaceAdministratorController::class, 'updateInvitation']);
     Route::delete('/invitations/{invitation}', [WorkspaceAdministratorController::class, 'revoke']);
@@ -138,6 +139,7 @@ Route::middleware('admin')->prefix('/api/admin/administrators')->group(function 
 Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admin/integrations')->group(function (): void {
     Route::get('/', [IntegrationController::class, 'index']);
     Route::post('/sources', [IntegrationController::class, 'source']);
+    Route::delete('/sources/{uuid}', [IntegrationController::class, 'deleteSource']);
     Route::patch('/sources/{uuid}/sso', [IntegrationController::class, 'sourceSso']);
     Route::post('/tokens', [IntegrationController::class, 'token']);
     Route::patch('/tokens/{uuid}', [IntegrationController::class, 'updateToken']);

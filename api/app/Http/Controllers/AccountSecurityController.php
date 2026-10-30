@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Exceptions\AccountSecurityFailure;
 use App\Models\User;
 use App\Services\AccountSecurity;
-use App\Services\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +43,7 @@ class AccountSecurityController extends Controller
             'recoverySaved' => (bool) $user?->recovery_codes_acknowledged_at,
             'fresh' => $fresh,
             'freshFor' => $fresh ? max(0, min(300, (int) $request->session()->get('security.step_up.at') + 300 - now()->timestamp)) : 0,
-            'confirmationContext' => $user ? hash_hmac('sha256', json_encode([$user->id, (int) $user->auth_session_version, $request->session()->get(CurrentWorkspace::SESSION_KEY), $this->security->policyFingerprint($user)], JSON_THROW_ON_ERROR), (string) config('app.key')) : null,
+            'confirmationContext' => $this->security->confirmationContext($request),
             'setupFresh' => $this->security->setupFresh($request),
             'recoveryFresh' => $this->security->recoveryFresh($request),
             'confirmationMethod' => $fresh ? $request->session()->get('security.step_up.method') : null,
@@ -86,8 +85,7 @@ class AccountSecurityController extends Controller
 
             return $user;
         });
-        $request->session()->regenerate(true);
-        $request->session()->regenerateToken();
+        $this->security->rotateConfirmationSession($request);
         $this->security->confirm($request, $user, $user->hasEnabledTwoFactorAuthentication() ? 'mfa' : 'password');
 
         return $this->show($request);
@@ -201,21 +199,21 @@ class AccountSecurityController extends Controller
         $id = $this->security->challenge($request, 'passkey_'.$purpose, WebAuthn::toJson($options), $purpose === 'login' ? null : $user);
         $request->session()->put('security.passkey_'.$purpose, $id);
 
-        return response()->json(['options' => WebAuthn::toBrowserArray($options)])->header('Cache-Control', 'no-store');
+        return response()->json(['options' => WebAuthn::toBrowserArray($options), 'attemptId' => $id])->header('Cache-Control', 'no-store');
     }
 
     public function passkey(Request $request, string $purpose): JsonResponse
     {
         $request->attributes->set('security.stage', 'request');
         $this->transport();
-        $request->validate(['credential' => ['required', 'array'], 'credential.rawId' => ['required', 'string', 'max:2048'], 'name' => [$purpose === 'register' ? 'required' : 'nullable', 'string', 'max:100']]);
+        $request->validate(['credential' => ['required', 'array'], 'credential.rawId' => ['required', 'string', 'max:2048'], 'attemptId' => ['nullable', 'uuid'], 'name' => [$purpose === 'register' ? 'required' : 'nullable', 'string', 'max:100']]);
         if ($purpose !== 'login') {
             abort_unless($request->user(), 401);
         }
         if ($purpose === 'register') {
             $this->security->requireFresh($request);
         }
-        $row = $this->security->consume($request, 'passkey_'.$purpose, $request->session()->pull('security.passkey_'.$purpose));
+        $row = $this->security->consume($request, 'passkey_'.$purpose, $request->input('attemptId') ?? $request->session()->pull('security.passkey_'.$purpose));
         try {
             $request->attributes->set('security.stage', 'deserialize');
             $credential = WebAuthn::fromJson(json_encode($request->input('credential'), JSON_THROW_ON_ERROR), PublicKeyCredential::class);
@@ -277,8 +275,7 @@ class AccountSecurityController extends Controller
             $this->security->complete($request, $user, 'passkey_uv');
             $this->security->audit($user, 'passkey_login');
         } elseif ($purpose === 'confirm') {
-            $request->session()->regenerate(true);
-            $request->session()->regenerateToken();
+            $this->security->rotateConfirmationSession($request);
             $this->security->confirm($request, $user, 'passkey_uv');
         }
 

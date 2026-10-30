@@ -1606,12 +1606,12 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.9.1',
+    '0.9.2',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(
     await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_30_054311_add_administrator_management_fields/,
+    /2026_10_30_075028_add_sso_source_retirement_and_challenge_context/,
   )
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 
@@ -1710,13 +1710,16 @@ echo json_encode(['ok'=>true]);
         navigator.credentials.get = (options) => {
           window.packagedGet.push({
             active: navigator.userActivation.isActive,
-            dialog: !!document.querySelector('dialog[open]'),
+            dialog: !!document.querySelector(
+              'dialog[open][aria-labelledby="security-step-up-title"]',
+            ),
           })
           return get(options)
         }
         const show = HTMLDialogElement.prototype.showModal
         HTMLDialogElement.prototype.showModal = function () {
-          window.packagedDialogs++
+          if (this.getAttribute('aria-labelledby') === 'security-step-up-title')
+            window.packagedDialogs++
           return show.call(this)
         }
       })
@@ -1728,12 +1731,17 @@ echo json_encode(['ok'=>true]);
         if (request.method() === 'PATCH' && request.url().includes('/administrators/members/'))
           mutations.push(request.url())
       })
-      await member.getByRole('button', { name: 'Manage', exact: true }).click()
-      const switches = member.locator('.member-permissions [role="switch"]')
+      await member.getByRole('button', { name: 'Edit', exact: true }).click()
+      await page.locator('.administrator-dialog .assigned-projects > summary').click()
+      await page.locator('.administrator-dialog .project-rights > summary').click()
+      const switches = page.locator('.administrator-dialog .member-permissions [role="switch"]')
       for (let i = 1; i < 6; i++) await switches.nth(i).check()
-      await member.getByRole('button', { name: 'Save', exact: true }).dblclick()
+      await page
+        .locator('.administrator-dialog')
+        .getByRole('button', { name: 'Save', exact: true })
+        .dblclick()
       await page.locator('.toast-success').filter({ hasText: 'Access updated' }).waitFor()
-      await member.locator('.team-edit').waitFor({ state: 'hidden' })
+      await page.locator('.administrator-dialog').waitFor({ state: 'hidden' })
       assert.equal(mutations.length, 1)
       const saved = await page.evaluate(async (project) => {
         const response = await fetch('/api/admin/administrators', {

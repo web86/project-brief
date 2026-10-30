@@ -1,0 +1,22 @@
+# Project Brief v0.9.2 — Jino update и rollback
+
+Это инструкция для отдельного согласованного deployment. В задаче production DB и Jino/FPM не изменяются. Файловая раскладка, PHP 8.4 extensions, private/public, workers и cron остаются штатными из DEPLOY-JINO.md.
+
+1. Сверить SHA-256 и CRC финального ZIP. Подготовить согласованные backup БД, `.env`/APP_KEY, private storage, private/public runtime v0.9.1. Сохранить прежний ZIP. Проверить апгрейд на копии БД и время ALTER перед maintenance.
+2. Включить `php artisan down`, установить private/public v0.9.2 с сохранением `.env`, APP_KEY, storage и прав. Не использовать migrate:fresh, uninstall или пересоздание аккаунтов.
+3. В private application выполнить `php artisan migrate --force --no-interaction`, затем `php artisan optimize:clear` и штатные cache-команды. Единственная новая миграция — `2026_10_30_075028_add_sso_source_retirement_and_challenge_context`. Она добавляет четыре nullable поля и индекс session_hash/purpose без backfill/переписывания users, memberships, grants, токенов, bindings или provenance. Не выполнять business requests новым кодом до миграции.
+4. Выполнить `php artisan up`, закрыть текущие WebAuthn prompts и обновить открытые вкладки. Сохраняется совместимость старых clients с одиночным session pointer, однако изоляция параллельных attempts требует frontend v0.9.2. Старые prepared challenges естественно истекут за две минуты. Не отключать UV/Origin/RP ID ради устаревшей вкладки.
+5. Проверить login владельца с TOTP/Passkey и две вкладки **одной** сессии: Integrations → создание тестового ключа и /platform для действительно назначенного platform admin. Вторая подготовка не должна заменять challenge первой. Проверить Retry, TTL, cancel, TOTP/recovery fallback; секреты/credential/challenge bodies не включать в logging/APM. Backend diagnostics имеют префикс PK; исходный PR-код из обращения требует сверки с реальным diagnostic ID на хосте.
+6. Проверить модальные create/edit/invite/status/delete администратора, direct owner-only ACL, отсутствие owner deletion, работу старой invitation ссылки, новую ручную ссылку и её ротацию. Ручная ссылка не подтверждает email; email-доставка продолжает действующий mailbox proof. «Удалить» окончательно удаляет membership текущего workspace и его назначения, сохраняет User/другие workspace/проекты/MFA. Inactive status — отдельное обратимое изменение доступа с сохранением выбранных grants.
+7. Проверить SSO create/edit, key issuance и одноразовый secret, автоматические/ручные проекты, вход тестового клиента между **двумя HTTPS-сайтами**, отзыв source/token/client rights и Magic Link fallback. Удаление source выключает его и отзывает ключи/handoffs/manual grants; archived ID сохраняет историю и provenance. На production удаление реальных source/admin access выполнять только по отдельному намерению владельца.
+8. Проверить RU/EN/TR/ZH-CN, 1440/390 px, light/dark, scroll/focus/кнопки/ошибки, обычные проекты/комментарии/экспорт, SMTP, webhook worker и существующий cron. Нового cron нет. Локальные PHP 8.4/MariaDB и ZIP tests не заменяют live FPM/SMTP/Touch ID проверку.
+
+## Rollback
+
+Включить maintenance и вернуть проверенные private/public v0.9.1. Сохранить `.env`, APP_KEY, storage и **additive schema**. Выполнить optimize:clear, штатные cache-команды и up. Не запускать migrate:rollback: он удалит retirement/context/grants полей приглашений. Закрыть prompts и обновить вкладки; prepared attempts должны начаться заново старым UI.
+
+Удалённые membership не восстанавливаются application rollback. Удалённый User не требуется восстанавливать, поскольку аккаунты не удалялись; owner может пригласить существующий аккаунт заново. Исторические invitation grants, nullable defaults и новые workspace-only invitations сохраняются в БД, но UI v0.9.1 не редактирует новые поля.
+
+Старый runtime не фильтрует archived_at: удалённый SSO source может снова отображаться, однако SSO выключен, handoffs и ключи отозваны, manual grants удалены. Не создавать ключи и не включать такой source в старом UI; при необходимости отката сохранить revocation state и дождаться исправленного runtime. Нельзя удалять source IDs, immutable provenance, client bindings или project requests ради очистки списка.
+
+Восстановление всей БД из backup — отдельный согласованный disaster recovery, учитывающий новые бизнес-данные и изменения доступа. Оно не является обычным rollback приложения.

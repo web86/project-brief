@@ -1,6 +1,8 @@
 > Milestone 9.0 / Project Brief 0.9.0 — Platform Admin & Usage Monitoring.
 
-Текущий release 0.9.1 / Milestone 8.5: [deployment и rollback](docs/milestone-8-5/PRODUCTION.md).
+Текущий release 0.9.2 / Milestone 9.2: [deployment и rollback](docs/milestone-9-2/PRODUCTION.md).
+
+Предыдущий release 0.9.1: [deployment и rollback](docs/milestone-8-5/PRODUCTION.md).
 
 > До переключения: backup runtime, БД, `.env`, APP_KEY и storage; проверить Jino PHP 8.4/MariaDB и budget дополнительного DB-соединения/worker. В maintenance выполнить `php artisan migrate --force --no-interaction`, `php artisan optimize:clear`, штатные cache-команды и `php artisan up`. Миграция добавляет default-false platform_admin, api_usage_hours/platform_audit и created_at-индексы webhook history; измерить DDL locks на копии большой БД.
 >

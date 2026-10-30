@@ -1,4 +1,40 @@
 export default {
+  adminEditor: {
+    pendingSecurity: 'Security status is available after invitation acceptance.',
+    edit: 'Edit',
+    active: 'Active',
+    inactive: 'Inactive',
+    invited: 'Invited',
+    delete: 'Delete',
+    assigned: 'Assigned projects ({count})',
+    delivery: 'Invitation delivery',
+    getLink: 'Get invitation link',
+    later: 'Save without sending',
+    linkHint:
+      'A new link replaces the previous invitation link and expires after 7 days. Share it privately with the invited person.',
+    linkReady: 'Invitation link ready',
+    joined: 'This account has already joined the workspace.',
+    securityHint:
+      'Security methods belong to the account holder. This form does not disable another person’s MFA.',
+    confirmDelete:
+      'Permanently remove {name} from this workspace? Their project access and pending invitations here will be revoked. Their account, other workspaces and project data will remain.',
+    openExisting: 'Edit existing administrator',
+    invitationLink: 'Invitation link',
+    linkOnce:
+      'This link is shown once. Copy it before closing. Generating a new link invalidates the old one. A manually shared link does not verify the account’s email.',
+  },
+  sourceEditor: {
+    key: 'API key',
+    boundKeys:
+      'These keys already belong to this source. Source binding cannot be changed; issue a new key when needed.',
+    keyName: 'New API key name',
+    saveFirst: 'Save the source first, then open its settings to create an API key.',
+    noAutomatic: 'No projects connected automatically.',
+    confirmDelete:
+      'Delete source “{name}”? All its API keys and SSO access will be revoked. Historical requests and project provenance will remain.',
+    deleteNamed: 'Delete source {name}',
+  },
+
   administrators: {
     title: 'Administrators',
     hint: 'Manage administrators and project access in this workspace.',
