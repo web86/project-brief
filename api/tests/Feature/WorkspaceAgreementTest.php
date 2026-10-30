@@ -42,6 +42,50 @@ class WorkspaceAgreementTest extends TestCase
         return User::where('email', DeveloperInvitation::latest('id')->first()->email)->firstOrFail();
     }
 
+    public function test_safe_links_survive_draft_publication_and_required_document_without_extra_html_attributes(): void
+    {
+        $project = Project::factory()->create();
+        $owner = $this->ownerFor($project);
+        $payload = $this->payload();
+        foreach (WorkspaceAgreements::LOCALES as $locale) {
+            $payload['draft']['texts'][$locale][1]['content'] = [
+                ['text' => 'Rules <script>inert</script>', 'href' => 'https://example.test/rules?a=1&b=2', 'bold' => true, 'italic' => true],
+                ['text' => 'Contact', 'href' => 'mailto:help@example.test'],
+                ['text' => 'HTTP', 'href' => 'http://example.test/'],
+            ];
+        }
+        $this->actingAs($owner);
+        $draft = [...$payload, 'enabled' => false, 'publish' => false];
+        $this->putJson('/api/admin/settings/agreement', $draft)->assertOk()->assertJsonPath('data.published', null)->assertJsonPath('data.draft.texts.en.1.content.1.href', 'mailto:help@example.test');
+        $this->getJson('/api/public/workspaces/'.$project->workspace->uuid.'/agreement')->assertNotFound();
+        $document = $this->putJson('/api/admin/settings/agreement', $payload)->assertOk()->assertJsonPath('data.draft.texts.en.1.content.0.href', 'https://example.test/rules?a=1&b=2')->json('data.published');
+        $this->getJson('/api/public/workspaces/'.$project->workspace->uuid.'/agreement')->assertOk()->assertJsonPath('document.texts.tr.1.content.0.href', 'https://example.test/rules?a=1&b=2');
+        $this->invited($project, $owner);
+        $this->getJson('/api/admin/agreement')->assertOk()->assertJsonPath('required', true)->assertJsonPath('document.texts.zh-CN.1.content.0.bold', true)->assertJsonPath('document.texts.ru.1.content.1.href', 'mailto:help@example.test');
+        $this->postJson('/api/admin/agreement/accept', ['revision' => $document['id'], 'locale' => 'zh-CN'])->assertOk();
+        $this->assertDatabaseCount('workspace_agreement_acceptances', 1);
+    }
+
+    public function test_unsafe_link_urls_and_non_allowlisted_attributes_are_rejected_even_in_drafts(): void
+    {
+        $project = Project::factory()->create();
+        $this->actingAs($this->ownerFor($project));
+        $payload = $this->payload(false);
+        $payload['publish'] = false;
+        $path = 'draft.texts.en.1.content.0';
+        foreach (['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,test', 'vbscript:alert(1)', '//evil.test', '/relative', 'https:///evil.test', 'https://u:p@example.test', 'https://example.test\\@evil.test', "https://exam\nple.test/", 'mailto:a@example.test?subject=x', 'mailto:a@example.test%0aBcc:evil@example.test', ''] as $href) {
+            $payload['draft']['texts']['en'][1]['content'][0]['href'] = $href;
+            $this->putJson('/api/admin/settings/agreement', $payload)->assertUnprocessable()->assertJsonValidationErrors($path.'.href');
+        }
+        unset($payload['draft']['texts']['en'][1]['content'][0]['href']);
+        foreach (['onclick', 'style', 'target', 'rel'] as $attribute) {
+            $tampered = $payload;
+            $tampered['draft']['texts']['en'][1]['content'][0][$attribute] = 'Injected';
+            $this->putJson('/api/admin/settings/agreement', $tampered)->assertUnprocessable()->assertJsonValidationErrors($path);
+        }
+        $this->assertNull($project->workspace->fresh()->administrator_agreement);
+    }
+
     public function test_default_is_disabled_and_invitation_preserves_existing_flow(): void
     {
         $project = Project::factory()->create();

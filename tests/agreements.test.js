@@ -133,3 +133,76 @@ test('agreement status is compact, localized in four languages and contains acce
     }
   }
 })
+
+test('agreement links render escaped text and fixed safe attributes only', async () => {
+  for (const language of ['ru', 'en', 'tr', 'zh-CN']) {
+    const html = await render(
+      Document,
+      {
+        blocks: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: '<img onerror=alert(1)>',
+                href: 'https://example.test/rules?a=1&b=2',
+                bold: true,
+                italic: true,
+              },
+              { text: 'Mail', href: 'mailto:help@example.test' },
+              { text: 'Unsafe', href: 'javascript:alert(1)', onclick: 'alert(1)' },
+            ],
+          },
+        ],
+      },
+      language,
+    )
+    assert.ok(html.includes('href="https://example.test/rules?a=1&amp;b=2"'))
+    assert.ok(html.includes('target="_blank" rel="noopener noreferrer"'))
+    assert.ok(html.includes('<strong><em>&lt;img'))
+    assert.ok(html.includes('href="mailto:help@example.test"'))
+    assert.ok(!html.includes('javascript:'))
+    assert.ok(!html.includes('onclick='))
+    assert.ok(!html.includes('<img'))
+  }
+})
+test('agreement URL allowlist blocks active schemes, credentials, controls and email headers', async () => {
+  const { safeAgreementUrl } = await import('../src/utils/agreementEditor.js')
+  for (const value of [
+    'https://example.test/rules',
+    'http://example.test/',
+    'mailto:help@example.test',
+  ])
+    assert.equal(safeAgreementUrl(value), value)
+  for (const value of [
+    '',
+    null,
+    'javascript:alert(1)',
+    'JaVaScRiPt:alert(1)',
+    'data:text/html,test',
+    'vbscript:msgbox(1)',
+    '//evil.test',
+    '/relative',
+    'https:///evil.test',
+    'https://u:p@example.test',
+    'https://example.test\\@evil.test',
+    'java\nscript:alert(1)',
+    'https://example.test/\u0000',
+    'mailto:a@example.test?subject=x',
+    'mailto:a@example.test%0aBcc:evil@example.test',
+  ])
+    assert.equal(safeAgreementUrl(value), null, String(value))
+})
+test('adjacent list items retain one list and ordered numbering after a document reload', async () => {
+  const html = await render(Document, {
+    blocks: [
+      { type: 'number', content: [{ text: 'One' }] },
+      { type: 'number', content: [{ text: 'Two', bold: true }] },
+      { type: 'paragraph', content: [{ text: 'Between' }] },
+      { type: 'bullet', content: [{ text: 'Three' }] },
+      { type: 'bullet', content: [{ text: 'Four' }] },
+    ],
+  })
+  assert.ok(html.includes('<ol><li>One</li><li><strong>Two</strong></li></ol>'))
+  assert.ok(html.includes('<ul><li>Three</li><li>Four</li></ul>'))
+})

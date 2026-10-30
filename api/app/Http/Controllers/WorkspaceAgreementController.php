@@ -35,10 +35,15 @@ class WorkspaceAgreementController extends Controller
             $rules[$key.'.*'] = ['required', 'array:type,content'];
             $rules[$key.'.*.type'] = ['required', Rule::in(['paragraph', 'heading', 'subheading', 'bullet', 'number'])];
             $rules[$key.'.*.content'] = ['required', 'array', 'max:500'];
-            $rules[$key.'.*.content.*'] = ['required', 'array:text,bold,italic'];
+            $rules[$key.'.*.content.*'] = ['required', 'array:text,bold,italic,href'];
             $rules[$key.'.*.content.*.text'] = ['present', 'string', 'max:20000'];
             $rules[$key.'.*.content.*.bold'] = ['sometimes', 'boolean'];
             $rules[$key.'.*.content.*.italic'] = ['sometimes', 'boolean'];
+            $rules[$key.'.*.content.*.href'] = ['sometimes', 'string', 'max:2048', static function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! is_string($value) || ! WorkspaceAgreements::validLink($value)) {
+                    $fail(trans('agreements.safe_link'));
+                }
+            }];
         }
         $data = $request->validate($rules);
         abort_if(strlen(json_encode($data['draft'], JSON_THROW_ON_ERROR)) > 1000000, 422);

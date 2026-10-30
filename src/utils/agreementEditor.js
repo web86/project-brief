@@ -1,7 +1,31 @@
+export function safeAgreementUrl(value) {
+  if (typeof value !== 'string' || value.length > 2048 || /[\s\\\u0000-\u001f\u007f]/.test(value))
+    return null
+  if (/^mailto:/i.test(value)) {
+    const email = value.slice(7)
+    return /^[a-z0-9.!$&'*+\/=_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/i.test(email)
+      ? `mailto:${email}`
+      : null
+  }
+  if (!/^https?:\/\/[^/]/i.test(value)) return null
+  try {
+    const url = new URL(value)
+    return url.hostname && !url.username && !url.password ? url.href : null
+  } catch {
+    return null
+  }
+}
+
 // Only text and a fixed set of formatting marks cross the API boundary.
 export function readAgreementEditor(root) {
   const blocks = []
-  const types = { P: 'paragraph', DIV: 'paragraph', H2: 'heading', H3: 'subheading' }
+  const types = {
+    P: 'paragraph',
+    DIV: 'paragraph',
+    H1: 'heading',
+    H2: 'subheading',
+    H3: 'subheading',
+  }
   function spans(node, marks = {}) {
     if (node.nodeType === 3) return [{ text: node.textContent, ...marks }]
     if (node.nodeType !== 1 || ['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT'].includes(node.tagName))
@@ -10,6 +34,11 @@ export function readAgreementEditor(root) {
     const next = { ...marks }
     if (['B', 'STRONG'].includes(node.tagName)) next.bold = true
     if (['I', 'EM'].includes(node.tagName)) next.italic = true
+    if (node.tagName === 'A') {
+      const href = safeAgreementUrl(node.getAttribute('href'))
+      if (href) next.href = href
+      else delete next.href
+    }
     return [...node.childNodes].flatMap((child) => spans(child, next))
   }
   for (const node of root.childNodes) {

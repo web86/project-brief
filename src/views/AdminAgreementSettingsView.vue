@@ -4,7 +4,6 @@ import { onBeforeRouteLeave } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
 import AgreementEditor from '../components/AgreementEditor.vue'
-import AgreementDocument from '../components/AgreementDocument.vue'
 import LoadingButton from '../components/LoadingButton.vue'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const locales = ['ru', 'en', 'tr', 'zh-CN']
@@ -126,10 +125,6 @@ onMounted(load)
       >
         <AgreementEditor :key="language" v-model="state.draft.texts[language]" :disabled="busy" />
       </div>
-      <details class="management-section">
-        <summary>{{ t('agreement.preview') }}</summary>
-        <AgreementDocument :blocks="state.draft.texts[language]" />
-      </details>
       <label class="agreement-option"
         ><input v-model="again" type="checkbox" :disabled="busy" />{{
           t('agreement.requireAgain')
@@ -181,6 +176,9 @@ onMounted(load)
   gap: 20px;
   padding: 24px;
 }
+.agreement-settings-form [role='tabpanel'] {
+  min-width: 0;
+}
 .agreement-option {
   display: flex;
   align-items: flex-start;
@@ -189,6 +187,8 @@ onMounted(load)
 .agreement-option input {
   width: 18px;
   height: 18px;
+  min-height: 18px;
+  padding: 0;
   flex: 0 0 18px;
   margin-top: 2px;
 }

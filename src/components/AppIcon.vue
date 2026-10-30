@@ -4,6 +4,16 @@ defineProps({
   size: { type: [Number, String], default: 20 },
 })
 const paths = {
+  paragraph: 'M13 4H8a4 4 0 0 0 0 8h5M13 4v16M18 4v16M10 4h11',
+  'heading-1': 'M3 4v16M12 4v16M3 12h9M17 9l3-2v13M17 20h6',
+  'heading-2': 'M3 4v16M12 4v16M3 12h9M16 10a3 3 0 0 1 6 0c0 3-6 5-6 9h6',
+  bold: 'M6 4h7a4 4 0 0 1 0 8H6V4ZM6 12h8a4 4 0 0 1 0 8H6v-8Z',
+  italic: 'M10 4h10M4 20h10M15 4 9 20',
+  'list-bullet': 'M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01',
+  'list-number': 'M10 6h11M10 12h11M10 18h11M3 3h1v6M2 9h4M2 15a2 2 0 0 1 4 0c0 2-4 3-4 6h4',
+  unlink:
+    'm3 3 18 18M8 8l-5 5a5 5 0 0 0 7 7l3-3M16 16l5-7a5 5 0 0 0-7-7l-3 3M7 3v2M3 7h2M17 21v-2M21 17h-2',
+
   refresh: 'M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 2M4 17l2 2a7 7 0 0 0 12-2',
   shield: 'M12 3 3 7v5c0 5 9 10 9 10s9-5 9-10V7l-9-4ZM8 12l3 3 5-6',
   search: 'M21 21l-6-6M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
