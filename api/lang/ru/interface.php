@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'client_status_only' => 'Изменяйте статус отдельно от содержимого задачи.',
+    'client_status_forbidden' => 'Вы не можете изменить статус этой задачи.',
+
     'sso_continue' => 'Продолжить',
     'task_changed' => 'Изменение задачи',
     'client' => 'Клиент',

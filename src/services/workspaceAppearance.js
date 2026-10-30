@@ -7,10 +7,7 @@ import { theme } from './theme.js'
 
 export function activeWorkspaceBrand(route, admin, project) {
   if (route.meta.adminShell) {
-    return !route.meta.personalSettings &&
-      route.path !== '/admin/unavailable' &&
-      admin.ready &&
-      !admin.switching
+    return route.path !== '/admin/unavailable' && admin.ready && !admin.switching
       ? admin.workspace?.branding || null
       : null
   }

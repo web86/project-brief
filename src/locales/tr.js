@@ -1,4 +1,11 @@
 export default {
+  clientStatus: {
+    return: 'Onaylananlara geri gönder',
+    complete: 'Görevi tamamla',
+    title: 'Görev tamamlansın mı?',
+    body: 'Onaylandıktan sonra görev Tamamlandı durumuna geçer. Görevin durumunu artık kendiniz değiştiremezsiniz.',
+    conflict: 'Görev değişti. Yeniden denemeden önce güncel durumunu kontrol edin.',
+  },
   agreement: {
     settings: 'Yönetici sözleşmesi',
     title: 'Kurallar ve yönetici sözleşmesi',
@@ -1166,6 +1173,7 @@ export default {
     },
     events: {
       client: {
+        task_status_changed: 'Müşteri görev durumunu değiştirdi',
         task_created: 'Yeni fikir',
         project_comment_created: 'Genel tartışma yorumu',
         comment_created: 'Müşteri yorumu',

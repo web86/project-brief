@@ -110,10 +110,13 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
       personal.adoptSettings(state)
       user.value = state.user
       workspaces.value = state.workspaces || []
-      if (!workspaces.value.some((item) => item.id === workspace.value?.id)) {
+      const selected = state.workspace || null
+      if (workspace.value?.id !== selected?.id) {
         clearProjectState()
-        workspace.value = null
+        syncCursor.value = null
       }
+      workspace.value = selected
+      if (!selected) pendingRequests.value = 0
       useProjectStore().admin = state.user
       applyClientLocale(state.user.preferredLocale)
       ready.value = true

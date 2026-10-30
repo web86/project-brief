@@ -12,10 +12,11 @@ function normalize(value) {
   const result = JSON.parse(JSON.stringify(value))
   result.deliveryMode ||= 'legacy'
   result.recipientOptions ||= { team: [], clients: [] }
-  result.eventRules ||= Object.fromEntries(
+  const savedRules = result.eventRules || {}
+  result.eventRules = Object.fromEntries(
     notificationEvents.map((event) => [
       event,
-      {
+      savedRules[event] || {
         enabled: Object.values(result.events?.[event] || { email: true, push: true }).some(Boolean),
         recipients: { mode: 'all', ids: [] },
       },

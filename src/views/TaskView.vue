@@ -9,6 +9,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from '../stores/project'
 import { getTaskLocation } from '../constants/project'
 import AppIcon from '../components/AppIcon.vue'
+import ClientTaskStatusActions from '../components/ClientTaskStatusActions.vue'
 import TaskStatus from '../components/TaskStatus.vue'
 import TaskPriority from '../components/TaskPriority.vue'
 import TaskDetails from '../components/TaskDetails.vue'
@@ -139,6 +140,7 @@ function focusClarification() {
           >
         </div>
       </header>
+      <ClientTaskStatusActions v-if="!store.isDeveloper" :task="task" />
       <div v-if="editable" class="client-draft-actions">
         <RouterLink :to="`${store.taskPath(task.id)}/edit`" class="text-button">{{
           t('ui.edit')

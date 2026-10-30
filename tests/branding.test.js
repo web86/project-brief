@@ -197,7 +197,7 @@ test('successful atomic save clears all dirty sections while a conflict keeps th
   assert.equal(store.dirty, false)
 })
 
-test('central appearance is workspace scoped and resets for switching, profile, security and guests', () => {
+test('central appearance includes personal settings and resets for switching, platform and guests', () => {
   const brandA = { companyName: 'A' },
     brandB = { companyName: 'B' }
   const admin = { ready: true, workspace: { id: 'a', branding: brandA }, switching: false }
@@ -215,8 +215,9 @@ test('central appearance is workspace scoped and resets for switching, profile, 
       admin,
       project,
     ),
-    null,
+    brandB,
   )
+  assert.equal(appearance({ path: '/platform', meta: { platform: true } }, admin, project), null)
   assert.equal(appearance({ path: '/admin/login', meta: {} }, admin, project), null)
   project.currentClient = { id: 'c' }
   project.project.branding = brandA
@@ -307,4 +308,50 @@ test('branding and notification breadcrumbs link to the account across all local
     ),
   )
   i18n.global.locale.value = 'en'
+})
+
+test('personal bootstrap restores the selected brand on a direct entry and clears stale workspace data', async () => {
+  const nav = navigationStore()
+  const workspace = {
+    id: 'b',
+    name: 'B',
+    branding: { companyName: 'Studio B', primaryColor: '#7354a3' },
+  }
+  const state = {
+    user: {
+      email: 'owner@example.test',
+      notificationPreferenceId: 'owner',
+      membershipRole: 'owner',
+    },
+    workspace,
+    workspaces: [{ id: 'b', name: 'B' }],
+    preferences: { email: true, push: true, telegram: false },
+  }
+  assert.equal(await nav.bootstrapPersonal(async () => state), true)
+  assert.deepEqual(nav.workspace, workspace)
+  const route = {
+    path: '/admin/account/security',
+    meta: { adminShell: true, personalSettings: true },
+  }
+  assert.equal(appearance(route, nav, { currentClient: null }), nav.workspace.branding)
+  nav.projects = [{ id: 'PRIVATE OLD PROJECT' }]
+  nav.syncCursor = 'old-cursor'
+  assert.equal(await nav.bootstrapPersonal(async () => ({ ...state, workspace: null })), true)
+  assert.equal(nav.workspace, null)
+  assert.deepEqual(nav.projects, [])
+  assert.equal(nav.syncCursor, null)
+  assert.equal(appearance(route, nav, { currentClient: null }), null)
+})
+
+test('a late personal bootstrap cannot restore a former workspace brand after identity clear', async () => {
+  const nav = navigationStore(),
+    pending = deferred()
+  const operation = nav.bootstrapPersonal(() => pending.promise)
+  nav.clear()
+  pending.resolve({
+    user: { email: 'old@example.test' },
+    workspace: { id: 'old', branding: { companyName: 'OLD BRAND' } },
+  })
+  assert.equal(await operation, false)
+  assert.equal(nav.workspace, null)
 })

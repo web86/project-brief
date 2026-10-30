@@ -1,4 +1,11 @@
 export default {
+  clientStatus: {
+    return: '退回已确认',
+    complete: '完成任务',
+    title: '完成此任务？',
+    body: '确认后，任务将标记为“已完成”。之后您将无法自行更改其状态。',
+    conflict: '任务已更改。请检查当前状态后重试。',
+  },
   agreement: {
     settings: '管理员协议',
     title: '规则与管理员协议',
@@ -1084,6 +1091,7 @@ export default {
     },
     events: {
       client: {
+        task_status_changed: '客户更改了任务状态',
         task_created: '新创意',
         project_comment_created: '一般讨论评论',
         comment_created: '客户评论',

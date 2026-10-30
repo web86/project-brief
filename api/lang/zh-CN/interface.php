@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'client_status_only' => '请将状态变更与任务内容分开提交。',
+    'client_status_forbidden' => '您无法更改此任务的状态。',
+
     'sso_continue' => '继续',
     'task_changed' => '任务已更新',
     'client' => '客户',

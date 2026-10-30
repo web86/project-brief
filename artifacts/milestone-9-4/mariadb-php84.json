@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "php": "8.4.26",
+  "database": "MariaDB 11.8.9",
+  "tests": 71,
+  "assertions": 1607,
+  "isolatedDatabase": "projectbrief_m94_qa",
+  "productionChanged": false,
+  "scope": [
+    "ClientTaskStatusTest",
+    "GlobalWorkspaceBrandingTest",
+    "CentralizedNotificationsTest",
+    "ProjectNotificationTest",
+    "LiveSyncTest",
+    "ProjectPermissionsTest except GD upload case (included in native full suite)"
+  ]
+}

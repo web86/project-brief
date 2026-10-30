@@ -61,7 +61,9 @@ class NotificationPayload
                 $url .= '#comment-'.$comment->uuid;
             }
         }
+        $history = $event === 'client.task_status_changed' ? $task->history()->whereKey($eventId)->first() : null;
         $message = match ($event) {
+            'client.task_status_changed' => $history ? trans('exports.statuses.'.$history->old_value, [], $locale).' → '.trans('exports.statuses.'.$history->new_value, [], $locale) : null,
             'client.task_created' => self::excerpt($task->description ?? '', self::DESCRIPTION_LIMIT),
             'client.comment_created', 'admin.comment_created' => self::comment($task, $event, $eventId, $locale),
             default => null,
@@ -76,7 +78,7 @@ class NotificationPayload
             'heading' => $eventText, 'subject' => '[ProjectBrief] '.$eventText.' — '.self::excerpt($project->title, 80),
             'explanation' => trans('notifications.explanations.'.$event, ['name' => $actor, 'project' => $project->title], $locale),
             'next' => trans('notifications.next.'.$event, [], $locale),
-            'message' => $message, 'message_label' => trans($event === 'client.task_created' ? 'notifications.description' : 'notifications.comment', [], $locale),
+            'message' => $message, 'message_label' => trans($event === 'client.task_status_changed' ? 'notifications.status_change' : ($event === 'client.task_created' ? 'notifications.description' : 'notifications.comment'), [], $locale),
             'project_label' => trans('notifications.project', [], $locale), 'task_label' => trans('notifications.task', [], $locale),
             'open' => trans('notifications.open', [], $locale), 'access' => trans('notifications.access', [], $locale)];
     }

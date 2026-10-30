@@ -1,9 +1,14 @@
 <script setup>
+import { useRoute } from 'vue-router'
+import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { computed } from 'vue'
 import { useWorkspaceAppearance } from '../services/workspaceAppearance.js'
 import { safeFooterUrl } from '../utils/agreementEditor.js'
 import { t, locale } from '../i18n/index.js'
 const props = defineProps({ compact: Boolean, branding: Object })
+const route = useRoute(),
+  nav = useAdminNavigationStore()
+const switching = computed(() => route.meta.adminShell && nav.switching)
 const { brand } = useWorkspaceAppearance()
 const current = computed(() => props.branding || brand.value || {})
 const agreement = computed(() => safeFooterUrl(current.value.agreementUrl))
@@ -12,7 +17,7 @@ const company = computed(() => safeFooterUrl(current.value.companyUrl))
 const year = new Date().getFullYear()
 </script>
 <template>
-  <footer class="app-footer" :class="{ 'is-compact': compact }">
+  <footer class="app-footer" :class="{ 'is-compact': compact, 'is-switching': switching }">
     <span
       >© {{ year }}
       <a v-if="company" :href="company" rel="noopener noreferrer">{{
@@ -29,6 +34,9 @@ const year = new Date().getFullYear()
   </footer>
 </template>
 <style>
+.app-footer.is-switching {
+  visibility: hidden;
+}
 .app-footer {
   margin-top: auto;
   display: flex;

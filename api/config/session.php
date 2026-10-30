@@ -20,6 +20,10 @@ return [
 
     'driver' => env('SESSION_DRIVER', 'database'),
 
+    // Every stateful request writes its session; serialize reads with workspace selection, too.
+    'block' => true,
+    'block_store' => 'file',
+
     /*
     |--------------------------------------------------------------------------
     | Session Lifetime

@@ -286,6 +286,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(personal.pendingEmail, 'verified-release@example.test')
   assert.equal(personal.preferences.telegram, true)
   assert.equal(personal.notification_email_token_hash, undefined)
+  assert.equal(personal.workspace.id, fixture.workspace)
   const personalHeaders = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -329,6 +330,10 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(currentBrand.visual.companyName, changes.visual.companyName)
   assert.equal(currentBrand.business.account, changes.business.account)
   assert.equal(currentBrand.contact.email, changes.contact.email)
+  const brandedPersonal = await (await request('/api/admin/notifications')).json()
+  assert.equal(brandedPersonal.workspace.branding.companyName, changes.visual.companyName)
+  assert.equal(brandedPersonal.workspace.branding.primaryColor, changes.visual.primaryColor)
+  assert.equal(brandedPersonal.workspace.branding.business, undefined)
   assert.equal(
     (
       await brandCall('', 'PATCH', {
@@ -821,6 +826,46 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   })
   assert.equal(clientDraft.status, 201)
   const clientDraftId = (await clientDraft.json()).data.id
+  command([
+    '-r',
+    'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"review"]);',
+    clientDraftId,
+  ])
+  const clientStatusUrl = '/api/client/tasks/' + clientDraftId
+  const reviewedDraft = (await (await request(clientStatusUrl)).json()).data
+  const clientStatusWrite = (body) =>
+    request(clientStatusUrl, {
+      method: 'PATCH',
+      headers: clientHeaders,
+      body: JSON.stringify(body),
+    })
+  assert.equal((await clientStatusWrite({ status: 'done' })).status, 422)
+  assert.equal(
+    (await clientStatusWrite({ status: 'in_progress', editVersion: reviewedDraft.editVersion }))
+      .status,
+    403,
+  )
+  assert.equal(
+    (await clientStatusWrite({ status: 'done', editVersion: reviewedDraft.editVersion })).status,
+    200,
+  )
+  assert.equal(
+    (await clientStatusWrite({ status: 'approved', editVersion: reviewedDraft.editVersion }))
+      .status,
+    409,
+  )
+  const doneDraft = (await (await request(clientStatusUrl)).json()).data
+  assert.equal(doneDraft.status, 'done')
+  assert.equal(
+    (await clientStatusWrite({ status: 'approved', editVersion: doneDraft.editVersion })).status,
+    403,
+  )
+  command([
+    '-r',
+    'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"new"]);',
+    clientDraftId,
+  ])
+
   assert.equal(
     (
       await request('/api/client/tasks/' + clientDraftId, {
@@ -1606,13 +1651,10 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.9.3',
+    '0.9.4',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
-  assert.match(
-    await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /2026_10_30_090552_add_workspace_administrator_agreements/,
-  )
+  assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /migrate --force/)
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 
   command(['artisan', 'down'])
@@ -1763,6 +1805,28 @@ echo json_encode(['ok'=>true]);
         path: path.join(output, 'packaged-team-success.png'),
         fullPage: true,
       })
+      const personalBrand = await page.evaluate(
+        async () =>
+          (
+            await (
+              await fetch('/api/admin/notifications', { headers: { Accept: 'application/json' } })
+            ).json()
+          ).workspace.branding,
+      )
+      for (const pathname of [
+        '/admin/account',
+        '/admin/account/security',
+        '/admin/settings/notifications',
+      ]) {
+        await page.goto(publicOrigin + pathname)
+        await page.waitForFunction(
+          (branding) =>
+            document.querySelector('.app-footer')?.textContent.includes(branding.companyName) &&
+            document.querySelector('.workspace-appearance')?.style.getPropertyValue('--action') ===
+              branding.primaryColor,
+          personalBrand,
+        )
+      }
       await page.goto(publicOrigin + '/admin/settings/agreement')
       await page.locator('.agreement-settings-form').waitFor()
       await page.locator('.agreement-option input').first().check()
@@ -1860,10 +1924,49 @@ echo json_encode(['ok'=>true]);
         false,
       )
       assert.deepEqual(errors, [])
+      // New client status UI is exercised from the extracted production bundle.
+      command([
+        '-r',
+        'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); App\\Models\\Task::where("uuid", $argv[1])->update(["status"=>"review"]);',
+        fixture.exportTask,
+      ])
+      await page.goto(publicOrigin + '/access/' + 'a'.repeat(64))
+      await page.goto(publicOrigin + `/project/${fixture.project}/task/${fixture.exportTask}`)
+      await page.locator('.client-status-buttons').waitFor()
+      const clientWrites = []
+      page.on('request', (request) => {
+        if (request.method() === 'PATCH' && request.url().includes('/api/client/tasks/'))
+          clientWrites.push(request.url())
+      })
+      await page.locator('.client-status-buttons .primary').click()
+      const confirmation = page.locator('.client-complete-dialog')
+      await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click()
+      assert.equal(clientWrites.length, 0)
+      await page.locator('.client-status-buttons .primary').click()
+      await confirmation.getByRole('button', { name: 'Complete task', exact: true }).click()
+      await confirmation.waitFor({ state: 'hidden' })
+      assert.equal(await page.locator('.client-status-buttons').count(), 0)
+      assert.equal(clientWrites.length, 1)
+      assert.equal(
+        await page.evaluate(
+          async (id) =>
+            (
+              await (
+                await fetch('/api/client/tasks/' + id, { headers: { Accept: 'application/json' } })
+              ).json()
+            ).data.status,
+          fixture.exportTask,
+        ),
+        'done',
+      )
+      assert.deepEqual(errors, [])
       await guest.close()
       const evidence = {
         passed: true,
         agreementPublished: true,
+        personalWorkspaceBrand: true,
+        clientCompletion: true,
+        clientCancelNoMutation: true,
         anonymousDocument: true,
         agreementApiGate: true,
         agreementAccepted: true,

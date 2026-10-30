@@ -4,6 +4,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
 import { useTaskWorkspaceStore } from '../stores/taskWorkspace.js'
+import { attachDrawerSwipe } from '../utils/drawerSwipe.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
@@ -20,6 +21,7 @@ const expanded = (id) => !!workspace.expanded[store.project.id]?.[id]
 const groups = computed(() =>
   store.sectionOptions.map((section) => ({ ...section, tasks: store.sectionTasks(section.id) })),
 )
+let disposeSwipe
 let breakpoint
 function resize() {
   workspace.mobile = !!breakpoint?.matches
@@ -74,8 +76,17 @@ onMounted(() => {
   breakpoint = globalThis.matchMedia?.('(max-width: 960px)')
   resize()
   breakpoint?.addEventListener('change', resize)
+  disposeSwipe = attachDrawerSwipe({
+    mobile: () => !!breakpoint?.matches,
+    isOpen: () => drawer.open.value,
+    canOpen: () => !workspace.panel,
+    open: () => workspace.openTasks(),
+    close,
+    dialog: () => dialog.value,
+  })
 })
 onUnmounted(() => {
+  disposeSwipe?.()
   breakpoint?.removeEventListener('change', resize)
   workspace.closePanel()
   drawer.close(false)

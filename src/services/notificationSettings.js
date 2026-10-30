@@ -2,6 +2,7 @@ export const notificationEvents = [
   'client.task_created',
   'client.comment_created',
   'client.task_approved',
+  'client.task_status_changed',
   'admin.clarification_requested',
   'admin.comment_created',
   'admin.task_review',

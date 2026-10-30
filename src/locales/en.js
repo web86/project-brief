@@ -1,4 +1,11 @@
 export default {
+  clientStatus: {
+    return: 'Return to approved',
+    complete: 'Complete task',
+    title: 'Complete this task?',
+    body: 'After confirmation, this task will be marked Done. You will no longer be able to change its status yourself.',
+    conflict: 'The task has changed. Review its current state before trying again.',
+  },
   agreement: {
     settings: 'Administrator agreement',
     title: 'Rules and administrator agreement',
@@ -1161,6 +1168,7 @@ export default {
     },
     events: {
       client: {
+        task_status_changed: 'Client changed task status',
         task_created: 'New idea',
         project_comment_created: 'General discussion comment',
         comment_created: 'Client comment',

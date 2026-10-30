@@ -52,9 +52,15 @@ class TaskController extends Controller
         DB::transaction(function () use ($request, $task, $owner) {
             ProjectStructure::lock($owner);
             $model = TaskAccess::task($request, $task, true);
-            abort_unless(TaskAccess::isAdmin($request) || $model->isClientEditable(), 403, 'Эта идея уже в работе. Обсудите изменения в комментариях.');
+            $clientStatus = ! TaskAccess::isAdmin($request) && $request->has('status');
+            if (! $clientStatus) {
+                abort_unless(TaskAccess::isAdmin($request) || $model->isClientEditable(), 403, 'Эта идея уже в работе. Обсудите изменения в комментариях.');
+            }
             if ($request->has('editVersion') && ! hash_equals($model->editVersion(TaskAccess::isAdmin($request)), $request->validated('editVersion'))) {
                 abort(response()->json(['code' => 'task_conflict'], 409));
+            }
+            if ($clientStatus) {
+                abort_unless($model->canClientChangeStatusTo($request->validated('status')), 403, trans('interface.client_status_forbidden'));
             }
             $name = $request->validated('section') ?? (! TaskAccess::isAdmin($request) ? $request->validated('location') : null);
             $sectionChanged = false;
