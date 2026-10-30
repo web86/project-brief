@@ -37,6 +37,7 @@ use App\Http\Controllers\TaskOrderController;
 use App\Http\Controllers\TaskTrashController;
 use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\WorkspaceAdministratorController;
+use App\Http\Controllers\WorkspaceAgreementController;
 use App\Http\Controllers\WorkspaceBrandingController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\EnsurePlatformAdmin;
@@ -69,6 +70,14 @@ Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cac
     ]);
 Route::get('/api/csrf', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'));
 Route::get('/api/session', SessionController::class);
+Route::get('/api/public/workspaces/{workspace}/agreement', [WorkspaceAgreementController::class, 'published'])->whereUuid('workspace')
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class]);
+Route::middleware('admin')->controller(WorkspaceAgreementController::class)->group(function (): void {
+    Route::get('/api/admin/settings/agreement', 'settings');
+    Route::put('/api/admin/settings/agreement', 'save')->middleware('throttle:integration-settings');
+    Route::get('/api/admin/agreement', 'document');
+    Route::post('/api/admin/agreement/accept', 'accept')->middleware('throttle:account-security');
+});
 Route::prefix('/api/security')->controller(AccountSecurityController::class)->group(function (): void {
     Route::get('/status', 'show');
     Route::post('/challenge', 'challenge')->middleware('throttle:security-challenge')->block();

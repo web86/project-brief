@@ -1,6 +1,8 @@
 > Milestone 9.0 / Project Brief 0.9.0 — Platform Admin & Usage Monitoring.
 
-Текущий release 0.9.2 / Milestone 9.2: [deployment и rollback](docs/milestone-9-2/PRODUCTION.md).
+Текущий release 0.9.3 / Milestone 9.3: [deployment и rollback](docs/milestone-9-3/PRODUCTION.md).
+
+Предыдущий release 0.9.2 / Milestone 9.2: [deployment и rollback](docs/milestone-9-2/PRODUCTION.md).
 
 Предыдущий release 0.9.1: [deployment и rollback](docs/milestone-8-5/PRODUCTION.md).
 

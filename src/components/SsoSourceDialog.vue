@@ -182,3 +182,27 @@ watch(
     >
   </BaseDialog>
 </template>
+
+<style scoped>
+.sso-automatic {
+  margin-bottom: 18px;
+}
+.sso-automatic > strong,
+.sso-projects > strong {
+  display: block;
+  margin-bottom: 6px;
+}
+.sso-projects > .small {
+  margin: 0 0 14px;
+}
+.sso-api-key > p,
+.sso-api-key > ul {
+  margin: 0 0 12px;
+}
+.sso-api-key > .field {
+  margin: 12px 0;
+}
+.sso-api-key > .button {
+  margin-bottom: 12px;
+}
+</style>

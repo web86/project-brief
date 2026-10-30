@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "sharedBrowserSession": true,
+  "realVirtualUvSignatures": true,
+  "distinctAttemptIds": true,
+  "sourceTabs": [
+    "/admin/settings/integrations",
+    "/platform"
+  ],
+  "results": [
+    "Owner with saved TOTP recovery has full access without a Passkey",
+    "Shared-session two tabs: signed API-key attempt A held while /platform prepares B; A and B both verify after session rotation; one token, distinct attempts, replay denied",
+    "Expired signed attempt is rejected; new challenge retry succeeds without duplicate API-key creation",
+    "Cancelled native Passkey preserves draft and creates no key; allowed TOTP fallback confirms once without owner password alternative"
+  ],
+  "errors": []
+}

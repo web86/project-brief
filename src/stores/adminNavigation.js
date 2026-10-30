@@ -201,6 +201,9 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     workspace.value = {
       ...workspace.value,
       branding: {
+        ...workspace.value.branding,
+        companyUrl: settings.footer?.website ? settings.contact.website : null,
+        supportEmail: settings.footer?.support ? settings.contact.email : null,
         companyName: settings.visual.companyName,
         primaryColor: settings.visual.primaryColor,
         logoUrl: settings.assets.logo,

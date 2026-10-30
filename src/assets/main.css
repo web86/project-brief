@@ -6737,6 +6737,13 @@ button.attachment-item:hover {
 .project-rights {
   margin-top: 18px;
 }
+.administrator-invitations > .small,
+.assigned-projects > .small {
+  margin-top: 12px;
+}
+.administrator-invitations .management-inline-actions {
+  margin-block: 12px;
+}
 .management-security {
   padding: 12px 14px;
   border-radius: 8px;

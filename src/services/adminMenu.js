@@ -23,5 +23,6 @@ export const settingsMenu = [
     icon: 'settings',
     owner: true,
   },
+  { to: '/admin/settings/agreement', label: 'agreement.settings', icon: 'file', owner: true },
   { to: '/admin/settings/branding', label: 'branding.title', icon: 'palette', owner: true },
 ]

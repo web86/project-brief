@@ -10,7 +10,10 @@ import { LANGUAGE_CATALOG } from '../src/i18n/catalog.js'
 const { chromium, firefox, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(import.meta.dirname, '..')
 const temporary = await mkdtemp(path.join(tmpdir(), 'm7-security-'))
-const output = path.join(root, 'artifacts/milestone-9-2/parallel')
+const output = path.join(
+  root,
+  process.env.M93_EVIDENCE_DIRECTORY || 'artifacts/milestone-9-2/parallel',
+)
 await mkdir(output, { recursive: true })
 const transportOrigin = 'https://localhost:5199'
 const origin =

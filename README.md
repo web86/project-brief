@@ -1,6 +1,8 @@
 # Планировщик ТЗ / Project Brief
 
-Milestone 9.2 / Project Brief 0.9.2: [Administrators & SSO UX + Passkey Reliability](docs/milestone-9-2/README.md).
+Milestone 9.3 / Project Brief 0.9.3: [Administrators, SSO, Passkey, agreements and branded footer](docs/milestone-9-3/README.md).
+
+База Milestone 9.2 / Project Brief 0.9.2: [Administrators & SSO UX + Passkey Reliability](docs/milestone-9-2/README.md).
 
 База Milestone 8.5 / Project Brief 0.9.1: [Centralized Administrators & SSO UX](docs/milestone-8-5/README.md).
 

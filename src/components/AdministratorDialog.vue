@@ -1,4 +1,5 @@
 <script setup>
+import AgreementStatus from './AgreementStatus.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import BaseDialog from './BaseDialog.vue'
 import NotificationToggle from './NotificationToggle.vue'
@@ -224,6 +225,7 @@ function save() {
         >
         <p v-else class="small muted">{{ t('adminEditor.joined') }}</p>
       </details>
+      <AgreementStatus :agreement="record?.agreement" expanded />
       <div class="management-security">
         <strong>{{ t('account.security') }}</strong>
         <p v-if="kind === 'member'" class="small muted">

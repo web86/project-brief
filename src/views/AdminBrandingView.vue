@@ -20,7 +20,7 @@ import BrandLogo from '../components/BrandLogo.vue'
 const nav = useAdminNavigationStore(),
   store = useWorkspaceBrandingStore(),
   tab = ref('visual')
-const tabs = ['visual', 'business', 'contact', 'export', 'email', 'future']
+const tabs = ['visual', 'business', 'contact', 'export', 'email', 'footer', 'future']
 watch(
   () => nav.workspace?.id,
   (id) => {
@@ -35,6 +35,7 @@ const tokens = computed(() =>
   brandTokens(store.draft?.visual.primaryColor, theme.resolved.value === 'dark'),
 )
 const toggles = {
+  footer: { support: 'footerSupport', website: 'footerWebsite' },
   export: {
     logo: 'showLogo',
     companyName: 'showName',
@@ -345,7 +346,16 @@ const changed = (section) =>
           </form>
           <form v-else-if="toggles[tab]" :key="tab" @submit.prevent="save()">
             <p class="muted">
-              {{ t('branding.' + (tab === 'export' ? 'exportHint' : 'emailHint')) }}
+              {{
+                t(
+                  'branding.' +
+                    (tab === 'footer'
+                      ? 'footerHint'
+                      : tab === 'export'
+                        ? 'exportHint'
+                        : 'emailHint'),
+                )
+              }}
             </p>
             <div class="branding-toggles">
               <NotificationToggle

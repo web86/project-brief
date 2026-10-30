@@ -1,4 +1,5 @@
 <script setup>
+import AppFooter from './components/AppFooter.vue'
 import SecurityStepUpDialog from './components/SecurityStepUpDialog.vue'
 import BrandLogo from './components/PortalBrandLogo.vue'
 import ClientSidebar from './components/ClientSidebar.vue'
@@ -201,6 +202,14 @@ watch(
     }
   },
 )
+function agreementRequired() {
+  useAdminNavigationStore().clear()
+  router.replace('/admin/agreement')
+}
+globalThis.window?.addEventListener?.('administrator-agreement-required', agreementRequired)
+onBeforeUnmount(() =>
+  globalThis.window?.removeEventListener?.('administrator-agreement-required', agreementRequired),
+)
 store.loadFromStorage()
 watch(
   () => store.apiError,
@@ -304,6 +313,10 @@ watch(
           /><RouterView />
         </main>
       </div>
+      <AppFooter
+        v-if="!route.meta.agreement && !route.meta.publicDocument && route.path !== '/invitation'"
+        :compact="!clientShell"
+      />
     </div>
   </div>
   <LoadingOverlay :active="navigationPending" class="navigation-loading" />

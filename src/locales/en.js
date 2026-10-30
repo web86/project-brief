@@ -1,4 +1,43 @@
 export default {
+  agreement: {
+    settings: 'Administrator agreement',
+    title: 'Rules and administrator agreement',
+    label: 'Agreement',
+    require: 'Require acceptance of the agreement',
+    requireAgain: 'Require existing administrators to accept the published revision again',
+    settingsHint:
+      'Workspace owners manage this document. Draft changes remain private until publication.',
+    publishHint:
+      'Publication requires a date and text in all four languages. Ordinary edits preserve prior acceptance. Requesting acceptance again requires a later revision date.',
+    version: 'Revision date',
+    languages: 'Document languages',
+    preview: 'Preview',
+    publicPage: 'Public document',
+    publish: 'Save and publish',
+    saved: 'Saved',
+    conflict: 'The published document has changed. Reload it before continuing.',
+    unsaved: 'Discard unsaved agreement changes?',
+    acceptHint:
+      'Please read and accept this workspace agreement before continuing. You can sign out without accepting.',
+    accept: 'Accept and continue',
+    rules: 'Rules and agreement',
+    support: 'Support',
+    footer: 'Company and documents',
+    pending: 'Awaiting acceptance',
+    renewal: 'Acceptance required again',
+    accepted: 'Accepted',
+    notRequired: 'Not required',
+    print: 'Print',
+    formatting: 'Text formatting',
+    text: 'Agreement text',
+    paragraph: 'Paragraph',
+    heading: 'Heading',
+    subheading: 'Subheading',
+    bold: 'Bold',
+    italic: 'Italic',
+    bullet: 'Bullet list',
+    number: 'Numbered list',
+  },
   adminEditor: {
     pendingSecurity: 'Security status is available after invitation acceptance.',
     edit: 'Edit',
@@ -253,6 +292,12 @@ export default {
     websiteInvalid: 'Enter a valid website, such as company.com or https://company.com.',
   },
   branding: {
+    footer: 'Application footer',
+    footerSupport: 'Publish the existing contact email as a support link',
+    footerWebsite: 'Link the company name to the existing company website',
+    footerHint:
+      'These options publish only the selected contact fields. Bank details and addresses remain private.',
+
     newDraft: 'Changes saved. Your newer edits remain in the draft.',
     retryUpload: 'Retry selected file',
     uploading: 'Uploading file',

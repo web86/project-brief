@@ -1763,8 +1763,110 @@ echo json_encode(['ok'=>true]);
         path: path.join(output, 'packaged-team-success.png'),
         fullPage: true,
       })
+      await page.goto(publicOrigin + '/admin/settings/agreement')
+      await page.locator('.agreement-settings-form').waitFor()
+      await page.locator('.agreement-option input').first().check()
+      await page.locator('input[type=date]').fill('2026-10-30')
+      for (const language of ['ru', 'en', 'tr', 'zh-CN']) {
+        await page.locator('#agreement-tab-' + language).click()
+        await page
+          .locator('.editor-content')
+          .fill('Packaged agreement ' + language + ' <script>inert text</script>')
+      }
+      await page.locator('.agreement-settings-actions .primary').click()
+      await page.locator('.agreement-settings [role=status]').waitFor()
+      const published = await page.evaluate(async () =>
+        (
+          await fetch('/api/admin/settings/agreement', { headers: { Accept: 'application/json' } })
+        ).json(),
+      )
+      assert.equal(published.data.enabled, true)
+      assert.equal(published.publicUrl, '/w/' + fixture.workspace + '/agreement')
+      const invite = await page.evaluate(async () => {
+        const token = (await (await fetch('/api/csrf')).json()).token
+        const response = await fetch('/api/admin/administrators/invitations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': token,
+          },
+          body: JSON.stringify({
+            email: 'package-agreement@example.test',
+            sendEmail: false,
+            generateLink: true,
+          }),
+        })
+        if (!response.ok) throw new Error('Packaged invitation unavailable')
+        return response.json()
+      })
+      const guest = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        serviceWorkers: 'block',
+      })
+      await guest.routeWebSocket('**/*', (socket) => socket.close())
+      await guest.route('**/*', async (route) => {
+        const url = new URL(route.request().url())
+        if (url.origin !== publicOrigin) return route.abort()
+        const response = await route.fetch({
+          url: origin + url.pathname + url.search,
+          maxRedirects: 0,
+        })
+        await route.fulfill({ response })
+      })
+      await guest.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+      const documentPage = await guest.newPage()
+      documentPage.on('pageerror', (error) => errors.push(error.message))
+      await documentPage.goto(publicOrigin + published.publicUrl)
+      await documentPage.locator('.agreement-document').waitFor()
+      assert.equal(await documentPage.locator('.agreement-document script').count(), 0)
+      assert.ok(
+        (await documentPage.locator('.agreement-document').textContent()).includes(
+          '<script>inert text</script>',
+        ),
+      )
+      await documentPage.goto(invite.link)
+      await documentPage.locator('.invitation-entry-actions button').first().click()
+      await documentPage.locator('#invited-name').fill('Package agreement')
+      await documentPage.locator('#invited-password').fill('Package-agreement-password!')
+      await documentPage.locator('#invited-confirmation').fill('Package-agreement-password!')
+      await documentPage.locator('form button[type=submit]').click()
+      await documentPage.waitForURL('**/admin/agreement')
+      await documentPage.locator('.agreement-document').waitFor()
+      assert.equal(await documentPage.locator('.admin-sidebar').count(), 0)
+      assert.equal(
+        await documentPage.evaluate(
+          async () =>
+            (await fetch('/api/admin/projects', { headers: { Accept: 'application/json' } }))
+              .status,
+        ),
+        403,
+      )
+      await documentPage.screenshot({
+        path: path.join(output, 'packaged-agreement-mobile.png'),
+        fullPage: true,
+      })
+      await documentPage.locator('.agreement-actions .primary').click()
+      await documentPage.waitForURL('**/admin/security')
+      assert.equal(
+        await documentPage.evaluate(
+          async () =>
+            !!(
+              await (
+                await fetch('/api/session', { headers: { Accept: 'application/json' } })
+              ).json()
+            ).agreementRequired,
+        ),
+        false,
+      )
+      assert.deepEqual(errors, [])
+      await guest.close()
       const evidence = {
         passed: true,
+        agreementPublished: true,
+        anonymousDocument: true,
+        agreementApiGate: true,
+        agreementAccepted: true,
         compiledAssets: true,
         productionVendor: true,
         origin: publicOrigin,

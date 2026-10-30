@@ -11,7 +11,11 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = fileURLToPath(new URL('..', import.meta.url))
 const baseline = false
 const mysql = false // Browser fixtures are always disposable SQLite; MariaDB is tested separately.
-const output = path.join(root, 'artifacts/milestone-9-2', mysql ? 'mysql' : 'sqlite')
+const output = path.join(
+  root,
+  process.env.M93_EVIDENCE_DIRECTORY || 'artifacts/milestone-9-2',
+  mysql ? 'mysql' : 'sqlite',
+)
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-live-sync-')),
   app = path.join(scratch, 'app')
 await mkdir(app)

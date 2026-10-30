@@ -11,6 +11,7 @@ use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
 use App\Services\DeveloperInvitations;
 use App\Services\ProjectPermissions;
+use App\Services\WorkspaceAgreements;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,15 +26,18 @@ class WorkspaceAdministratorController extends Controller
 
         $projects = $owner->workspace->projects()->get();
         $allProjectIds = $projects->pluck('uuid');
+        $members = $owner->workspace->members()->whereIn('role', ['owner', 'admin'])->with(['user' => fn ($q) => $q->withExists(['passkeys as security_passkey_configured']), 'projectMemberships' => fn ($q) => $q->where('workspace_id', $owner->workspace_id)->whereHas('project', fn ($p) => $p->where('workspace_id', $owner->workspace_id))->with('project')])->get();
+        $members->each(fn ($member) => $member->setRelation('workspace', $owner->workspace));
+        $acceptances = DB::table('workspace_agreement_acceptances')->where('workspace_id', $owner->workspace_id)->orderByDesc('id')->get()->unique('workspace_member_id')->keyBy('workspace_member_id');
 
         return response()->json([
             'projects' => $projects->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]),
-            'members' => $owner->workspace->members()->whereIn('role', ['owner', 'admin'])->with(['user' => fn ($q) => $q->withExists(['passkeys as security_passkey_configured']), 'projectMemberships' => fn ($q) => $q->where('workspace_id', $owner->workspace_id)->whereHas('project', fn ($p) => $p->where('workspace_id', $owner->workspace_id))->with('project')])->get()->map(fn ($m) => [
-                'id' => $m->id, 'canCreateProjects' => ($m->role === 'owner' || (bool) $m->can_create_projects), 'user' => [...app(AccountProfile::class)->state($m->user), 'name' => $m->display_name ?? $m->user->name], 'role' => $m->role, 'security' => ['passkey' => (bool) $m->user->security_passkey_configured, 'totp' => $m->user->hasEnabledTwoFactorAuthentication()], 'status' => $m->status, 'joinedAt' => $m->joined_at?->toISOString(),
+            'members' => $members->map(fn ($m) => [
+                'agreement' => app(WorkspaceAgreements::class)->status($m, $acceptances->get($m->id)), 'id' => $m->id, 'canCreateProjects' => ($m->role === 'owner' || (bool) $m->can_create_projects), 'user' => [...app(AccountProfile::class)->state($m->user), 'name' => $m->display_name ?? $m->user->name], 'role' => $m->role, 'security' => ['passkey' => (bool) $m->user->security_passkey_configured, 'totp' => $m->user->hasEnabledTwoFactorAuthentication()], 'status' => $m->status, 'joinedAt' => $m->joined_at?->toISOString(),
                 'projectPermissions' => $m->projectMemberships->mapWithKeys(fn ($p) => [$p->project->uuid => ProjectPermissions::normalize($p->permissions)]),
                 'projects' => $m->role === 'owner' ? $allProjectIds : $m->projectMemberships->map(fn ($p) => $p->project->uuid)]),
             'invitations' => DeveloperInvitation::where('workspace_id', $owner->workspace_id)->whereNull('accepted_at')->whereNull('revoked_at')->latest()->get()->map(fn ($i) => [
-                'id' => $i->uuid, 'email' => $i->email, 'name' => $i->name, 'status' => ! $i->sent_at ? 'draft' : ($i->expires_at->isFuture() ? 'pending' : 'expired'), 'expiresAt' => $i->expires_at->toISOString(),
+                'agreement' => app(WorkspaceAgreements::class)->invitationStatus($owner->workspace), 'id' => $i->uuid, 'email' => $i->email, 'name' => $i->name, 'status' => ! $i->sent_at ? 'draft' : ($i->expires_at->isFuture() ? 'pending' : 'expired'), 'expiresAt' => $i->expires_at->toISOString(),
                 'canCreateProjects' => (bool) $i->can_create_projects, 'projectPermissions' => $i->project_permissions ?? [], 'sentAt' => $i->sent_at?->toISOString(), 'projects' => $projects->whereIn('id', $i->project_ids)->pluck('uuid')]),
         ])->header('Cache-Control', 'no-store');
     }

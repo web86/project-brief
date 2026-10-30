@@ -1,4 +1,5 @@
 <script setup>
+import AppFooter from '../components/AppFooter.vue'
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
@@ -174,4 +175,5 @@ onMounted(async () => {
       </template>
     </form>
   </div>
+  <AppFooter compact :branding="state?.branding || {}" />
 </template>

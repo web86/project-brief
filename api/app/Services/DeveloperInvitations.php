@@ -100,6 +100,9 @@ class DeveloperInvitations
                 $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
             }
             $member = WorkspaceMember::firstOrCreate(['workspace_id' => $invitation->workspace_id, 'user_id' => $user->id], ['role' => 'admin', 'status' => 'active', 'joined_at' => now(), 'display_name' => $invitation->name]);
+            if ($member->wasRecentlyCreated) {
+                app(WorkspaceAgreements::class)->enroll($member);
+            }
             if ($member->status !== 'active') {
                 $member->can_create_projects = false;
             }

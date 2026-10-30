@@ -1,4 +1,5 @@
 <script setup>
+import AppFooter from '../components/AppFooter.vue'
 import BrandLogo from '../components/PortalBrandLogo.vue'
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -231,6 +232,7 @@ async function logout() {
         </template>
         <LoadingOverlay v-else active />
       </main>
+      <AppFooter />
     </div>
     <dialog
       id="admin-drawer"

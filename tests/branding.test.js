@@ -34,10 +34,14 @@ const fixture = () => ({
   contact: { email: 'hello@example.test' },
   email: { enabled: false },
   export: { business: false },
+  footer: { support: false, website: false },
   assets: { logo: null, favicon: null },
   assetInfo: {},
   versions: Object.fromEntries(
-    ['visual', 'business', 'contact', 'email', 'export'].map((key) => [key, 'a'.repeat(64)]),
+    ['visual', 'business', 'contact', 'email', 'export', 'footer'].map((key) => [
+      key,
+      'a'.repeat(64),
+    ]),
   ),
 })
 const deferred = () => {

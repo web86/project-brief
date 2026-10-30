@@ -15,7 +15,11 @@ const scratch = await mkdtemp(path.join(tmpdir(), 'brief-provisioning-'))
 const app = path.join(scratch, 'app')
 const mysql = !!process.env.PROVISIONING_MYSQL_PORT
 const productionBuild = true
-const output = path.join(root, 'artifacts/milestone-9-2/sso', mysql ? 'mysql' : 'sqlite')
+const output = path.join(
+  root,
+  process.env.M93_EVIDENCE_DIRECTORY || 'artifacts/milestone-9-2/sso',
+  mysql ? 'mysql' : 'sqlite',
+)
 await mkdir(app)
 await mkdir(output, { recursive: true })
 let backend, otherBackend, frontend, browser, smtp, tlsServer, areaServer, areaBackend

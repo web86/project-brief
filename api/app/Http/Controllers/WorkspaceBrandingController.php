@@ -42,7 +42,7 @@ class WorkspaceBrandingController extends Controller
 
     private function sectionRules(string $section, string $prefix): array
     {
-        $fields = WorkspaceBranding::FIELDS[$section] ?? array_fill_keys(array_keys($section === 'email' ? WorkspaceBranding::EMAIL_DEFAULTS : WorkspaceBranding::EXPORT_DEFAULTS), null);
+        $fields = WorkspaceBranding::FIELDS[$section] ?? array_fill_keys(array_keys($section === 'footer' ? WorkspaceBranding::FOOTER_DEFAULTS : ($section === 'email' ? WorkspaceBranding::EMAIL_DEFAULTS : WorkspaceBranding::EXPORT_DEFAULTS)), null);
         $rules = [$prefix => ['required', 'array:'.implode(',', array_keys($fields))]];
         foreach ($fields as $key => $length) {
             $rules[$prefix.'.'.$key] = $length === null ? ['sometimes', 'boolean'] : ['sometimes', 'nullable', 'string', 'max:'.$length];
@@ -73,7 +73,7 @@ class WorkspaceBrandingController extends Controller
                 $request->replace($input);
             }
         }
-        $keys = ['visual', 'business', 'contact', 'export', 'email'];
+        $keys = ['visual', 'business', 'contact', 'export', 'email', 'footer'];
         $atomic = $request->has('sections');
         if ($atomic) {
             $rules = ['sections' => ['required', 'array:'.implode(',', $keys), 'min:1'], 'versions' => ['required', 'array:'.implode(',', $keys)]];

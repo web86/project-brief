@@ -1,4 +1,5 @@
 <script setup>
+import AgreementStatus from '../components/AgreementStatus.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '../api/client.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
@@ -252,6 +253,7 @@ async function copyLink() {
           <p v-if="!member.projects.length" class="small muted">
             {{ t('administrators.noProjects') }}
           </p>
+          <AgreementStatus :agreement="member.agreement" />
           <div class="administrator-security small muted">
             <span :title="t('security.authenticator')"
               ><AppIcon name="shield" :size="15" /><span class="sr-only">{{
@@ -309,6 +311,7 @@ async function copyLink() {
               )
             }}
           </p>
+          <AgreementStatus :agreement="invitation.agreement" />
           <div
             class="administrator-security small muted"
             :title="t('adminEditor.pendingSecurity')"

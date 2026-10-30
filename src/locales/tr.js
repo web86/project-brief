@@ -1,4 +1,43 @@
 export default {
+  agreement: {
+    settings: 'Yönetici sözleşmesi',
+    title: 'Kurallar ve yönetici sözleşmesi',
+    label: 'Sözleşme',
+    require: 'Sözleşmenin kabulünü zorunlu kıl',
+    requireAgain: 'Mevcut yöneticilerden yayımlanan sürümü yeniden kabul etmelerini iste',
+    settingsHint:
+      'Bu belgeyi çalışma alanının sahibi yönetir. Taslak değişiklikleri yayımlanana kadar gizli kalır.',
+    publishHint:
+      'Yayımlamak için tarih ve dört dilde metin gerekir. Normal düzenlemeler önceki kabulleri korur. Yeniden kabul için daha sonraki bir sürüm tarihi gerekir.',
+    version: 'Sürüm tarihi',
+    languages: 'Belge dilleri',
+    preview: 'Önizleme',
+    publicPage: 'Herkese açık belge',
+    publish: 'Kaydet ve yayımla',
+    saved: 'Kaydedildi',
+    conflict: 'Yayımlanan belge değişti. Devam etmeden önce yeniden yükleyin.',
+    unsaved: 'Kaydedilmemiş sözleşme değişiklikleri silinsin mi?',
+    acceptHint:
+      'Devam etmek için bu çalışma alanının sözleşmesini okuyup kabul edin. Kabul etmeden çıkış yapabilirsiniz.',
+    accept: 'Kabul et ve devam et',
+    rules: 'Kurallar ve sözleşme',
+    support: 'Destek',
+    footer: 'Şirket ve belgeler',
+    pending: 'Kabul bekleniyor',
+    renewal: 'Yeniden kabul gerekiyor',
+    accepted: 'Kabul edildi',
+    notRequired: 'Gerekli değil',
+    print: 'Yazdır',
+    formatting: 'Metin biçimlendirme',
+    text: 'Sözleşme metni',
+    paragraph: 'Paragraf',
+    heading: 'Başlık',
+    subheading: 'Alt başlık',
+    bold: 'Kalın',
+    italic: 'İtalik',
+    bullet: 'Madde listesi',
+    number: 'Numaralı liste',
+  },
   adminEditor: {
     pendingSecurity: 'Güvenlik durumu davet kabul edildikten sonra görünür.',
     edit: 'Düzenle',
@@ -254,6 +293,12 @@ export default {
     websiteInvalid: 'company.com veya https://company.com gibi geçerli bir site girin.',
   },
   branding: {
+    footer: 'Uygulama altbilgisi',
+    footerSupport: 'Mevcut iletişim e-postasını destek bağlantısı olarak yayımla',
+    footerWebsite: 'Şirket adını mevcut şirket web sitesine bağla',
+    footerHint:
+      'Bu seçenekler yalnızca seçilen iletişim alanlarını yayımlar. Banka bilgileri ve adresler gizli kalır.',
+
     newDraft: 'Değişiklikler kaydedildi. Daha yeni düzenlemeler taslakta kaldı.',
     retryUpload: 'Seçili dosyayı yeniden yükle',
     uploading: 'Dosya yükleniyor',

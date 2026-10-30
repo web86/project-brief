@@ -53,6 +53,16 @@ export function createProjectRouter({
         },
       },
       { path: '/admin/security', component: () => import('../views/AccountEnrollmentView.vue') },
+      {
+        path: '/admin/agreement',
+        component: () => import('../views/AgreementView.vue'),
+        meta: { agreement: true },
+      },
+      {
+        path: '/w/:workspace/agreement',
+        component: () => import('../views/AgreementView.vue'),
+        meta: { publicDocument: true },
+      },
       { path: '/invitation', component: () => import('../views/InvitationView.vue') },
       ...['forgot-password', 'reset-password'].map((path) => ({
         path: '/admin/' + path,
@@ -124,6 +134,16 @@ export function createProjectRouter({
               personalSettings: true,
               get title() {
                 return t('centralNotifications.myNotifications')
+              },
+            },
+          },
+          {
+            path: 'settings/agreement',
+            component: () => import('../views/AdminAgreementSettingsView.vue'),
+            meta: {
+              ownerOnly: true,
+              get title() {
+                return t('agreement.settings')
               },
             },
           },
@@ -400,6 +420,12 @@ export function createProjectRouter({
       }
       return true
     }
+    if (apiMode && to.meta.agreement) {
+      const session = await request('/api/session')
+      if (['pending_2fa', 'enrollment_required'].includes(session.state)) return '/admin/security'
+      if (!session.authenticated) return '/admin/login'
+      if (!session.agreementRequired) return (await appDestination(request)) || '/app'
+    }
     if (apiMode && to.path === '/admin/security') {
       const status = await request('/api/security/status')
       if (status.state === 'guest') return '/admin/login'
@@ -452,6 +478,11 @@ export function createProjectRouter({
           return false
         store.sessionLost = false
       } catch (error) {
+        if (error.code === 'administrator_agreement_required') {
+          nav.clear()
+          store.admin = null
+          return '/admin/agreement'
+        }
         if (error.code === 'account_security_required') {
           nav.clear()
           store.admin = null
