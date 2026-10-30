@@ -17,4 +17,5 @@ SSO отображает адаптивную сетку 2/1 карточки, �
 - [Диагностика и исправление Passkey](PASSKEY.md).
 - [Проверки и границы](TESTS.md).
 - [Обновление/rollback Jino](PRODUCTION.md).
-- Production ZIP и SHA-256 фиксируются в RELEASE-ARTIFACT.json / SHA256SUMS.txt после канонической сборки.
+- [Production ZIP](../../release/project-brief-v0.9.2-8bf88e9.zip) — **39295991 bytes**, source commit `8bf88e9`.
+- [SHA-256](SHA256SUMS.txt) и [результаты релиза](RELEASE-ARTIFACT.json). Предыдущий v0.9.1 и первый локальный candidate ZIP сохранены; final ZIP — `project-brief-v0.9.2-8bf88e9.zip`.
