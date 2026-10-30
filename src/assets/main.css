@@ -6636,6 +6636,7 @@ button.attachment-item:hover {
 }
 
 .management-dialog {
+  overflow-wrap: anywhere;
   width: min(720px, calc(100% - 32px));
   overflow: hidden;
 }

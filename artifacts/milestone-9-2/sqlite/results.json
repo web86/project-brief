@@ -96,7 +96,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/admin/administrators/invitations/01a18bd9-6722-7374-8122-3f2dfc538d4f/resend",
+      "url": "/api/admin/administrators/invitations/01a18bff-70d6-73c9-af8d-bdca7fd181be/resend",
       "method": "POST"
     },
     {
@@ -104,7 +104,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/admin/administrators/invitations/01a18bd9-6722-7374-8122-3f2dfc538d4f/link",
+      "url": "/api/admin/administrators/invitations/01a18bff-70d6-73c9-af8d-bdca7fd181be/link",
       "method": "POST"
     },
     {
@@ -112,7 +112,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/admin/administrators/invitations/01a18bd9-6722-7374-8122-3f2dfc538d4f/link",
+      "url": "/api/admin/administrators/invitations/01a18bff-70d6-73c9-af8d-bdca7fd181be/link",
       "method": "POST"
     },
     {
@@ -252,7 +252,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/admin/integrations/sources/28f08566-a490-4010-85b9-654388c1a2d4/sso",
+      "url": "/api/admin/integrations/sources/7d47998d-f6eb-4c76-9e50-ff2e4d9cd99e/sso",
       "method": "PATCH"
     },
     {
@@ -264,7 +264,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/admin/integrations/sources/28f08566-a490-4010-85b9-654388c1a2d4/sso",
+      "url": "/api/admin/integrations/sources/7d47998d-f6eb-4c76-9e50-ff2e4d9cd99e/sso",
       "method": "PATCH"
     },
     {
@@ -272,7 +272,7 @@
       "method": "GET"
     },
     {
-      "url": "/api/admin/integrations/sources/0fecb9cf-ee48-4e94-925d-eb39aea7ef62",
+      "url": "/api/admin/integrations/sources/33779efe-c52f-48f8-bbf0-f17857be42c0",
       "method": "DELETE"
     },
     {

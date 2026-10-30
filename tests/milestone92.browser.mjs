@@ -365,6 +365,10 @@ try {
   })
   await editor.locator('button[form="administrator-editor"]').click()
   await editor.locator('[role=alert]').waitFor()
+  assert.equal(
+    await editor.locator('[role=alert]').evaluate((el) => el === document.activeElement),
+    true,
+  )
   assert.equal(await admin.locator('#administrator-name').inputValue(), 'Invited via modal')
   assert.equal(await editor.locator(`input[value="${f.reviewed}"]`).isChecked(), true)
   await saveAdministrator()
@@ -468,6 +472,10 @@ try {
   await admin.locator('#sso-origin').fill('https://portal-a.example.test/path')
   await ssoEditor.locator('button[form="sso-source-editor"]').click()
   await ssoEditor.locator('[role=alert]').waitFor()
+  assert.equal(
+    await ssoEditor.locator('[role=alert]').evaluate((el) => el === document.activeElement),
+    true,
+  )
   assert.equal(await admin.locator('#sso-source-name').inputValue(), 'Portal A renamed')
   await admin.locator('#sso-origin').fill('https://portal-a.example.test')
   await ssoEditor.locator('.sso-api-key > summary').click()

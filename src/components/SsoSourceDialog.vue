@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import BaseDialog from './BaseDialog.vue'
 import NotificationToggle from './NotificationToggle.vue'
 import LoadingButton from './LoadingButton.vue'
@@ -12,6 +12,16 @@ const props = defineProps({
   busy: Boolean,
   error: String,
 })
+const errorAlert = ref(null)
+watch(
+  () => props.error,
+  async (value) => {
+    if (value) {
+      await nextTick()
+      errorAlert.value?.focus()
+    }
+  },
+)
 const emit = defineEmits(['close', 'save', 'remove', 'create-key'])
 const name = ref(''),
   origin = ref(''),
@@ -64,7 +74,9 @@ watch(
         emit('save', { name, ssoOrigin: origin, ssoEnabled: enabled, projectIds: selected })
       "
     >
-      <p v-if="error" role="alert" class="field-error">{{ error }}</p>
+      <p v-if="error" ref="errorAlert" role="alert" class="field-error" tabindex="-1">
+        {{ error }}
+      </p>
       <div class="management-fields">
         <label class="field" for="sso-source-name"
           >{{ t('integrations.name')

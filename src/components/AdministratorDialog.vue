@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import BaseDialog from './BaseDialog.vue'
 import NotificationToggle from './NotificationToggle.vue'
 import LoadingButton from './LoadingButton.vue'
@@ -13,6 +13,16 @@ const props = defineProps({
   busy: Boolean,
   error: String,
 })
+const errorAlert = ref(null)
+watch(
+  () => props.error,
+  async (value) => {
+    if (value) {
+      await nextTick()
+      errorAlert.value?.focus()
+    }
+  },
+)
 const emit = defineEmits(['close', 'save', 'remove', 'invite', 'link'])
 const name = ref(''),
   email = ref(''),
@@ -88,7 +98,7 @@ function save() {
       class="management-body administrator-editor"
       @submit.prevent="save"
     >
-      <div v-if="error" class="field-error" role="alert">
+      <div v-if="error" ref="errorAlert" class="field-error" role="alert" tabindex="-1">
         {{ error }}<slot name="error-actions" />
       </div>
       <div class="management-fields">
