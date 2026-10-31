@@ -1,6 +1,6 @@
 # Планировщик ТЗ / Project Brief
 
-Milestone 9.6 / Project Brief 0.9.6: [Universal Agent API & External Executors](docs/milestone-9-6/README.md).
+Milestone 9.6.1 / Project Brief 0.9.7: [Agent API UX Polish](docs/milestone-9-6-1/README.md).
 
 Previous Milestone 9.5 / Project Brief 0.9.5: [Agreements, team management, invitations and private team chat](docs/milestone-9-5/README.md).
 

@@ -2,19 +2,24 @@
 
 namespace Tests\Feature;
 
+use App\Events\ProjectNotificationRequested;
 use App\Models\ExternalAgent;
 use App\Models\Project;
 use App\Models\ProjectMember;
+use App\Models\ProjectNotificationSetting;
 use App\Models\Task;
 use App\Models\TaskAgentAssignment;
 use App\Models\User;
 use App\Services\AgentAccess;
+use App\Services\LiveNotifications;
 use App\Services\WebhookDestination;
 use App\Services\WebhookEvents;
 use App\Services\WebhookProcessor;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -46,6 +51,53 @@ class AgentApiTest extends TestCase
     private function headers(array $token, string $key = 'report-1'): array
     {
         return ['Authorization' => 'Bearer '.$token['secret'], 'Idempotency-Key' => $key];
+    }
+
+    public function test_agent_results_are_public_to_same_project_clients_including_links_and_downloads(): void
+    {
+        Storage::fake('local');
+        [$project, , , $token, $task, $assignment] = $this->fixture();
+        Event::fake([ProjectNotificationRequested::class]);
+        $base = '/api/v1/agent/tasks/'.$task->uuid;
+        $this->postJson($base.'/reports', ['assignmentId' => $assignment->uuid, 'state' => 'submitted', 'summary' => 'TECHNICAL-DETAIL-visible', 'resultUrl' => 'https://example.test/internal-result'], $this->headers($token))->assertCreated();
+        $this->postJson($base.'/comments', ['assignmentId' => $assignment->uuid, 'text' => 'Agent public comment'], $this->headers($token, 'visible-comment'))->assertCreated();
+        $file = $this->post($base.'/attachments', ['assignmentId' => $assignment->uuid, 'attachments' => [UploadedFile::fake()->createWithContent('result.txt', 'Technical file content')]], $this->headers($token, 'visible-file') + ['Accept' => 'application/json'])->assertCreated()->json('data.attachments.0.id');
+        Event::assertNotDispatched(ProjectNotificationRequested::class);
+        $this->assertSame(0, DB::table('comments')->where('task_id', $task->id)->where('team_only', true)->count());
+        $this->app['auth']->forgetGuards();
+        $client = $project->clients()->first();
+        $access = $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
+        $this->withSession(['client_project_id' => $project->id, 'project_client_id' => $client->id, 'client_access_token_id' => $access->id]);
+        $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.comments.0.text', 'TECHNICAL-DETAIL-visible')->assertJsonPath('data.comments.0.agentReport.resultUrl', 'https://example.test/internal-result')->assertJsonPath('data.comments.1.text', 'Agent public comment');
+        $this->assertArrayNotHasKey('agentAssignments', $response->json('data'));
+        $this->assertArrayNotHasKey('developerNotes', $response->json('data'));
+        $this->assertArrayNotHasKey('price', $response->json('data'));
+        $this->get('/api/client/attachments/'.$file.'/download')->assertOk();
+        $foreign = Project::factory()->create();
+        $otherClient = $foreign->clients()->first();
+        $otherAccess = $foreign->accessTokens()->create(['project_client_id' => $otherClient->id, 'token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
+        $this->withSession(['client_project_id' => $foreign->id, 'project_client_id' => $otherClient->id, 'client_access_token_id' => $otherAccess->id]);
+        $this->getJson('/api/client/tasks/'.$task->uuid)->assertNotFound();
+        $this->getJson('/api/client/attachments/'.$file.'/download')->assertNotFound();
+    }
+
+    public function test_agent_live_notification_preview_depends_on_existing_project_settings(): void
+    {
+        [$project, , , $token, $task, $assignment] = $this->fixture();
+        $notifications = app(LiveNotifications::class);
+        $watermark = $notifications->seed();
+        $this->postJson('/api/v1/agent/tasks/'.$task->uuid.'/comments', ['assignmentId' => $assignment->uuid, 'text' => 'Technical preview visible without settings'], $this->headers($token))->assertCreated();
+        $client = $project->clients()->first();
+        $client->forceFill(['notification_preferences' => ['push' => true]])->save();
+        $request = Request::create('/api/client/live');
+        $request->attributes->set('client_project', $project);
+        $request->attributes->set('project_client', $client);
+        $this->assertNotNull(ProjectNotificationSetting::where('project_id', $project->id)->first());
+        $this->assertSame([], $notifications->changes($request, $watermark, null)['items']);
+        ProjectNotificationSetting::where('project_id', $project->id)->delete();
+        $items = $notifications->changes($request, $watermark, null)['items'];
+        $this->assertCount(1, $items);
+        $this->assertSame('Technical preview visible without settings', $items[0]['preview']);
     }
 
     public function test_identity_permissions_minimal_data_and_function_boundaries(): void

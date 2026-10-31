@@ -1,5 +1,57 @@
 export default {
   agents: {
+    tab: 'Ajanlar',
+    type: 'Yürütücü türü',
+    sameApi:
+      'Tüm türler aynı Agent API kullanır. Tür seçimi bir program başlatmaz veya ek yetki vermez.',
+    discardChanges: 'Kaydedilmemiş ajan değişiklikleri silinsin mi?',
+    allowedCount: '{count} izin verilen proje',
+    selectedCount: 'Seçili: {count}',
+    removeProject: '{name} projesini kaldır',
+    clearProjects: 'Seçimi temizle',
+    projectSearch: 'Proje ara',
+    noProjectsFound: 'Proje bulunamadı.',
+    grantHint:
+      'Sahip izni projeye erişime izin verir. Yürütücüyü proje ekibine eklemek ve görev atamak ayrı adımlardır.',
+    noSuccessfulActivity: 'Henüz başarılı API isteği yok',
+    activity: 'API etkinliği',
+    noActivity: 'Henüz API isteği yok',
+    apiRequests: 'API istekleri',
+    howTo: 'Nasıl bağlanır?',
+    guideDocs:
+      'Production ZIP içinde agent-api/AGENT-API.md ve bağımsız Node.js örneği agent-api/examples/agent.mjs bulunur. Kendi URL ve belirtecinizle Project Brief dışında çalıştırın.',
+    addExecutor: 'Yürütücü ekle',
+    executor: 'Harici yürütücü',
+    assignAction: 'Ata',
+    execution: 'Yürütme',
+    latestReport: 'Son rapor',
+    fullReport: 'Tam rapor',
+    publicResults:
+      'Ajan raporları görev yorumlarıdır; sonuç bağlantıları ve eklerle birlikte müşteriye görünebilir.',
+    kindHint: {
+      ai: 'Görevleri gerçekleştirmek için AI kullanır. Örnekler: Codex, GigaChat, Yandex AI Studio veya kendi ajanınız.',
+      automation: 'Tanımlı bir senaryoyu çalıştırır. Örnekler: n8n, cron veya kendi betiğiniz.',
+      service:
+        'Project Brief uygulamasını başka bir sisteme bağlar. Örnekler: CI/CD, test veya dahili platform.',
+    },
+    credentialState: {
+      issued: 'Süresi dolmamış belirteç verildi',
+      missing: 'Süresi dolmamış belirteç yok',
+    },
+    connect: {
+      token: 'Ajan ayarlarında bir API belirteci oluşturun.',
+      run: 'Bu belirteçle kendi harici yürütücünüzü çalıştırın.',
+      team: 'Ajanı izin verilen projenin ekibine ekleyin.',
+      task: 'Ajana bir görev atayın.',
+      report: 'Yürütme raporunun geldiğini kontrol edin.',
+    },
+    executionState: {
+      pending: 'Başlamayı bekliyor',
+      running: 'Çalışıyor',
+      submitted: 'Sonuç gönderildi',
+      failed: 'Hata',
+      cancelled: 'İptal edildi',
+    },
     title: 'Yapay zekâ aracıları ve harici yürütücüler',
     hint: 'Yalnızca atanan görevlere erişen bağımsız bir yürütücü bağlayın.',
     create: 'Aracı oluştur',
@@ -7,7 +59,7 @@ export default {
     configure: 'Yapılandır',
     name: 'Ad',
     description: 'Açıklama',
-    type: 'Bağlantı türü',
+
     allowedProjects: 'İzin verilen projeler',
     consent:
       'Harici sağlayıcı atanan görevlerin içeriğini alacaktır. Bu aktarıma izin veriyorsanız projeleri seçin. Aracıyı proje ekibine ekleyip görev atayın.',

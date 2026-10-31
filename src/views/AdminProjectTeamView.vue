@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
+import { agentIcon } from '../services/agentPresentation.js'
 import { formatDate } from '../constants/project.js'
 import { api } from '../api/client.js'
 import { toast } from '../services/toast.js'
@@ -15,6 +16,8 @@ const route = useRoute(),
   nav = useAdminNavigationStore()
 const state = ref(null),
   adding = ref(false),
+  agentAdding = ref(false),
+  selectedAgent = ref(''),
   selected = ref([]),
   search = ref(''),
   busy = ref(false),
@@ -49,6 +52,8 @@ watch(
     state.value = null
     selected.value = []
     adding.value = false
+    agentAdding.value = false
+    selectedAgent.value = ''
     search.value = ''
     busy.value = false
     error.value = ''
@@ -74,6 +79,8 @@ async function action(path, method, body) {
     await load(current)
     if (current !== revision) return
     adding.value = false
+    agentAdding.value = false
+    selectedAgent.value = ''
     selected.value = []
     toast.success(() => t('team.saved'))
   } catch (cause) {
@@ -190,7 +197,9 @@ function remove(member) {
           class="team-member project-team-member"
         >
           <div class="team-identity">
-            <span class="task-account-avatar user-avatar"><AppIcon name="bot" :size="24" /></span>
+            <span class="task-account-avatar user-avatar"
+              ><AppIcon :name="agentIcon(agent.kind)" :size="24"
+            /></span>
             <div>
               <strong>{{ agent.name }}</strong>
               <p class="small muted">{{ t('agents.kind.' + agent.kind) }}</p>
@@ -200,7 +209,7 @@ function remove(member) {
             <span class="status-pill">{{
               t(agent.active ? 'agents.active' : 'agents.disabled')
             }}</span
-            ><span
+            ><span v-if="agent.lastActivityAt"
               >{{ t('agents.lastActivity') }}:
               {{ agent.lastActivityAt ? formatDate(agent.lastActivityAt) : '—' }}</span
             >
@@ -214,17 +223,38 @@ function remove(member) {
           </button>
         </article>
         <p v-if="!state.agents?.length" class="muted">{{ t('agents.noExecutors') }}</p>
-        <div class="team-actions">
-          <button
-            v-for="agent in state.availableAgents || []"
-            :key="agent.id"
-            class="button secondary"
-            :disabled="busy"
-            @click="action('/agents/' + agent.id, 'POST')"
-          >
-            <AppIcon name="plus" :size="16" />{{ agent.name }}
+        <button
+          v-if="!agentAdding"
+          class="button secondary"
+          :disabled="busy || !state.availableAgents?.length"
+          :aria-expanded="agentAdding"
+          @click="agentAdding = true"
+        >
+          <AppIcon name="plus" :size="16" />{{ t('agents.addExecutor') }}
+        </button>
+        <form
+          v-else
+          class="team-agent-picker"
+          @submit.prevent="action('/agents/' + selectedAgent, 'POST')"
+        >
+          <label class="field" for="team-agent-choice"
+            >{{ t('agents.choose')
+            }}<select id="team-agent-choice" v-model="selectedAgent" required :disabled="busy">
+              <option value="" disabled>{{ t('agents.choose') }}</option>
+              <option
+                v-for="agent in state.availableAgents || []"
+                :key="agent.id"
+                :value="agent.id"
+              >
+                {{ agent.name }} · {{ t('agents.kind.' + agent.kind) }}
+              </option>
+            </select></label
+          ><button class="button primary" :disabled="busy || !selectedAgent">
+            {{ t('agents.addExecutor') }}</button
+          ><button type="button" class="text-button" :disabled="busy" @click="agentAdding = false">
+            {{ t('ui.cancel') }}
           </button>
-        </div>
+        </form>
       </section>
       <form
         v-if="adding"
@@ -261,6 +291,18 @@ function remove(member) {
   </div>
 </template>
 <style scoped>
+.team-agent-picker {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.team-agent-picker .field {
+  flex: 1;
+  min-width: 160px;
+  margin: 0;
+}
+
 .project-team-invite {
   margin: 1rem 0 1.5rem;
   padding: 1rem 1.25rem;

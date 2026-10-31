@@ -1,3 +1,7 @@
+# v0.9.7 UX patch
+
+For an installed v0.9.6 use [update and rollback](docs/milestone-9-6-1/PRODUCTION.md). Agent results remain client-visible task comments.
+
 # Релиз v0.9.6
 
 Актуальные обновление и безопасный rollback: [Milestone 9.6](docs/milestone-9-6/PRODUCTION.md). Откат требует совместимого runtime либо согласованной пары БД/storage/runtime; идентичности агентов и приватный чат должны сохраняться.

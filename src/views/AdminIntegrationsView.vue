@@ -482,9 +482,13 @@ async function confirmAction(key, path, method = 'POST') {
       >
         {{ t('ui.tryAgain') }}
       </button>
-      <div class="integration-tabs" role="tablist" :aria-label="t('integrations.title')">
+      <div
+        class="integration-tabs integration-primary-tabs"
+        role="tablist"
+        :aria-label="t('integrations.title')"
+      >
         <button
-          v-for="item in ['tokens', 'webhooks', 'sso', 'operations', 'agents']"
+          v-for="item in ['tokens', 'webhooks', 'sso', 'agents', 'operations']"
           :id="'integration-tab-' + item"
           :key="item"
           role="tab"
@@ -494,10 +498,11 @@ async function confirmAction(key, path, method = 'POST') {
           :class="tab === item ? 'primary' : 'secondary'"
           @click="selectTab(item)"
         >
+          <AppIcon v-if="item === 'agents'" name="bot" :size="17" />
           {{
             t(
               item === 'agents'
-                ? 'agents.title'
+                ? 'agents.tab'
                 : item === 'operations'
                   ? 'provisioning.operations'
                   : 'integrations.' + item,
@@ -1104,6 +1109,16 @@ async function confirmAction(key, path, method = 'POST') {
   align-items: center;
   gap: 12px;
   margin: 16px 0;
+}
+.integration-primary-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 3px 3px 8px;
+}
+.integration-primary-tabs .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .integration-form,
 .integration-list {

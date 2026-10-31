@@ -2,6 +2,8 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
+import { agentIcon, latestAgentReport } from '../services/agentPresentation.js'
+import { formatDate } from '../constants/project.js'
 import AppIcon from './AppIcon.vue'
 const props = defineProps({ task: Object, projectId: String, agents: Array })
 const emit = defineEmits(['changed'])
@@ -9,7 +11,12 @@ const available = computed(() => props.agents || []),
   selected = ref(''),
   busy = ref(false),
   error = ref('')
-const assignments = computed(() => props.task.agentAssignments || [])
+const assignments = computed(() =>
+  (props.task.agentAssignments || []).map((row) => ({
+    ...row,
+    latestReport: latestAgentReport(props.task, row),
+  })),
+)
 const choices = computed(() =>
   available.value.filter(
     (a) => a.active && !assignments.value.some((row) => row.agent.id === a.id),
@@ -46,40 +53,57 @@ async function assign(agentId, method) {
 </script>
 <template>
   <section class="surface task-agent-panel" data-task-agents>
-    <h3><AppIcon name="bot" /> {{ t('agents.executors') }}</h3>
-    <p class="small muted">{{ t('agents.reviewHint') }}</p>
+    <h3><AppIcon name="bot" :size="18" /> {{ t('agents.executor') }}</h3>
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
     <article v-for="row in assignments" :key="row.id" class="agent-assignment">
       <div class="agent-heading">
-        <strong>{{ row.agent.name }}</strong
-        ><span class="status-pill">{{ t('agents.state.' + row.state) }}</span
-        ><span class="small muted">{{
-          t(row.agent.active ? 'agents.active' : 'agents.disabled')
-        }}</span
+        <AppIcon :name="agentIcon(row.agent.kind)" :size="18" /><strong>{{ row.agent.name }}</strong
+        ><span class="small muted">{{ t('agents.kind.' + row.agent.kind) }}</span
+        ><span v-if="!row.agent.active" class="status-pill">{{ t('agents.disabled') }}</span
         ><button
-          class="text-button danger"
+          class="text-button danger agent-unassign"
           :disabled="busy"
           @click="assign(row.agent.id, 'DELETE')"
         >
           {{ t('agents.unassign') }}
         </button>
       </div>
-      <div v-for="report in row.reports || []" :key="report.id" class="agent-result">
-        <span>{{ t('agents.state.' + report.state) }}</span
-        ><a
-          v-if="report.pullRequestUrl"
-          :href="report.pullRequestUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          >{{ t('agents.pullRequest') }}</a
-        ><a
-          v-if="report.resultUrl"
-          :href="report.resultUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          >{{ t('agents.result') }}</a
-        >
+      <p class="agent-execution">
+        {{ t('agents.execution') }}: <strong>{{ t('agents.executionState.' + row.state) }}</strong>
+      </p>
+      <div v-if="row.latestReport" class="agent-latest-report">
+        <div class="agent-report-meta">
+          <span
+            >{{ t('agents.latestReport') }} ·
+            {{ t('agents.state.' + row.latestReport.state) }}</span
+          ><time :datetime="row.latestReport.createdAt">{{
+            formatDate(row.latestReport.createdAt)
+          }}</time>
+        </div>
+        <p v-if="row.latestReport.summary" class="agent-report-preview">
+          {{ row.latestReport.summary }}
+        </p>
+        <div class="agent-result">
+          <a
+            v-if="row.latestReport.pullRequestUrl"
+            :href="row.latestReport.pullRequestUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ t('agents.pullRequest') }}</a
+          ><a
+            v-if="row.latestReport.resultUrl"
+            :href="row.latestReport.resultUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ t('agents.result') }}</a
+          ><a v-if="row.latestReport.commentId" :href="'#comment-' + row.latestReport.commentId">{{
+            t('agents.fullReport')
+          }}</a>
+        </div>
       </div>
+      <p v-else-if="row.agent.lastActivityAt" class="small muted">
+        {{ t('agents.lastActivity') }}: {{ formatDate(row.agent.lastActivityAt) }}
+      </p>
     </article>
     <form
       v-if="choices.length"
@@ -87,7 +111,7 @@ async function assign(agentId, method) {
       @submit.prevent="assign(selected, 'POST')"
     >
       <label class="field"
-        >{{ t('agents.assign')
+        >{{ t('agents.choose')
         }}<select v-model="selected" required :disabled="busy">
           <option value="" disabled>{{ t('agents.choose') }}</option>
           <option v-for="agent in choices" :key="agent.id" :value="agent.id">
@@ -95,18 +119,56 @@ async function assign(agentId, method) {
           </option>
         </select></label
       ><button class="button secondary" :disabled="busy || !selected">
-        {{ t('agents.assign') }}
+        {{ t('agents.assignAction') }}
       </button>
     </form>
+    <p v-if="assignments.length" class="small muted agent-visibility-note">
+      {{ t('agents.publicResults') }}
+    </p>
     <p v-if="!assignments.length && !choices.length" class="small muted">
       {{ t('agents.noExecutors') }}
     </p>
   </section>
 </template>
 <style scoped>
+.task-agent-panel h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.agent-unassign {
+  margin-inline-start: auto;
+}
+.agent-execution {
+  margin: 6px 0;
+  font-size: 0.875rem;
+}
+.agent-report-meta {
+  display: flex;
+  gap: 6px 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.agent-report-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  margin: 6px 0;
+}
+.agent-visibility-note {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+}
+.agent-assignment:last-of-type {
+  border-bottom: 0;
+}
+
 .task-agent-panel {
-  padding: 1.25rem;
-  margin-block: 1rem;
+  padding: 14px 16px;
+  margin-block: 12px;
 }
 .task-agent-panel h3,
 .agent-heading,
@@ -126,7 +188,7 @@ async function assign(agentId, method) {
   font-size: 0.875rem;
 }
 .agent-assign-form {
-  margin-top: 1rem;
+  margin-top: 8px;
   align-items: end;
 }
 .agent-assign-form .field {

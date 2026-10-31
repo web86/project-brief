@@ -1,5 +1,54 @@
 export default {
   agents: {
+    tab: 'Agents',
+    type: 'Executor type',
+    sameApi:
+      'All types use the same Agent API. Selecting a type does not start a program or grant additional permissions.',
+    discardChanges: 'Discard unsaved agent changes?',
+    allowedCount: '{count} allowed projects',
+    selectedCount: 'Selected: {count}',
+    removeProject: 'Remove project {name}',
+    clearProjects: 'Clear selection',
+    projectSearch: 'Search projects',
+    noProjectsFound: 'No projects found.',
+    grantHint:
+      'Owner permission allows project access. Adding the executor to the project team and assigning tasks are separate steps.',
+    noSuccessfulActivity: 'No successful API requests yet',
+    activity: 'API activity',
+    noActivity: 'No API requests yet',
+    apiRequests: 'API requests',
+    howTo: 'How to connect?',
+    guideDocs:
+      'The production ZIP includes agent-api/AGENT-API.md and the independent Node.js example agent-api/examples/agent.mjs. Run it outside Project Brief with your URL and token.',
+    addExecutor: 'Add executor',
+    executor: 'External executor',
+    assignAction: 'Assign',
+    execution: 'Execution',
+    latestReport: 'Latest report',
+    fullReport: 'Full report',
+    publicResults:
+      'Agent reports are task comments and can be visible to the client, including result links and attachments.',
+    kindHint: {
+      ai: 'Uses AI to perform tasks. Examples: Codex, GigaChat, Yandex AI Studio or your own agent.',
+      automation: 'Runs a defined scenario. Examples: n8n, cron or your own script.',
+      service:
+        'Connects Project Brief to another system. Examples: CI/CD, testing or an internal platform.',
+    },
+    credentialState: { issued: 'Unexpired token issued', missing: 'No unexpired tokens' },
+    connect: {
+      token: 'Create an API token in agent settings.',
+      run: 'Run your own external executor with this token.',
+      team: 'Add the agent to an allowed project team.',
+      task: 'Assign a task to the agent.',
+      report: 'Check that an execution report arrives.',
+    },
+    executionState: {
+      pending: 'Waiting to start',
+      running: 'Running',
+      submitted: 'Result submitted',
+      failed: 'Failed',
+      cancelled: 'Cancelled',
+    },
     title: 'AI agents and external executors',
     hint: 'Connect an independent executor with access to assigned tasks.',
     create: 'Create agent',
@@ -7,7 +56,7 @@ export default {
     configure: 'Configure',
     name: 'Name',
     description: 'Description',
-    type: 'Connection type',
+
     allowedProjects: 'Allowed projects',
     consent:
       'The external provider will receive assigned task content. Select projects only if you authorize this transfer. Add the agent to the project team, then assign tasks.',
