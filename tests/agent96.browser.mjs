@@ -236,12 +236,16 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       .evaluateAll((nodes) => nodes.map((n) => n.id)),
     ['tokens', 'webhooks', 'sso', 'agents', 'operations'].map((n) => 'integration-tab-' + n),
   )
-  for (const tab of ['tokens', 'webhooks', 'sso', 'operations', 'agents']) {
-    await page.locator('#integration-tab-' + tab).click()
-    assert.equal(
-      await page.locator('#integration-tab-' + tab).getAttribute('aria-selected'),
-      'true',
-    )
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 980 })
+    for (const tab of ['tokens', 'webhooks', 'sso', 'operations', 'agents']) {
+      await page.locator('#integration-tab-' + tab).click()
+      assert.equal(
+        await page.locator('#integration-tab-' + tab).getAttribute('aria-selected'),
+        'true',
+      )
+    }
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   }
   await page.getByRole('button', { name: 'Create agent', exact: true }).click()
   const dialog = page.locator('dialog[open]')
@@ -363,6 +367,29 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     assert.deepEqual(identity.data.projectIds, identityBefore.data.projectIds)
     assert.equal((await call('/api/admin/integrations/agents')).data[0].projectCount, 0)
   }
+  await card.getByRole('button', { name: 'Configure', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Clear selection', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await page.waitForFunction(
+    () => !document.querySelector('#agent-editor-title')?.closest('dialog').open,
+  )
+  const deniedTeam = await context.request.post(origin + projectRoot + '/team/agents/' + agentId, {
+    headers: {
+      Accept: 'application/json',
+      'X-CSRF-TOKEN': (await (await context.request.get(origin + '/api/csrf')).json()).token,
+    },
+  })
+  assert.ok([403, 404, 422].includes(deniedTeam.status()))
+  await card.getByRole('button', { name: 'Configure', exact: true }).click()
+  await dialog.locator('.agent-picker-toggle').click()
+  await dialog
+    .getByRole('checkbox', { name: 'Northline — Live collaboration', exact: true })
+    .check()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await page.waitForFunction(
+    () => !document.querySelector('#agent-editor-title')?.closest('dialog').open,
+  )
+  assert.equal((await call('/api/admin/integrations/agents')).data[0].projectCount, 0)
   await page.goto(origin + '/admin/projects/' + fixture.project + '/team')
   await page
     .locator('[data-team-agents]')
@@ -398,6 +425,17 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const taskUrl = '/admin/projects/' + fixture.project + '/brief/task/' + fixture.task
   await page.goto(origin + taskUrl)
   await page.locator('[data-task-agents] select').selectOption(agentId)
+  assert.ok(
+    await page
+      .locator('[data-task-agents] .agent-assign-form')
+      .evaluate(
+        (el) =>
+          Math.abs(
+            el.querySelector('select').getBoundingClientRect().bottom -
+              el.querySelector('button').getBoundingClientRect().bottom,
+          ) <= 2,
+      ),
+  )
   await page
     .locator('[data-task-agents]')
     .getByRole('button', { name: 'Assign', exact: true })
@@ -660,6 +698,40 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   })
   assert.equal(await new Promise((resolve) => rejected.once('exit', resolve)), 1)
   results.push('Owner deactivation revokes credential; independent executor fails with HTTP 401')
+  // Keep the real 30/minute integration settings limit enabled across QA phases.
+  await page.waitForTimeout(55_000)
+  await page.setViewportSize({ width: 1440, height: 980 })
+  await page.evaluate(() => localStorage.setItem('projectbrief.locale', 'en'))
+  await page.goto(origin + '/admin/settings/integrations')
+  await page.locator('#integration-tab-agents').click()
+  for (const kind of ['ai', 'automation', 'service']) {
+    await page.getByRole('button', { name: 'Create agent', exact: true }).click()
+    await dialog.getByLabel('Name', { exact: true }).fill('Kind QA ' + kind)
+    await dialog.locator('#agent-kind').selectOption(kind)
+    assert.equal(await dialog.locator('#agent-project-options input:checked').count(), 0)
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    const created = page
+      .locator('[data-agent-id]')
+      .filter({ has: page.getByText('Kind QA ' + kind, { exact: true }) })
+    await created.waitFor()
+    assert.ok((await created.textContent()).includes('0 allowed projects'))
+    await created.getByRole('button', { name: 'Configure', exact: true }).click()
+    page.once('dialog', (confirmation) => confirmation.dismiss())
+    await dialog
+      .locator('.modal-footer')
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click()
+    assert.equal(await page.locator('dialog[open]').count(), 1)
+    page.once('dialog', (confirmation) => confirmation.accept())
+    await dialog
+      .locator('.modal-footer')
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click()
+    await created.waitFor({ state: 'detached' })
+  }
+  results.push(
+    'All five tabs at 390/1440; three kinds created/edited with unchanged scopes and no automatic membership; owner grant revoke/regrant; team remove/re-add; inline task picker; confirmed editor deletion',
+  )
   assert.deepEqual(errors, [])
   await writeFile(
     path.join(output, 'results.json'),
