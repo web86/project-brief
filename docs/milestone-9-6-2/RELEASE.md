@@ -26,4 +26,36 @@ Only the existing technical [OpenAPI contract](../milestone-9-6/openapi.json), [
 
 ## Verification and artifact
 
-Final suite results, archive SHA-256, extracted-ZIP E2E and sanitized QA metadata are recorded here after packaging. [Jino update and safe rollback](PRODUCTION.md).
+| Check                                                  | Result                                                                                                                              |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend                                               | 424 passed                                                                                                                          |
+| Full Laravel / PHP 8.5.10 / SQLite                     | 1029 passed, 15251 assertions                                                                                                       |
+| Full Laravel / PHP 8.5.10 / MariaDB 11.8.9             | 1029 passed, 15251 assertions                                                                                                       |
+| Focused API/security/migrations / PHP 8.4.26 / MariaDB | 85 passed, 1239 assertions                                                                                                          |
+| Source visual matrix                                   | RU/EN/TR/ZH-CN × 1440/390 × light/dark/system; 168 captures                                                                         |
+| Formatter/build                                        | Pint, PHP lint, Prettier, production Vite build passed                                                                              |
+| Canonical extracted runtime                            | REST/scopes/idempotency, SSO, files, invitations, platform isolation, migrations/maintenance, quiet cron and signed WebAuthn passed |
+
+The real browser E2E covers explicit expanded reads, old tokens without new scopes, isolated public discussions/team chat, file parent checks, concurrent revocation, client API/download denial, human PR/text/file publication, UI key expiry/one-time secret/revocation and connection-required state. All previous independent Node executor, assignment generation, rotation/disable and real TLS/HMAC webhook retry/cancellation scenarios remain in the same harness. Requests retain the real API limits; phases pause to respect their windows.
+
+The migration test upgrades an actual pre-permission schema with nonempty historical agent comments, report URLs, files, assignments, grants/members and tokens, asserting unchanged stored rows apart from the new nullable column. The browser harness also migrates its MariaDB schema from the pre-v0.9.8 state. Scope authorization is rechecked after owner control changes and before idempotency replay.
+
+Screenshots remain outside Git under `/tmp/project-brief-m96-qa/`. Desktop/mobile, permission alignment, compact scopes, connection metadata, team spacing and publication dialogs were visually inspected. The specialized credential-revocation E2E also verifies that `pending`/terminal execution state is retained when a separate connection warning appears. No QA images or real secrets are committed.
+
+[Jino update and safe rollback](PRODUCTION.md). A backup restore can restore formerly active token/agent/delivery flags too: reapply disable/revocation on the restored state and verify pending deliveries before reopening traffic. A plain v0.9.7 runtime rollback with active agents is unsafe. Production restore has not been attempted.
+
+## Production ZIP
+
+- [project-brief-v0.9.8-8e2795b.zip](../../release/project-brief-v0.9.8-8e2795b.zip), **39401396 bytes**.
+- Source commit: `8e2795bc97ea13a4c9b9aab9089d922d44a731e5`. Subsequent evidence commits change only release reports.
+- Built UTC: `2026-10-31T07:39:20.998Z`.
+- SHA-256: `246d6c47c50ba03a82b9b38a5794f2fb619ccce488a1e6987ffdac99784350f0`.
+- [SHA sidecar](../../release/project-brief-v0.9.8-8e2795b.zip.sha256), [artifact metadata](RELEASE-ARTIFACT.json).
+
+Created only by `./bin/build-release`. Independently checked every ZIP entry CRC and all **8923** internal checksum records; the independent Node example exactly matches source and uses numeric Fetch status. Canonical validation passed production dependency/extension requirements and secret/runtime-artifact exclusions. Current minimal API contract and production guide are included under `agent-api/`, outside public web root; the UI does not use those files as its primary connection flow.
+
+The final archive was extracted separately and its compiled UI/production vendor passed the full Agent API and privacy E2E on an exclusive MariaDB database. The independent Node process executed the exact example inside the ZIP. Authorized read scopes, concurrent revocation, private client API/download rejection, explicit reviewed PR/text/file copies, UI key revocation and separate connection/execution state all passed. The original complete executor/rotation/webhook regressions also passed. Sanitized machine-readable evidence: [QA.json](QA.json). All owned QA browser/backend processes and the disposable MariaDB container were stopped after testing. The extracted archive and screenshots remain local for review.
+
+## Verification limits
+
+No push, deployment, production DB changes, external AI provider or billing connection. Jino/FPM/TLS configuration, production load/backups, real SMTP/Telegram/Web Push delivery, physical devices and Safari/WebKit were not verified. All browser evidence is local Chromium emulation. The documentation/help stage and Milestone 10 remain separate work.
