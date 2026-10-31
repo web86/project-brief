@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\DB;
 
 class ProjectDiscussions
 {
-    public function query(Project $project): Builder
+    public function query(Project $project, bool $internalTaskResults = false): Builder
     {
-        return Comment::query()->where(fn (Builder $query) => $query
+        return Comment::query()->when($internalTaskResults, fn ($query) => $query->withoutGlobalScope('public_channel')->where(fn ($channel) => $channel->where('team_only', false)->orWhereNotNull('task_id')))->where(fn (Builder $query) => $query
             ->whereHas('task', fn (Builder $tasks) => $tasks->where('project_id', $project->id))
             ->orWhere(fn (Builder $general) => $general->whereNull('task_id')->where('project_id', $project->id)));
     }
@@ -57,9 +57,13 @@ class ProjectDiscussions
 
     public function data(Comment $comment, bool $unread = false): array
     {
+        if (TaskAccess::isAdmin(request()) && $comment->team_only && $comment->task_id) {
+            $comment->load(['attachments' => fn ($query) => $query->withoutGlobalScope('public_channel')]);
+        }
+
         return [
             ...(request()->is('api/admin/*') && $comment->author_type === 'admin' && $comment->authorUser ? ['avatarUrl' => app(AccountProfile::class)->state($comment->authorUser)['avatarUrl']] : []),
-            'agentKind' => $comment->agent?->kind, 'agentReport' => $comment->author_type === 'agent' ? $comment->agentReport?->data() : null, 'id' => $comment->uuid, 'author' => $comment->author_type === 'agent' ? 'agent' : ($comment->author_type === 'admin' ? 'developer' : 'client'),
+            'teamOnly' => $comment->team_only, 'agentKind' => $comment->agent?->kind, 'agentReport' => $comment->author_type === 'agent' ? $comment->agentReport?->data() : null, 'id' => $comment->uuid, 'author' => $comment->author_type === 'agent' ? 'agent' : ($comment->author_type === 'admin' ? 'developer' : 'client'),
             'authorId' => $comment->agent?->uuid ?? ($comment->author_type === 'admin' ? $comment->author_user_id : $comment->projectClient?->uuid),
             'authorName' => $comment->agent?->name ?? ($comment->author_type === 'admin' ? $comment->authorUser?->name : $comment->projectClient?->name),
             'attachments' => $comment->attachments->map(fn ($file) => $file->data(TaskAccess::isAdmin(request()) ? 'admin' : 'client'))->values(), 'text' => $comment->text, 'createdAt' => $comment->created_at->toISOString(), 'unread' => $unread,

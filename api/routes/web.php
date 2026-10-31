@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminProjectRequestController;
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AgentResultController;
 use App\Http\Controllers\AiTaskAssistantController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BrowserProjectExportController;
@@ -285,6 +286,7 @@ Route::middleware('client')->prefix('/api/client')->group(function () {
     Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);
 });
 
+Route::post('/api/admin/tasks/{task}/agent-results/{comment}/share', [AgentResultController::class, 'store'])->middleware(['admin', 'throttle:comments']);
 Route::match(['POST', 'DELETE'], '/api/admin/tasks/{task}/agents', [AgentController::class, 'task'])->middleware('admin');
 Route::post('/api/admin/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['admin', 'throttle:comments']);
 Route::post('/api/client/tasks/{task}/comments', [CommentController::class, 'store'])->middleware(['client', 'throttle:comments']);

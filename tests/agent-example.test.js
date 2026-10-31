@@ -29,3 +29,17 @@ test('executor is importable without auto-running an API request', async () => {
   const example = await import('../docs/milestone-9-6/examples/agent.mjs')
   assert.equal(typeof example.runAgent, 'function')
 })
+
+test('executor reports the numeric Fetch status when API rejects credentials', async () => {
+  const { runAgent } = await import('../docs/milestone-9-6/examples/agent.mjs')
+  const original = globalThis.fetch
+  try {
+    globalThis.fetch = async () => ({ ok: false, status: 403 })
+    await assert.rejects(
+      runAgent({ baseUrl: 'https://example.test', token: 'pb_' + 'a'.repeat(64) }),
+      /rejected request \(403\)/,
+    )
+  } finally {
+    globalThis.fetch = original
+  }
+})

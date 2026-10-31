@@ -1,6 +1,11 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
-import { agentIcon, agentCredentials } from '../services/agentPresentation.js'
+import {
+  agentIcon,
+  agentCredentials,
+  usableAgentToken,
+  agentTimestamp,
+} from '../services/agentPresentation.js'
 import { formatDate } from '../constants/project.js'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
@@ -16,12 +21,15 @@ const state = ref(null),
   open = ref(false),
   secret = ref(''),
   editing = ref(null)
-const draft = ref({}),
+const draft = ref({ permissions: {}, kind: 'ai', projectIds: [] }),
   scopes = ref([])
 const projectSearch = ref(''),
   projectOpen = ref(true),
   guideOpen = ref(false),
-  baseline = ref('')
+  baseline = ref(''),
+  connectOpen = ref(false),
+  createdAgent = ref(''),
+  expiresAt = ref('')
 const projectChoices = computed(() =>
   (state.value?.projects || []).filter((project) =>
     project.name.toLocaleLowerCase().includes(projectSearch.value.trim().toLocaleLowerCase()),
@@ -29,6 +37,33 @@ const projectChoices = computed(() =>
 )
 const selectedProjects = computed(() =>
   (state.value?.projects || []).filter((project) => draft.value.projectIds?.includes(project.id)),
+)
+const readPermissions = [
+  'assignedTasks',
+  'projectTasks',
+  'taskComments',
+  'clientDiscussions',
+  'teamChat',
+  'taskAttachments',
+  'discussionAttachments',
+]
+const writePermissions = ['reports', 'comments', 'attachments']
+const extraPermissions = computed(
+  () =>
+    readPermissions.filter((key) => key !== 'assignedTasks' && draft.value.permissions?.[key])
+      .length,
+)
+const permittedScopes = computed(() =>
+  (state.value?.scopes || []).filter((scope) => {
+    const keys = state.value?.scopePermissions?.[scope] || []
+    return !keys.length || keys.some((key) => draft.value.permissions?.[key])
+  }),
+)
+watch(permittedScopes, (allowed) => {
+  scopes.value = scopes.value.filter((scope) => allowed.includes(scope))
+})
+const activeTokenCount = computed(
+  () => (editing.value?.tokens || []).filter((token) => usableAgentToken(token)).length,
 )
 const fingerprint = () =>
   JSON.stringify({ ...draft.value, projectIds: [...(draft.value.projectIds || [])].sort() })
@@ -52,6 +87,7 @@ watch(
     state.value = null
     secret.value = ''
     editing.value = null
+    createdAgent.value = ''
     guideOpen.value = false
     open.value = false
     error.value = ''
@@ -68,7 +104,7 @@ onBeforeUnmount(() => {
   revision++
   secret.value = ''
 })
-function configure(agent = null) {
+function configure(agent = null, connect = false) {
   editing.value = agent
   draft.value = {
     name: agent?.name || '',
@@ -77,8 +113,18 @@ function configure(agent = null) {
     active: agent?.active ?? true,
     projectIds: [...(agent?.projectIds || [])],
     webhookUrl: agent?.webhook?.url || '',
+    permissions: { ...(state.value?.permissionDefaults || {}), ...(agent?.permissions || {}) },
   }
-  scopes.value = [...(state.value?.scopes || [])]
+  scopes.value = [
+    ...(agent?.allowedScopes ||
+      state.value?.scopes?.filter((scope) => {
+        const keys = state.value?.scopePermissions?.[scope] || []
+        return !keys.length || keys.some((key) => draft.value.permissions[key])
+      }) ||
+      []),
+  ]
+  connectOpen.value = connect
+  expiresAt.value = ''
   projectSearch.value = ''
   projectOpen.value = !agent
   baseline.value = fingerprint()
@@ -94,6 +140,7 @@ async function action(path, method, body, close = false) {
     const result = await api.request(root + path, { method, body })
     if (version !== revision) return
     if (close) open.value = false
+    if (!path && method === 'POST') createdAgent.value = result.data.id
     secret.value = result.secret || result.webhookSecret || ''
     await load(version)
     if (editing.value && version === revision)
@@ -107,6 +154,34 @@ async function action(path, method, body, close = false) {
 function remove(agent) {
   if (window.confirm(t('agents.confirmDelete', { name: agent.name })))
     action('/' + agent.id, 'DELETE', undefined, true)
+}
+async function connectCreated() {
+  try {
+    let agent = state.value?.data.find((agent) => agent.id === createdAgent.value)
+    if (!agent) {
+      await load()
+      agent = state.value?.data.find((agent) => agent.id === createdAgent.value)
+    }
+    if (agent) {
+      createdAgent.value = ''
+      configure(agent, true)
+    }
+  } catch (cause) {
+    error.value = formatApiError(cause)
+  }
+}
+function issueToken(replace = false) {
+  if (replace && !window.confirm(t('agents.rotateWarning'))) return
+  action(
+    '/' + editing.value.id + '/tokens',
+    'POST',
+    {
+      scopes: scopes.value,
+      expiresAt: expiresAt.value ? new Date(expiresAt.value).toISOString() : null,
+      replace,
+    },
+    true,
+  )
 }
 async function copySecret() {
   try {
@@ -183,8 +258,11 @@ async function copySecret() {
           </dd>
         </div>
         <div v-if="agentCredentials(agent)">
-          <dt>{{ t('agents.credentials') }}</dt>
-          <dd>{{ t('agents.credentialState.' + agentCredentials(agent)) }}</dd>
+          <dt>{{ t('agents.apiAccess') }}</dt>
+          <dd>
+            {{ t('agents.credentialState.' + agentCredentials(agent))
+            }}<span v-if="agent.successfulRequests > 0"> · {{ t('agents.apiConfirmed') }}</span>
+          </dd>
         </div>
         <div v-if="agent.webhook">
           <dt>Webhook</dt>
@@ -200,6 +278,14 @@ async function copySecret() {
         </div>
       </dl>
       <div class="team-actions">
+        <button
+          v-if="agent.active && agentCredentials(agent) === 'missing'"
+          class="button secondary"
+          :disabled="busy"
+          @click="configure(agent, true)"
+        >
+          {{ t('agents.createKey') }}
+        </button>
         <button v-if="!agent.lastActivityAt" class="text-button" @click="guideOpen = true">
           {{ t('agents.howTo') }}
         </button>
@@ -321,48 +407,134 @@ async function copySecret() {
             <p class="small muted">{{ t('agents.grantHint') }}</p>
           </section>
           <p class="small muted">{{ t('agents.consent') }}</p>
-          <label class="field"
-            >{{ t('agents.webhook')
-            }}<input v-model="draft.webhookUrl" type="url" placeholder="https://" :disabled="busy"
-          /></label>
+          <details class="agent-permissions" data-agent-permissions>
+            <summary>
+              <AppIcon name="shield" :size="17" /> {{ t('agents.permissionsTitle') }}
+              <span class="status-pill">{{
+                t('agents.extraCount', { count: extraPermissions })
+              }}</span>
+            </summary>
+            <p class="small muted">{{ t('agents.permissionIntersection') }}</p>
+            <fieldset class="agent-permission-grid" :disabled="busy">
+              <legend>{{ t('agents.readPermissions') }}</legend>
+              <label v-for="key in readPermissions" :key="key" class="agent-permission"
+                ><input type="checkbox" v-model="draft.permissions[key]" /><span
+                  >{{ t('agents.permission.' + key)
+                  }}<small v-if="key === 'teamChat'" class="muted">{{
+                    t('agents.teamChatWarning')
+                  }}</small></span
+                ></label
+              >
+            </fieldset>
+            <fieldset class="agent-permission-grid" :disabled="busy">
+              <legend>{{ t('agents.writePermissions') }}</legend>
+              <label v-for="key in writePermissions" :key="key" class="agent-permission"
+                ><input type="checkbox" v-model="draft.permissions[key]" /><span>{{
+                  t('agents.permission.' + key)
+                }}</span></label
+              >
+            </fieldset>
+            <p class="small muted">{{ t('agents.tokenCeiling') }}</p>
+          </details>
           <label class="checkbox-field"
             ><input v-model="draft.active" type="checkbox" :disabled="busy" />{{
               t('agents.active')
             }}</label
           >
         </form>
-        <details v-if="editing" class="agent-credentials">
-          <summary>{{ t('agents.credentials') }}</summary>
-          <p class="small muted">{{ t('agents.once') }}</p>
-          <fieldset class="project-choices" :disabled="busy">
-            <legend>{{ t('agents.scopes') }}</legend>
-            <label v-for="scope in state?.scopes || []" :key="scope"
-              ><input v-model="scopes" type="checkbox" :value="scope" /><span>{{
-                scope
-              }}</span></label
-            >
-          </fieldset>
-          <button
-            type="button"
-            class="button secondary"
-            :disabled="busy || !scopes.length || !editing.active"
-            @click="action('/' + editing.id + '/tokens', 'POST', { scopes, replace: true }, true)"
-          >
-            {{ t('agents.issueToken') }}
-          </button>
-          <div v-for="token in editing.tokens" :key="token.id" class="agent-token-row">
-            <code>{{ token.id }}</code
-            ><span>{{ t(token.revokedAt ? 'agents.revoked' : 'agents.active') }}</span
-            ><button
-              v-if="!token.revokedAt"
-              type="button"
-              class="text-button danger"
+        <details
+          class="agent-credentials"
+          :open="connectOpen"
+          @toggle="connectOpen = $event.target.open"
+          data-agent-connection
+        >
+          <summary><AppIcon name="key" :size="17" /> {{ t('agents.connection') }}</summary>
+          <p class="small muted">{{ t('agents.connectionHint') }}</p>
+          <label class="field"
+            >{{ t('agents.webhook')
+            }}<input
+              form="agent-editor"
+              v-model="draft.webhookUrl"
+              type="url"
+              placeholder="https://"
               :disabled="busy"
-              @click="action('/' + editing.id + '/tokens/' + token.id, 'DELETE')"
-            >
-              {{ t('agents.revoke') }}
-            </button>
-          </div>
+          /></label>
+          <p v-if="!editing" class="small muted">{{ t('agents.saveBeforeKey') }}</p>
+          <template v-else>
+            <p>{{ t('agents.validTokenCount', { count: activeTokenCount }) }}</p>
+            <p class="small muted">{{ t('agents.once') }} {{ t('agents.tokenCeiling') }}</p>
+            <p v-if="fingerprint() !== baseline" class="small muted">
+              {{ t('agents.savePermissionsFirst') }}
+            </p>
+            <fieldset class="project-choices" :disabled="busy || fingerprint() !== baseline">
+              <legend>{{ t('agents.scopes') }}</legend>
+              <label v-for="scope in permittedScopes" :key="scope"
+                ><input v-model="scopes" type="checkbox" :value="scope" /><span>{{
+                  scope
+                }}</span></label
+              >
+            </fieldset>
+            <label class="field" for="agent-token-expiry"
+              >{{ t('agents.tokenExpiry')
+              }}<input
+                id="agent-token-expiry"
+                type="datetime-local"
+                v-model="expiresAt"
+                :disabled="busy"
+            /></label>
+            <div class="team-actions">
+              <button
+                type="button"
+                class="button secondary"
+                :disabled="busy || !scopes.length || !editing.active || fingerprint() !== baseline"
+                @click="issueToken()"
+              >
+                {{ t('agents.createKey') }}</button
+              ><button
+                v-if="activeTokenCount"
+                type="button"
+                class="text-button"
+                :disabled="busy || !scopes.length || !editing.active || fingerprint() !== baseline"
+                @click="issueToken(true)"
+              >
+                {{ t('agents.reissueKey') }}
+              </button>
+            </div>
+            <div class="agent-token-list">
+              <article v-for="token in editing.tokens" :key="token.id" class="agent-token-row">
+                <code>{{ token.id }}</code
+                ><span>{{
+                  t(
+                    token.revokedAt
+                      ? 'agents.revoked'
+                      : usableAgentToken(token)
+                        ? 'agents.active'
+                        : 'agents.expiredKey',
+                  )
+                }}</span
+                ><span
+                  >{{ t('agents.tokenExpiry') }}:
+                  {{
+                    token.expiresAt
+                      ? formatDate(agentTimestamp(token.expiresAt))
+                      : t('agents.noExpiry')
+                  }}</span
+                ><span v-if="token.lastUsedAt"
+                  >{{ t('agents.tokenLastUse') }}:
+                  {{ formatDate(agentTimestamp(token.lastUsedAt)) }}</span
+                ><span class="agent-token-scopes">{{ token.scopes.join(' · ') }}</span
+                ><button
+                  v-if="!token.revokedAt"
+                  type="button"
+                  class="text-button danger"
+                  :disabled="busy"
+                  @click="action('/' + editing.id + '/tokens/' + token.id, 'DELETE')"
+                >
+                  {{ t('agents.revoke') }}
+                </button>
+              </article>
+            </div>
+          </template>
         </details>
       </div>
       <template #footer
@@ -385,6 +557,21 @@ async function copySecret() {
         ></template
       >
     </BaseDialog>
+    <BaseDialog
+      :open="!!createdAgent && !secret && !open"
+      :title="t('agents.created')"
+      id="agent-created-title"
+      @close="createdAgent = ''"
+      ><p>{{ t('agents.saveBeforeKeyDone') }}</p>
+      <p v-if="error" class="field-error" role="alert">{{ error }}</p>
+      <template #footer
+        ><button class="button secondary" @click="createdAgent = ''">
+          {{ t('ui.closeDialog') }}</button
+        ><button class="button primary" @click="connectCreated">
+          {{ t('agents.createKey') }}
+        </button></template
+      ></BaseDialog
+    >
     <BaseDialog
       :open="guideOpen"
       :title="t('agents.howTo')"
@@ -425,6 +612,64 @@ async function copySecret() {
   </section>
 </template>
 <style scoped>
+.agent-permissions {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 12px;
+}
+.agent-permissions summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.agent-permission-grid {
+  display: grid;
+  gap: 8px;
+  border: 0;
+  padding: 8px 0;
+  margin: 8px 0;
+}
+.agent-permission-grid legend {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.agent-permission {
+  min-height: 32px;
+  padding: 4px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+.agent-permission input[type='checkbox'] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 2px 0 0;
+}
+.agent-permission small {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.45;
+}
+.agent-token-list {
+  display: grid;
+  gap: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.agent-token-row {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.agent-token-scopes {
+  width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .agent-editor-dialog {
   width: min(880px, calc(100% - 24px));
   max-height: 90dvh;
@@ -552,8 +797,43 @@ async function copySecret() {
   gap: 12px;
 }
 .agent-credentials {
-  margin-top: 1.5rem;
+  margin-top: 0;
 }
+.agent-credentials[open] > summary,
+.agent-permissions[open] > summary {
+  margin-bottom: 12px;
+}
+.agent-credentials summary svg,
+.agent-permissions summary svg {
+  vertical-align: -0.15em;
+  margin-inline-end: 4px;
+}
+.agent-credentials > p,
+.agent-credentials > label,
+.agent-credentials > fieldset {
+  margin: 0 0 12px;
+}
+.agent-credentials .project-choices {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.agent-credentials .project-choices span {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.agent-credentials .agent-token-row {
+  gap: 8px 12px;
+  font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+  .agent-credentials .project-choices {
+    grid-template-columns: 1fr;
+  }
+}
+
 .agent-token-row {
   display: flex;
   flex-wrap: wrap;

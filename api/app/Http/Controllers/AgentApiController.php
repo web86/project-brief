@@ -7,6 +7,7 @@ use App\Models\TaskAgentAssignment;
 use App\Rules\SafeAttachment;
 use App\Services\AgentAccess;
 use App\Services\AgentAudit;
+use App\Services\AgentPermissions;
 use App\Services\AttachmentStorage;
 use App\Services\IntegrationWrites;
 use Illuminate\Http\JsonResponse;
@@ -22,9 +23,8 @@ class AgentApiController extends Controller
         $agent = AgentAccess::scope($request, 'agent:profile');
 
         return response()->json(['data' => [...$agent->publicState(), 'workspaceId' => DB::table('workspaces')->where('id', $agent->workspace_id)->value('uuid'),
-            'scopes' => json_decode($request->attributes->get('integration_token')->scopes, true),
-            'projectIds' => DB::table('project_members as m')->join('projects as p', 'p.id', '=', 'm.project_id')->join('agent_project_grants as g', fn ($q) => $q->on('g.project_id', '=', 'm.project_id')->on('g.external_agent_id', '=', 'm.external_agent_id')->on('g.workspace_id', '=', 'm.workspace_id'))
-                ->where('m.external_agent_id', $agent->id)->where('m.workspace_id', $agent->workspace_id)->whereNull('p.deleted_at')->where('p.status', 'active')->orderBy('p.uuid')->pluck('p.uuid')]]);
+            'permissions' => AgentPermissions::normalize($agent->permissions), 'scopes' => json_decode($request->attributes->get('integration_token')->scopes, true),
+            'projectIds' => AgentAccess::projects($agent)->orderBy('uuid')->pluck('uuid')]]);
     }
 
     private function data(TaskAgentAssignment $row, bool $details = false): array
@@ -90,7 +90,7 @@ class AgentApiController extends Controller
                 $row = AgentAccess::assignment($request, $task);
                 abort_unless(hash_equals($row->uuid, $data['assignmentId']), 409);
                 $comment = Comment::create(['project_id' => $row->task->project_id, 'task_id' => $row->task_id, 'external_agent_id' => $row->external_agent_id,
-                    'author_type' => 'agent', 'text' => trim($data['summary'] ?? $data['text'] ?? '')]);
+                    'author_type' => 'agent', 'team_only' => true, 'text' => trim($data['summary'] ?? $data['text'] ?? '')]);
                 if ($operation === 'attachments') {
                     AttachmentStorage::storeCommentFiles($request, $comment, $row->task, $paths);
                 }
@@ -103,7 +103,7 @@ class AgentApiController extends Controller
                 AgentAudit::task($request, $row, 'agent_'.$operation, ['commentId' => $comment->id, 'state' => $row->state]);
 
                 return [['data' => ['id' => $uuid, 'assignmentId' => $row->uuid, 'commentId' => $comment->uuid, 'executionState' => $row->state,
-                    'attachments' => $comment->attachments->map(fn ($f) => ['id' => $f->uuid, 'name' => $f->original_name, 'size' => $f->size])->all()]], 201];
+                    'attachments' => $comment->attachments()->withoutGlobalScope('public_channel')->get()->map(fn ($f) => ['id' => $f->uuid, 'name' => $f->original_name, 'size' => $f->size])->all()]], 201];
             }, $canonical);
         });
     }

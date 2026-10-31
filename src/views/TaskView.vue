@@ -13,6 +13,7 @@ import ClientTaskStatusActions from '../components/ClientTaskStatusActions.vue'
 import TaskStatus from '../components/TaskStatus.vue'
 import TaskPriority from '../components/TaskPriority.vue'
 import TaskAgents from '../components/TaskAgents.vue'
+import AgentResultShare from '../components/AgentResultShare.vue'
 import TaskDetails from '../components/TaskDetails.vue'
 import CommentList from '../components/CommentList.vue'
 import CommentForm from '../components/CommentForm.vue'
@@ -26,6 +27,11 @@ import { newestComments } from '../utils/comments.js'
 const route = useRoute()
 const storeRouter = useRouter()
 const store = useProjectStore()
+const shareResult = ref(null)
+function resultShared() {
+  shareResult.value = null
+  checkMessages()
+}
 const seen = new Set()
 let readTimer
 function seenComment(id) {
@@ -55,6 +61,7 @@ watch(
   () => {
     clearTimeout(readTimer)
     seen.clear()
+    shareResult.value = null
   },
 )
 onUnmounted(() => clearTimeout(readTimer))
@@ -183,6 +190,13 @@ function focusClarification() {
           ></template
         >
       </BaseDialog>
+      <AgentResultShare
+        v-if="store.isDeveloper && task.canShareAgentResults"
+        :comment="shareResult"
+        :task-id="task.id"
+        @close="shareResult = null"
+        @shared="resultShared"
+      />
       <div class="task-layout" :class="{ 'has-developer': store.isDeveloper }">
         <div class="task-main-column">
           <TaskDetails :task="task" />
@@ -192,6 +206,7 @@ function focusClarification() {
             :agents="store.project.agents || []"
             :project-id="route.params.uuid"
             @changed="checkMessages"
+            @share="shareResult = $event"
           />
           <DeveloperNotes v-if="store.isDeveloper" :task="editorTask" />
           <section class="surface comments-panel">
@@ -207,7 +222,13 @@ function focusClarification() {
               >{{ t('liveSync.checkMessages') }}</LoadingButton
             >
             <CommentForm ref="commentForm" :task-id="task.id" />
-            <CommentList :comments="comments" :target="route.hash.slice(1)" @seen="seenComment" />
+            <CommentList
+              :comments="comments"
+              :target="route.hash.slice(1)"
+              :can-share-agent-results="store.isDeveloper && task.canShareAgentResults"
+              @seen="seenComment"
+              @share="shareResult = $event"
+            />
           </section>
         </div>
         <div class="task-sidebar">

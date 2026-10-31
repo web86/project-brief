@@ -1,5 +1,61 @@
 export default {
   agents: {
+    lastExecution: 'Son bildirilen yürütme',
+    permissionsTitle: 'İzinler',
+    extraCount: 'Ek: {count}',
+    permissionIntersection:
+      'Erişim için eşleşen belirteç kapsamı, ajan izni, sahip onayı, proje üyeliği ve nesne erişimi gerekir.',
+    readPermissions: 'Okuma erişimi',
+    writePermissions: 'Yazma erişimi',
+    teamChatWarning:
+      'Harici yürütücü, izin verilen projelerdeki dahili ekip yazışmalarına erişir. Veriler üçüncü taraf bir hizmete gönderilebilir.',
+    tokenCeiling:
+      'Ajan izinleri azami erişimi belirler. Yeni bir izin için eşleşen kapsama sahip belirteç gerekir; mevcut belirteçler otomatik genişletilmez veya yenilenmez.',
+    savePermissionsFirst: 'Anahtar vermeden önce ajan izinlerini kaydedin.',
+    connection: 'Bağlantı · API anahtarları',
+    connectionHint:
+      'API anahtarı, harici bir programın bu yürütücü adına Project Brief çağrısı yapmasını sağlar. Anahtarın kendisi AI ajanı başlatmaz.',
+    saveBeforeKey:
+      'Önce ajanı kaydedin. Ardından harici yürütücüyü bağlamak için API anahtarı oluşturabilirsiniz.',
+    validTokenCount: 'Geçerli belirteçler: {count}',
+    tokenExpiry: 'Sona erme',
+    tokenLastUse: 'Son kullanım',
+    noExpiry: 'Süresiz',
+    createKey: 'API anahtarı oluştur',
+    reissueKey: 'API anahtarını yenile',
+    rotateWarning:
+      'Yenileme, bu yürütücünün tüm geçerli anahtarlarını iptal eder. Devam edilsin mi?',
+    expiredKey: 'Süresi dolmuş',
+    created: 'Ajan kaydedildi',
+    saveBeforeKeyDone:
+      'Ajan kaydedildi. Şimdi API anahtarı oluşturun veya daha sonra ayarlarına dönün.',
+    apiAccess: 'API erişimi',
+    apiConfirmed: 'Başarılı API istekleri doğrulandı',
+    requiresConnection: 'Bağlantı gerekli',
+    internalResult: 'Dahili · proje ekibi',
+    internalResultsHint:
+      'Yeni ajan sonuçları dahilidir. Eski yorumların görünürlüğü korunur. Bir ekip üyesi müşteri için incelenmiş bir kopya yayımlayabilir.',
+    shareClient: 'Müşteriyle paylaş',
+    shareHint:
+      'Ayrı bir müşteri mesajı oluşturun. Kaynağı inceleyin, müşteriye yönelik metni yazın ve bağlantı veya dosyaları açıkça seçin. Dahili özgün kayıt özel kalır.',
+    sourceReport: 'Dahili kaynak',
+    clientText: 'Müşteri mesajı',
+    selectLinks: 'Sonuç bağlantılarını seçin',
+    selectFiles: 'Ekleri seçin',
+    publishClient: 'Müşteriye yayımla',
+    discardPublication: 'Bu müşteri yayını taslağı silinsin mi?',
+    permission: {
+      assignedTasks: 'Atanan görevleri oku',
+      projectTasks: 'İzin verilen projelerin tüm görevlerini oku',
+      taskComments: 'Erişilebilir görev yorumlarını oku',
+      clientDiscussions: 'Müşteri proje tartışmalarını oku',
+      teamChat: 'Dahili proje ekibi sohbetini oku',
+      taskAttachments: 'Erişilebilir görev eklerini oku',
+      discussionAttachments: 'İzin verilen tartışma eklerini oku',
+      reports: 'Yürütme raporu gönder',
+      comments: 'Atanan görevlere yorum ekle',
+      attachments: 'Çalışma sonuçlarını ekle',
+    },
     tab: 'Ajanlar',
     type: 'Yürütücü türü',
     sameApi:
@@ -19,7 +75,7 @@ export default {
     apiRequests: 'API istekleri',
     howTo: 'Nasıl bağlanır?',
     guideDocs:
-      'Production ZIP içinde agent-api/AGENT-API.md ve bağımsız Node.js örneği agent-api/examples/agent.mjs bulunur. Kendi URL ve belirtecinizle Project Brief dışında çalıştırın.',
+      'Harici yürütücüyü Project Brief dışında bir API anahtarıyla çalıştırın. Project Brief erişim sağlar ve sonuçları alır; yürütücüyü çalıştırmaz.',
     addExecutor: 'Yürütücü ekle',
     executor: 'Harici yürütücü',
     assignAction: 'Ata',

@@ -28,7 +28,7 @@ class AgentApiTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    private function fixture(array $scopes = AgentAccess::SCOPES, bool $webhook = false): array
+    private function fixture(array $scopes = AgentAccess::LEGACY_SCOPES, bool $webhook = false): array
     {
         $project = Project::factory()->create();
         $owner = $this->ownerFor($project);
@@ -53,7 +53,7 @@ class AgentApiTest extends TestCase
         return ['Authorization' => 'Bearer '.$token['secret'], 'Idempotency-Key' => $key];
     }
 
-    public function test_agent_results_are_public_to_same_project_clients_including_links_and_downloads(): void
+    public function test_historical_agent_results_remain_public_to_same_project_clients_including_links_and_downloads(): void
     {
         Storage::fake('local');
         [$project, , , $token, $task, $assignment] = $this->fixture();
@@ -62,6 +62,8 @@ class AgentApiTest extends TestCase
         $this->postJson($base.'/reports', ['assignmentId' => $assignment->uuid, 'state' => 'submitted', 'summary' => 'TECHNICAL-DETAIL-visible', 'resultUrl' => 'https://example.test/internal-result'], $this->headers($token))->assertCreated();
         $this->postJson($base.'/comments', ['assignmentId' => $assignment->uuid, 'text' => 'Agent public comment'], $this->headers($token, 'visible-comment'))->assertCreated();
         $file = $this->post($base.'/attachments', ['assignmentId' => $assignment->uuid, 'attachments' => [UploadedFile::fake()->createWithContent('result.txt', 'Technical file content')]], $this->headers($token, 'visible-file') + ['Accept' => 'application/json'])->assertCreated()->json('data.attachments.0.id');
+        // Simulate historical public records; the upgrade retains their stored audience.
+        DB::table('comments')->where('task_id', $task->id)->update(['team_only' => false]);
         Event::assertNotDispatched(ProjectNotificationRequested::class);
         $this->assertSame(0, DB::table('comments')->where('task_id', $task->id)->where('team_only', true)->count());
         $this->app['auth']->forgetGuards();
@@ -81,12 +83,14 @@ class AgentApiTest extends TestCase
         $this->getJson('/api/client/attachments/'.$file.'/download')->assertNotFound();
     }
 
-    public function test_agent_live_notification_preview_depends_on_existing_project_settings(): void
+    public function test_historical_agent_live_notification_preview_depends_on_existing_project_settings(): void
     {
         [$project, , , $token, $task, $assignment] = $this->fixture();
         $notifications = app(LiveNotifications::class);
         $watermark = $notifications->seed();
         $this->postJson('/api/v1/agent/tasks/'.$task->uuid.'/comments', ['assignmentId' => $assignment->uuid, 'text' => 'Technical preview visible without settings'], $this->headers($token))->assertCreated();
+        // Simulate historical public records; the upgrade retains their stored audience.
+        DB::table('comments')->where('task_id', $task->id)->update(['team_only' => false]);
         $client = $project->clients()->first();
         $client->forceFill(['notification_preferences' => ['push' => true]])->save();
         $request = Request::create('/api/client/live');
@@ -104,7 +108,7 @@ class AgentApiTest extends TestCase
     {
         [$project, , $agent, $token, $task] = $this->fixture();
         $headers = $this->headers($token);
-        $this->getJson('/api/v1/agent/me', $headers)->assertOk()->assertJsonPath('data.id', $agent->uuid)->assertJsonPath('data.scopes', AgentAccess::SCOPES);
+        $this->getJson('/api/v1/agent/me', $headers)->assertOk()->assertJsonPath('data.id', $agent->uuid)->assertJsonPath('data.scopes', AgentAccess::LEGACY_SCOPES);
         $this->getJson('/api/v1/agent/tasks', $headers)->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.perPage', 25);
         $response = $this->getJson('/api/v1/agent/tasks/'.$task->uuid, $headers)->assertOk()->assertJsonPath('data.description', 'Allowed description');
         foreach (['PRIVATE-NOTES', '12345', 'clientEmail', 'developerNotes', 'attachments', 'comments', $project->client_email ?? 'NEVER-IN-RESPONSE'] as $private) {
@@ -195,11 +199,11 @@ class AgentApiTest extends TestCase
         [$project, $owner, $agent, $token, $task, , $data] = $this->fixture();
         $count = User::count();
         $path = '/api/admin/integrations/agents/'.$agent->uuid;
-        $rotated = $this->postJson($path.'/tokens', ['scopes' => AgentAccess::SCOPES, 'replace' => true])->assertCreated()->json();
+        $rotated = $this->postJson($path.'/tokens', ['scopes' => AgentAccess::LEGACY_SCOPES, 'replace' => true])->assertCreated()->json();
         $this->getJson('/api/v1/agent/me', $this->headers($token))->assertUnauthorized();
         $this->deleteJson($path.'/tokens/'.$rotated['id'])->assertOk();
         $this->getJson('/api/v1/agent/me', $this->headers($rotated))->assertUnauthorized();
-        $valid = $this->postJson($path.'/tokens', ['scopes' => AgentAccess::SCOPES])->assertCreated()->json();
+        $valid = $this->postJson($path.'/tokens', ['scopes' => AgentAccess::LEGACY_SCOPES])->assertCreated()->json();
         $this->patchJson($path, [...$data, 'projectIds' => []])->assertOk();
         $this->getJson('/api/v1/agent/tasks/'.$task->uuid, $this->headers($valid))->assertNotFound();
         $this->patchJson($path, [...$data, 'active' => false])->assertOk();
@@ -217,7 +221,7 @@ class AgentApiTest extends TestCase
         $member = $project->workspace->members()->create(['user_id' => $user->id, 'role' => 'admin', 'status' => 'active', 'is_project_superadmin' => true]);
         ProjectMember::create(['workspace_id' => $project->workspace_id, 'project_id' => $project->id, 'workspace_member_id' => $member->id]);
         $this->actingAs($user)->getJson('/api/admin/integrations/agents')->assertForbidden();
-        $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => AgentAccess::SCOPES])->assertForbidden();
+        $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => AgentAccess::LEGACY_SCOPES])->assertForbidden();
         $this->getJson('/api/admin/projects/'.$project->uuid.'/team')->assertOk()->assertJsonPath('agents.0.id', $agent->uuid)->assertDontSee('secret_hash');
         $this->deleteJson('/api/admin/projects/'.$project->uuid.'/team/agents/'.$agent->uuid)->assertOk();
         $this->postJson('/api/admin/projects/'.$project->uuid.'/team/agents/'.$agent->uuid)->assertOk();

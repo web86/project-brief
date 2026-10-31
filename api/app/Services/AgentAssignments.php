@@ -40,7 +40,7 @@ class AgentAssignments
 
     public static function taskState(Task $task): array
     {
-        return $task->agentAssignments->map(fn ($row) => ['id' => $row->uuid, 'agent' => $row->agent->publicState(), 'state' => $row->state,
+        return $task->agentAssignments->map(fn ($row) => ['id' => $row->uuid, 'agent' => [...$row->agent->publicState(), 'hasCredentials' => AgentPermissions::hasToken($row->agent)], 'state' => $row->state,
             'reports' => DB::table('agent_reports')->where('task_agent_assignment_id', $row->id)->orderBy('id')->get()->map(fn ($r) => ['id' => $r->uuid, 'state' => $r->state, 'pullRequestUrl' => $r->pull_request_url, 'resultUrl' => $r->result_url, 'createdAt' => $r->created_at])])->all();
     }
 }

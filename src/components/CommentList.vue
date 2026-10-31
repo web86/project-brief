@@ -6,8 +6,8 @@ import { formatDate } from '../constants/project'
 import UserAvatar from './UserAvatar.vue'
 import AppIcon from './AppIcon.vue'
 import AttachmentList from './AttachmentList.vue'
-const props = defineProps({ comments: Array, target: String })
-const emit = defineEmits(['seen'])
+const props = defineProps({ comments: Array, target: String, canShareAgentResults: Boolean })
+const emit = defineEmits(['seen', 'share'])
 const container = ref(null),
   highlighted = ref('')
 let observer,
@@ -86,6 +86,9 @@ onUnmounted(() => {
           }}</span
           ><time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
         </div>
+        <span v-if="comment.teamOnly" class="agent-private-marker small muted"
+          ><AppIcon name="lock" :size="14" /> {{ t('agents.internalResult') }}</span
+        >
         <p v-if="comment.text">{{ comment.text }}</p>
         <div v-if="comment.agentReport" class="agent-comment-result">
           <span class="status-pill">{{ t('agents.state.' + comment.agentReport.state) }}</span>
@@ -105,6 +108,13 @@ onUnmounted(() => {
           >
         </div>
         <AttachmentList :attachments="comment.attachments || []" compact />
+        <button
+          v-if="canShareAgentResults && comment.teamOnly && comment.author === 'agent'"
+          class="text-button agent-share-action"
+          @click="emit('share', comment)"
+        >
+          {{ t('agents.shareClient') }}
+        </button>
       </div>
     </article>
   </div>
@@ -114,6 +124,15 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.agent-private-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0;
+}
+.agent-share-action {
+  margin-top: 8px;
+}
 .agent-comment-result {
   display: flex;
   gap: 0.75rem;

@@ -1,6 +1,6 @@
-# v0.9.7 UX patch
+# v0.9.8 — agent permissions and privacy
 
-For an installed v0.9.6 use [update and rollback](docs/milestone-9-6-1/PRODUCTION.md). Agent results remain client-visible task comments.
+For installed v0.9.7 use [update and safe rollback](docs/milestone-9-6-2/PRODUCTION.md). New agent results are internal; historical visibility is preserved. A runtime-only downgrade with active agents is unsafe because old versions ignore permission ceilings and create public output.
 
 # Релиз v0.9.6
 

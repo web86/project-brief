@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgentApiController;
+use App\Http\Controllers\AgentReadController;
 use App\Http\Controllers\ClientSsoController;
 use App\Http\Controllers\IntegrationApiController;
 use App\Http\Controllers\IntegrationReadController;
@@ -14,6 +15,13 @@ Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(functio
     Route::get('/agent/me', [AgentApiController::class, 'me']);
     Route::get('/agent/tasks', [AgentApiController::class, 'index']);
     Route::get('/agent/tasks/{task}', [AgentApiController::class, 'show']);
+    Route::get('/agent/projects/{project}/tasks', [AgentReadController::class, 'tasks']);
+    Route::get('/agent/projects/{project}/tasks/{task}', [AgentReadController::class, 'task']);
+    Route::get('/agent/tasks/{task}/comments', [AgentReadController::class, 'comments']);
+    Route::get('/agent/tasks/{task}/attachments', [AgentReadController::class, 'attachments']);
+    Route::get('/agent/projects/{project}/{channel}', [AgentReadController::class, 'discussionIndex'])->whereIn('channel', ['discussions', 'team-chat']);
+    Route::get('/agent/discussions/{comment}/attachments', [AgentReadController::class, 'discussionAttachments']);
+    Route::get('/agent/attachments/{attachment}/download', [AgentReadController::class, 'download']);
     Route::post('/agent/tasks/{task}/{operation}', [AgentApiController::class, 'write'])->whereIn('operation', ['reports', 'comments', 'attachments']);
     Route::post('/client-sso/handoffs', [ClientSsoController::class, 'store']);
     Route::post('/project-requests', [ProjectRequestController::class, 'store'])->middleware(RecordProvisioningOperation::class);

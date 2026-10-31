@@ -16,4 +16,4 @@ export APP_BASE_PATH=/tmp/m96-api
 APP_KEY="$(php -r 'echo "base64:".base64_encode(random_bytes(32));')"
 export APP_KEY
 php -v | head -n 1
-php -d memory_limit=512M vendor/bin/phpunit --filter '(AgentApiTest|IntegrationsTest|IntegrationReadTest|WebhooksTest|WebhookProjectFiltersTest|ApiUsageTest|Milestone95Test)'
+php -d memory_limit=512M vendor/bin/phpunit --filter '(AgentApiTest|AgentPermissionsPrivacyTest|AgentPermissionsMigrationTest|IntegrationsTest|IntegrationReadTest|WebhooksTest|WebhookProjectFiltersTest|ApiUsageTest|Milestone95Test)'

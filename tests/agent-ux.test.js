@@ -49,6 +49,7 @@ test('latest report links to its own full comment and tolerates unavailable comm
   assert.deepEqual(latestAgentReport(task, assignment), {
     id: 'latest',
     commentId: 'c2',
+    teamOnly: false,
     summary: 'latest text',
   })
   assert.equal(latestAgentReport({}, {}), null)
@@ -106,4 +107,85 @@ test('all four locales provide the same agent interface keys', () => {
       )
       .sort()
   for (const locale of [ru, tr, zh]) assert.deepEqual(keys(locale.agents), keys(en.agents))
+})
+
+test('an assigned executor without credentials requires connection while preserving its API state', async () => {
+  const task = {
+    id: 'task',
+    agentAssignments: [
+      {
+        id: 'a',
+        state: 'pending',
+        agent: { id: 'agent', name: 'Executor', kind: 'ai', active: true, hasCredentials: false },
+        reports: [],
+      },
+    ],
+    comments: [],
+  }
+  const html = await renderToString(createSSRApp(Panel, { task, projectId: 'project', agents: [] }))
+  assert.ok(html.includes('Connection required'))
+  assert.ok(html.includes('Last reported execution'))
+  assert.ok(html.includes('Awaiting execution'))
+  assert.equal(task.agentAssignments[0].state, 'pending')
+})
+for (const [locale, catalog] of [
+  ['ru', ru],
+  ['en', en],
+  ['tr', tr],
+  ['zh-CN', zh],
+])
+  test(`internal result badge and human publication authority in ${locale}`, async () => {
+    i18n.global.locale.value = locale
+    try {
+      const task = {
+        id: 'task',
+        canShareAgentResults: true,
+        agentAssignments: [
+          {
+            id: 'a',
+            state: 'submitted',
+            agent: { id: 'agent', name: 'Executor', kind: 'ai', active: true },
+            reports: [{ id: 'report', state: 'submitted', createdAt: '2026-10-31T00:00:00Z' }],
+          },
+        ],
+        comments: [
+          { id: 'comment', text: 'Internal result', teamOnly: true, agentReport: { id: 'report' } },
+        ],
+      }
+      const html = await renderToString(
+        createSSRApp(Panel, { task, projectId: 'project', agents: [] }),
+      )
+      assert.ok(html.includes(catalog.agents.internalResult))
+      assert.ok(html.includes(catalog.agents.shareClient))
+      task.canShareAgentResults = false
+      const denied = await renderToString(
+        createSSRApp(Panel, { task, projectId: 'project', agents: [] }),
+      )
+      assert.ok(!denied.includes(catalog.agents.shareClient))
+      task.canShareAgentResults = true
+      task.comments[0].teamOnly = false
+      const historical = await renderToString(
+        createSSRApp(Panel, { task, projectId: 'project', agents: [] }),
+      )
+      assert.ok(!historical.includes(catalog.agents.shareClient))
+    } finally {
+      i18n.global.locale.value = 'en'
+    }
+  })
+test('client publication starts with no copied text, links or files selected', async () => {
+  const Share = (await server.ssrLoadModule('/src/components/AgentResultShare.vue')).default
+  const html = await renderToString(
+    createSSRApp(Share, {
+      taskId: 'task',
+      comment: {
+        id: 'source',
+        text: 'PRIVATE_TECHNICAL_SOURCE',
+        agentReport: { pullRequestUrl: 'https://example.test/private-pr' },
+        attachments: [{ id: 'file', name: 'closed.txt' }],
+      },
+    }),
+  )
+  assert.ok(html.includes('PRIVATE_TECHNICAL_SOURCE'))
+  assert.match(html, /<textarea[^>]*><\/textarea>/)
+  assert.ok(!html.includes(' checked'))
 })

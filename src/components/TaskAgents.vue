@@ -6,7 +6,7 @@ import { agentIcon, latestAgentReport } from '../services/agentPresentation.js'
 import { formatDate } from '../constants/project.js'
 import AppIcon from './AppIcon.vue'
 const props = defineProps({ task: Object, projectId: String, agents: Array })
-const emit = defineEmits(['changed'])
+const emit = defineEmits(['changed', 'share'])
 const available = computed(() => props.agents || []),
   selected = ref(''),
   busy = ref(false),
@@ -68,11 +68,18 @@ async function assign(agentId, method) {
           {{ t('agents.unassign') }}
         </button>
       </div>
+      <p v-if="row.agent.hasCredentials === false" class="small agent-connection-needed">
+        <AppIcon name="key" :size="14" /> {{ t('agents.requiresConnection') }}
+      </p>
       <p class="agent-execution">
-        {{ t('agents.execution') }}: <strong>{{ t('agents.executionState.' + row.state) }}</strong>
+        {{ t(row.agent.hasCredentials === false ? 'agents.lastExecution' : 'agents.execution') }}:
+        <strong>{{ t('agents.executionState.' + row.state) }}</strong>
       </p>
       <div v-if="row.latestReport" class="agent-latest-report">
         <div class="agent-report-meta">
+          <span v-if="row.latestReport.teamOnly" class="agent-internal-label"
+            ><AppIcon name="lock" :size="14" />{{ t('agents.internalResult') }}</span
+          >
           <span
             >{{ t('agents.latestReport') }} ·
             {{ t('agents.state.' + row.latestReport.state) }}</span
@@ -99,6 +106,20 @@ async function assign(agentId, method) {
           ><a v-if="row.latestReport.commentId" :href="'#comment-' + row.latestReport.commentId">{{
             t('agents.fullReport')
           }}</a>
+          <button
+            v-if="
+              task.canShareAgentResults && row.latestReport.teamOnly && row.latestReport.commentId
+            "
+            class="text-button"
+            @click="
+              emit(
+                'share',
+                task.comments.find((comment) => comment.id === row.latestReport.commentId),
+              )
+            "
+          >
+            {{ t('agents.shareClient') }}
+          </button>
         </div>
       </div>
       <p v-else-if="row.agent.lastActivityAt" class="small muted">
@@ -123,7 +144,7 @@ async function assign(agentId, method) {
       </button>
     </form>
     <p v-if="assignments.length" class="small muted agent-visibility-note">
-      {{ t('agents.publicResults') }}
+      {{ t('agents.internalResultsHint') }}
     </p>
     <p v-if="!assignments.length && !choices.length" class="small muted">
       {{ t('agents.noExecutors') }}
@@ -131,6 +152,17 @@ async function assign(agentId, method) {
   </section>
 </template>
 <style scoped>
+.agent-connection-needed {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 6px 0;
+}
+.agent-internal-label {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
 .task-agent-panel h3 {
   margin: 0 0 8px;
   font-size: 1rem;

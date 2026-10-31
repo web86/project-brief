@@ -189,7 +189,7 @@ function remove(member) {
           }}</RouterLink>
         </p>
       </section>
-      <section class="surface team-list" data-team-agents>
+      <section class="surface team-list team-agent-section" data-team-agents>
         <h3>{{ t('agents.executors') }}</h3>
         <article
           v-for="agent in state.agents || []"
@@ -291,6 +291,23 @@ function remove(member) {
   </div>
 </template>
 <style scoped>
+.team-agent-section {
+  display: grid;
+  gap: 16px;
+}
+.team-agent-section h2,
+.team-agent-section p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.team-agent-section .project-team-member {
+  padding: 16px;
+  gap: 16px;
+  margin: 0;
+}
+.team-agent-section > .button {
+  justify-self: start;
+}
 .team-agent-picker {
   display: flex;
   align-items: end;

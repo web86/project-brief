@@ -269,6 +269,10 @@ export async function validateRelease(root, localSecrets = []) {
     'agent-api/openapi.json',
     'agent-api/examples/agent.mjs',
     'private/project-brief-app/app/Services/AgentAccess.php',
+    'private/project-brief-app/app/Services/AgentPermissions.php',
+    'private/project-brief-app/app/Http/Controllers/AgentReadController.php',
+    'private/project-brief-app/app/Http/Controllers/AgentResultController.php',
+    'private/project-brief-app/database/migrations/2026_10_31_065854_add_permissions_to_external_agents.php',
     'private/project-brief-app/database/migrations/2026_10_30_213603_add_external_agents.php',
     'release.json',
   ]

@@ -50,6 +50,9 @@ class IntegrationWrites
             abort_if($required && ! in_array($required, json_decode($current->scopes, true), true), 403);
             abort_if($required === 'projects:provision' && ! $current->provisioning_enabled, 403);
             if ($current->external_agent_id) {
+                if ($required) {
+                    AgentAccess::scope($request, $required);
+                }
                 $assignment = AgentAccess::assignment($request, (string) $request->route('task'));
                 abort_unless(hash_equals($assignment->uuid, (string) $request->input('assignmentId')), 409);
             }

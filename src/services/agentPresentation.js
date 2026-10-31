@@ -2,17 +2,13 @@
 export const agentIcon = (kind) =>
   ({ ai: 'bot', automation: 'settings', service: 'globe' })[kind] || 'bot'
 
+export const agentTimestamp = (value) =>
+  value.includes('T') ? value : value.replace(' ', 'T') + 'Z'
+export const usableAgentToken = (token, now = Date.now()) =>
+  !token.revokedAt && (!token.expiresAt || Date.parse(agentTimestamp(token.expiresAt)) > now)
 export function agentCredentials(agent, now = Date.now()) {
   if (!Array.isArray(agent.tokens)) return null
-  const valid = agent.tokens.some(
-    (token) =>
-      !token.revokedAt &&
-      (!token.expiresAt ||
-        Date.parse(
-          token.expiresAt.includes('T') ? token.expiresAt : token.expiresAt.replace(' ', 'T') + 'Z',
-        ) > now),
-  )
-  return valid ? 'issued' : 'missing'
+  return agent.tokens.some((token) => usableAgentToken(token, now)) ? 'issued' : 'missing'
 }
 
 export function latestAgentReport(task, assignment) {
@@ -29,6 +25,7 @@ export function latestAgentReport(task, assignment) {
         }
       : {}),
     commentId: comment?.id || null,
+    teamOnly: comment?.teamOnly || false,
     summary: comment?.text || '',
   }
 }

@@ -11,11 +11,11 @@ class ExternalAgent extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = ['workspace_id', 'name', 'description', 'kind', 'active'];
+    protected $fillable = ['workspace_id', 'name', 'description', 'kind', 'active', 'permissions'];
 
     protected function casts(): array
     {
-        return ['workspace_id' => 'integer', 'active' => 'boolean', 'last_success_at' => 'datetime'];
+        return ['workspace_id' => 'integer', 'active' => 'boolean', 'permissions' => 'array', 'last_success_at' => 'datetime'];
     }
 
     public function uniqueIds(): array

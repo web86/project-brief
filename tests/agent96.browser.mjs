@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { runAgent962Qa } from './agent962.scenarios.mjs'
 import { runWebhookQa } from './agent96.webhook.mjs'
 import { spawn, spawnSync } from 'node:child_process'
 import { cp, mkdir, mkdtemp, rm, symlink, writeFile, readdir } from 'node:fs/promises'
@@ -139,7 +140,7 @@ try {
   const previousMigrations = path.join(scratch, 'previous-migrations')
   await mkdir(previousMigrations)
   for (const file of await readdir(path.join(app, 'database/migrations'))) {
-    if (file < '2026_10_30_213603_add_external_agents.php')
+    if (file < '2026_10_31_065854_add_permissions_to_external_agents.php')
       await cp(path.join(app, 'database/migrations', file), path.join(previousMigrations, file))
   }
   php([
@@ -311,11 +312,16 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   const card = page.locator('[data-agent-id]').first()
   await card.waitFor()
   const agentId = await card.getAttribute('data-agent-id')
-  assert.ok((await card.textContent()).includes('1 allowed projects'))
+  assert.ok((await card.textContent()).includes('Allowed projects: 1'))
   assert.ok((await card.textContent()).includes('No API requests yet'))
+  await page
+    .locator('dialog[open]')
+    .getByRole('button', { name: 'Close dialog', exact: true })
+    .last()
+    .click()
   await card.getByRole('button', { name: 'How to connect?', exact: true }).click()
   assert.equal(await dialog.locator('ol li').count(), 5)
-  assert.ok((await dialog.textContent()).includes('agent-api/examples/agent.mjs'))
+  assert.ok((await dialog.textContent()).includes('outside Project Brief'))
   await page.keyboard.press('Escape')
   await card.getByRole('button', { name: 'Configure', exact: true }).click()
   assert.equal(await dialog.locator('#agent-project-options').isVisible(), false)
@@ -332,8 +338,11 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   page.once('dialog', (confirmation) => confirmation.accept())
   await dialog.locator('.modal-header button').click()
   await card.getByRole('button', { name: 'Configure', exact: true }).click()
-  await page.locator('dialog[open] summary').click()
-  await page.getByRole('button', { name: 'Issue / rotate token', exact: true }).click()
+  await page.locator('dialog[open] [data-agent-connection] summary').click()
+  await page
+    .locator('dialog[open]')
+    .getByRole('button', { name: 'Create API key', exact: true })
+    .click()
   await page.waitForFunction(() =>
     document.querySelector('.agent-secret')?.value?.startsWith('pb_'),
   )
@@ -568,7 +577,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     assert.ok(
       (await page.locator('.agent-execution').textContent()).includes(
         {
-          pending: 'Waiting to start',
+          pending: 'Awaiting execution',
           running: 'Running',
           submitted: 'Result submitted',
           failed: 'Failed',
@@ -596,6 +605,22 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   assert.equal(unchanged.clientApproved, before.clientApproved)
   results.push(
     'UX tabs, all executor types, searchable grants, empty search, clear selection, API error draft retention, dirty cancellation, connection guide, all five execution states and only latest linked report',
+  )
+  results.push(
+    await runAgent962Qa({
+      page,
+      context,
+      origin,
+      fixture,
+      agentId,
+      attachmentId,
+      taskUrl,
+      call,
+      agentCall,
+      replaceAgentToken: (secret) => {
+        headers.Authorization = 'Bearer ' + secret
+      },
+    }),
   )
   const agent = (await call('/api/admin/integrations/agents')).data[0]
   const visuals = [
@@ -666,6 +691,49 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
                   .locator('dialog[open]')
                   .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
               )
+              for (const section of ['permissions', 'connection']) {
+                await page.locator(`dialog[open] [data-agent-${section}]`).evaluate((el) => {
+                  el.open = true
+                })
+                await page.locator('dialog[open] .agent-editor-body').evaluate((body, section) => {
+                  const summary = body.querySelector(`[data-agent-${section}] summary`)
+                  body.scrollTop +=
+                    summary.getBoundingClientRect().top - body.getBoundingClientRect().top
+                }, section)
+                assert.ok(
+                  await page
+                    .locator('dialog[open]')
+                    .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+                )
+                assert.ok(
+                  await page
+                    .locator('dialog[open] .modal-footer')
+                    .evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight),
+                )
+                await page.screenshot({
+                  path: path.join(output, `${section}-${lang}-${width}-${mode}.png`),
+                  fullPage: true,
+                })
+                captures++
+              }
+              await page.keyboard.press('Escape')
+            }
+            if (name === 'task') {
+              await page.locator('.agent-latest-report button').click()
+              assert.ok(
+                await page
+                  .locator('dialog[open]')
+                  .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+              )
+              assert.ok(
+                await page
+                  .locator('dialog[open] .modal-footer')
+                  .evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight),
+              )
+              await page.locator('dialog[open]').screenshot({
+                path: path.join(output, `share-${lang}-${width}-${mode}.png`),
+              })
+              captures++
               await page.keyboard.press('Escape')
             }
           }
@@ -700,6 +768,10 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
   results.push('Owner deactivation revokes credential; independent executor fails with HTTP 401')
   // Keep the real 30/minute integration settings limit enabled across QA phases.
   await page.waitForTimeout(55_000)
+  await call('/api/security/confirm', 'POST', {
+    current_password: 'Local-test-password!',
+    recovery_code: 'Live-browser-code-1',
+  })
   await page.setViewportSize({ width: 1440, height: 980 })
   await page.evaluate(() => localStorage.setItem('projectbrief.locale', 'en'))
   await page.goto(origin + '/admin/settings/integrations')
@@ -714,7 +786,12 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       .locator('[data-agent-id]')
       .filter({ has: page.getByText('Kind QA ' + kind, { exact: true }) })
     await created.waitFor()
-    assert.ok((await created.textContent()).includes('0 allowed projects'))
+    assert.ok((await created.textContent()).includes('Allowed projects: 0'))
+    await page
+      .locator('dialog[open]')
+      .getByRole('button', { name: 'Close dialog', exact: true })
+      .last()
+      .click()
     await created.getByRole('button', { name: 'Configure', exact: true }).click()
     page.once('dialog', (confirmation) => confirmation.dismiss())
     await dialog

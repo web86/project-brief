@@ -31,7 +31,7 @@ export async function runAgent({
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     })
-    if (!response.ok) throw new Error(`Agent API rejected request (${response.status()}).`)
+    if (!response.ok) throw new Error(`Agent API rejected request (${response.status}).`)
     return response.json()
   }
   const me = (await request('me')).data
