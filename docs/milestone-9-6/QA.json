@@ -1,0 +1,90 @@
+{
+  "sourceCommit": "6b4b49372af0f30abb8e483b525f0775d76fe815",
+  "artifact": {
+    "archive": "release/project-brief-v0.9.6-6b4b493.zip",
+    "bytes": 39380715,
+    "sha256": "7ec9088747b47839547961d2f9886bd45640f14ba173aed094bbf2d162c05715",
+    "checksums": 8918,
+    "crc": "passed",
+    "release": {
+      "version": "0.9.6",
+      "commit": "6b4b49372af0f30abb8e483b525f0775d76fe815",
+      "builtAt": "2026-10-30T22:31:14.643Z",
+      "phpTarget": "8.4",
+      "domain": "brief.web86.site"
+    }
+  },
+  "backend": {
+    "sqlite": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 1013,
+      "passed": 1013,
+      "assertions": 15007,
+      "duration_ms": 104174
+    },
+    "mariadb": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 1013,
+      "passed": 1013,
+      "assertions": 15007,
+      "duration_ms": 314181
+    },
+    "php84MariaDB": {
+      "tests": 69,
+      "passed": 69,
+      "assertions": 995,
+      "php": "8.4.26",
+      "database": "MariaDB 11.8.9"
+    }
+  },
+  "frontend": {
+    "tests": 409,
+    "passed": 409,
+    "failed": 0
+  },
+  "browser": {
+    "source": {
+      "runtime": "source",
+      "database": "MariaDB 11.8.9",
+      "results": [
+        "Real owner UI registration, one-time credential, project team and task assignment, independent Node executor, agent authorship and unchanged human workflow",
+        "Real HTTP bearer/scopes/privacy, six concurrent idempotent reports, multipart upload and human-only authorized file download",
+        "Unassigned task denied; immediate assignment revocation; stale-generation replay rejected after reassignment",
+        "Real TLS webhook transport: HMAC/raw bytes, 503→204 retry with same delivery ID, revoked delivery cancelled",
+        "Owner deactivation revokes credential; independent executor fails with HTTP 401"
+      ],
+      "captures": 96,
+      "errors": []
+    },
+    "productionZip": {
+      "runtime": "extracted-production-zip",
+      "database": "MariaDB 11.8.9",
+      "results": [
+        "Real owner UI registration, one-time credential, project team and task assignment, independent Node executor, agent authorship and unchanged human workflow",
+        "Real HTTP bearer/scopes/privacy, six concurrent idempotent reports, multipart upload and human-only authorized file download",
+        "Unassigned and foreign-project tasks denied; immediate assignment revocation; stale-generation replay rejected after reassignment",
+        "Real HTTP credential rotation: former bearer rejected, replacement accepted",
+        "Real TLS webhook transport: HMAC/raw bytes, 503→204 retry with same delivery ID, revoked delivery cancelled",
+        "Owner deactivation revokes credential; independent executor fails with HTTP 401"
+      ],
+      "captures": 0,
+      "errors": []
+    }
+  },
+  "checks": {
+    "pint": true,
+    "phpLint": true,
+    "prettier": true,
+    "crc": true,
+    "internalChecksums": 8918,
+    "secretAndRuntimePathScan": true
+  },
+  "production": {
+    "pushed": false,
+    "deployed": false,
+    "productionDatabaseChanged": false,
+    "jinoLiveVerification": false
+  }
+}
