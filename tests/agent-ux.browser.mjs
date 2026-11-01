@@ -186,6 +186,16 @@ try {
       )
     await writeFile(file, fixtureSource)
   }
+  if (packageRoot && !mysql) {
+    const file = path.join(app, 'tests/live-sync-fixture.php')
+    await writeFile(
+      file,
+      (await readFile(file, 'utf8')).replace(
+        "require __DIR__.'/../vendor/autoload.php';",
+        "require __DIR__.'/qa-autoload.php';",
+      ),
+    )
+  }
   const previousMigrations = path.join(scratch, 'previous-migrations')
   await mkdir(previousMigrations)
   for (const file of await readdir(path.join(app, 'database/migrations'))) {

@@ -1,9 +1,9 @@
 {
-  "file": "project-brief-v0.9.10-00793c2.zip",
-  "bytes": 39443130,
-  "sha256": "d5047cbcb236dfa7d144b34e88add22e817b6d596b97fd92b43da9079a206207",
-  "manifestEntries": 8940,
-  "zipEntries": 10188,
+  "file": "project-brief-v0.9.10-7fb565f.zip",
+  "bytes": 39447012,
+  "sha256": "7626d656eaec612c98155688208e5a38bc96593630f5ea60f4cad9f27a07316a",
+  "manifestEntries": 8942,
+  "zipEntries": 10190,
   "crc": "passed",
   "internalChecksums": "passed",
   "collaborationExampleMatchesSource": true,
@@ -13,8 +13,8 @@
   "testKeyAbsentFromChangesAndQaLogs": true,
   "release": {
     "version": "0.9.10",
-    "commit": "00793c2ca7d114d2e2c5fe9257e186d005cc2874",
-    "builtAt": "2026-11-01T14:26:56.101Z",
+    "commit": "7fb565fd562e7bfeaf50b3931e77fc82c1c046dc",
+    "builtAt": "2026-11-01T17:17:01.939Z",
     "phpTarget": "8.4",
     "domain": "brief.web86.site"
   }

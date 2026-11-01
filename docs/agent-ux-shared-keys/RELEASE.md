@@ -27,4 +27,19 @@ synthetic invitation. No external AI requests are needed for this refinement.
 
 Final package/visual evidence is recorded in [QA.json](QA.json), with exact ZIP
 metadata in [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json). Screenshots stay outside
-Git and the production package. No push, deployment or production DB changes.
+Git and the production package. Release QA did not push, deploy or change production DBs.
+The user subsequently authorized publishing all commits to a new remote branch;
+publication status is recorded separately in QA.json.
+
+Final extracted-ZIP browser workflow passes, including actual SMTP acceptance of
+a synthetic invitation, owner/developer Reviews access checks, date filtering,
+agent creation without a key and shared-key revocation for two identities.
+**96** visual captures pass across RU/EN/TR/zh-CN, light/dark, 1440/390px.
+The QA harness retains the normal integration rate limit and obtains fresh MFA
+through the existing recovery-code flow; no authorization bypass is installed.
+
+Final artifact: `project-brief-v0.9.10-7fb565f.zip`, **39447012 bytes**.
+SHA-256: `7626d656eaec612c98155688208e5a38bc96593630f5ea60f4cad9f27a07316a`.
+CRC and all **8942** internal checksum records pass. No provider key or test env
+is included. This refinement made **0 external AI requests**. Earlier real-model
+evidence is historical and is not presented as validation of this revision.

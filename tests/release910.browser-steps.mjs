@@ -155,8 +155,10 @@ export async function runRelease910({
   )
   let captures = 0
   if (process.env.AGENT_UX_SKIP_VISUALS !== '1') {
+    // Preserve the normal 30/minute integration-settings limiter during visual QA.
+    await page.waitForTimeout(61000)
     for (const lang of ['ru', 'en', 'tr', 'zh-CN']) {
-      await page.waitForTimeout(15000)
+      await page.waitForTimeout(35000)
       for (const mode of ['light', 'dark'])
         for (const width of [1440, 390]) {
           await page.setViewportSize({ width, height: 980 })
