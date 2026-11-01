@@ -252,8 +252,13 @@ async function copy() {
   font-weight: 400;
 }
 .api-key-scopes input {
-  width: auto;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
   margin-top: 4px;
+}
+.api-key-scopes label > span {
+  min-width: 0;
 }
 .api-key-scopes small,
 .api-key-scopes code {

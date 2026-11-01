@@ -867,7 +867,6 @@ async function confirmAction(key, path, method = 'POST') {
               class="management-body integration-form"
               @submit.prevent="saveHook"
             >
-              <h2>{{ t(editing ? 'integrations.edit' : 'integrations.create') }} · Webhook</h2>
               <p v-if="validation && tab === 'webhooks'" class="field-error" role="alert">
                 {{ validationMessage }}
               </p>
@@ -1127,9 +1126,11 @@ async function confirmAction(key, path, method = 'POST') {
 }
 .integration-form {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
-.integration-form h2,
+.integration-form .field {
+  margin: 0;
+}
 .integration-list h2 {
   margin: 0;
   font-size: 1.2rem;

@@ -862,6 +862,11 @@ echo json_encode($q->orderBy('id')->get(['status','http_status','attempts','erro
                 .locator('#integration-panel-tokens .integration-section-heading button')
                 .click()
               await page.locator('#token-type').selectOption('agent')
+              const scopeBox = await page.locator('.api-key-scopes input').first().boundingBox()
+              assert.ok(
+                scopeBox.width >= 14 && scopeBox.height >= 14,
+                'Scopes keep usable checkbox dimensions',
+              )
               await capture('api-key-modal')
               await page.keyboard.press('Escape')
               await page.locator('#integration-tab-agents').click()
@@ -877,6 +882,14 @@ echo json_encode($q->orderBy('id')->get(['status','http_status','attempts','erro
                 .locator('#integration-panel-webhooks .integration-section-heading button')
                 .click()
               await page.locator('#hook-agent').selectOption(agentId)
+              assert.equal(
+                await page
+                  .locator('#webhook-editor')
+                  .locator('xpath=ancestor::dialog')
+                  .getByRole('heading')
+                  .count(),
+                1,
+              )
               await capture('webhook-modal')
               await page.keyboard.press('Escape')
             }
