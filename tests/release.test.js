@@ -29,9 +29,14 @@ test('production package rejects historical guides and verification artifacts at
     'private/project-brief-app/milestone-7-0/README.md',
     'private/other-app/index.php',
     'public/assets/frontend.js.map',
+    'agent-api/examples/credentials.json',
+    'agent-api/examples/arbitrary.mjs',
+    'public/agent-api/examples/collaboration.mjs',
   ])
     assert.equal(forbiddenProductionPath(file), true, file)
   for (const file of [
+    'agent-api/COLLABORATION.md',
+    'agent-api/examples/collaboration.mjs',
     'DEPLOY-JINO.md',
     'PRODUCTION.md',
     'release.json',
