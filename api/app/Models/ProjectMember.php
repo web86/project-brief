@@ -14,6 +14,11 @@ class ProjectMember extends Model
         return ['workspace_id' => 'integer', 'project_id' => 'integer', 'workspace_member_id' => 'integer', 'permissions' => 'array'];
     }
 
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(ExternalAgent::class, 'external_agent_id');
+    }
+
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

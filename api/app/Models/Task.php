@@ -52,6 +52,11 @@ class Task extends Model
         return $this->status === 'review' && in_array($status, ['approved', 'done'], true);
     }
 
+    public function isDeveloperBriefEditable(): bool
+    {
+        return ! $this->client_approved && $this->status !== 'approved';
+    }
+
     public function isClientEditable(): bool
     {
         return ! $this->client_approved && in_array($this->status, ['new', 'clarification']);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Attachment;
 use App\Services\AgentAccess;
 use App\Services\AgentAudit;
+use App\Services\AgentChat;
 use App\Services\AgentPermissions;
 use App\Services\AgentRuns;
 use App\Services\IntegrationWrites;
@@ -41,7 +42,9 @@ class AgentRunApiController extends Controller
         AgentAccess::scope($request, 'agent:messages:read');
 
         $input = $request->validate(['before' => ['sometimes', 'uuid']]);
-        $messages = AgentRuns::conversation(AgentAccess::assignment($request, $task), $input['before'] ?? null);
+        $agent = AgentAccess::identity($request);
+        $files = AgentAccess::tokenAllows($request, 'agent:attachments:read') && AgentPermissions::allows($agent, 'taskAttachments');
+        $messages = AgentChat::messages(AgentAccess::assignment($request, $task), $input['before'] ?? null, $files, true);
 
         return response()->json(['data' => $messages, 'nextCursor' => count($messages) === 200 ? $messages[0]['id'] : null]);
     }

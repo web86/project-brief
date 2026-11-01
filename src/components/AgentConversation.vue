@@ -1,49 +1,56 @@
 <script setup>
-import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
+import { ref, watch, onBeforeUnmount, computed, nextTick } from 'vue'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
-import { formatDate } from '../constants/project.js'
-import { agentTimestamp } from '../services/agentPresentation.js'
 import LoadingButton from './LoadingButton.vue'
+import FileUploader from './FileUploader.vue'
+import AgentChatMessage from './AgentChatMessage.vue'
 const props = defineProps({ task: Object })
-const emit = defineEmits(['changed'])
+const emit = defineEmits(['changed', 'share'])
 const rows = ref([]),
+  legacy = ref([]),
+  legacyCursor = ref(null),
   drafts = ref({}),
+  files = ref({}),
+  processing = ref(false),
   error = ref(''),
-  busy = ref(false),
-  expanded = ref(false)
-const messageLogs = ref([])
+  busy = ref(false)
 let revision = 0,
   loadRevision = 0
+const messageLogs = ref([])
 const keys = new Map()
+const title = computed(() =>
+  t('agentUx.chat', {
+    name: (rows.value.filter((row) => !row.revokedAt).length
+      ? rows.value.filter((row) => !row.revokedAt)
+      : rows.value
+    )
+      .map((row) => row.agent.name)
+      .filter((name, index, names) => names.indexOf(name) === index)
+      .join(', '),
+  }),
+)
 async function load() {
+  const follow = messageLogs.value.map(
+    (log) => log.scrollHeight - log.scrollTop - log.clientHeight < 60,
+  )
   const current = revision,
     attempt = ++loadRevision
   try {
     const result = await api.request(`/api/admin/tasks/${props.task.id}/agent-collaboration`)
     if (current === revision && attempt === loadRevision) {
       rows.value = result.data
+      legacy.value = result.legacyMessages?.data || []
+      legacyCursor.value = result.legacyMessages?.nextCursor
       await nextTick()
-      for (const log of messageLogs.value) log.scrollTop = log.scrollHeight
+      messageLogs.value.forEach((log, index) => {
+        if (follow[index] !== false) log.scrollTop = log.scrollHeight
+      })
     }
   } catch (cause) {
     if (current === revision) error.value = formatApiError(cause)
   }
 }
-watch(
-  () =>
-    JSON.stringify([
-      props.task.id,
-      props.task.updatedAt,
-      props.task.comments?.length,
-      props.task.agentAssignments
-        ?.map((row) => `${row.id}:${row.state}:${row.reports?.length}`)
-        .join('|'),
-    ]),
-  () => {
-    if (expanded.value) load()
-  },
-)
 watch(
   () => props.task.id,
   () => {
@@ -51,31 +58,56 @@ watch(
     loadRevision++
     busy.value = false
     rows.value = []
+    legacy.value = []
     drafts.value = {}
+    files.value = {}
     keys.clear()
-    expanded.value = false
     error.value = ''
+    load()
   },
+  { immediate: true },
+)
+watch(
+  () =>
+    JSON.stringify([
+      props.task.updatedAt,
+      props.task.comments?.length,
+      props.task.agentAssignments?.map((row) => `${row.id}:${row.state}`),
+    ]),
+  load,
 )
 onBeforeUnmount(() => revision++)
-function toggle(event) {
-  expanded.value = event.target.open
-  if (expanded.value) load()
-}
 async function send(row) {
-  if (busy.value || !drafts.value[row.id]?.trim()) return
-  const current = revision
+  if (
+    busy.value ||
+    processing.value ||
+    (!drafts.value[row.id]?.trim() && !files.value[row.id]?.length)
+  )
+    return
+  const current = revision,
+    text = drafts.value[row.id] || '',
+    attachments = files.value[row.id] || []
+  const signature = JSON.stringify([text.trim(), attachments.map((file) => file.id)])
+  if (keys.get(row.id)?.signature !== signature)
+    keys.set(row.id, { id: crypto.randomUUID(), signature })
   busy.value = true
   error.value = ''
-  if (keys.get(row.id)?.text !== drafts.value[row.id].trim())
-    keys.set(row.id, { id: crypto.randomUUID(), text: drafts.value[row.id].trim() })
+  const body = attachments.length
+    ? new FormData()
+    : { instruction: text, submissionId: keys.get(row.id).id }
+  if (attachments.length) {
+    body.append('instruction', text)
+    body.append('submissionId', keys.get(row.id).id)
+    attachments.forEach((file) => body.append('attachments[]', file.file))
+  }
   try {
     await api.request(`/api/admin/tasks/${props.task.id}/agent-assignments/${row.id}/runs`, {
       method: 'POST',
-      body: { instruction: drafts.value[row.id], submissionId: keys.get(row.id).id },
+      body,
     })
     if (current === revision) {
       drafts.value[row.id] = ''
+      files.value[row.id] = []
       keys.delete(row.id)
       await load()
       emit('changed')
@@ -86,35 +118,23 @@ async function send(row) {
     if (current === revision) busy.value = false
   }
 }
-async function moreMessages(row) {
+async function more(row) {
   if (busy.value) return
   const current = revision
   busy.value = true
   try {
-    const result = await api.request(
-      `/api/admin/tasks/${props.task.id}/agent-assignments/${row.id}/messages?before=${encodeURIComponent(row.messagesCursor)}`,
-    )
+    const url = row
+      ? `/api/admin/tasks/${props.task.id}/agent-assignments/${row.id}/messages?before=${row.messagesCursor}`
+      : `/api/admin/tasks/${props.task.id}/agent-collaboration/history?before=${legacyCursor.value}`
+    const result = await api.request(url)
     if (current === revision) {
-      row.messages.unshift(...result.data)
-      row.messagesCursor = result.nextCursor
-    }
-  } catch (cause) {
-    if (current === revision) error.value = formatApiError(cause)
-  } finally {
-    if (current === revision) busy.value = false
-  }
-}
-async function moreRuns(row) {
-  if (busy.value) return
-  const current = revision
-  busy.value = true
-  try {
-    const result = await api.request(
-      `/api/admin/tasks/${props.task.id}/agent-assignments/${row.id}/runs?page=${row.historyPage + 1}`,
-    )
-    if (current === revision) {
-      row.runs.push(...result.data)
-      row.historyPage = result.meta.page
+      if (row) {
+        row.messages.unshift(...result.data)
+        row.messagesCursor = result.nextCursor
+      } else {
+        legacy.value.unshift(...result.data)
+        legacyCursor.value = result.nextCursor
+      }
     }
   } catch (cause) {
     if (current === revision) error.value = formatApiError(cause)
@@ -143,165 +163,148 @@ async function cancel(run) {
 }
 </script>
 <template>
-  <details class="surface agent-conversation" @toggle="toggle">
-    <summary>{{ t('collaboration.dialogue') }}</summary>
+  <section class="surface agent-conversation" data-agent-chat>
+    <div class="agent-chat-heading">
+      <h3>{{ title }}</h3>
+      <button class="text-button" :disabled="busy" @click="load">
+        {{ t('liveSync.checkMessages') }}
+      </button>
+    </div>
     <p class="small muted">{{ t('collaboration.privateHint') }}</p>
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-    <button class="text-button" :disabled="busy" @click="load">
-      {{ t('liveSync.checkMessages') }}
+    <button v-if="legacyCursor" class="text-button" :disabled="busy" @click="more(null)">
+      {{ t('collaboration.moreMessages') }}
     </button>
+    <div v-if="legacy.length" class="agent-message-list">
+      <AgentChatMessage
+        v-for="message in legacy"
+        :key="message.id"
+        :message="message"
+        :can-share="task.canShareAgentResults"
+        @share="emit('share', $event)"
+      />
+    </div>
     <section v-for="row in rows" :key="row.id" class="agent-thread">
-      <h4>
-        {{ row.agent.name }}
-        <span v-if="row.revokedAt" class="small muted">{{ t('agents.unassign') }}</span>
-      </h4>
-      <p v-if="row.runs[0]" class="small muted" role="status">
-        {{
+      <div class="agent-chat-heading">
+        <h4>{{ row.agent.name }}</h4>
+        <span v-if="row.revokedAt" class="small muted">{{ t('agentUx.readOnly') }}</span
+        ><span v-else-if="row.runs[0]" class="small" role="status">{{
           t(
             'collaboration.state.' +
               (row.runs[0].state === 'queued' && row.runs[0].deliveredAt
                 ? 'delivered'
                 : row.runs[0].state),
           )
-        }}
-      </p>
-      <button
-        v-if="row.messagesCursor"
-        class="text-button"
-        :disabled="busy"
-        @click="moreMessages(row)"
-      >
+        }}</span>
+      </div>
+      <button v-if="row.messagesCursor" class="text-button" :disabled="busy" @click="more(row)">
         {{ t('collaboration.moreMessages') }}
       </button>
-      <div ref="messageLogs" class="agent-dialogue-log" role="log" aria-live="polite" tabindex="0">
-        <article
+      <div ref="messageLogs" class="agent-message-list" role="log" tabindex="0" aria-live="polite">
+        <AgentChatMessage
           v-for="message in row.messages"
           :key="message.id"
-          class="agent-dialogue-message"
-          :class="message.author"
-        >
-          <strong>{{ t('collaboration.author.' + message.author) }}</strong
-          ><time class="small muted">{{ formatDate(agentTimestamp(message.createdAt)) }}</time>
-          <p class="preserve-lines">{{ message.text }}</p>
-        </article>
-      </div>
-      <form
-        v-if="!row.revokedAt && task.canShareAgentResults"
-        class="agent-follow-up"
-        @submit.prevent="send(row)"
-      >
-        <label :for="'agent-follow-up-' + row.id">{{ t('collaboration.instruction') }}</label>
-        <textarea
-          :id="'agent-follow-up-' + row.id"
-          v-model="drafts[row.id]"
-          rows="3"
-          maxlength="5000"
-          :disabled="busy"
-          required
+          :message="message"
+          :name="row.agent.name"
+          :can-share="task.canShareAgentResults"
+          @share="emit('share', $event)"
         />
-        <LoadingButton
-          type="submit"
-          class="button secondary"
-          :busy="busy"
-          :disabled="
-            busy ||
-            !drafts[row.id]?.trim() ||
-            row.runs.some((run) => ['queued', 'running'].includes(run.state))
-          "
-          >{{ t('collaboration.requestRun') }}</LoadingButton
+      </div>
+      <template v-if="!row.revokedAt && task.canShareAgentResults">
+        <form class="agent-follow-up" @submit.prevent="send(row)">
+          <label :for="'agent-follow-up-' + row.id">{{ t('collaboration.instruction') }}</label
+          ><textarea
+            :id="'agent-follow-up-' + row.id"
+            v-model="drafts[row.id]"
+            rows="3"
+            maxlength="5000"
+            :disabled="busy"
+          />
+          <FileUploader
+            v-model="files[row.id]"
+            compact
+            :max-files="5"
+            :max-total-size="40 * 1024 * 1024"
+            :disabled="busy"
+            @busy="processing = $event"
+          />
+          <LoadingButton
+            type="submit"
+            class="button secondary"
+            :busy="busy"
+            :disabled="
+              busy ||
+              processing ||
+              (!drafts[row.id]?.trim() && !files[row.id]?.length) ||
+              row.runs.some((run) => ['queued', 'running'].includes(run.state))
+            "
+            >{{ t('collaboration.requestRun') }}</LoadingButton
+          >
+        </form>
+        <details
+          v-if="row.runs.some((run) => ['queued', 'running'].includes(run.state))"
+          class="agent-execution-actions"
         >
-      </form>
-      <details class="agent-run-history">
-        <summary>{{ t('collaboration.history') }} ({{ row.runCount }})</summary>
-        <article v-for="run in row.runs" :key="run.id">
-          <strong>{{
-            t(
-              'collaboration.state.' +
-                (run.state === 'queued' && run.deliveredAt ? 'delivered' : run.state),
-            )
-          }}</strong>
-          <time class="small muted">{{ formatDate(agentTimestamp(run.createdAt)) }}</time>
-          <p class="preserve-lines">{{ run.instruction }}</p>
-          <code class="small">{{ run.id }}</code>
+          <summary>{{ t('agentUx.executionActions') }}</summary>
           <button
-            v-if="['queued', 'running'].includes(run.state) && task.canShareAgentResults"
             class="text-button danger"
             :disabled="busy"
-            @click="cancel(run)"
+            @click="cancel(row.runs.find((run) => ['queued', 'running'].includes(run.state)))"
           >
             {{ t('ui.cancel') }}
           </button>
-        </article>
-        <button
-          v-if="row.runs.length < row.runCount"
-          class="text-button"
-          :disabled="busy"
-          @click="moreRuns(row)"
-        >
-          {{ t('collaboration.moreHistory') }}
-        </button>
-      </details>
+        </details>
+      </template>
     </section>
-  </details>
+  </section>
 </template>
 <style scoped>
 .agent-conversation {
-  margin-block: 12px;
   padding: 16px;
   min-width: 0;
 }
-.agent-conversation summary {
-  cursor: pointer;
-  font-weight: 600;
+.agent-chat-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
-.agent-thread {
-  border-top: 1px solid var(--border);
-  margin-top: 16px;
-  padding-top: 12px;
-}
-.agent-dialogue-message {
-  padding: 12px;
-  margin-block: 10px;
-  background: var(--surface-alt, var(--surface));
-  border: 1px solid var(--border);
-  border-radius: 8px;
+h3,
+h4 {
+  margin: 0;
+  font-size: 1rem;
   overflow-wrap: anywhere;
 }
-.agent-dialogue-message time,
-.agent-run-history time {
-  display: block;
+.agent-thread {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
 }
-.agent-dialogue-message p {
-  margin-bottom: 0;
+.agent-message-list {
+  max-height: min(65dvh, 640px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  display: grid;
+  gap: 12px;
+  margin-block: 12px;
 }
 .agent-follow-up {
   display: grid;
   gap: 10px;
-  margin-block: 16px;
 }
-.agent-follow-up button {
+.agent-follow-up textarea {
+  min-height: 88px;
+}
+.agent-follow-up > .button {
   justify-self: start;
 }
-.agent-run-history article {
-  padding-block: 12px;
-  border-bottom: 1px solid var(--border);
-  overflow-wrap: anywhere;
+.agent-execution-actions {
+  margin-top: 12px;
+  font-size: 0.8rem;
 }
-.agent-run-history code {
-  display: block;
-}
-</style>
-
-<style scoped>
-.agent-dialogue-log {
-  max-height: 22rem;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding-inline: 2px;
-}
-.agent-run-history {
-  max-height: 22rem;
-  overflow: auto;
-  margin-top: 14px;
+.agent-execution-actions summary {
+  cursor: pointer;
+  color: var(--muted);
 }
 </style>

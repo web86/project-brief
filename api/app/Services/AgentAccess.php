@@ -12,16 +12,15 @@ use Illuminate\Support\Facades\DB;
 
 class AgentAccess
 {
+    public const EVENTS = ['agent.task.assigned', 'agent.task.updated', 'agent.task.unassigned', 'agent.task.cancelled', 'agent.run.requested', 'agent.message.created', 'agent.run.cancelled'];
+
     public const LEGACY_SCOPES = ['agent:profile', 'agent:tasks:read', 'agent:tasks:report', 'agent:comments:create', 'agent:attachments:create'];
 
     public const SCOPES = [...self::LEGACY_SCOPES, 'agent:projects:tasks:read', 'agent:comments:read', 'agent:discussions:read', 'agent:team-chat:read', 'agent:attachments:read', 'agent:runs:read', 'agent:runs:write', 'agent:messages:read', 'agent:messages:create'];
 
     public static function identity(Request $request): ExternalAgent
     {
-        $token = $request->attributes->get('integration_token');
-        abort_unless($token?->external_agent_id, 403);
-
-        return ExternalAgent::where('workspace_id', $token->workspace_id)->whereKey($token->external_agent_id)->where('active', true)->firstOrFail();
+        return AgentCredentials::identity($request, $request->attributes->get('integration_token'));
     }
 
     public static function scope(Request $request, string $scope): ExternalAgent
@@ -80,6 +79,9 @@ class AgentAccess
         $agent = ExternalAgent::where('workspace_id', $endpoint->workspace_id)->whereKey($endpoint->external_agent_id)->where('active', true)->first();
         if (! $agent || ($payload['agentId'] ?? null) !== $agent->uuid) {
             return false;
+        }
+        if (($type ?? $payload['type'] ?? null) === 'webhook.test') {
+            return true;
         }
         $assignment = self::assignments($agent)->where('uuid', $payload['assignmentId'] ?? '')->whereHas('task', fn ($q) => $q->where('uuid', $payload['taskId'] ?? ''))->first();
 

@@ -59,7 +59,7 @@ test('latest report links to its own full comment and tolerates unavailable comm
   )
 })
 for (const state of ['pending', 'running', 'submitted', 'failed', 'cancelled'])
-  test(`task panel separates ${state} execution from registration and shows only latest report`, async () => {
+  test(`task panel separates ${state} execution from registration and keeps results outside compact controls`, async () => {
     const task = {
       id: 'task',
       agentAssignments: [
@@ -92,11 +92,10 @@ for (const state of ['pending', 'running', 'submitted', 'failed', 'cancelled'])
       createSSRApp(Panel, { task, projectId: 'project', agents: [] }),
     )
     assert.ok(html.includes(en.agents.executionState[state]))
-    assert.ok(html.includes('Disabled'))
-    assert.ok(html.includes(en.agents.fullReport))
+    assert.ok(!html.includes(en.agents.fullReport))
     assert.ok(!html.includes('href="#comment-full-comment"'))
-    assert.ok(html.includes('https://example.test/pr'))
-    assert.ok(html.includes('&lt;script&gt;unsafe&lt;/script&gt;'))
+    assert.ok(!html.includes('https://example.test/pr'))
+    assert.ok(!html.includes('Latest result'))
     assert.ok(!html.includes('OLDER_REPORT_DO_NOT_DUPLICATE'))
     assert.ok(!html.includes('>Run<'))
   })
@@ -125,8 +124,7 @@ test('an assigned executor without credentials requires connection while preserv
   }
   const html = await renderToString(createSSRApp(Panel, { task, projectId: 'project', agents: [] }))
   assert.ok(html.includes('Connection required'))
-  assert.ok(html.includes('Last reported execution'))
-  assert.ok(html.includes('Awaiting execution'))
+  assert.ok(!html.includes('Online'))
   assert.equal(task.agentAssignments[0].state, 'pending')
 })
 for (const [locale, catalog] of [
@@ -156,8 +154,21 @@ for (const [locale, catalog] of [
       const html = await renderToString(
         createSSRApp(Panel, { task, projectId: 'project', agents: [] }),
       )
-      assert.ok(html.includes(catalog.agents.internalResult))
-      assert.ok(html.includes(catalog.agents.shareClient))
+      assert.ok(!html.includes(catalog.agents.internalResult))
+      assert.ok(!html.includes(catalog.agents.shareClient))
+      const Message = (await server.ssrLoadModule('/src/components/AgentChatMessage.vue')).default
+      const message = {
+        ...task.comments[0],
+        commentId: 'comment',
+        author: 'agent',
+        createdAt: '2026-11-01T10:00:00Z',
+      }
+      const chat = await renderToString(createSSRApp(Message, { message, canShare: true }))
+      assert.ok(chat.includes(catalog.agents.shareClient))
+      assert.ok(chat.includes(catalog.agentUx.shareTeam))
+      message.teamOnly = false
+      const publicChat = await renderToString(createSSRApp(Message, { message, canShare: true }))
+      assert.ok(!publicChat.includes(catalog.agents.shareClient))
       task.canShareAgentResults = false
       const denied = await renderToString(
         createSSRApp(Panel, { task, projectId: 'project', agents: [] }),

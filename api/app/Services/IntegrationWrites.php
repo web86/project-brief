@@ -36,7 +36,8 @@ class IntegrationWrites
         $key = $request->header('Idempotency-Key');
         abort_unless(is_string($key) && preg_match('/^[A-Za-z0-9._:-]{1,128}$/D', $key), 422, 'A 1–128 character Idempotency-Key is required.');
         $token = $request->attributes->get('integration_token');
-        $keyHash = hash('sha256', $token->uuid.'|'.$request->path().'|'.$key);
+        $identity = ($token->agent_shared ?? false) ? '|'.AgentAccess::identity($request)->uuid.'|'.$request->attributes->get('agent_credential_generation') : '';
+        $keyHash = hash('sha256', $token->uuid.$identity.'|'.$request->path().'|'.$key);
         $data = $request->all();
         ksort($data);
         $bodyHash = $canonicalInput === null ? hash('sha256', json_encode($data, JSON_THROW_ON_ERROR)) : self::fingerprint($canonicalInput);
@@ -49,7 +50,7 @@ class IntegrationWrites
             $required = $request->attributes->get('integration_required_scope');
             abort_if($required && ! in_array($required, json_decode($current->scopes, true), true), 403);
             abort_if($required === 'projects:provision' && ! $current->provisioning_enabled, 403);
-            if ($current->external_agent_id) {
+            if (AgentCredentials::isAgent($current)) {
                 if ($required) {
                     AgentAccess::scope($request, $required);
                 }
@@ -61,7 +62,7 @@ class IntegrationWrites
                 abort_unless(hash_equals($previous->body_hash, $bodyHash), 409, 'Idempotency key was already used with another body.');
                 $response = json_decode($previous->response, true, 512, JSON_THROW_ON_ERROR);
                 $projectUuid = $response['data']['projectId'] ?? $response['data']['id'] ?? null;
-                if ($projectUuid && ! $current->external_agent_id && ! $request->is('api/v1/project-requests*')) {
+                if ($projectUuid && ! AgentCredentials::isAgent($current) && ! $request->is('api/v1/project-requests*')) {
                     Project::where('workspace_id', $token->workspace_id)->where('uuid', $projectUuid)->firstOrFail();
                 }
 

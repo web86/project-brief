@@ -9,7 +9,7 @@ test('independent executor CLI runs through a symlink and fails safely without c
   const directory = await mkdtemp(path.join(tmpdir(), 'brief-executor-entry-'))
   try {
     const entry = path.join(directory, 'executor.mjs')
-    await symlink(path.resolve('docs/milestone-9-9/examples/collaboration.mjs'), entry)
+    await symlink(path.resolve('docs/agent-ux-shared-keys/examples/collaboration.mjs'), entry)
     const result = spawnSync(process.execPath, [entry], {
       env: { PATH: process.env.PATH },
       encoding: 'utf8',

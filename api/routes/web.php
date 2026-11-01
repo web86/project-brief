@@ -340,6 +340,7 @@ Route::any('/{fallbackPlaceholder}', SpaController::class)->where('fallbackPlace
 
 Route::middleware('admin')->prefix('/api/admin/tasks/{task}')->controller(AgentCollaborationController::class)->group(function (): void {
     Route::get('/agent-collaboration', 'index');
+    Route::get('/agent-collaboration/history', 'legacy');
     Route::get('/agent-assignments/{assignment}/runs', 'history');
     Route::get('/agent-assignments/{assignment}/messages', 'messages');
     Route::post('/agent-assignments/{assignment}/runs', 'store')->middleware('throttle:integration-settings');

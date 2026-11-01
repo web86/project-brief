@@ -79,6 +79,20 @@ class ClientDraftTest extends TestCase
         $this->assertDatabaseCount('attachments', 0);
     }
 
+    public function test_developer_can_edit_the_brief_before_agreement_and_stale_approval_blocks_it(): void
+    {
+        $task = Task::factory()->create(['client_approved' => false, 'status' => 'new']);
+        $this->actingAs($this->ownerFor($task->project));
+        $version = $this->getJson('/api/admin/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.canEditBrief', true)->json('data.editVersion');
+        $this->patchJson('/api/admin/tasks/'.$task->uuid, ['title' => 'Developer revised brief', 'descriptionHtml' => '<p><strong>Reviewed</strong> requirement</p>', 'editVersion' => $version])->assertOk()->assertJsonPath('data.description', 'Reviewed requirement');
+        $version = $task->fresh()->editVersion(true);
+        $task->update(['client_approved' => true]);
+        $this->getJson('/api/admin/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.canEditBrief', false);
+        $this->patchJson('/api/admin/tasks/'.$task->uuid, ['title' => 'Late edit', 'editVersion' => $version])->assertForbidden();
+        $this->patchJson('/api/admin/tasks/'.$task->uuid, ['estimateHours' => 4, 'developerNotes' => 'Internal note'])->assertOk();
+        $this->assertSame('Developer revised brief', $task->fresh()->title);
+    }
+
     public function test_free_form_names_are_trimmed_only_reused_and_all_positions_are_contiguous(): void
     {
         $project = Project::factory()->create();

@@ -7,7 +7,6 @@ use App\Models\ExternalAgent;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskAgentAssignment;
-use App\Services\IntegrationTokens;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -22,6 +21,9 @@ class AgentCollaborationMigrationTest extends TestCase
         Schema::clearResolvedInstance('db.schema');
         try {
             foreach (glob(database_path('migrations/*.php')) as $path) {
+                if (basename($path) > '2026_11_01_074535_add_agent_collaboration_and_task_formatting.php') {
+                    continue;
+                }
                 if (str_contains($path, 'add_agent_collaboration_and_task_formatting')) {
                     $migration = require $path;
                 } else {
@@ -36,7 +38,8 @@ class AgentCollaborationMigrationTest extends TestCase
             $assignment = TaskAgentAssignment::create(['workspace_id' => $project->workspace_id, 'task_id' => $task->id, 'external_agent_id' => $agent->id, 'state' => 'submitted']);
             DB::table('agent_reports')->insert(['uuid' => (string) Str::uuid(), 'task_agent_assignment_id' => $assignment->id, 'comment_id' => $comment->id, 'state' => 'submitted', 'result_url' => 'https://example.test/historical-result', 'created_at' => now()]);
             $comment->attachments()->create(['task_id' => $task->id, 'disk' => 'local', 'path' => 'historical.txt', 'stored_name' => 'historical.txt', 'original_name' => 'historical.txt', 'mime_type' => 'text/plain', 'size' => 12, 'uploaded_by_type' => 'agent']);
-            $token = app(IntegrationTokens::class)->create($project->workspace_id, ['name' => 'Existing credential', 'agentId' => $agent->id, 'scopes' => ['agent:tasks:read']]);
+            $token = ['id' => (string) Str::uuid()];
+            DB::table('integration_tokens')->insert(['uuid' => $token['id'], 'workspace_id' => $project->workspace_id, 'external_agent_id' => $agent->id, 'name' => 'Existing credential', 'scopes' => json_encode(['agent:tasks:read']), 'secret_hash' => hash('sha256', 'old-synthetic-secret'), 'created_at' => now(), 'updated_at' => now()]);
             $tables = ['projects', 'tasks', 'external_agents', 'comments', 'attachments', 'agent_reports', 'task_agent_assignments', 'integration_tokens', 'task_history', 'agent_project_grants', 'project_members'];
             $before = [];
             foreach ($tables as $table) {

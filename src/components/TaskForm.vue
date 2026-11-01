@@ -8,7 +8,7 @@ import { useProjectStore } from '../stores/project'
 import { PRIORITIES } from '../constants/project'
 import AttachmentList from './AttachmentList.vue'
 import { getTaskLocation } from '../constants/project.js'
-import { canEditClientTask } from '../utils/clientDraft.js'
+import { canEditClientTask, canEditDeveloperTask } from '../utils/clientDraft.js'
 import LoadingButton from './LoadingButton.vue'
 import FileUploader from './FileUploader.vue'
 import LocationInput from './LocationInput.vue'
@@ -111,7 +111,11 @@ async function submit() {
       priority: priority.value,
     }
     if (props.task) {
-      if (!store.isDeveloper && !canEditClientTask(store.findTask(props.task.id)))
+      if (
+        store.isDeveloper
+          ? !canEditDeveloperTask(store.findTask(props.task.id))
+          : !canEditClientTask(store.findTask(props.task.id))
+      )
         throw new Error(t('flow.briefLocked'))
       if (!(await store.updateTask(props.task.id, input))) {
         if (store.apiError?.code === 'task_conflict') {

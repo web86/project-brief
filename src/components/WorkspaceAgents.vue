@@ -6,11 +6,58 @@ import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
+import ApiKeyDialog from './ApiKeyDialog.vue'
 import BaseDialog from './BaseDialog.vue'
 import AppIcon from './AppIcon.vue'
 import LoadingButton from './LoadingButton.vue'
 const nav = useAdminNavigationStore()
-const emit = defineEmits(['credentials', 'changed'])
+const props = defineProps({ tokenCatalog: Array })
+const emit = defineEmits(['credentials', 'changed', 'credential-created'])
+const liveTokens = (agent) =>
+  (agent?.tokens || []).filter(
+    (token) =>
+      usableAgentToken(token) &&
+      (!props.tokenCatalog ||
+        props.tokenCatalog.some((current) => current.id === token.id && usableAgentToken(current))),
+  )
+const credentialState = (agent) => agentCredentials({ tokens: liveTokens(agent) })
+const credentialChoices = computed(() =>
+  props.tokenCatalog
+    ? props.tokenCatalog.filter((token) => token.shared && usableAgentToken(token))
+    : state.value?.credentials || [],
+)
+const copiedIdentity = ref(false)
+async function copyIdentity() {
+  try {
+    await navigator.clipboard.writeText(editing.value.id)
+    copiedIdentity.value = true
+  } catch {
+    error.value = t('agents.copyManually')
+  }
+}
+const keyCreateOpen = ref(false)
+const selectedCredential = computed(() =>
+  credentialChoices.value.find((key) => key.id === draft.value.credentialId),
+)
+const scopeLabel = (scope) => t('collaboration.scope.' + scope.replaceAll(':', '_'))
+async function keyCreated(key) {
+  const current = revision
+  emit('credential-created', key)
+  if (open.value && key.type === 'agent') {
+    state.value.credentials = [
+      ...(state.value.credentials || []).filter((item) => item.id !== key.id),
+      key,
+    ]
+    draft.value.credentialId = key.id
+  }
+  try {
+    await load(current)
+  } catch (cause) {
+    if (current === revision) error.value = formatApiError(cause)
+  }
+  emit('changed')
+}
+
 const state = ref(null),
   error = ref(''),
   busy = ref(false),
@@ -75,6 +122,7 @@ watch(
     createdAgent.value = ''
     guideOpen.value = false
     open.value = false
+    keyCreateOpen.value = false
     error.value = ''
     busy.value = false
     try {
@@ -90,12 +138,10 @@ onBeforeUnmount(() => {
   secret.value = ''
 })
 function configure(agent = null, connect = false) {
-  if (connect && agent) {
-    emit('credentials', agent.id)
-    return
-  }
   editing.value = agent
+  copiedIdentity.value = false
   draft.value = {
+    credentialId: liveTokens(agent).find((token) => token.shared)?.id || '',
     name: agent?.name || '',
     description: agent?.description || '',
     instructions: agent?.instructions || '',
@@ -121,7 +167,7 @@ async function action(path, method, body, close = false) {
     const result = await api.request(root + path, { method, body })
     if (version !== revision) return
     if (close) open.value = false
-    if (!path && method === 'POST') createdAgent.value = result.data.id
+    if (!path && method === 'POST' && !body?.credentialId) createdAgent.value = result.data.id
     secret.value = result.secret || result.webhookSecret || ''
     await load(version)
     emit('changed')
@@ -230,10 +276,10 @@ async function copySecret() {
             }}
           </dd>
         </div>
-        <div v-if="agentCredentials(agent)">
+        <div v-if="credentialState(agent)">
           <dt>{{ t('agents.apiAccess') }}</dt>
           <dd>
-            {{ t('agents.credentialState.' + agentCredentials(agent))
+            {{ t('agents.credentialState.' + credentialState(agent))
             }}<span v-if="agent.successfulRequests > 0"> · {{ t('agents.apiConfirmed') }}</span>
           </dd>
         </div>
@@ -252,7 +298,7 @@ async function copySecret() {
       </dl>
       <div class="team-actions">
         <button
-          v-if="agent.active && agentCredentials(agent) === 'missing'"
+          v-if="agent.active && credentialState(agent) === 'missing'"
           class="button secondary"
           :disabled="busy"
           @click="configure(agent, true)"
@@ -425,13 +471,45 @@ async function copySecret() {
             }}</label
           >
         </form>
-        <details
-          class="agent-credentials"
-          :open="connectOpen"
-          @toggle="connectOpen = $event.target.open"
-          data-agent-connection
-        >
-          <summary><AppIcon name="key" :size="17" /> {{ t('agents.connection') }}</summary>
+        <section class="agent-credential-selector" data-agent-connection>
+          <label class="field" for="agent-credential"
+            >{{ t('agentUx.apiKey')
+            }}<select
+              id="agent-credential"
+              v-model="draft.credentialId"
+              form="agent-editor"
+              :disabled="busy"
+            >
+              <option value="">{{ t('agentUx.noKey') }}</option>
+              <option v-for="key in credentialChoices" :key="key.id" :value="key.id">
+                {{ key.name }}
+              </option>
+            </select></label
+          >
+          <div v-if="editing" class="agent-identity-copy">
+            <label class="field" for="agent-identity-id"
+              >{{ t('agentUx.identityId')
+              }}<input id="agent-identity-id" :value="editing.id" readonly /></label
+            ><button type="button" class="text-button" @click="copyIdentity">
+              {{ t(copiedIdentity ? 'integrations.copied' : 'integrations.copy') }}
+            </button>
+          </div>
+          <p v-if="!credentialChoices.length" class="small muted">
+            {{ t('agentUx.noAgentKey') }}
+          </p>
+          <p v-if="selectedCredential" class="small">
+            {{ selectedCredential.scopes.map(scopeLabel).join(' · ') }}
+          </p>
+          <p v-if="selectedCredential" class="small muted">{{ t('agentUx.sharedTrust') }}</p>
+          <p
+            v-if="editing?.tokens?.some((token) => !token.shared && usableAgentToken(token))"
+            class="small muted"
+          >
+            {{ t('agentUx.legacyKeys') }}
+          </p>
+          <button type="button" class="text-button" :disabled="busy" @click="keyCreateOpen = true">
+            {{ t('agents.createKey') }}
+          </button>
           <p class="small muted">{{ t('agents.connectionHint') }}</p>
           <label class="field"
             >{{ t('agents.webhook')
@@ -442,17 +520,7 @@ async function copySecret() {
               placeholder="https://"
               :disabled="busy"
           /></label>
-          <p v-if="!editing" class="small muted">{{ t('agents.saveBeforeKey') }}</p>
-          <template v-else
-            ><p>{{ t('agents.validTokenCount', { count: activeTokenCount }) }}</p>
-            <p v-if="editing.lastActivityAt" class="small muted">
-              {{ t('agents.lastActivity') }}: {{ formatDate(editing.lastActivityAt) }}
-            </p>
-            <button type="button" class="button secondary" @click="manageCredentials">
-              {{ t('collaboration.manageKeys') }}
-            </button></template
-          >
-        </details>
+        </section>
       </div>
       <template #footer
         ><button
@@ -526,6 +594,14 @@ async function copySecret() {
         </button></template
       ></BaseDialog
     >
+    <ApiKeyDialog
+      v-if="keyCreateOpen"
+      :open="keyCreateOpen"
+      agent-only
+      initial-type="agent"
+      @close="keyCreateOpen = false"
+      @created="keyCreated"
+    />
   </section>
 </template>
 <style scoped>

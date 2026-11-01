@@ -255,6 +255,13 @@ async function trash() {
               <dt><AppIcon name="user-check" :size="16" />{{ t('projectList.team') }}</dt>
               <dd>{{ project.teamCount ?? 0 }}</dd>
             </div>
+            <div
+              v-if="project.agentsCount > 0"
+              :aria-label="t('agentUx.agentCount', { count: project.agentsCount })"
+            >
+              <dt><AppIcon name="bot" :size="16" />{{ t('agentUx.agents') }}</dt>
+              <dd>{{ project.agentsCount }}</dd>
+            </div>
             <div>
               <dt>{{ t('projectList.currency') }}</dt>
               <dd>{{ project.currency }}</dd>

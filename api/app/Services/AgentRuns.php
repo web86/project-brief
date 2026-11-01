@@ -12,10 +12,10 @@ class AgentRuns
     public const ACTIVE = ['queued', 'running'];
 
     /** Caller holds the workspace lock and transaction. */
-    public static function request(Request $request, TaskAgentAssignment $assignment, string $instruction, string $key, bool $emit = true): object
+    public static function request(Request $request, TaskAgentAssignment $assignment, string $instruction, string $key, bool $emit = true, ?string $fingerprint = null): object
     {
         $keyHash = hash('sha256', $key);
-        $inputHash = hash('sha256', $instruction);
+        $inputHash = $fingerprint ?? hash('sha256', $instruction);
         $previous = DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->where('key_hash', $keyHash)->first();
         if ($previous) {
             abort_unless(hash_equals($previous->request_hash, $inputHash), 409, 'Run request key already used.');
@@ -86,7 +86,7 @@ class AgentRuns
     public static function conversation(TaskAgentAssignment $assignment, ?string $before = null): array
     {
         $query = DB::table('agent_messages')->join('agent_runs', 'agent_runs.id', '=', 'agent_messages.agent_run_id')
-            ->where('agent_runs.task_agent_assignment_id', $assignment->id);
+            ->leftJoin('comments', 'comments.id', '=', 'agent_messages.comment_id')->where('agent_runs.task_agent_assignment_id', $assignment->id);
         if ($before !== null) {
             $id = (clone $query)->where('agent_messages.uuid', $before)->value('agent_messages.id');
             abort_unless($id, 404);
@@ -94,7 +94,7 @@ class AgentRuns
         }
 
         return $query->orderByDesc('agent_messages.id')->limit(200)
-            ->get(['agent_messages.uuid', 'agent_messages.text', 'agent_messages.external_agent_id', 'agent_messages.created_at', 'agent_runs.uuid as run_uuid'])
-            ->map(fn ($message) => ['id' => $message->uuid, 'runId' => $message->run_uuid, 'author' => $message->external_agent_id ? 'agent' : 'human', 'text' => $message->text, 'createdAt' => $message->created_at])->reverse()->values()->all();
+            ->get(['agent_messages.uuid', 'agent_messages.text', 'agent_messages.external_agent_id', 'agent_messages.created_at', 'agent_runs.uuid as run_uuid', 'agent_runs.state as run_state', 'comments.uuid as comment_uuid'])
+            ->map(fn ($message) => ['id' => $message->uuid, 'runId' => $message->run_uuid, 'state' => $message->run_state, 'commentId' => $message->comment_uuid, 'author' => $message->external_agent_id ? 'agent' : 'human', 'text' => $message->text, 'createdAt' => $message->created_at])->reverse()->values()->all();
     }
 }

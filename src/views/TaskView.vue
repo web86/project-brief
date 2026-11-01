@@ -22,13 +22,23 @@ import HistoryTimeline from '../components/HistoryTimeline.vue'
 import DeveloperTaskPanel from '../components/DeveloperTaskPanel.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import LoadingButton from '../components/LoadingButton.vue'
-import { canDeleteTask, canEditClientTask, useDraftDeletion } from '../utils/clientDraft.js'
+import {
+  canDeleteTask,
+  canEditClientTask,
+  canEditDeveloperTask,
+  useDraftDeletion,
+} from '../utils/clientDraft.js'
 import DeveloperNotes from '../components/DeveloperNotes.vue'
 import { newestComments } from '../utils/comments.js'
 const route = useRoute()
 const storeRouter = useRouter()
 const store = useProjectStore()
-const shareResult = ref(null)
+const shareResult = ref(null),
+  shareAudience = ref('client')
+function shareAgentMessage(event) {
+  shareResult.value = event.comment
+  shareAudience.value = event.audience
+}
 function resultShared() {
   shareResult.value = null
   checkMessages()
@@ -68,7 +78,26 @@ watch(
 onUnmounted(() => clearTimeout(readTimer))
 const task = computed(() => store.findTask(route.params.id))
 const comments = computed(() =>
-  newestComments(task.value?.comments?.filter((comment) => !comment.teamOnly)),
+  newestComments(
+    task.value?.comments?.filter(
+      (comment) => !comment.teamOnly && (!store.isDeveloper || comment.author !== 'agent'),
+    ),
+  ),
+)
+const showAgentControls = computed(
+  () =>
+    store.isDeveloper &&
+    store.apiMode &&
+    ((task.value?.canShareAgentResults && store.project.agents?.some((agent) => agent.active)) ||
+      task.value?.agentAssignments?.length),
+)
+const showAgentChat = computed(
+  () =>
+    store.isDeveloper &&
+    store.apiMode &&
+    (task.value?.hasAgentHistory ||
+      task.value?.agentAssignments?.length ||
+      task.value?.comments?.some((comment) => comment.teamOnly && comment.author === 'agent')),
 )
 const editorTask = computed(() => store.developerTask(route.params.id))
 const dirty = computed(() => store.isDeveloper && store.hasDeveloperChanges(route.params.id))
@@ -97,7 +126,9 @@ async function checkMessages() {
     checkingMessages.value = false
   }
 }
-const editable = computed(() => !store.isDeveloper && canEditClientTask(task.value))
+const editable = computed(() =>
+  store.isDeveloper ? canEditDeveloperTask(task.value) : canEditClientTask(task.value),
+)
 const deletion = useDraftDeletion({ store, task, router: storeRouter })
 const deleteOpen = deletion.open
 const deleting = deletion.pending
@@ -196,39 +227,27 @@ function focusClarification() {
       <AgentResultShare
         v-if="store.isDeveloper && task.canShareAgentResults"
         :comment="shareResult"
+        :audience="shareAudience"
         :task-id="task.id"
         @close="shareResult = null"
         @shared="resultShared"
       />
-      <div class="task-layout" :class="{ 'has-developer': store.isDeveloper }">
+      <div
+        class="task-layout"
+        :class="{
+          'has-developer': store.isDeveloper,
+          'has-agent-controls': showAgentControls,
+          'has-agent-chat': showAgentChat,
+        }"
+      >
         <div class="task-main-column">
           <TaskDetails :task="task" />
-          <section
-            v-if="store.isDeveloper && store.apiMode"
-            class="task-agent-work"
-            :aria-label="t('collaboration.dialogue')"
-          >
-            <TaskAgents
-              :task="task"
-              :agents="store.project.agents || []"
-              :project-id="route.params.uuid"
-              @changed="checkMessages"
-              @share="shareResult = $event"
-            />
-            <AgentConversation :task="task" @changed="checkMessages" />
-            <details
-              v-if="store.isDeveloper && task.comments.some((comment) => comment.teamOnly)"
-              class="surface internal-agent-results"
-            >
-              <summary>{{ t('collaboration.internalResults') }}</summary>
-              <CommentList
-                :comments="task.comments.filter((comment) => comment.teamOnly)"
-                :target="route.hash.slice(1)"
-                :can-share-agent-results="task.canShareAgentResults"
-                @share="shareResult = $event"
-              />
-            </details>
-          </section>
+          <AgentConversation
+            v-if="showAgentChat"
+            :task="task"
+            @changed="checkMessages"
+            @share="shareAgentMessage"
+          />
           <DeveloperNotes v-if="store.isDeveloper" :task="editorTask" />
           <section class="surface comments-panel">
             <h2>
@@ -257,6 +276,13 @@ function focusClarification() {
             v-if="store.isDeveloper"
             :task="editorTask"
             @clarify="focusClarification"
+          />
+          <TaskAgents
+            v-if="showAgentControls"
+            :task="task"
+            :agents="store.project.agents || []"
+            :project-id="route.params.uuid"
+            @changed="checkMessages"
           />
           <HistoryTimeline :history="task.history" :developer="store.isDeveloper" />
         </div>

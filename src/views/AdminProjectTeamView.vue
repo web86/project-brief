@@ -190,7 +190,7 @@ function remove(member) {
         </p>
       </section>
       <section class="surface team-list team-agent-section" data-team-agents>
-        <h3>{{ t('agents.executors') }}</h3>
+        <h3>{{ t('agentUx.agents') }}</h3>
         <article
           v-for="agent in state.agents || []"
           :key="agent.id"

@@ -40,7 +40,7 @@ class IntegrationCleanupTest extends TestCase
         }
         $this->assertEquals($record, DB::table('integration_requests')->first());
         $this->assertDatabaseCount('projects', 2);
-        $this->getJson('/api/admin/integrations')->assertOk()->assertJsonPath('tokens.0.id', $token['id'])->assertDontSee($token['secret'])->assertDontSee($after->secret_hash);
+        $this->getJson('/api/admin/integrations')->assertOk()->assertJsonCount(0, 'tokens')->assertDontSee($token['secret'])->assertDontSee($after->secret_hash);
     }
 
     private function fixture(): array

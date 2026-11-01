@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\ExternalAgent;
 use App\Services\AgentAudit;
+use App\Services\AgentCredentials;
 use App\Services\IntegrationWrites;
 use Closure;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -33,7 +33,7 @@ class AuthenticateIntegration
             return $this->limited($workspaceKey);
         }
         RateLimiter::hit($workspaceKey, 60);
-        if ($token->external_agent_id) {
+        if (AgentCredentials::isAgent($token)) {
             return $this->agent($request, $next, $token);
         }
 
@@ -50,13 +50,13 @@ class AuthenticateIntegration
         return DB::transaction(function () use ($request, $next, $token): Response {
             IntegrationWrites::lockWorkspace($token->workspace_id);
             $current = DB::table('integration_tokens')->where('id', $token->id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->first();
-            $agent = ExternalAgent::where('workspace_id', $token->workspace_id)->whereKey($token->external_agent_id)->where('active', true)->first();
-            if (! $current || ! $agent) {
+            if (! $current) {
                 return response()->json(['code' => 'invalid_token', 'message' => 'A valid bearer token is required.'], 401)->header('Cache-Control', 'no-store');
             }
             $request->attributes->set('integration_token', $current);
             try {
                 abort_unless($request->is('api/v1/agent/*'), 403);
+                AgentCredentials::identity($request, $current);
                 $key = 'agent-token:'.$token->id;
                 if (RateLimiter::tooManyAttempts($key, 60)) {
                     $response = $this->limited($key);

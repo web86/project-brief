@@ -52,6 +52,10 @@ class TaskController extends Controller
         DB::transaction(function () use ($request, $task, $owner) {
             ProjectStructure::lock($owner);
             $model = TaskAccess::task($request, $task, true);
+            if (TaskAccess::isAdmin($request) && array_intersect(array_keys($request->validated()), ['title', 'location', 'description', 'descriptionHtml', 'expectedResult', 'priority', 'section'])) {
+                ProjectPermissions::authorize($request, $owner, 'manage_structure', true);
+                abort_unless($model->isDeveloperBriefEditable(), 403, 'The agreed task description is locked.');
+            }
             $clientStatus = ! TaskAccess::isAdmin($request) && $request->has('status');
             if (! $clientStatus) {
                 abort_unless(TaskAccess::isAdmin($request) || $model->isClientEditable(), 403, 'Эта идея уже в работе. Обсудите изменения в комментариях.');

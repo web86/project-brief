@@ -6772,28 +6772,46 @@ button.attachment-item:hover {
   }
 }
 
-.task-agent-work {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-.task-agent-work > .task-agent-panel,
-.task-agent-work > .agent-conversation {
+.task-sidebar > .task-agent-panel {
+  grid-area: auto;
   margin: 0;
 }
-.internal-agent-results {
-  padding: 14px 16px;
-  min-width: 0;
-}
-.internal-agent-results > summary {
-  cursor: pointer;
-  font-weight: 600;
-}
 @media (max-width: 1279px) {
-  .task-workspace .task-layout.has-developer {
-    grid-template-areas: 'details' 'manage' 'agents' 'notes' 'comments' 'history';
+  .task-workspace .task-layout.has-developer.has-agent-controls {
+    grid-template-areas: 'details' 'manage' 'agent-control' 'notes' 'comments' 'history';
   }
-  .task-workspace .task-agent-work {
-    grid-area: agents;
+  .task-workspace .task-layout.has-developer.has-agent-chat {
+    grid-template-areas: 'details' 'manage' 'agent-chat' 'notes' 'comments' 'history';
   }
+  .task-workspace .task-layout.has-developer.has-agent-controls.has-agent-chat {
+    grid-template-areas: 'details' 'manage' 'agent-control' 'agent-chat' 'notes' 'comments' 'history';
+  }
+  .task-workspace .task-sidebar > .task-agent-panel {
+    grid-area: agent-control;
+  }
+  .task-workspace .task-main-column > .agent-conversation {
+    grid-area: agent-chat;
+  }
+}
+
+.integration-editor-dialog {
+  width: min(640px, calc(100vw - 32px));
+}
+.integration-editor-dialog .modal-content {
+  max-height: calc(100dvh - 32px);
+}
+.integration-editor-dialog .management-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+.integration-editor-dialog .integration-form {
+  margin: 0;
+}
+.integration-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }

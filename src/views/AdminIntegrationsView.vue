@@ -7,37 +7,41 @@ import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import LoadingButton from '../components/LoadingButton.vue'
 import AppIcon from '../components/AppIcon.vue'
+import BaseDialog from '../components/BaseDialog.vue'
+import ApiKeyDialog from '../components/ApiKeyDialog.vue'
 import WorkspaceAgents from '../components/WorkspaceAgents.vue'
 import SsoSourceDialog from '../components/SsoSourceDialog.vue'
 const nav = useAdminNavigationStore()
 const tokenType = ref('integration'),
-  tokenAgent = ref(''),
   tokenFilter = ref('all'),
   agentFilter = ref('')
-const tokenScopes = computed(() =>
-  tokenType.value === 'agent'
-    ? state.value?.agents?.find((agent) => agent.id === tokenAgent.value)?.scopes || []
-    : state.value?.scopes || [],
-)
-watch([tokenType, tokenAgent], () => {
-  scopes.value = []
-  sourceId.value = ''
-  sourceName.value = ''
-})
+function credentialCreated(key) {
+  if (state.value && !state.value.tokens.some((token) => token.id === key.id))
+    state.value.tokens.unshift({
+      ...key,
+      shared: key.type === 'agent',
+      revokedAt: null,
+      linkedAgents: [],
+    })
+  load().catch((cause) => reportError(cause))
+}
 function manageKeys(id) {
   tab.value = 'tokens'
   tokenFilter.value = 'agent'
   agentFilter.value = id
   tokenType.value = 'agent'
-  tokenAgent.value = id
   tokenCreateOpen.value = true
   load()
 }
 const visibleTokens = computed(() =>
   (state.value?.tokens || []).filter(
     (token) =>
+      !token.revokedAt &&
+      !revokedIds.has(token.id) &&
       (tokenFilter.value === 'all' || token.type === tokenFilter.value) &&
-      (!agentFilter.value || token.agentId === agentFilter.value),
+      (!agentFilter.value ||
+        token.agentId === agentFilter.value ||
+        token.linkedAgents?.some((agent) => agent.id === agentFilter.value)),
   ),
 )
 const allowed = computed(() => !!nav.workspace && nav.user?.membershipRole === 'owner')
@@ -101,17 +105,13 @@ async function removeSso(source = ssoRecord.value) {
   const result = await action('/sources/' + source.id, 'DELETE')
   if (result) ssoOpen.value = false
 }
-const sourceId = ref(''),
-  sourceName = ref('')
-const requiresSource = computed(
-  () => scopes.value.includes('requests:create') || scopes.value.includes('clients:sso'),
+const hookAgent = ref('')
+const hookEvents = computed(() =>
+  hookAgent.value ? state.value?.agentEvents || [] : state.value?.events || [],
 )
-const usesSource = computed(
-  () => requiresSource.value || scopes.value.includes('projects:provision'),
-)
-const name = ref(''),
-  scopes = ref(['projects:read', 'tasks:read']),
-  expires = ref('')
+watch(hookAgent, () => {
+  if (!editing.value) events.value = []
+})
 const hookName = ref(''),
   url = ref(''),
   events = ref(['task.approved']),
@@ -167,7 +167,10 @@ const scopeLabel = (s) =>
   s.startsWith('agent:')
     ? t('collaboration.scope.' + s.replaceAll(':', '_'))
     : t('integrations.scope_' + s.replace(':', '_'))
-const eventLabel = (s) => t('integrations.event_' + s.replaceAll('.', '_'))
+const eventLabel = (s) =>
+  s.startsWith('agent.')
+    ? t('agentUx.events.' + s.replaceAll('.', '_'))
+    : t('integrations.event_' + s.replaceAll('.', '_'))
 function date(value) {
   if (!value) return t('integrations.never')
   const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z'
@@ -267,12 +270,9 @@ watch(
     tokenFilter.value = 'all'
     agentFilter.value = ''
     tokenType.value = 'integration'
-    tokenAgent.value = ''
     state.value = null
     tokenCreateOpen.value = false
     hookCreateOpen.value = false
-    sourceId.value = ''
-    sourceName.value = ''
     ssoOpen.value = false
     ssoRecord.value = null
     ssoError.value = ''
@@ -413,30 +413,10 @@ function toggleHook(hook, event) {
     },
   )
 }
-async function createToken() {
-  if (busy.value) return
-  tokenCreateOpen.value = true
-  collapseAfterSecret = 'tokens'
-  const result = await action('/tokens', 'POST', {
-    name: name.value,
-    type: tokenType.value,
-    ...(tokenType.value === 'agent' ? { agentId: tokenAgent.value } : {}),
-    scopes: scopes.value,
-    expiresAt: expires.value ? expires.value + 'T23:59:59Z' : null,
-    ...(usesSource.value && (sourceId.value || sourceName.value.trim() || requiresSource.value)
-      ? sourceId.value
-        ? { sourceId: sourceId.value }
-        : { sourceName: sourceName.value }
-      : {}),
-  })
-  if (result) {
-    name.value = ''
-    expires.value = ''
-  } else collapseAfterSecret = null
-}
 async function edit(hook) {
   hookCreateOpen.value = true
   editing.value = hook.id
+  hookAgent.value = hook.agentId || ''
   hookName.value = hook.name
   url.value = hook.url
   events.value = [...hook.events]
@@ -446,8 +426,13 @@ async function edit(hook) {
   await nextTick()
   globalThis.document?.getElementById('hook-name')?.focus()
 }
+function openHook() {
+  resetHook()
+  hookCreateOpen.value = true
+}
 function resetHook() {
   editing.value = null
+  hookAgent.value = ''
   hookName.value = ''
   url.value = ''
   events.value = ['task.approved']
@@ -472,6 +457,7 @@ async function saveHook() {
     '/webhooks' + (editing.value ? '/' + editing.value : ''),
     editing.value ? 'PATCH' : 'POST',
     {
+      ...(!editing.value ? { agentId: hookAgent.value || null } : {}),
       name: hookName.value,
       url: url.value,
       events: events.value,
@@ -566,7 +552,12 @@ async function confirmAction(key, path, method = 'POST') {
           role="tabpanel"
           aria-labelledby="integration-tab-agents"
         >
-          <WorkspaceAgents @credentials="manageKeys" @changed="load" />
+          <WorkspaceAgents
+            :token-catalog="state.tokens"
+            @credentials="manageKeys"
+            @changed="load"
+            @credential-created="credentialCreated"
+          />
         </section>
         <section
           v-show="tab === 'tokens'"
@@ -575,14 +566,19 @@ async function confirmAction(key, path, method = 'POST') {
           aria-labelledby="integration-tab-tokens"
         >
           <section class="surface integration-list">
-            <h2>{{ t('integrations.tokens') }}</h2>
+            <div class="integration-section-heading">
+              <h2>{{ t('integrations.tokens') }}</h2>
+              <button class="button primary" @click="tokenCreateOpen = true">
+                <AppIcon name="plus" :size="16" />{{ t('agentUx.createApi') }}
+              </button>
+            </div>
             <div class="credential-filters">
               <label class="field"
                 >{{ t('collaboration.keyType')
                 }}<select v-model="tokenFilter" @change="agentFilter = ''">
                   <option value="all">{{ t('collaboration.all') }}</option>
                   <option value="integration">{{ t('collaboration.integration') }}</option>
-                  <option value="agent">{{ t('collaboration.agent') }}</option>
+                  <option value="agent">{{ t('agentUx.agents') }}</option>
                 </select></label
               ><label v-if="tokenFilter === 'agent'" class="field"
                 >{{ t('agents.executor')
@@ -599,8 +595,11 @@ async function confirmAction(key, path, method = 'POST') {
               <div>
                 <h3>{{ token.name }}</h3>
                 <p class="small muted">
-                  {{ t('collaboration.' + token.type)
-                  }}<span v-if="token.agentName"> · {{ token.agentName }}</span>
+                  {{ t(token.type === 'agent' ? 'agentUx.agents' : 'collaboration.integration')
+                  }}<span v-if="token.agentName"> · {{ token.agentName }}</span
+                  ><span v-if="token.linkedAgents?.length">
+                    · {{ token.linkedAgents.map((agent) => agent.name).join(', ') }}</span
+                  >
                 </p>
                 <label
                   v-if="token.scopes.includes('projects:provision')"
@@ -634,115 +633,14 @@ async function confirmAction(key, path, method = 'POST') {
               </button>
             </article>
           </section>
-          <button
-            v-if="activeTokens.length"
-            class="button secondary integration-create-toggle"
-            type="button"
-            :aria-expanded="tokenCreateOpen"
-            aria-controls="create-tokens"
-            @click="tokenCreateOpen = !tokenCreateOpen"
-          >
-            {{ t('integrations.createToken') }}
-          </button>
-          <form
-            v-show="!activeTokens.length || tokenCreateOpen"
-            id="create-tokens"
-            class="surface integration-form"
-            @submit.prevent="createToken"
-          >
-            <h2>{{ t('integrations.create') }} · {{ t('integrations.tokens') }}</h2>
-            <p v-if="validation && tab === 'tokens'" class="field-error" role="alert">
-              {{ validationMessage }}
-            </p>
-            <label class="field"
-              >{{ t('collaboration.keyType')
-              }}<select v-model="tokenType" :disabled="busy">
-                <option value="integration">{{ t('collaboration.integration') }}</option>
-                <option value="agent">{{ t('collaboration.agent') }}</option>
-              </select></label
-            >
-            <label v-if="tokenType === 'agent'" class="field"
-              >{{ t('agents.executor')
-              }}<select v-model="tokenAgent" :disabled="busy" required>
-                <option disabled value="">{{ t('agents.choose') }}</option>
-                <option v-for="agent in state.agents" :key="agent.id" :value="agent.id">
-                  {{ agent.name }}
-                </option>
-              </select></label
-            >
-            <button
-              v-if="tokenType === 'agent' && !state.agents.length"
-              type="button"
-              class="text-button"
-              @click="selectTab('agents')"
-            >
-              {{ t('agents.create') }}
-            </button>
-            <label class="field" for="token-name"
-              >{{ t('integrations.name')
-              }}<input id="token-name" v-model="name" maxlength="100" required :disabled="busy"
-            /></label>
-            <fieldset class="integration-choices">
-              <legend>{{ t('integrations.scopes') }}</legend>
-              <label v-for="scope in tokenScopes" :key="scope"
-                ><input v-model="scopes" type="checkbox" :value="scope" :disabled="busy" />{{
-                  scopeLabel(scope)
-                }}
-                <code>{{ scope }}</code></label
-              >
-            </fieldset>
-            <p
-              v-if="scopes.includes('comments:read') || scopes.includes('attachments:read')"
-              class="small muted"
-              role="note"
-            >
-              {{ t('integrations.sensitiveReadHint') }}
-            </p>
-            <p v-if="scopes.includes('projects:provision')" class="small muted" role="note">
-              {{ t('provisioning.scopeHint') }}
-            </p>
-            <div v-if="usesSource" class="request-source-controls">
-              <label class="field" for="token-source"
-                >{{ t('requests.sourceLabel')
-                }}<select id="token-source" v-model="sourceId" :disabled="busy">
-                  <option value="">{{ t('requests.newSource') }}</option>
-                  <option v-for="source in state.sources || []" :key="source.id" :value="source.id">
-                    {{ source.name }}
-                  </option>
-                </select></label
-              >
-              <label v-if="!sourceId" class="field" for="token-source-name"
-                >{{ t('requests.sourceName')
-                }}<input
-                  id="token-source-name"
-                  v-model="sourceName"
-                  maxlength="100"
-                  :required="requiresSource"
-                  :disabled="busy"
-              /></label>
-              <p class="small muted">{{ t('requests.sourceHint') }}</p>
-              <p v-if="scopes.includes('projects:provision')" class="small muted">
-                {{ t('sso.provisionSourceHint') }}
-              </p>
-            </div>
-            <p v-if="scopes.includes('requests:approve')" class="small muted">
-              {{ t('requests.approveHint') }}
-            </p>
-            <p v-if="scopes.includes('clients:sso')" class="small muted">
-              {{ t('sso.scopeHint') }}
-            </p>
-            <label class="field" for="token-expires"
-              >{{ t('integrations.expires')
-              }}<input id="token-expires" v-model="expires" type="date" :disabled="busy"
-            /></label>
-            <LoadingButton
-              type="submit"
-              class="button primary"
-              :busy="busy"
-              :disabled="busy || !scopes.length"
-              >{{ t('integrations.create') }}</LoadingButton
-            >
-          </form>
+          <ApiKeyDialog
+            v-if="tokenCreateOpen"
+            :open="tokenCreateOpen"
+            :context="state"
+            :initial-type="tokenType"
+            @close="tokenCreateOpen = false"
+            @created="credentialCreated"
+          />
         </section>
         <section
           v-show="tab === 'sso'"
@@ -896,7 +794,12 @@ async function confirmAction(key, path, method = 'POST') {
           <p class="muted small">{{ t('integrations.queueHint') }}</p>
 
           <section class="surface integration-list">
-            <h2>{{ t('integrations.webhooks') }}</h2>
+            <div class="integration-section-heading">
+              <h2>{{ t('integrations.webhooks') }}</h2>
+              <button class="button primary" @click="openHook">
+                <AppIcon name="plus" :size="16" />{{ t('agentUx.createWebhook') }}
+              </button>
+            </div>
             <p v-if="!state.webhooks.length" class="muted">{{ t('integrations.empty') }}</p>
             <article
               v-for="hook in state.webhooks"
@@ -952,106 +855,120 @@ async function confirmAction(key, path, method = 'POST') {
               </div>
             </article>
           </section>
-          <button
-            v-if="state.webhooks.length && !editing"
-            class="button secondary integration-create-toggle"
-            type="button"
-            :aria-expanded="hookCreateOpen"
-            aria-controls="create-webhooks"
-            @click="hookCreateOpen = !hookCreateOpen"
+          <BaseDialog
+            :open="hookCreateOpen"
+            :title="t(editing ? 'integrations.edit' : 'agentUx.createWebhook')"
+            id="webhook-editor"
+            class="management-dialog integration-editor-dialog"
+            @close="!busy && cancelHook()"
           >
-            {{ t('integrations.createWebhook') }}
-          </button>
-          <form
-            v-show="!state.webhooks.length || hookCreateOpen || editing"
-            id="create-webhooks"
-            class="surface integration-form"
-            @submit.prevent="saveHook"
-          >
-            <h2>{{ t(editing ? 'integrations.edit' : 'integrations.create') }} · Webhook</h2>
-            <p v-if="validation && tab === 'webhooks'" class="field-error" role="alert">
-              {{ validationMessage }}
-            </p>
-            <label class="field" for="hook-name"
-              >{{ t('integrations.name')
-              }}<input id="hook-name" v-model="hookName" maxlength="100" required :disabled="busy"
-            /></label>
-            <label class="field" for="hook-url"
-              >{{ t('integrations.url')
-              }}<input
-                id="hook-url"
-                v-model="url"
-                type="url"
-                placeholder="https://crm.example.com/webhook"
-                maxlength="2048"
-                required
-                :disabled="busy"
-            /></label>
-            <fieldset class="integration-choices integration-project-filter">
-              <legend>{{ t('integrations.projectFilter') }}</legend>
-              <label
-                ><input
-                  v-model="projectFilter"
-                  type="radio"
-                  name="project-filter"
-                  value="all"
-                  :disabled="busy"
-                />{{ t('integrations.allProjects') }}</label
+            <form
+              id="create-webhooks"
+              class="management-body integration-form"
+              @submit.prevent="saveHook"
+            >
+              <h2>{{ t(editing ? 'integrations.edit' : 'integrations.create') }} · Webhook</h2>
+              <p v-if="validation && tab === 'webhooks'" class="field-error" role="alert">
+                {{ validationMessage }}
+              </p>
+              <label class="field" for="hook-agent"
+                >{{ t('agentUx.recipient')
+                }}<select id="hook-agent" v-model="hookAgent" :disabled="busy || !!editing">
+                  <option value="">{{ t('collaboration.integration') }}</option>
+                  <option v-for="agent in state.agents" :key="agent.id" :value="agent.id">
+                    {{ agent.name }}
+                  </option>
+                </select></label
               >
-              <label
-                ><input
-                  v-model="projectFilter"
-                  type="radio"
-                  name="project-filter"
-                  value="selected"
+              <label class="field" for="hook-name"
+                >{{ t('integrations.name')
+                }}<input
+                  id="hook-name"
+                  v-model="hookName"
+                  maxlength="100"
+                  required
                   :disabled="busy"
-                />{{ t('integrations.selectedProjects') }}</label
-              >
-              <template v-if="projectFilter === 'selected'">
-                <label class="field" for="hook-project-search"
-                  >{{ t('integrations.searchProjects')
-                  }}<input
-                    id="hook-project-search"
-                    v-model="projectSearch"
-                    type="search"
+              /></label>
+              <label class="field" for="hook-url"
+                >{{ t('integrations.url')
+                }}<input
+                  id="hook-url"
+                  v-model="url"
+                  type="url"
+                  placeholder="https://crm.example.com/webhook"
+                  maxlength="2048"
+                  required
+                  :disabled="busy"
+              /></label>
+              <fieldset class="integration-choices integration-project-filter">
+                <legend>{{ t('integrations.projectFilter') }}</legend>
+                <label
+                  ><input
+                    v-model="projectFilter"
+                    type="radio"
+                    name="project-filter"
+                    value="all"
                     :disabled="busy"
-                /></label>
-                <p role="status" class="small muted">
-                  {{ t('integrations.selectedCount', { count: validProjectIds.length }) }}
-                </p>
-                <p v-if="!state.projects?.length" class="small muted">
-                  {{ t('integrations.noProjects') }}
-                </p>
-                <p v-else-if="!visibleProjects.length" class="small muted">
-                  {{ t('integrations.noProjectMatches') }}
-                </p>
-                <div class="integration-project-options">
-                  <label v-for="project in visibleProjects" :key="project.id"
-                    ><input
-                      v-model="projectIds"
-                      type="checkbox"
-                      :value="project.id"
+                  />{{ t('integrations.allProjects') }}</label
+                >
+                <label
+                  ><input
+                    v-model="projectFilter"
+                    type="radio"
+                    name="project-filter"
+                    value="selected"
+                    :disabled="busy"
+                  />{{ t('integrations.selectedProjects') }}</label
+                >
+                <template v-if="projectFilter === 'selected'">
+                  <label class="field" for="hook-project-search"
+                    >{{ t('integrations.searchProjects')
+                    }}<input
+                      id="hook-project-search"
+                      v-model="projectSearch"
+                      type="search"
                       :disabled="busy"
-                    /><span>{{ project.name }}</span></label
-                  >
-                </div>
-                <p v-if="!validProjectIds.length" class="field-error">
-                  {{ t('integrations.selectProjectRequired') }}
-                </p>
-              </template>
-              <p class="small muted">{{ t('integrations.filterHint') }}</p>
-            </fieldset>
-            <fieldset class="integration-choices">
-              <legend>{{ t('integrations.events') }}</legend>
-              <label v-for="event in state.events" :key="event"
-                ><input v-model="events" type="checkbox" :value="event" :disabled="busy" />{{
-                  eventLabel(event)
-                }}
-                <code>{{ event }}</code></label
-              >
-            </fieldset>
-            <div class="integration-actions">
-              <LoadingButton
+                  /></label>
+                  <p role="status" class="small muted">
+                    {{ t('integrations.selectedCount', { count: validProjectIds.length }) }}
+                  </p>
+                  <p v-if="!state.projects?.length" class="small muted">
+                    {{ t('integrations.noProjects') }}
+                  </p>
+                  <p v-else-if="!visibleProjects.length" class="small muted">
+                    {{ t('integrations.noProjectMatches') }}
+                  </p>
+                  <div class="integration-project-options">
+                    <label v-for="project in visibleProjects" :key="project.id"
+                      ><input
+                        v-model="projectIds"
+                        type="checkbox"
+                        :value="project.id"
+                        :disabled="busy"
+                      /><span>{{ project.name }}</span></label
+                    >
+                  </div>
+                  <p v-if="!validProjectIds.length" class="field-error">
+                    {{ t('integrations.selectProjectRequired') }}
+                  </p>
+                </template>
+                <p class="small muted">{{ t('integrations.filterHint') }}</p>
+              </fieldset>
+              <fieldset class="integration-choices">
+                <legend>{{ t('integrations.events') }}</legend>
+                <label v-for="event in hookEvents" :key="event"
+                  ><input v-model="events" type="checkbox" :value="event" :disabled="busy" />{{
+                    eventLabel(event)
+                  }}
+                  <code>{{ event }}</code></label
+                >
+              </fieldset>
+            </form>
+            <template #footer
+              ><button class="button secondary" :disabled="busy" @click="cancelHook">
+                {{ t('ui.cancel') }}</button
+              ><LoadingButton
+                form="create-webhooks"
                 type="submit"
                 class="button primary"
                 :busy="busy"
@@ -1061,17 +978,9 @@ async function confirmAction(key, path, method = 'POST') {
                   (projectFilter === 'selected' && !validProjectIds.length)
                 "
                 >{{ t(editing ? 'integrations.save' : 'integrations.create') }}</LoadingButton
-              ><button
-                v-if="editing"
-                type="button"
-                class="button secondary"
-                :disabled="busy"
-                @click="cancelHook"
-              >
-                {{ t('integrations.cancel') }}
-              </button>
-            </div>
-          </form>
+              ></template
+            >
+          </BaseDialog>
           <section v-if="deliveries && selected" class="surface integration-list">
             <div class="integration-actions">
               <h2>{{ t('integrations.history') }} · {{ selected.name }}</h2>

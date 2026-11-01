@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\TaskAgentAssignment;
 use App\Services\AccountProfile;
 use App\Services\AgentAssignments;
 use App\Services\ProjectPermissions;
@@ -23,7 +24,7 @@ class TaskResource extends JsonResource
             $comments = $comments->merge($internal)->sortBy('id');
         }
 
-        return ['canShareAgentResults' => $this->when($admin, fn () => ProjectPermissions::effective($request, $this->resource->project)['manage_structure']), 'agentAssignments' => $this->when($admin, fn () => AgentAssignments::taskState($this->resource)), 'editVersion' => $this->resource->editVersion($admin), 'id' => $this->uuid, 'title' => $this->title, 'location' => $this->location ?? $this->section ?? trans('interface.sections.4'), 'section' => $this->projectSection ? ProjectStructure::sectionData($this->projectSection) : null,
+        return ['canEditBrief' => $this->when($admin, fn () => $this->resource->isDeveloperBriefEditable() && ProjectPermissions::effective($request, $this->resource->project)['manage_structure']), 'hasAgentHistory' => $this->when($admin, fn () => TaskAgentAssignment::where('task_id', $this->id)->exists() || $comments->contains(fn ($comment) => $comment->external_agent_id)), 'canShareAgentResults' => $this->when($admin, fn () => ProjectPermissions::effective($request, $this->resource->project)['manage_structure']), 'agentAssignments' => $this->when($admin, fn () => AgentAssignments::taskState($this->resource)), 'editVersion' => $this->resource->editVersion($admin), 'id' => $this->uuid, 'title' => $this->title, 'location' => $this->location ?? $this->section ?? trans('interface.sections.4'), 'section' => $this->projectSection ? ProjectStructure::sectionData($this->projectSection) : null,
             'sectionId' => $this->projectSection?->uuid, 'position' => $this->position, 'displayNumber' => ProjectStructure::number($this->resource), 'display_number' => ProjectStructure::number($this->resource),
             'description' => $this->description, 'descriptionHtml' => $this->resource->formattedDescription(), 'expectedResult' => $this->expected_result ?? '', 'priority' => $this->priority, 'status' => $this->status, 'clientApproved' => $this->client_approved,
             'clientEditable' => $this->resource->isClientEditable(),

@@ -31,7 +31,7 @@ class ProjectResource extends JsonResource
             'branding' => $this->when($request->attributes->has('project_client'), fn () => app(WorkspaceBranding::class)->portal($this->workspace)),
             'feedback' => $this->when($admin, fn () => ['eligible' => app(ProjectFeedbacks::class)->eligible($this->resource), 'requested' => (bool) $this->feedback_requested, 'submitted' => (bool) $this->feedback_submitted]),
             'clientsCount' => $this->when($admin && isset($this->clients_count), (int) $this->clients_count),
-            'teamCount' => $this->when($admin && isset($this->team_count), (int) $this->team_count),
+            'agentsCount' => $this->when($admin && isset($this->agents_count), (int) $this->agents_count), 'teamCount' => $this->when($admin && isset($this->team_count), (int) $this->team_count),
             'sections' => $this->whenLoaded('briefSections', fn () => $this->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))),
             'teamUnreadCount' => $this->when($admin && isset($this->team_unread_count), (int) $this->team_unread_count), 'tasksCount' => $this->when($admin, $this->tasks_count), 'doneCount' => $this->when($admin, $this->done_count), 'unreadCommentCount' => $unreadComments, 'unreadCount' => $this->when($admin && isset($this->unread_count), (int) $this->unread_count)];
     }

@@ -36,6 +36,7 @@ test('production package rejects historical guides and verification artifacts at
     assert.equal(forbiddenProductionPath(file), true, file)
   for (const file of [
     'agent-api/COLLABORATION.md',
+    'agent-api/AGENT-LIVE-SMOKE-RU.md',
     'agent-api/examples/collaboration.mjs',
     'DEPLOY-JINO.md',
     'PRODUCTION.md',

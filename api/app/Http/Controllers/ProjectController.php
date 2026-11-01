@@ -41,7 +41,7 @@ class ProjectController extends Controller
         }
         $sort = $data['sort'] ?? 'updated';
         $query->orderBy(['updated' => 'updated_at', 'created' => 'created_at', 'name' => 'title'][$sort], $sort === 'name' ? 'asc' : 'desc')->orderByDesc('id');
-        $query = app(ProjectUnread::class)->withCounts($query, $request->user())->withExists(['feedback as feedback_requested' => fn ($q) => $q->whereNotNull('requested_at'), 'feedback as feedback_submitted' => fn ($q) => $q->whereNotNull('submitted_at')])->withCount(['clients', 'members as team_count' => fn ($q) => $q->whereHas('workspaceMember', fn ($q) => $q->active()->where('role', 'admin')), 'tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')]);
+        $query = app(ProjectUnread::class)->withCounts($query, $request->user())->withExists(['feedback as feedback_requested' => fn ($q) => $q->whereNotNull('requested_at'), 'feedback as feedback_submitted' => fn ($q) => $q->whereNotNull('submitted_at')])->withCount(['members as agents_count' => fn ($q) => $q->whereHas('agent', fn ($a) => $a->where('active', true)), 'clients', 'members as team_count' => fn ($q) => $q->whereHas('workspaceMember', fn ($q) => $q->active()->where('role', 'admin')), 'tasks', 'tasks as done_count' => fn ($q) => $q->where('status', 'done')]);
         $page = $query->paginate(20)->withQueryString();
         if ($page->currentPage() > $page->lastPage()) {
             $page = $query->paginate(20, ['*'], 'page', $page->lastPage())->withQueryString();

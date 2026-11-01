@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ExternalAgent;
-use Illuminate\Support\Facades\DB;
 
 class AgentPermissions
 {
@@ -32,6 +31,6 @@ class AgentPermissions
 
     public static function hasToken(ExternalAgent $agent): bool
     {
-        return DB::table('integration_tokens')->where('external_agent_id', $agent->id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->exists();
+        return AgentCredentials::tokens($agent)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->exists();
     }
 }

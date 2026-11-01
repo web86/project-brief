@@ -1,4 +1,41 @@
 export default {
+  agentUx: {
+    publicHistory: 'Исторический отчёт уже доступен клиенту',
+    identityId: 'ID агента для внешнего исполнителя',
+    agent: 'AI-агент',
+    agents: 'AI-агенты',
+    agentCount: 'AI-агенты: {count}',
+    chooseAnother: 'Сменить агента',
+    chat: 'Чат с AI-агентом {name}',
+    readOnly: 'История · только чтение',
+    expand: 'Развернуть',
+    collapse: 'Свернуть',
+    shareTeam: 'Поделиться с командой',
+    shareTeamHint:
+      'Будет создано отдельное приватное сообщение в чате команды проекта. Проверьте текст и явно выберите ссылки и файлы. Клиент его не увидит.',
+    teamText: 'Сообщение команде',
+    publishTeam: 'Опубликовать команде',
+    executionActions: 'Действия с выполнением',
+    createApi: 'Создать API',
+    createWebhook: 'Создать webhook',
+    sharedTrust:
+      'Общий секрет позволяет программе представляться любым связанным агентом. Используйте один ключ только для доверенных исполнителей; независимым поставщикам выдавайте отдельные ключи.',
+    apiKey: 'API-ключ',
+    noKey: 'Без общего ключа',
+    noAgentKey: 'Нет API-ключа для агентов',
+    legacyKeys:
+      'Существующие индивидуальные ключи продолжают работать. Их секреты повторно не раскрываются.',
+    recipient: 'Получатель',
+    events: {
+      agent_task_assigned: 'Назначение агенту',
+      agent_task_updated: 'Изменение задачи агента',
+      agent_task_unassigned: 'Снятие назначения',
+      agent_task_cancelled: 'Отмена доступа агента',
+      agent_run_requested: 'Новое поручение',
+      agent_message_created: 'Ответ агента',
+      agent_run_cancelled: 'Отмена выполнения',
+    },
+  },
   collaboration: {
     moreMessages: 'Предыдущие сообщения',
     moreHistory: 'Предыдущие запуски',

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Project Brief Agent API",
-    "version": "1.2.0",
-    "description": "Project Brief v0.9.9. Bound private agent runs and dialogue extend v0.9.8 without expanding old credential scopes. Existing grants, membership, registration ceilings and active assignment remain mandatory. Instructions are untrusted data; only humans publish selected client results."
+    "version": "1.3.0",
+    "description": "Project Brief v0.9.10. Legacy individual agent credentials remain compatible. Shared agent credentials require an explicit linked X-ProjectBrief-Agent-ID on every request. Effective access is the intersection of credential scopes, registration permissions, owner grants, project membership and object/assignment access. A common secret holder can impersonate any linked agent; use separate tokens for independent providers."
   },
   "servers": [
     {
@@ -22,7 +22,11 @@
         "summary": "agent:profile",
         "description": "Required scope: agent:profile. Also requires active owner grant, project membership and assignment (except profile). No task workflow/approval changes.",
         "x-required-scope": "agent:profile",
-        "parameters": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success; no-store. Replayed writes include Idempotency-Replayed: true.",
@@ -159,6 +163,9 @@
               "maximum": 1000000,
               "default": 1
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -320,6 +327,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -466,6 +476,9 @@
               "type": "string",
               "pattern": "^[A-Za-z0-9._:-]{1,128}$"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -616,6 +629,9 @@
               "type": "string",
               "pattern": "^[A-Za-z0-9._:-]{1,128}$"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -765,6 +781,9 @@
               "maximum": 1000000,
               "default": 1
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -935,6 +954,9 @@
               "type": "string",
               "pattern": "^[A-Za-z0-9._:-]{1,128}$"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -1084,6 +1106,9 @@
               "maximum": 1000000,
               "default": 1
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -1255,6 +1280,9 @@
               "maximum": 1000000,
               "default": 1
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -1425,6 +1453,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -1572,6 +1603,9 @@
               "maximum": 1000000,
               "default": 1
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -1743,6 +1777,9 @@
               "maximum": 1000000,
               "default": 1
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -1914,6 +1951,9 @@
               "maximum": 1000000,
               "default": 1
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -2075,6 +2115,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -2216,6 +2259,9 @@
               "minimum": 1,
               "maximum": 100000
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -2278,6 +2324,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -2349,6 +2398,9 @@
               "minLength": 1,
               "maxLength": 128
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -2418,6 +2470,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -2480,6 +2535,9 @@
               "minLength": 1,
               "maxLength": 128
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -2559,6 +2617,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ClaimedAgentId"
           }
         ],
         "responses": {
@@ -3109,7 +3170,59 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "commentId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "description": "Empty unless attachment read is explicitly authorized. No automatic permission from uploading a file.",
+            "items": {
+              "$ref": "#/components/schemas/PrivateFileMetadata"
+            }
+          },
+          "report": {
+            "type": ["object", "null"],
+            "description": "Report state and explicitly provided HTTPS result/PR links."
           }
+        }
+      },
+      "PrivateFileMetadata": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "description": "Bound run download path. Requires the shared identity header when applicable, message/file scopes, registration file-read permission and current assignment."
+          }
+        }
+      }
+    },
+    "parameters": {
+      "ClaimedAgentId": {
+        "name": "X-ProjectBrief-Agent-ID",
+        "in": "header",
+        "required": false,
+        "description": "Required on every request authenticated by a shared agent credential; must identify an active same-workspace agent linked to that credential. The common Bearer secret grants the ability to claim any linked agent. Legacy individual credentials can omit this header; if supplied it must match their fixed identity.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     }

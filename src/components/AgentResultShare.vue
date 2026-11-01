@@ -4,7 +4,11 @@ import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
 import BaseDialog from './BaseDialog.vue'
 import LoadingButton from './LoadingButton.vue'
-const props = defineProps({ comment: Object, taskId: String })
+const props = defineProps({
+  comment: Object,
+  taskId: String,
+  audience: { type: String, default: 'client' },
+})
 const emit = defineEmits(['close', 'shared'])
 const text = ref(''),
   links = ref([]),
@@ -14,7 +18,7 @@ const text = ref(''),
 let submissionId = '',
   revision = 0
 watch(
-  () => [props.comment?.id, props.taskId],
+  () => [props.comment?.id, props.taskId, props.audience],
   () => {
     revision++
     text.value = ''
@@ -41,7 +45,13 @@ async function publish() {
   try {
     await api.request(`/api/admin/tasks/${props.taskId}/agent-results/${props.comment.id}/share`, {
       method: 'POST',
-      body: { text: text.value, links: links.value, attachmentIds: files.value, submissionId },
+      body: {
+        ...(props.audience === 'team' ? { audience: 'team' } : {}),
+        text: text.value,
+        links: links.value,
+        attachmentIds: files.value,
+        submissionId,
+      },
     })
     if (version === revision) emit('shared')
   } catch (cause) {
@@ -54,20 +64,22 @@ async function publish() {
 <template>
   <BaseDialog
     :open="!!comment"
-    :title="t('agents.shareClient')"
+    :title="t(audience === 'team' ? 'agentUx.shareTeam' : 'agents.shareClient')"
     id="agent-share-title"
     class="management-dialog agent-share-dialog"
     @close="close"
   >
     <form id="agent-result-publication" class="management-body" @submit.prevent="publish">
-      <p class="small muted">{{ t('agents.shareHint') }}</p>
+      <p class="small muted">
+        {{ t(audience === 'team' ? 'agentUx.shareTeamHint' : 'agents.shareHint') }}
+      </p>
       <p v-if="error" class="field-error" role="alert">{{ error }}</p>
       <details>
         <summary>{{ t('agents.sourceReport') }}</summary>
         <p class="agent-source-preview" tabindex="0">{{ comment?.text }}</p>
       </details>
       <label class="field" for="agent-publication-text"
-        >{{ t('agents.clientText')
+        >{{ t(audience === 'team' ? 'agentUx.teamText' : 'agents.clientText')
         }}<textarea
           id="agent-publication-text"
           v-model="text"
@@ -110,7 +122,9 @@ async function publish() {
         class="button primary"
         :busy="busy"
         :disabled="busy || !text.trim()"
-        >{{ t('agents.publishClient') }}</LoadingButton
+        >{{
+          t(audience === 'team' ? 'agentUx.publishTeam' : 'agents.publishClient')
+        }}</LoadingButton
       ></template
     >
   </BaseDialog>

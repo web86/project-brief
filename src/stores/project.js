@@ -11,7 +11,7 @@ import {
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { api, API_MODE, taskBody, commentBody } from '../api/client.js'
-import { canDeleteTask, canEditClientTask } from '../utils/clientDraft.js'
+import { canDeleteTask, canEditClientTask, canEditDeveloperTask } from '../utils/clientDraft.js'
 import { createDemoData } from '../data/demo.js'
 import {
   FILTERS,
@@ -604,7 +604,8 @@ export const useProjectStore = defineStore('project', () => {
   function updateTask(id, changes) {
     if (API_MODE) return mutateTask(id, '', 'PATCH', changes)
     const task = findTask(id)
-    if (!task || (!isDeveloper.value && !canEditClientTask(task))) return false
+    if (!task || (isDeveloper.value ? !canEditDeveloperTask(task) : !canEditClientTask(task)))
+      return false
     const fields = [
       'title',
       'description',
