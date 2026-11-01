@@ -20,7 +20,7 @@ and hides them from normal lists; it does not erase audit or result history.
 
 1. Verify the exact ZIP hash/manifest. Preserve a matching DB, private storage,
    runtime, `.env` and original APP_KEY backup; test recovery on isolated staging.
-2. Use `php artisan down`, pause the owned webhook cron briefly and let active
+2. Enter maintenance mode with `php artisan down`, pause the owned webhook cron briefly and let active
    requests finish. Replace matching private/public runtime files, preserving
    secrets, APP_KEY, storage and permissions from DEPLOY-JINO.md.
 3. Run `php artisan migrate --force --no-interaction`, then `php artisan optimize:clear`
