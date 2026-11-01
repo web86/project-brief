@@ -25,11 +25,12 @@ can finish initial work; use the collaboration example for repeated runId-bound 
 1. Verify the exact archive SHA-256/manifest and test the populated v0.9.8→v0.9.9
    upgrade on a disposable copy. Preserve a recoverable DB+private storage backup
    with APP_KEY and matching runtime; confirm available disk space/extensions.
-2. Enter maintenance, stop the owned webhook cron briefly and let active requests
+2. Enter maintenance with `php artisan down`, stop the owned webhook cron briefly and let active requests
    finish. Replace matching private/public runtime files together, preserving
    .env, APP_KEY, storage and permissions. Do not upload tests or QA credentials.
-3. Run the standard installer/update migrations and cache commands from
-   DEPLOY-JINO.md. This additive migration checks existing columns/tables, but
+3. From the private application directory run
+   `php artisan migrate --force --no-interaction`, then `php artisan optimize:clear`
+   and the existing production cache commands from DEPLOY-JINO.md. This additive migration checks existing columns/tables, but
    MariaDB DDL may implicitly commit and wait for metadata locks: inspect any
    interrupted update and foreign-key/index state before resuming.
 4. Check sessions/MFA, workspace isolation, old credentials, agent membership,
@@ -37,7 +38,7 @@ can finish initial work; use the collaboration example for repeated runId-bound 
    save/export. New run fields do not change human task status or approval.
 5. Resume the existing bounded webhook cron. No daemon/LLM process runs on Jino.
    Keep provider credentials only on the independent executor machine.
-6. Reopen traffic only after the smoke checks and separately authorized review.
+6. Run `php artisan up` only after the smoke checks and separately authorized review.
 
 ## Rollback
 
