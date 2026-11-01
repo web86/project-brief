@@ -1,5 +1,6 @@
 // Independent one-shot executor. Run on a developer machine, never inside Project Brief/Jino.
 import { pathToFileURL } from 'node:url'
+import { realpathSync } from 'node:fs'
 export async function executeRuns({ baseUrl, token, generate, fetchImpl = fetch }) {
   const base = new URL(baseUrl)
   if (
@@ -155,7 +156,7 @@ async function main() {
     throw new Error('External executor failed')
   }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href)
   main().catch(() => {
     console.error('External executor failed. No private context was logged.')
     process.exitCode = 1

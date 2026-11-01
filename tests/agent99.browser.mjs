@@ -341,10 +341,11 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
     child.stdout.on('data', (data) => (outputText += data))
     child.stderr.on('data', (data) => (errorText += data))
     const code = await new Promise((resolve) => child.on('close', resolve))
+    assert.equal(code, 0, errorText)
+    assert.ok(outputText.trim(), 'Independent executor must return an outcome')
     const result = JSON.parse(outputText)
     providerRequests += result.providerRequests || 0
     providerMetrics.push(...(result.providerMetrics || []))
-    assert.equal(code, 0, errorText)
     assert.equal(result.outcomes.filter((row) => row.state === 'submitted').length, 1)
   }
   await runExecutor()
