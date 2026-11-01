@@ -939,10 +939,16 @@ echo json_encode($q->orderBy('id')->get(['status','http_status','attempts','erro
   await page.goto(origin + taskUrl)
   await page.locator('[data-task-agents] button').first().click()
   await page.waitForFunction(() => !document.querySelector('[data-task-agents] .agent-compact-row'))
-  await page.locator('[data-agent-chat] .agent-follow-up').waitFor({ state: 'hidden' })
+  await page.waitForFunction(
+    () =>
+      !document.querySelector('[data-agent-chat] .agent-follow-up') &&
+      document.querySelectorAll('.agent-dialogue-message.agent').length === 2,
+  )
   assert.equal(await page.locator('[data-agent-chat] .agent-follow-up').count(), 0)
   assert.equal(await page.locator('.agent-dialogue-message.agent').count(), 2)
   const before = receiver.received.length
+  // The full visual matrix can outlast fresh MFA; obtain a real new synthetic proof.
+  await call('/api/security/confirm', 'POST', { recovery_code: 'Live-browser-code-2' })
   await call(`/api/admin/projects/${fixture.project}/team/agents/${agentId}`, 'DELETE')
   await drain()
   assert.equal(

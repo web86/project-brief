@@ -28,3 +28,20 @@ Detailed validation, model request accounting, visual checks and extracted-ZIP
 evidence are in [QA.json](QA.json). Exact archive metadata is in
 [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json). Screenshots remain outside Git.
 No push, deployment or production DB changes are part of this work.
+
+Final package workflow passes on the extracted production ZIP with an independent
+Node executor and real signed HTTPS receiver. Visual phase: 288 captures across
+four languages, three themes and two widths; all visual assertions passed. A late
+asynchronous-history test assertion was corrected, and the full package workflow
+passed separately. Screenshots are retained outside Git.
+
+Additional Groq E2E: exactly **2** requests, both HTTP 200, using
+`openai/gpt-oss-120b`; **1541 input / 437 output tokens**. First instruction and
+private follow-up both produced reports in the same chat. No real provider rerun
+was needed after later dialog-only adjustments; the backend and independent
+executor remain identical. No secrets or test env are included in the archive.
+
+Final artifact: `project-brief-v0.9.10-00793c2.zip`, **39443130 bytes**.
+SHA-256: `d5047cbcb236dfa7d144b34e88add22e817b6d596b97fd92b43da9079a206207`.
+CRC and all **8940** internal checksum records pass. The packaged executor and
+Russian owner guide match the source byte for byte.

@@ -1,0 +1,21 @@
+{
+  "file": "project-brief-v0.9.10-00793c2.zip",
+  "bytes": 39443130,
+  "sha256": "d5047cbcb236dfa7d144b34e88add22e817b6d596b97fd92b43da9079a206207",
+  "manifestEntries": 8940,
+  "zipEntries": 10188,
+  "crc": "passed",
+  "internalChecksums": "passed",
+  "collaborationExampleMatchesSource": true,
+  "ownerGuideMatchesSource": true,
+  "dedicatedGroqKeyAbsent": true,
+  "testEnvAbsent": true,
+  "testKeyAbsentFromChangesAndQaLogs": true,
+  "release": {
+    "version": "0.9.10",
+    "commit": "00793c2ca7d114d2e2c5fe9257e186d005cc2874",
+    "builtAt": "2026-11-01T14:26:56.101Z",
+    "phpTarget": "8.4",
+    "domain": "brief.web86.site"
+  }
+}

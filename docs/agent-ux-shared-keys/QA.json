@@ -1,0 +1,238 @@
+{
+  "release": "0.9.10",
+  "baseline": "v0.9.9 / a97cbae",
+  "branch": "codex/agent-ux-shared-api-keys",
+  "sourceCommit": "00793c2ca7d114d2e2c5fe9257e186d005cc2874",
+  "scope": "Local implementation, release and isolated synthetic QA only",
+  "tests": {
+    "sqlite": {
+      "tests": 1056,
+      "passed": 1056,
+      "assertions": 15607,
+      "php": "8.5.10"
+    },
+    "mariadb": {
+      "tests": 1056,
+      "passed": 1056,
+      "assertions": 15607,
+      "database": "MariaDB 11.8.9",
+      "storage": "owned disposable container, tmpfs"
+    },
+    "php84": {
+      "version": "8.4.26",
+      "database": "MariaDB 11.8.9",
+      "tests": 124,
+      "passed": 124,
+      "assertions": 1703
+    },
+    "frontend": {
+      "tests": 434,
+      "passed": 434,
+      "canonicalBuilderRepeated": true
+    },
+    "pint": "passed",
+    "viteBuild": "passed",
+    "sourceBrowser": {
+      "ok": true,
+      "package": false,
+      "results": [
+        "Shared key created before registrations; two explicit linked identities, draft retained after nested key creation, automatic memberships and factual project counter",
+        "Real public HTTPS webhook: original DNS/SSRF/TLS checks, raw-body HMAC, HTTP 503 then 204 with the same delivery ID and payload",
+        "Two independent Node executions through a shared key; exact three-level contexts, future-only updates, frozen history, private chat files and explicit separate client/team copies",
+        "WYSIWYG save, safe HTML, AI single immediate request, explicit apply and retained unchanged formatting",
+        "MariaDB concurrent same-submission requests create one run; competing shared-key claims execute once",
+        "Assignment removal keeps read-only chat/history; project access revocation cancels pending webhook delivery without another network send",
+        "Assigned developer edits the rich task before agreement; approval hides editing and server rejects a stale description save",
+        "Shared-key revocation stops both agents immediately and removes the key from active lists and selectors while preserving audit/history"
+      ],
+      "captures": 0,
+      "errors": [],
+      "elapsedMs": 102030,
+      "providerRequests": 0,
+      "providerMetrics": [],
+      "provider": "deterministic"
+    },
+    "additionalRealGroq": {
+      "ok": true,
+      "package": false,
+      "results": [
+        "Shared key created before registrations; two explicit linked identities, draft retained after nested key creation, automatic memberships and factual project counter",
+        "Real public HTTPS webhook: original DNS/SSRF/TLS checks, raw-body HMAC, HTTP 503 then 204 with the same delivery ID and payload",
+        "Two independent Node executions through a shared key; exact three-level contexts, future-only updates, frozen history, private chat files and explicit separate client/team copies",
+        "WYSIWYG save, safe HTML, AI single immediate request, explicit apply and retained unchanged formatting",
+        "MariaDB concurrent same-submission requests create one run; competing shared-key claims execute once",
+        "Assignment removal keeps read-only chat/history; project access revocation cancels pending webhook delivery without another network send",
+        "Assigned developer edits the rich task before agreement; approval hides editing and server rejects a stale description save",
+        "Shared-key revocation stops both agents immediately and removes the key from active lists and selectors while preserving audit/history"
+      ],
+      "captures": 0,
+      "errors": [],
+      "elapsedMs": 102944,
+      "providerRequests": 2,
+      "providerMetrics": [
+        {
+          "status": 200,
+          "model": "openai/gpt-oss-120b",
+          "inputTokens": 340,
+          "outputTokens": 233,
+          "finishReason": "stop"
+        },
+        {
+          "status": 200,
+          "model": "openai/gpt-oss-120b",
+          "inputTokens": 1201,
+          "outputTokens": 204,
+          "finishReason": "stop"
+        }
+      ],
+      "provider": "groq",
+      "inputTokens": 1541,
+      "outputTokens": 437,
+      "testEnvOutsideRepository": true,
+      "modelExecution": "independent Node process only; PHP app never receives provider settings",
+      "sourceExecutorSha256": "8bc4a15a327f912a9825b4b43d7603b2bcbc55d3b2189aa9098e16b61c511c28",
+      "testedCommit": "30113f3",
+      "laterChanges": "Only setup dialog layout, deployment documentation and browser QA pacing/fresh-proof handling; backend and executor unchanged.",
+      "backendAndExecutorUnchangedInFinalPackage": true
+    },
+    "extractedPackageWorkflow": {
+      "ok": true,
+      "package": true,
+      "results": [
+        "Shared key created before registrations; two explicit linked identities, draft retained after nested key creation, automatic memberships and factual project counter",
+        "Real public HTTPS webhook: original DNS/SSRF/TLS checks, raw-body HMAC, HTTP 503 then 204 with the same delivery ID and payload",
+        "Two independent Node executions through a shared key; exact three-level contexts, future-only updates, frozen history, private chat files and explicit separate client/team copies",
+        "WYSIWYG save, safe HTML, AI single immediate request, explicit apply and retained unchanged formatting",
+        "MariaDB concurrent same-submission requests create one run; competing shared-key claims execute once",
+        "Assignment removal keeps read-only chat/history; project access revocation cancels pending webhook delivery without another network send",
+        "Assigned developer edits the rich task before agreement; approval hides editing and server rejects a stale description save",
+        "Shared-key revocation stops both agents immediately and removes the key from active lists and selectors while preserving audit/history"
+      ],
+      "captures": 0,
+      "errors": [],
+      "elapsedMs": 102603,
+      "providerRequests": 0,
+      "providerMetrics": [],
+      "provider": "deterministic"
+    },
+    "packageVisual": {
+      "passed": true,
+      "captures": 288,
+      "languages": ["ru", "en", "tr", "zh-CN"],
+      "themes": ["light", "dark", "system"],
+      "systemPreference": "dark",
+      "widths": [1440, 390],
+      "surfaces": [
+        "keys",
+        "api-key-modal",
+        "agent-settings",
+        "webhook-modal",
+        "projects",
+        "team",
+        "task",
+        "expanded-reply",
+        "share",
+        "editor",
+        "ai-tooltip",
+        "ai-proposal"
+      ],
+      "assertions": [
+        "No horizontal document overflow",
+        "Correct html language and effective theme",
+        "Task/agent/chat layout order",
+        "Footer actions remain visible",
+        "Scope checkboxes retain usable dimensions",
+        "Single webhook heading"
+      ],
+      "manualInspection": "Representative desktop/mobile light/dark/system renders reviewed; screenshots outside Git.",
+      "workflowAfterMatrix": "The complete visual phase passed. Its subsequent workflow assertion checked chat before asynchronous loading completed. The test now waits for both read-only mode and the two preserved replies. The complete extracted-package workflow then passed separately without repeating unchanged visual checks.",
+      "directory": "/tmp/project-brief-agent-ux-package-qa"
+    },
+    "canonicalReleaseBuilder": {
+      "passed": true,
+      "command": "./bin/build-release",
+      "files": 8940,
+      "packagedChecks": [
+        "First/repeated installation and APP_KEY preservation",
+        "Migrations and optimized routes",
+        "Sessions, MFA, signed WebAuthn/Passkey enrollment and replay denial",
+        "SSO bridge and canonical URLs",
+        "Integration scopes, idempotency and workspace isolation",
+        "Comments/files, thumbnails and protected downloads",
+        "Multilingual document exports",
+        "Provisioning, requests, invitation/feedback workflows",
+        "Quiet webhook cron and platform diagnostics"
+      ]
+    }
+  },
+  "webhookQa": {
+    "transport": "Actual public HTTPS through an ephemeral controlled Cloudflare tunnel; only the synthetic HMAC receiver is exposed, not the application",
+    "signature": "timestamp plus actual raw body; constant-time HMAC verification",
+    "retry": "first delivery 503, next 204; same delivery ID and raw payload; replay causes no second processing",
+    "cancellation": "pending deliveries cancelled before network send after project membership revocation",
+    "dns": "Host system resolver did not resolve temporary tunnel names. In the scratch QA copy only, addresses() receives actual A/AAAA answers from Cloudflare DNS-over-HTTPS for the exact controlled host. Original URL validation, all-address public IP checks and CURLOPT_RESOLVE pinning remain active. A loopback negative probe is rejected.",
+    "tls": "Host default CA path produced cURL 77. Scratch-only middleware selects the existing trusted /etc/ssl/cert.pem CA bundle. Certificate and hostname verification remain enabled; no verify=false or CURLOPT_CONNECT_TO.",
+    "productionRuntimeUnmodifiedByQaProvider": true,
+    "tunnelImageDigest": "sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba",
+    "freshMfa": "The long visual matrix can outlast fresh proof. The QA harness uses a new valid synthetic recovery code before project access revocation; real MFA rules are unchanged."
+  },
+  "resolvedIssues": [
+    "Explicit short index name fixes MariaDB identifier-length failure in the additive shared-key migration.",
+    "Partial agent edits preserve an omitted webhook URL and disabled endpoint state; null clears instructions.",
+    "Repeated private team publication finds its existing copy without the public-channel scope, preserving idempotency.",
+    "Revoked credentials disappear immediately from already-loaded agent selectors via the shared safe metadata catalog.",
+    "Historical public agent reports appear once in team chat and retain their existing client visibility.",
+    "Developer public brief edits are authorized and checked under lock before agreement; stale saves after approval return 403.",
+    "Mobile scope checkboxes retain fixed usable dimensions; webhook modal has one heading and consistent field spacing.",
+    "Release runtime documentation check requires an explicit maintenance-mode instruction; Jino guide corrected."
+  ],
+  "compatibility": "Legacy individual agent tokens and scopes remain unchanged; shared agent namespace never becomes ordinary integration access. Existing grants, memberships, audit and frozen contexts are not rewritten.",
+  "notPerformed": [
+    "Push/publication",
+    "Deployment",
+    "Production DB changes or live production smoke",
+    "Jino/FPM load and actual production rollback",
+    "Physical-device and Safari/WebKit verification",
+    "Live SMTP/Telegram delivery"
+  ],
+  "qaImages": "Outside repository under /tmp; excluded from commits and ZIP",
+  "qaHarnessCorrections": [
+    "Multipart textarea line endings are CRLF on the wire; exact context assertion uses the submitted encoding.",
+    "A second agent without attachment permission returns 403; denial is expected.",
+    "Settings concurrency test respects the existing 30/minute throttle.",
+    "History checks wait for asynchronous collaboration loading.",
+    "Long visual QA obtains a new valid synthetic recovery proof before revoking project access."
+  ],
+  "allRequiredChecksPassed": true,
+  "artifact": {
+    "file": "project-brief-v0.9.10-00793c2.zip",
+    "bytes": 39443130,
+    "sha256": "d5047cbcb236dfa7d144b34e88add22e817b6d596b97fd92b43da9079a206207",
+    "manifestEntries": 8940,
+    "zipEntries": 10188,
+    "crc": "passed",
+    "internalChecksums": "passed",
+    "collaborationExampleMatchesSource": true,
+    "ownerGuideMatchesSource": true,
+    "dedicatedGroqKeyAbsent": true,
+    "testEnvAbsent": true,
+    "testKeyAbsentFromChangesAndQaLogs": true,
+    "release": {
+      "version": "0.9.10",
+      "commit": "00793c2ca7d114d2e2c5fe9257e186d005cc2874",
+      "builtAt": "2026-11-01T14:26:56.101Z",
+      "phpTarget": "8.4",
+      "domain": "brief.web86.site"
+    }
+  },
+  "preservedMilestone10Documents": {
+    "count": 8,
+    "hashesMatch": true,
+    "excludedFromCommitAndZip": true
+  },
+  "cleanup": {
+    "ownedMariaDbContainerRemoved": true,
+    "temporaryHttpsTunnelsRemaining": 0,
+    "testProviderEnvPreservedOutsideRepository": true
+  }
+}
