@@ -90,7 +90,7 @@ class WebhookEvents
     public function enqueue(int $workspaceId, string $type, array $payload, ?int $onlyEndpoint = null): ?string
     {
         return DB::transaction(function () use ($workspaceId, $type, $payload, $onlyEndpoint): ?string {
-            $endpoints = DB::table('webhook_endpoints')->where('workspace_id', $workspaceId)->where('enabled', true)->when($onlyEndpoint, fn ($q) => $q->where('id', $onlyEndpoint))->lockForUpdate()->get()->filter(fn ($e) => (! $e->external_agent_id || (str_starts_with($type, 'agent.task.') && AgentAccess::deliveryAllowed($e, $payload))) && ($onlyEndpoint || in_array($type, json_decode($e->events, true), true)) && app(WebhookProjectFilter::class)->matches($e, $type, $payload['projectId'] ?? null));
+            $endpoints = DB::table('webhook_endpoints')->where('workspace_id', $workspaceId)->where('enabled', true)->when($onlyEndpoint, fn ($q) => $q->where('id', $onlyEndpoint))->lockForUpdate()->get()->filter(fn ($e) => (! $e->external_agent_id || (str_starts_with($type, 'agent.') && AgentAccess::deliveryAllowed($e, $payload, $type))) && ($onlyEndpoint || in_array($type, json_decode($e->events, true), true)) && app(WebhookProjectFilter::class)->matches($e, $type, $payload['projectId'] ?? null));
             if ($endpoints->isEmpty()) {
                 return null;
             }

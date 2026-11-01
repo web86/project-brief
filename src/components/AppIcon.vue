@@ -4,6 +4,8 @@ defineProps({
   size: { type: [Number, String], default: 20 },
 })
 const paths = {
+  undo: 'M3 10h10a7 7 0 0 1 7 7M3 10l5-5M3 10l5 5',
+  redo: 'M21 10H11a7 7 0 0 0-7 7M21 10l-5-5M21 10l-5 5',
   bot: 'M8 4h8M12 2v2M5 7h14v13H5zM2 11v5M22 11v5M9 11h.01M15 11h.01M9 16h6',
   message: 'M21 11a8 8 0 0 1-8 8H8l-5 3V11a9 9 0 0 1 18 0ZM7 10h10M7 14h6',
   lock: 'M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3M12 14v3',

@@ -13,6 +13,7 @@ import ClientTaskStatusActions from '../components/ClientTaskStatusActions.vue'
 import TaskStatus from '../components/TaskStatus.vue'
 import TaskPriority from '../components/TaskPriority.vue'
 import TaskAgents from '../components/TaskAgents.vue'
+import AgentConversation from '../components/AgentConversation.vue'
 import AgentResultShare from '../components/AgentResultShare.vue'
 import TaskDetails from '../components/TaskDetails.vue'
 import CommentList from '../components/CommentList.vue'
@@ -66,7 +67,9 @@ watch(
 )
 onUnmounted(() => clearTimeout(readTimer))
 const task = computed(() => store.findTask(route.params.id))
-const comments = computed(() => newestComments(task.value?.comments))
+const comments = computed(() =>
+  newestComments(task.value?.comments?.filter((comment) => !comment.teamOnly)),
+)
 const editorTask = computed(() => store.developerTask(route.params.id))
 const dirty = computed(() => store.isDeveloper && store.hasDeveloperChanges(route.params.id))
 let editor
@@ -200,18 +203,36 @@ function focusClarification() {
       <div class="task-layout" :class="{ 'has-developer': store.isDeveloper }">
         <div class="task-main-column">
           <TaskDetails :task="task" />
-          <TaskAgents
+          <section
             v-if="store.isDeveloper && store.apiMode"
-            :task="task"
-            :agents="store.project.agents || []"
-            :project-id="route.params.uuid"
-            @changed="checkMessages"
-            @share="shareResult = $event"
-          />
+            class="task-agent-work"
+            :aria-label="t('collaboration.dialogue')"
+          >
+            <TaskAgents
+              :task="task"
+              :agents="store.project.agents || []"
+              :project-id="route.params.uuid"
+              @changed="checkMessages"
+              @share="shareResult = $event"
+            />
+            <AgentConversation :task="task" @changed="checkMessages" />
+            <details
+              v-if="store.isDeveloper && task.comments.some((comment) => comment.teamOnly)"
+              class="surface internal-agent-results"
+            >
+              <summary>{{ t('collaboration.internalResults') }}</summary>
+              <CommentList
+                :comments="task.comments.filter((comment) => comment.teamOnly)"
+                :target="route.hash.slice(1)"
+                :can-share-agent-results="task.canShareAgentResults"
+                @share="shareResult = $event"
+              />
+            </details>
+          </section>
           <DeveloperNotes v-if="store.isDeveloper" :task="editorTask" />
           <section class="surface comments-panel">
             <h2>
-              {{ t('ui.comments2') }} <span class="count-pill">{{ task.comments.length }}</span>
+              {{ t('ui.comments2') }} <span class="count-pill">{{ comments.length }}</span>
             </h2>
             <LoadingButton
               type="button"

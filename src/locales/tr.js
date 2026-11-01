@@ -1,4 +1,87 @@
 export default {
+  collaboration: {
+    moreMessages: 'Önceki mesajlar',
+    moreHistory: 'Önceki çalıştırmalar',
+    scopeBoundary: 'Yalnızca izin verilen çalışma alanı kaynakları için geçerlidir.',
+    dialogue: 'Yürütücüyle görüşme',
+    privateHint: 'Bu görüşmeye yalnızca yetkili ekip ve atanmış yürütücü erişebilir.',
+    instruction: 'Ajana görev',
+    requestRun: 'Görevi gönder',
+    history: 'Çalıştırma geçmişi',
+    internalResults: 'Dahili ajan sonuçları',
+    manageKeys: 'API anahtarlarını yönet',
+    agentInstruction: 'Yürütücü talimatları',
+    projectInstruction: 'AI yürütücü talimatları',
+    contextHint:
+      'Teknoloji yığını, rapor dili ve proje kuralları. Sırları veya müşteri iletişim bilgilerini eklemeyin.',
+    autoMembership: 'Ajan, yeni seçilen projelerin ekiplerine otomatik olarak eklenir',
+    permissionCeiling: 'Kayıt izinlerinin üst sınırı',
+    keyType: 'API anahtarı türü',
+    all: 'Tümü',
+    integration: 'Entegrasyon',
+    agent: 'Harici yürütücü',
+    improveHint: 'Görevi geliştirici için daha açık ifade etmeye yardımcı olur',
+    undo: 'Geri al',
+    redo: 'Yinele',
+    author: {
+      human: 'Ekip',
+      agent: 'Yürütücü',
+    },
+    state: {
+      queued: 'İstek kaydedildi',
+      delivered: 'Yürütücüye iletildi',
+      running: 'Çalışıyor',
+      submitted: 'Sonuç alındı',
+      failed: 'Başarısız',
+      cancelled: 'İptal edildi',
+    },
+    scope: {
+      agent_profile: 'Yürütücü profili',
+      agent_tasks_read: 'Atanmış görevleri okuma',
+      agent_projects_tasks_read: 'İzinli projelerin görevlerini okuma',
+      agent_tasks_report: 'Rapor gönderme',
+      agent_comments_read: 'Görev yorumlarını okuma',
+      agent_comments_create: 'Yorum ekleme',
+      agent_discussions_read: 'Müşteri görüşmelerini okuma',
+      'agent_team-chat_read': 'Dahili ekip sohbetini okuma',
+      agent_attachments_read: 'İzinli dosyaları okuma',
+      agent_attachments_create: 'Sonuç yükleme',
+      agent_runs_read: 'Çalıştırmaları ve bağlamı okuma',
+      agent_runs_write: 'Çalıştırma başlangıcını onaylama',
+      agent_messages_read: 'Özel görüşmeyi okuma',
+      agent_messages_create: 'Özel görüşmeye yanıt verme',
+    },
+    scopeHint: {
+      agent_profile:
+        'Yürütücü profili. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_tasks_read:
+        'Atanmış görevleri okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_projects_tasks_read:
+        'İzinli projelerin görevlerini okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_tasks_report:
+        'Rapor gönderme. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_comments_read:
+        'Görev yorumlarını okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_comments_create:
+        'Yorum ekleme. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_discussions_read:
+        'Müşteri görüşmelerini okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      'agent_team-chat_read':
+        'Dahili ekip sohbetini okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_attachments_read:
+        'İzinli dosyaları okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_attachments_create:
+        'Sonuç yükleme. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_runs_read:
+        'Çalıştırmaları ve bağlamı okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_runs_write:
+        'Çalıştırma başlangıcını onaylama. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_messages_read:
+        'Özel görüşmeyi okuma. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+      agent_messages_create:
+        'Özel görüşmeye yanıt verme. Yalnızca açıkça izin verilen kaynaklar ve atamalar kapsamında.',
+    },
+  },
   agents: {
     lastExecution: 'Son bildirilen yürütme',
     permissionsTitle: 'İzinler',
@@ -117,8 +200,7 @@ export default {
     description: 'Açıklama',
 
     allowedProjects: 'İzin verilen projeler',
-    consent:
-      'Harici sağlayıcı atanan görevlerin içeriğini alacaktır. Bu aktarıma izin veriyorsanız projeleri seçin. Aracıyı proje ekibine ekleyip görev atayın.',
+    consent: 'Harici yürütücü, seçilen projelerde izin verilen görev bağlamını alır.',
     webhook: 'Webhook URL (isteğe bağlı)',
     active: 'Etkin',
     disabled: 'Devre dışı',

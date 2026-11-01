@@ -11,7 +11,7 @@ class ExternalAgent extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = ['workspace_id', 'name', 'description', 'kind', 'active', 'permissions'];
+    protected $fillable = ['workspace_id', 'name', 'description', 'kind', 'active', 'permissions', 'instructions'];
 
     protected function casts(): array
     {

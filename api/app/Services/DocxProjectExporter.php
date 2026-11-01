@@ -100,6 +100,17 @@ class DocxProjectExporter
             foreach ($group['tasks'] as $taskIndex => $task) {
                 $paragraphs = [];
                 foreach (array_filter($task['content'], fn (array $field): bool => $field['block']) as $field) {
+                    if (! empty($field['richText'])) {
+                        $number = 0;
+                        foreach ($field['richText'] as $block) {
+                            $number = $block['type'] === 'number' ? $number + 1 : 0;
+                            $prefix = $block['type'] === 'bullet' ? '• ' : ($number ? $number.'. ' : '');
+                            $paragraphs[] = ['label' => '', 'value' => $prefix.implode('', array_column($block['content'], 'text')), 'font' => [], 'after' => 40,
+                                'spans' => [['text' => $prefix], ...$block['content']]];
+                        }
+
+                        continue;
+                    }
                     $lines = preg_split('/\R/u', $field['value']);
                     foreach ($lines as $lineIndex => $line) {
                         $paragraphs[] = ['label' => $lineIndex === 0 && ($field['key'] ?? '') !== 'description' ? $field['label'] : '', 'value' => $line, 'font' => [], 'after' => $lineIndex === count($lines) - 1 ? 40 : 0];
@@ -119,7 +130,23 @@ class DocxProjectExporter
                     if ($paragraph['label'] !== '') {
                         $run->addText($paragraph['label'].': ', array_replace($paragraph['font'], ['bold' => true]));
                     }
-                    $run->addText($paragraph['value'], $paragraph['font']);
+                    if (isset($paragraph['spans'])) {
+                        foreach ($paragraph['spans'] as $span) {
+                            $font = ['bold' => $span['bold'] ?? false, 'italic' => $span['italic'] ?? false];
+                            foreach (preg_split('/\R/u', $span['text']) as $lineIndex => $line) {
+                                if ($lineIndex > 0) {
+                                    $run->addTextBreak();
+                                }
+                                if (isset($span['href']) && WorkspaceAgreements::validLink($span['href'])) {
+                                    $run->addLink($span['href'], $line, $font);
+                                } else {
+                                    $run->addText($line, $font);
+                                }
+                            }
+                        }
+                    } else {
+                        $run->addText($paragraph['value'], $paragraph['font']);
+                    }
                 }
             }
         }

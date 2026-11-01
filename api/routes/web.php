@@ -6,6 +6,7 @@ use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminProjectRequestController;
+use App\Http\Controllers\AgentCollaborationController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AgentResultController;
 use App\Http\Controllers\AiTaskAssistantController;
@@ -336,3 +337,13 @@ Route::middleware('admin')->prefix('/api/admin/workspaces/{brandingWorkspace}/br
 Route::get('/branding-assets/{workspace}/{token}.{extension}', [WorkspaceBrandingController::class, 'image'])->where('token', '[a-f0-9]{48}')->whereIn('extension', ['png', 'svg'])
     ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class]);
 Route::any('/{fallbackPlaceholder}', SpaController::class)->where('fallbackPlaceholder', '.*')->fallback();
+
+Route::middleware('admin')->prefix('/api/admin/tasks/{task}')->controller(AgentCollaborationController::class)->group(function (): void {
+    Route::get('/agent-collaboration', 'index');
+    Route::get('/agent-assignments/{assignment}/runs', 'history');
+    Route::get('/agent-assignments/{assignment}/messages', 'messages');
+    Route::post('/agent-assignments/{assignment}/runs', 'store')->middleware('throttle:integration-settings');
+    Route::post('/agent-runs/{run}/cancel', 'cancel')->middleware('throttle:integration-settings');
+});
+
+Route::middleware('admin')->match(['GET', 'PATCH'], '/api/admin/projects/{project}/agent-instructions', [AgentCollaborationController::class, 'projectInstructions']);

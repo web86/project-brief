@@ -574,6 +574,7 @@ export const useProjectStore = defineStore('project', () => {
       sectionId: section.id,
       position: Math.max(0, ...sectionTasks(section.id).map((item) => item.position)) + 1,
       description: input.description.trim().slice(0, 10000),
+      descriptionHtml: input.descriptionHtml || null,
       expectedResult: (input.expectedResult || '').trim().slice(0, 10000),
       priority: input.priority,
       status: 'new',
@@ -607,6 +608,7 @@ export const useProjectStore = defineStore('project', () => {
     const fields = [
       'title',
       'description',
+      'descriptionHtml',
       'expectedResult',
       'location',
       'section',

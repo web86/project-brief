@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgentApiController;
 use App\Http\Controllers\AgentReadController;
+use App\Http\Controllers\AgentRunApiController;
 use App\Http\Controllers\ClientSsoController;
 use App\Http\Controllers\IntegrationApiController;
 use App\Http\Controllers\IntegrationReadController;
@@ -13,6 +14,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(function (): void {
     Route::get('/agent/me', [AgentApiController::class, 'me']);
+    Route::get('/agent/tasks/{task}/runs', [AgentRunApiController::class, 'index']);
+    Route::get('/agent/tasks/{task}/runs/{run}/attachments/{attachment}/download', [AgentRunApiController::class, 'download']);
+    Route::get('/agent/tasks/{task}/runs/{run}', [AgentRunApiController::class, 'show']);
+    Route::post('/agent/tasks/{task}/runs/{run}/start', [AgentRunApiController::class, 'start']);
+    Route::get('/agent/tasks/{task}/messages', [AgentRunApiController::class, 'messages']);
     Route::get('/agent/tasks', [AgentApiController::class, 'index']);
     Route::get('/agent/tasks/{task}', [AgentApiController::class, 'show']);
     Route::get('/agent/projects/{project}/tasks', [AgentReadController::class, 'tasks']);
@@ -22,7 +28,7 @@ Route::prefix('v1')->middleware([AuthenticateIntegration::class])->group(functio
     Route::get('/agent/projects/{project}/{channel}', [AgentReadController::class, 'discussionIndex'])->whereIn('channel', ['discussions', 'team-chat']);
     Route::get('/agent/discussions/{comment}/attachments', [AgentReadController::class, 'discussionAttachments']);
     Route::get('/agent/attachments/{attachment}/download', [AgentReadController::class, 'download']);
-    Route::post('/agent/tasks/{task}/{operation}', [AgentApiController::class, 'write'])->whereIn('operation', ['reports', 'comments', 'attachments']);
+    Route::post('/agent/tasks/{task}/{operation}', [AgentApiController::class, 'write'])->whereIn('operation', ['reports', 'comments', 'attachments', 'messages']);
     Route::post('/client-sso/handoffs', [ClientSsoController::class, 'store']);
     Route::post('/project-requests', [ProjectRequestController::class, 'store'])->middleware(RecordProvisioningOperation::class);
     Route::get('/project-requests', [ProjectRequestController::class, 'index']);

@@ -9,6 +9,7 @@ use App\Services\IntegrationResources;
 use App\Services\IntegrationWrites;
 use App\Services\ProjectCreation;
 use App\Services\TaskCreation;
+use App\Services\TaskDescription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -100,7 +101,7 @@ class IntegrationApiController extends Controller
         $data = $this->validateInput($request, $rules);
 
         return app(IntegrationWrites::class)->run($request, function () use ($request, $project, $data): array {
-            $task = app(TaskCreation::class)->create($request, $project, ['title' => $data['title'], 'location' => $data['location'], 'description' => $data['description'], 'expected_result' => $data['expectedResult'] ?? null, 'priority' => $data['priority']], $data['section'] ?? $data['location']);
+            $task = app(TaskCreation::class)->create($request, $project, ['title' => $data['title'], 'location' => $data['location'], 'description' => $data['description'], 'expected_result' => $data['expectedResult'] ?? null, 'priority' => $data['priority'], ...TaskDescription::attributes($data)], $data['section'] ?? $data['location']);
 
             return [['data' => IntegrationResources::task($task->refresh(), false)], 201];
         });

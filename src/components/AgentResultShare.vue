@@ -64,7 +64,7 @@ async function publish() {
       <p v-if="error" class="field-error" role="alert">{{ error }}</p>
       <details>
         <summary>{{ t('agents.sourceReport') }}</summary>
-        <p class="agent-source-preview">{{ comment?.text }}</p>
+        <p class="agent-source-preview" tabindex="0">{{ comment?.text }}</p>
       </details>
       <label class="field" for="agent-publication-text"
         >{{ t('agents.clientText')

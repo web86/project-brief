@@ -11,6 +11,7 @@ use App\Services\AgentAccess;
 use App\Services\AgentAssignments;
 use App\Services\AgentAudit;
 use App\Services\AgentPermissions;
+use App\Services\AgentRuns;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
@@ -52,7 +53,7 @@ class AgentController extends Controller
             $endpoint = DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->first();
             $delivery = $endpoint ? DB::table('webhook_deliveries')->where('webhook_endpoint_id', $endpoint->id)->orderByDesc('id')->first() : null;
 
-            return [...$agent->publicState(), 'permissions' => AgentPermissions::normalize($agent->permissions), 'allowedScopes' => AgentPermissions::scopes($agent), 'projectCount' => ProjectMember::where('external_agent_id', $agent->id)->count(),
+            return [...$agent->publicState(), 'instructions' => $agent->instructions ?? '', 'permissions' => AgentPermissions::normalize($agent->permissions), 'allowedScopes' => AgentPermissions::scopes($agent), 'projectCount' => ProjectMember::where('external_agent_id', $agent->id)->count(),
                 'projectIds' => Project::where('workspace_id', $agent->workspace_id)->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->select('project_id'))->pluck('uuid'),
                 'successfulRequests' => (int) $agent->successful_requests, 'failedRequests' => (int) $agent->failed_requests,
                 'tokens' => $tokens->map(fn ($t) => ['id' => $t->uuid, 'scopes' => json_decode($t->scopes, true), 'revokedAt' => $t->revoked_at, 'lastUsedAt' => $t->last_used_at, 'expiresAt' => $t->expires_at]),
@@ -65,8 +66,8 @@ class AgentController extends Controller
     public function save(Request $request, ?string $uuid = null): JsonResponse
     {
         $workspace = $this->owner($request);
-        AgentAccess::fields($request, ['name', 'description', 'kind', 'active', 'projectIds', 'webhookUrl', 'permissions']);
-        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'description' => ['nullable', 'string', 'max:1000'], 'kind' => ['required', Rule::in(['ai', 'automation', 'service'])],
+        AgentAccess::fields($request, ['name', 'description', 'kind', 'active', 'projectIds', 'webhookUrl', 'permissions', 'instructions']);
+        $data = $request->validate(['instructions' => ['sometimes', 'nullable', 'string', 'max:10000'], 'name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'description' => ['nullable', 'string', 'max:1000'], 'kind' => ['required', Rule::in(['ai', 'automation', 'service'])],
             'active' => ['required', 'boolean'], 'projectIds' => ['present', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct'], 'webhookUrl' => ['nullable', 'string', 'max:2048'], 'permissions' => ['sometimes', 'array:'.implode(',', array_keys(AgentPermissions::DEFAULTS))], 'permissions.*' => ['required', 'boolean']]);
         if (! empty($data['webhookUrl'])) {
             app(WebhookDestination::class)->resolve($data['webhookUrl']);
@@ -78,13 +79,17 @@ class AgentController extends Controller
             $agent = $uuid ? $this->row($workspace, $uuid) : new ExternalAgent(['workspace_id' => $workspace]);
             $projects = Project::where('workspace_id', $workspace)->whereIn('uuid', $data['projectIds'])->get();
             abort_unless($projects->count() === count($data['projectIds']), 422);
-            $agent->fill(['name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $data['kind'], 'active' => $data['active'], 'permissions' => array_key_exists('permissions', $data) ? AgentPermissions::normalize(array_replace(AgentPermissions::normalize($agent->permissions), $data['permissions'])) : AgentPermissions::normalize($agent->permissions)])->save();
+            $previousProjects = DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->pluck('project_id')->all();
+            $agent->fill(['instructions' => $data['instructions'] ?? $agent->instructions, 'name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $data['kind'], 'active' => $data['active'], 'permissions' => array_key_exists('permissions', $data) ? AgentPermissions::normalize(array_replace(AgentPermissions::normalize($agent->permissions), $data['permissions'])) : AgentPermissions::normalize($agent->permissions)])->save();
             foreach (Project::withTrashed()->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->whereNotIn('project_id', $projects->modelKeys())->select('project_id'))->get() as $project) {
                 AgentAssignments::removeProject($request, $agent, $project);
             }
             DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->delete();
             foreach ($projects as $project) {
                 DB::table('agent_project_grants')->insert(['external_agent_id' => $agent->id, 'workspace_id' => $workspace, 'project_id' => $project->id]);
+                if (! in_array($project->id, $previousProjects, true)) {
+                    ProjectMember::firstOrCreate(['project_id' => $project->id, 'external_agent_id' => $agent->id], ['workspace_id' => $workspace, 'permissions' => []]);
+                }
             }
             $secret = null;
             $endpoint = DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->first();
@@ -95,7 +100,7 @@ class AgentController extends Controller
                 if (! empty($data['webhookUrl'])) {
                     $secret = 'whsec_'.bin2hex(random_bytes(32));
                     DB::table('webhook_endpoints')->insert(['uuid' => (string) Str::uuid(), 'workspace_id' => $workspace, 'external_agent_id' => $agent->id, 'name' => $agent->name,
-                        'url' => $data['webhookUrl'], 'events' => json_encode(['agent.task.assigned', 'agent.task.updated', 'agent.task.unassigned', 'agent.task.cancelled']),
+                        'url' => $data['webhookUrl'], 'events' => json_encode(['agent.task.assigned', 'agent.task.updated', 'agent.task.unassigned', 'agent.task.cancelled', 'agent.run.requested', 'agent.message.created', 'agent.run.cancelled']),
                         'enabled' => $agent->active, 'secret' => Crypt::encryptString($secret), 'secret_version' => 1, 'project_filter' => 'all', 'created_at' => now(), 'updated_at' => now()]);
                 }
             }
@@ -115,8 +120,13 @@ class AgentController extends Controller
         $endpoints = DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->pluck('id');
         DB::table('webhook_endpoints')->whereIn('id', $endpoints)->update(['enabled' => false]);
         DB::table('webhook_deliveries')->whereIn('webhook_endpoint_id', $endpoints)->whereIn('status', ['pending', 'processing'])->update(['status' => 'cancelled', 'error_code' => 'agent_revoked', 'updated_at' => now()]);
-        foreach (TaskAgentAssignment::where('external_agent_id', $agent->id)->whereNull('revoked_at')->whereHas('task')->get() as $row) {
-            AgentAssignments::revoke($request, $row, 'agent.task.cancelled');
+        foreach (TaskAgentAssignment::where('external_agent_id', $agent->id)->whereNull('revoked_at')->get() as $row) {
+            if ($row->task) {
+                AgentAssignments::revoke($request, $row, 'agent.task.cancelled');
+            } else {
+                AgentRuns::cancel($row);
+                $row->update(['revoked_at' => now(), 'state' => 'cancelled']);
+            }
         }
     }
 
@@ -203,8 +213,8 @@ class AgentController extends Controller
 
     public function task(Request $request, string $task): JsonResponse
     {
-        AgentAccess::fields($request, ['agentId']);
-        $data = $request->validate(['agentId' => ['required', 'uuid']]);
+        AgentAccess::fields($request, ['agentId', 'instruction']);
+        $data = $request->validate(['agentId' => ['required', 'uuid'], 'instruction' => ['sometimes', 'nullable', 'string', 'max:5000']]);
         $project = TaskAccess::task($request, $task)->project;
         DB::transaction(function () use ($request, $task, $project, $data): void {
             IntegrationWrites::lockWorkspace($project->workspace_id);
@@ -221,6 +231,7 @@ class AgentController extends Controller
                     && DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->where('project_id', $project->id)->where('workspace_id', $project->workspace_id)->exists(), 422);
                 if (! $existing) {
                     $row = TaskAgentAssignment::create(['workspace_id' => $project->workspace_id, 'task_id' => $model->id, 'external_agent_id' => $agent->id]);
+                    AgentRuns::request($request, $row, trim($data['instruction'] ?? ''), 'initial-'.$row->uuid, false);
                     AgentAssignments::event($row, 'agent.task.assigned');
                     AgentAudit::task($request, $row, 'agent_assigned');
                 }

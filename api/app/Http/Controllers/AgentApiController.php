@@ -8,6 +8,7 @@ use App\Rules\SafeAttachment;
 use App\Services\AgentAccess;
 use App\Services\AgentAudit;
 use App\Services\AgentPermissions;
+use App\Services\AgentRuns;
 use App\Services\AttachmentStorage;
 use App\Services\IntegrationWrites;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +24,7 @@ class AgentApiController extends Controller
         $agent = AgentAccess::scope($request, 'agent:profile');
 
         return response()->json(['data' => [...$agent->publicState(), 'workspaceId' => DB::table('workspaces')->where('id', $agent->workspace_id)->value('uuid'),
-            'permissions' => AgentPermissions::normalize($agent->permissions), 'scopes' => json_decode($request->attributes->get('integration_token')->scopes, true),
+            'instructions' => $agent->instructions ?? '', 'permissions' => AgentPermissions::normalize($agent->permissions), 'scopes' => json_decode($request->attributes->get('integration_token')->scopes, true),
             'projectIds' => AgentAccess::projects($agent)->orderBy('uuid')->pluck('uuid')]]);
     }
 
@@ -55,23 +56,26 @@ class AgentApiController extends Controller
     {
         abort_if($operation !== 'attachments' && ! $request->isJson(), 415);
         abort_if($operation !== 'attachments' && strlen($request->getContent()) > 32768, 413);
-        $scope = ['reports' => 'agent:tasks:report', 'comments' => 'agent:comments:create', 'attachments' => 'agent:attachments:create'][$operation] ?? null;
+        $scope = ['reports' => 'agent:tasks:report', 'comments' => 'agent:comments:create', 'attachments' => 'agent:attachments:create', 'messages' => 'agent:messages:create'][$operation] ?? null;
         abort_unless($scope, 404);
         AgentAccess::scope($request, $scope);
         AgentAccess::assignment($request, $task);
         $allowed = match ($operation) {
-            'reports' => ['assignmentId', 'state', 'summary', 'pullRequestUrl', 'resultUrl'],
-            'comments' => ['assignmentId', 'text'],
-            default => ['assignmentId', 'text', 'attachments'],
+            'reports' => ['runId', 'assignmentId', 'state', 'summary', 'pullRequestUrl', 'resultUrl', 'errorCode'],
+            'messages', 'comments' => ['runId', 'assignmentId', 'text'],
+            default => ['runId', 'assignmentId', 'text', 'attachments'],
         };
         AgentAccess::fields($request, $allowed);
-        $rules = ['assignmentId' => ['required', 'uuid']];
+        $rules = ['assignmentId' => ['required', 'uuid'], 'runId' => ['sometimes', 'uuid']];
         if ($operation === 'reports') {
-            $rules += ['state' => ['required', Rule::in(['pending', 'running', 'submitted', 'failed', 'cancelled'])], 'summary' => ['required', 'string', 'max:5000', 'regex:/\S/u'], 'pullRequestUrl' => ['nullable', 'string', 'max:2048', 'url:https'], 'resultUrl' => ['nullable', 'string', 'max:2048', 'url:https']];
-        } elseif ($operation === 'comments') {
+            $rules += ['state' => ['required', Rule::in(['pending', 'running', 'submitted', 'failed', 'cancelled'])], 'summary' => ['required', 'string', 'max:5000', 'regex:/\S/u'], 'errorCode' => ['sometimes', 'nullable', 'string', 'max:100', 'regex:/^[a-z0-9_]+$/D'], 'pullRequestUrl' => ['nullable', 'string', 'max:2048', 'url:https'], 'resultUrl' => ['nullable', 'string', 'max:2048', 'url:https']];
+        } elseif (in_array($operation, ['comments', 'messages'], true)) {
             $rules += ['text' => ['required', 'string', 'max:5000', 'regex:/\S/u']];
         } else {
             $rules += ['text' => ['nullable', 'string', 'max:5000'], 'attachments' => ['required', 'array', 'min:1', 'max:5'], 'attachments.*' => ['required', 'file', 'max:20480', new SafeAttachment]];
+        }
+        if ($operation === 'messages') {
+            $rules['runId'] = ['required', 'uuid'];
         }
         $data = $request->validate($rules);
         foreach (['pullRequestUrl', 'resultUrl'] as $field) {
@@ -89,6 +93,16 @@ class AgentApiController extends Controller
             return app(IntegrationWrites::class)->run($request, function () use ($request, $task, $operation, $data, &$paths): array {
                 $row = AgentAccess::assignment($request, $task);
                 abort_unless(hash_equals($row->uuid, $data['assignmentId']), 409);
+                $run = null;
+                if (isset($data['runId'])) {
+                    $run = DB::table('agent_runs')->where('task_agent_assignment_id', $row->id)->where('uuid', $data['runId'])->firstOrFail();
+                    abort_unless(in_array($run->state, AgentRuns::ACTIVE, true), 409, 'Execution is no longer active.');
+                } elseif ($operation === 'reports') {
+                    $run = DB::table('agent_runs')->where('task_agent_assignment_id', $row->id)->whereIn('state', AgentRuns::ACTIVE)->orderBy('id')->first();
+                    abort_if(! $run && DB::table('agent_runs')->where('task_agent_assignment_id', $row->id)->exists(), 409, 'Execution is no longer active.');
+                    abort_if($run && $run->key_hash !== hash('sha256', 'initial-'.$row->uuid), 409, 'runId is required for follow-up executions.');
+                }
+                abort_if($run && $operation === 'reports' && $run->state === 'running' && $data['state'] === 'pending', 409);
                 $comment = Comment::create(['project_id' => $row->task->project_id, 'task_id' => $row->task_id, 'external_agent_id' => $row->external_agent_id,
                     'author_type' => 'agent', 'team_only' => true, 'text' => trim($data['summary'] ?? $data['text'] ?? '')]);
                 if ($operation === 'attachments') {
@@ -97,8 +111,17 @@ class AgentApiController extends Controller
                 $uuid = $comment->uuid;
                 if ($operation === 'reports') {
                     $uuid = (string) Str::uuid();
-                    DB::table('agent_reports')->insert(['uuid' => $uuid, 'task_agent_assignment_id' => $row->id, 'comment_id' => $comment->id, 'state' => $data['state'], 'pull_request_url' => $data['pullRequestUrl'] ?? null, 'result_url' => $data['resultUrl'] ?? null, 'created_at' => now()]);
+                    DB::table('agent_reports')->insert(['uuid' => $uuid, 'agent_run_id' => $run?->id, 'task_agent_assignment_id' => $row->id, 'comment_id' => $comment->id, 'state' => $data['state'], 'pull_request_url' => $data['pullRequestUrl'] ?? null, 'result_url' => $data['resultUrl'] ?? null, 'created_at' => now()]);
                     $row->update(['state' => $data['state']]);
+                }
+                if ($run) {
+                    $terminal = $operation === 'reports' && in_array($data['state'], ['submitted', 'failed', 'cancelled'], true);
+                    if ($operation === 'reports') {
+                        DB::table('agent_runs')->where('id', $run->id)->update(['state' => $data['state'] === 'pending' ? 'queued' : $data['state'], 'result_comment_id' => $comment->id,
+                            'error_code' => $data['state'] === 'failed' ? ($data['errorCode'] ?? 'executor_failed') : null, 'started_at' => $data['state'] === 'running' ? ($run->started_at ?? now()) : $run->started_at, 'completed_at' => $terminal ? now() : null, 'updated_at' => now()]);
+                    }
+                    DB::table('agent_messages')->insert(['uuid' => (string) Str::uuid(), 'agent_run_id' => $run->id, 'external_agent_id' => $row->external_agent_id, 'comment_id' => $comment->id, 'text' => $comment->text, 'created_at' => now()]);
+                    AgentRuns::event($row, $run, 'agent.message.created');
                 }
                 AgentAudit::task($request, $row, 'agent_'.$operation, ['commentId' => $comment->id, 'state' => $row->state]);
 

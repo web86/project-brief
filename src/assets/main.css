@@ -6771,3 +6771,29 @@ button.attachment-item:hover {
     padding: 10px 12px;
   }
 }
+
+.task-agent-work {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.task-agent-work > .task-agent-panel,
+.task-agent-work > .agent-conversation {
+  margin: 0;
+}
+.internal-agent-results {
+  padding: 14px 16px;
+  min-width: 0;
+}
+.internal-agent-results > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+@media (max-width: 1279px) {
+  .task-workspace .task-layout.has-developer {
+    grid-template-areas: 'details' 'manage' 'agents' 'notes' 'comments' 'history';
+  }
+  .task-workspace .task-agent-work {
+    grid-area: agents;
+  }
+}

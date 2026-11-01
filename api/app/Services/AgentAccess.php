@@ -8,12 +8,13 @@ use App\Models\Task;
 use App\Models\TaskAgentAssignment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AgentAccess
 {
     public const LEGACY_SCOPES = ['agent:profile', 'agent:tasks:read', 'agent:tasks:report', 'agent:comments:create', 'agent:attachments:create'];
 
-    public const SCOPES = [...self::LEGACY_SCOPES, 'agent:projects:tasks:read', 'agent:comments:read', 'agent:discussions:read', 'agent:team-chat:read', 'agent:attachments:read'];
+    public const SCOPES = [...self::LEGACY_SCOPES, 'agent:projects:tasks:read', 'agent:comments:read', 'agent:discussions:read', 'agent:team-chat:read', 'agent:attachments:read', 'agent:runs:read', 'agent:runs:write', 'agent:messages:read', 'agent:messages:create'];
 
     public static function identity(Request $request): ExternalAgent
     {
@@ -74,7 +75,7 @@ class AgentAccess
         return $task;
     }
 
-    public static function deliveryAllowed(object $endpoint, array $payload): bool
+    public static function deliveryAllowed(object $endpoint, array $payload, ?string $type = null): bool
     {
         $agent = ExternalAgent::where('workspace_id', $endpoint->workspace_id)->whereKey($endpoint->external_agent_id)->where('active', true)->first();
         if (! $agent || ($payload['agentId'] ?? null) !== $agent->uuid) {
@@ -82,7 +83,24 @@ class AgentAccess
         }
         $assignment = self::assignments($agent)->where('uuid', $payload['assignmentId'] ?? '')->whereHas('task', fn ($q) => $q->where('uuid', $payload['taskId'] ?? ''))->first();
 
-        return $assignment !== null;
+        if (! $assignment) {
+            return false;
+        }
+        if (isset($payload['runId'])) {
+            $run = DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->where('uuid', $payload['runId'])->first();
+            if (! $run) {
+                return false;
+            }
+            $type ??= $payload['type'] ?? null;
+            if ($type === 'agent.run.requested' && ! in_array($run->state, AgentRuns::ACTIVE, true)) {
+                return false;
+            }
+            if ($run->state === 'cancelled' && in_array($type, ['agent.run.requested', 'agent.message.created'], true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static function fields(Request $request, array $allowed): void

@@ -129,6 +129,28 @@ export function documentDefinition(document) {
         }),
       ]
       for (const field of task.content.filter((field) => field.block)) {
+        if (field.richText?.length) {
+          let number = 0
+          for (const block of field.richText) {
+            number = block.type === 'number' ? number + 1 : 0
+            const prefix = block.type === 'bullet' ? '• ' : number ? `${number}. ` : ''
+            nodes.push({
+              text: [
+                ...textRuns(prefix),
+                ...block.content.flatMap((span) =>
+                  textRuns(span.text).map((run) => ({
+                    ...run,
+                    bold: !!span.bold,
+                    italics: !!span.italic,
+                    ...(span.href ? { link: span.href } : {}),
+                  })),
+                ),
+              ],
+              margin: [0, 0, 0, 2],
+            })
+          }
+          continue
+        }
         const paragraphs = field.value.split(/\r\n|[\r\n\u000b\u000c\u0085\u2028\u2029]/u)
         for (const [index, paragraph] of paragraphs.entries()) {
           nodes.push(

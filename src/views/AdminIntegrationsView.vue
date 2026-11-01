@@ -10,6 +10,36 @@ import AppIcon from '../components/AppIcon.vue'
 import WorkspaceAgents from '../components/WorkspaceAgents.vue'
 import SsoSourceDialog from '../components/SsoSourceDialog.vue'
 const nav = useAdminNavigationStore()
+const tokenType = ref('integration'),
+  tokenAgent = ref(''),
+  tokenFilter = ref('all'),
+  agentFilter = ref('')
+const tokenScopes = computed(() =>
+  tokenType.value === 'agent'
+    ? state.value?.agents?.find((agent) => agent.id === tokenAgent.value)?.scopes || []
+    : state.value?.scopes || [],
+)
+watch([tokenType, tokenAgent], () => {
+  scopes.value = []
+  sourceId.value = ''
+  sourceName.value = ''
+})
+function manageKeys(id) {
+  tab.value = 'tokens'
+  tokenFilter.value = 'agent'
+  agentFilter.value = id
+  tokenType.value = 'agent'
+  tokenAgent.value = id
+  tokenCreateOpen.value = true
+  load()
+}
+const visibleTokens = computed(() =>
+  (state.value?.tokens || []).filter(
+    (token) =>
+      (tokenFilter.value === 'all' || token.type === tokenFilter.value) &&
+      (!agentFilter.value || token.agentId === agentFilter.value),
+  ),
+)
 const allowed = computed(() => !!nav.workspace && nav.user?.membershipRole === 'owner')
 const state = ref(null),
   tab = ref('tokens'),
@@ -133,7 +163,10 @@ function selectTab(value) {
   validation.value = null
   if (value === 'operations') void loadOperations()
 }
-const scopeLabel = (s) => t('integrations.scope_' + s.replace(':', '_'))
+const scopeLabel = (s) =>
+  s.startsWith('agent:')
+    ? t('collaboration.scope.' + s.replaceAll(':', '_'))
+    : t('integrations.scope_' + s.replace(':', '_'))
 const eventLabel = (s) => t('integrations.event_' + s.replaceAll('.', '_'))
 function date(value) {
   if (!value) return t('integrations.never')
@@ -171,7 +204,11 @@ async function load(current = revision) {
   if (current !== revision || attempt !== listRevision || version !== dataRevision) return false
   state.value = {
     ...result,
-    tokens: result.tokens.filter((token) => !revokedIds.has(token.id)),
+    tokens: result.tokens.map((token) =>
+      revokedIds.has(token.id)
+        ? { ...token, revokedAt: token.revokedAt || new Date().toISOString() }
+        : token,
+    ),
     webhooks: result.webhooks.filter((hook) => !deletedIds.has(hook.id)),
   }
   loadFailed.value = false
@@ -227,6 +264,10 @@ watch(
   async () => {
     const current = ++revision
     hideSecret()
+    tokenFilter.value = 'all'
+    agentFilter.value = ''
+    tokenType.value = 'integration'
+    tokenAgent.value = ''
     state.value = null
     tokenCreateOpen.value = false
     hookCreateOpen.value = false
@@ -335,7 +376,9 @@ async function revoke(token) {
     successKey: 'integrations.tokenRevoked',
     apply() {
       revokedIds.add(token.id)
-      state.value.tokens = state.value.tokens.filter((item) => item.id !== token.id)
+      state.value.tokens = state.value.tokens.map((item) =>
+        item.id === token.id ? { ...item, revokedAt: new Date().toISOString() } : item,
+      )
     },
   })
 }
@@ -376,6 +419,8 @@ async function createToken() {
   collapseAfterSecret = 'tokens'
   const result = await action('/tokens', 'POST', {
     name: name.value,
+    type: tokenType.value,
+    ...(tokenType.value === 'agent' ? { agentId: tokenAgent.value } : {}),
     scopes: scopes.value,
     expiresAt: expires.value ? expires.value + 'T23:59:59Z' : null,
     ...(usesSource.value && (sourceId.value || sourceName.value.trim() || requiresSource.value)
@@ -521,7 +566,7 @@ async function confirmAction(key, path, method = 'POST') {
           role="tabpanel"
           aria-labelledby="integration-tab-agents"
         >
-          <WorkspaceAgents />
+          <WorkspaceAgents @credentials="manageKeys" @changed="load" />
         </section>
         <section
           v-show="tab === 'tokens'"
@@ -531,10 +576,32 @@ async function confirmAction(key, path, method = 'POST') {
         >
           <section class="surface integration-list">
             <h2>{{ t('integrations.tokens') }}</h2>
-            <p v-if="!activeTokens.length" class="muted">{{ t('integrations.empty') }}</p>
-            <article v-for="token in activeTokens" :key="token.id" class="integration-item">
+            <div class="credential-filters">
+              <label class="field"
+                >{{ t('collaboration.keyType')
+                }}<select v-model="tokenFilter" @change="agentFilter = ''">
+                  <option value="all">{{ t('collaboration.all') }}</option>
+                  <option value="integration">{{ t('collaboration.integration') }}</option>
+                  <option value="agent">{{ t('collaboration.agent') }}</option>
+                </select></label
+              ><label v-if="tokenFilter === 'agent'" class="field"
+                >{{ t('agents.executor')
+                }}<select v-model="agentFilter">
+                  <option value="">{{ t('collaboration.all') }}</option>
+                  <option v-for="agent in state.agents" :key="agent.id" :value="agent.id">
+                    {{ agent.name }}
+                  </option>
+                </select></label
+              >
+            </div>
+            <p v-if="!visibleTokens.length" class="muted">{{ t('integrations.empty') }}</p>
+            <article v-for="token in visibleTokens" :key="token.id" class="integration-item">
               <div>
                 <h3>{{ token.name }}</h3>
+                <p class="small muted">
+                  {{ t('collaboration.' + token.type)
+                  }}<span v-if="token.agentName"> · {{ token.agentName }}</span>
+                </p>
                 <label
                   v-if="token.scopes.includes('projects:provision')"
                   class="integration-toggle"
@@ -587,13 +654,37 @@ async function confirmAction(key, path, method = 'POST') {
             <p v-if="validation && tab === 'tokens'" class="field-error" role="alert">
               {{ validationMessage }}
             </p>
+            <label class="field"
+              >{{ t('collaboration.keyType')
+              }}<select v-model="tokenType" :disabled="busy">
+                <option value="integration">{{ t('collaboration.integration') }}</option>
+                <option value="agent">{{ t('collaboration.agent') }}</option>
+              </select></label
+            >
+            <label v-if="tokenType === 'agent'" class="field"
+              >{{ t('agents.executor')
+              }}<select v-model="tokenAgent" :disabled="busy" required>
+                <option disabled value="">{{ t('agents.choose') }}</option>
+                <option v-for="agent in state.agents" :key="agent.id" :value="agent.id">
+                  {{ agent.name }}
+                </option>
+              </select></label
+            >
+            <button
+              v-if="tokenType === 'agent' && !state.agents.length"
+              type="button"
+              class="text-button"
+              @click="selectTab('agents')"
+            >
+              {{ t('agents.create') }}
+            </button>
             <label class="field" for="token-name"
               >{{ t('integrations.name')
               }}<input id="token-name" v-model="name" maxlength="100" required :disabled="busy"
             /></label>
             <fieldset class="integration-choices">
               <legend>{{ t('integrations.scopes') }}</legend>
-              <label v-for="scope in state.scopes" :key="scope"
+              <label v-for="scope in tokenScopes" :key="scope"
                 ><input v-model="scopes" type="checkbox" :value="scope" :disabled="busy" />{{
                   scopeLabel(scope)
                 }}
@@ -1307,5 +1398,23 @@ async function confirmAction(key, path, method = 'POST') {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+</style>
+
+<style scoped>
+.credential-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-block: 12px;
+}
+.credential-filters .field {
+  min-width: 160px;
+  flex: 1;
+}
+.integration-choices label small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 </style>

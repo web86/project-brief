@@ -17,7 +17,7 @@ export function safeAgreementUrl(value) {
 }
 
 // Only text and a fixed set of formatting marks cross the API boundary.
-export function readAgreementEditor(root) {
+export function readAgreementEditor(root, { preserveEmpty = false } = {}) {
   const blocks = []
   const types = {
     P: 'paragraph',
@@ -56,6 +56,10 @@ export function readAgreementEditor(root) {
       return
     }
     const type = types[node.tagName] || fallback
+    if (preserveEmpty && ['P', 'DIV'].includes(node.tagName) && node.childNodes.length === 0) {
+      blocks.push({ type: 'paragraph', content: [{ text: '' }] })
+      return
+    }
     let content = []
     const flush = () => {
       if (content.length) blocks.push({ type, content })
@@ -75,7 +79,11 @@ export function readAgreementEditor(root) {
     flush()
   }
   for (const node of root.childNodes) append(node)
-  return blocks.filter((block) => block.content.some((span) => span.text.trim()))
+  return blocks.filter(
+    (block) =>
+      (preserveEmpty && block.type === 'paragraph') ||
+      block.content.some((span) => span.text.trim()),
+  )
 }
 export function safeFooterUrl(value, email = false) {
   if (typeof value !== 'string' || /[\s\\]/.test(value)) return null

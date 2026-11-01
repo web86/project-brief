@@ -115,6 +115,9 @@ class WebhookProcessor
             }
             $status = $code === null ? 'succeeded' : ($retry && $attempt < self::MAX_ATTEMPTS ? 'pending' : 'failed');
             DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => $status, 'http_status' => $httpStatus, 'error_code' => $code, 'available_at' => now()->addSeconds(min(3600, 30 * (2 ** ($attempt - 1)))), 'updated_at' => now()]);
+            if ($status === 'succeeded' && isset($payload['runId'])) {
+                DB::table('agent_runs')->where('uuid', $payload['runId'])->whereNull('delivered_at')->update(['delivered_at' => now()]);
+            }
             DB::table('webhook_attempts')->insert(['webhook_delivery_id' => $delivery->id, 'attempt' => $attempt, 'status' => $status, 'http_status' => $httpStatus, 'error_code' => $code, 'duration_ms' => (int) ((microtime(true) - $started) * 1000), 'created_at' => now()]);
 
             return ['delivery' => $delivery->uuid, 'status' => $status, 'attempt' => $attempt, 'httpStatus' => $httpStatus, 'code' => $code];

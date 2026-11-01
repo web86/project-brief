@@ -10,6 +10,7 @@ class AgentPermissions
     public const DEFAULTS = ['assignedTasks' => true, 'projectTasks' => false, 'taskComments' => false, 'clientDiscussions' => false, 'teamChat' => false, 'taskAttachments' => false, 'discussionAttachments' => false, 'reports' => true, 'comments' => true, 'attachments' => true];
 
     public const SCOPE_PERMISSIONS = [
+        'agent:runs:read' => ['assignedTasks'], 'agent:runs:write' => ['reports'], 'agent:messages:read' => ['assignedTasks'], 'agent:messages:create' => ['comments'],
         'agent:profile' => [], 'agent:tasks:read' => ['assignedTasks'], 'agent:tasks:report' => ['reports'], 'agent:comments:create' => ['comments'], 'agent:attachments:create' => ['attachments'],
         'agent:projects:tasks:read' => ['projectTasks'], 'agent:comments:read' => ['taskComments'], 'agent:discussions:read' => ['clientDiscussions'], 'agent:team-chat:read' => ['teamChat'], 'agent:attachments:read' => ['taskAttachments', 'discussionAttachments'],
     ];

@@ -5,6 +5,7 @@ import { onMounted, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 const props = defineProps({
   open: Boolean,
+  dismissOnBackdrop: { type: Boolean, default: true },
   title: String,
   id: { type: String, default: 'dialog-title' },
 })
@@ -24,7 +25,7 @@ watch(() => props.open, syncDialog)
     class="modal"
     :aria-labelledby="id"
     @cancel.prevent="emit('close')"
-    @click="(event) => event.target === dialog && emit('close')"
+    @click="(event) => dismissOnBackdrop && event.target === dialog && emit('close')"
   >
     <div class="modal-content">
       <div class="modal-header">

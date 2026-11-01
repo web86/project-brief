@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, useId } from 'vue'
+import { computed, onBeforeUnmount, useId, ref } from 'vue'
 import { t, formatApiError } from '../i18n/index.js'
 import { useIdeaAssistant } from '../services/ideaAssistant.js'
 import BaseDialog from './BaseDialog.vue'
@@ -31,10 +31,22 @@ const {
   apply: (values) => emit('apply', values),
 })
 const hintId = useId()
+const noticeOpen = ref(false)
+const noticeDismissed = ref(false)
+function closeNotice(event) {
+  if (event.key === 'Escape') {
+    noticeOpen.value = false
+    noticeDismissed.value = true
+    event.stopPropagation()
+  }
+}
 const hasDescription = computed(() => !!props.source.description?.trim())
 const unavailable = computed(() => props.disabled || pending.value || !hasDescription.value)
 function openAssistant() {
-  if (!unavailable.value) show()
+  if (!unavailable.value) {
+    show()
+    generate()
+  }
 }
 function requestSuggestion() {
   if (!unavailable.value) generate()
@@ -45,23 +57,48 @@ function applySuggestion() {
 onBeforeUnmount(dispose)
 </script>
 <template>
-  <span class="ai-trigger">
-    <button
-      type="button"
-      class="ai-button"
-      :disabled="disabled || pending"
-      :aria-disabled="unavailable"
-      :aria-describedby="!hasDescription ? hintId : undefined"
-      @click="openAssistant"
+  <div class="ai-action-row">
+    <span class="ai-trigger">
+      <button
+        type="button"
+        class="ai-button"
+        :disabled="disabled || pending"
+        :aria-disabled="unavailable"
+        :aria-describedby="!hasDescription ? hintId : undefined"
+        @click="openAssistant"
+      >
+        <AppIcon name="sparkles" :size="17" />{{ t('ai.improve') }}
+      </button>
+      <span v-if="!hasDescription" :id="hintId" class="ai-trigger-hint" role="tooltip">{{
+        t('ai.describeFirst')
+      }}</span> </span
+    ><span class="small muted">{{ t('collaboration.improveHint') }}</span>
+    <span
+      class="ai-disclosure-control"
+      :class="{ dismissed: noticeDismissed }"
+      @keydown="closeNotice"
+      @mouseenter="noticeDismissed = false"
+      @focusin="noticeDismissed = false"
+      ><button
+        type="button"
+        class="icon-button"
+        :aria-label="t('ai.dataUsage')"
+        :aria-describedby="hintId + '-disclosure'"
+        @click="noticeOpen = !noticeOpen"
+      >
+        <AppIcon name="info" :size="18" /></button
+      ><span
+        :id="hintId + '-disclosure'"
+        role="tooltip"
+        class="ai-disclosure-tooltip"
+        :class="{ visible: noticeOpen }"
+        >{{ t('ai.disclosure') }} {{ t('ai.instruction') }}</span
+      ></span
     >
-      <AppIcon name="sparkles" :size="17" />{{ t('ai.improve') }}
-    </button>
-    <span v-if="!hasDescription" :id="hintId" class="ai-trigger-hint" role="tooltip">{{
-      t('ai.describeFirst')
-    }}</span>
-  </span>
+  </div>
   <BaseDialog
     class="ai-dialog"
+    :dismiss-on-backdrop="!pending"
     :open="open"
     :title="t(response ? 'ai.ready' : 'ai.title')"
     id="ai-dialog-title"
@@ -70,10 +107,6 @@ onBeforeUnmount(dispose)
     <div class="ai-dialog-body">
       <p v-if="!context.apiMode" class="dialog-note">{{ t('ai.demo') }}</p>
       <template v-else>
-        <div v-if="!response && !pending" class="ai-introduction">
-          <p>{{ t('ai.explanation') }}</p>
-          <p class="muted small">{{ t('ai.instruction') }}</p>
-        </div>
         <div v-if="pending" class="ai-working" role="status" aria-live="polite">
           <AppIcon name="sparkles" :size="22" /><span>{{ t('ai.generating') }}</span>
         </div>
@@ -150,3 +183,45 @@ onBeforeUnmount(dispose)
     </template>
   </BaseDialog>
 </template>
+
+<style scoped>
+.ai-action-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+.ai-action-row .ai-button {
+  padding: 10px 14px;
+  font-size: 0.95rem;
+}
+.ai-disclosure-control {
+  position: relative;
+}
+.ai-disclosure-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  bottom: 100%;
+  inset-inline-end: 0;
+  width: min(300px, 75vw);
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #0002;
+  font-size: 0.8rem;
+}
+.ai-disclosure-control:hover .ai-disclosure-tooltip,
+.ai-disclosure-control:focus-within .ai-disclosure-tooltip,
+.ai-disclosure-tooltip.visible {
+  display: block;
+}
+</style>
+
+<style scoped>
+.ai-disclosure-control.dismissed .ai-disclosure-tooltip {
+  display: none !important;
+}
+</style>

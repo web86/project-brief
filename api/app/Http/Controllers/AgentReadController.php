@@ -59,7 +59,7 @@ class AgentReadController extends Controller
         AgentAccess::scope($request, 'agent:comments:read');
         $internal = AgentAccess::tokenAllows($request, 'agent:team-chat:read');
 
-        return Comment::withoutGlobalScope('public_channel')->where(fn ($project) => $project->where('project_id', $task->project_id)->orWhereNull('project_id'))->where('task_id', $task->id)->when(! $internal, fn ($q) => $q->where('team_only', false));
+        return Comment::withoutGlobalScope('public_channel')->where(fn ($project) => $project->where('project_id', $task->project_id)->orWhereNull('project_id'))->whereNotExists(fn ($q) => $q->selectRaw('1')->from('agent_messages')->whereColumn('agent_messages.comment_id', 'comments.id'))->where('task_id', $task->id)->when(! $internal, fn ($q) => $q->where('team_only', false));
     }
 
     private function commentData(Comment $comment): array

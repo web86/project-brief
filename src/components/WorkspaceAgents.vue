@@ -1,11 +1,6 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
-import {
-  agentIcon,
-  agentCredentials,
-  usableAgentToken,
-  agentTimestamp,
-} from '../services/agentPresentation.js'
+import { agentIcon, agentCredentials, usableAgentToken } from '../services/agentPresentation.js'
 import { formatDate } from '../constants/project.js'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
@@ -15,21 +10,20 @@ import BaseDialog from './BaseDialog.vue'
 import AppIcon from './AppIcon.vue'
 import LoadingButton from './LoadingButton.vue'
 const nav = useAdminNavigationStore()
+const emit = defineEmits(['credentials', 'changed'])
 const state = ref(null),
   error = ref(''),
   busy = ref(false),
   open = ref(false),
   secret = ref(''),
   editing = ref(null)
-const draft = ref({ permissions: {}, kind: 'ai', projectIds: [] }),
-  scopes = ref([])
+const draft = ref({ permissions: {}, kind: 'ai', projectIds: [] })
 const projectSearch = ref(''),
   projectOpen = ref(true),
   guideOpen = ref(false),
   baseline = ref(''),
   connectOpen = ref(false),
-  createdAgent = ref(''),
-  expiresAt = ref('')
+  createdAgent = ref('')
 const projectChoices = computed(() =>
   (state.value?.projects || []).filter((project) =>
     project.name.toLocaleLowerCase().includes(projectSearch.value.trim().toLocaleLowerCase()),
@@ -53,15 +47,6 @@ const extraPermissions = computed(
     readPermissions.filter((key) => key !== 'assignedTasks' && draft.value.permissions?.[key])
       .length,
 )
-const permittedScopes = computed(() =>
-  (state.value?.scopes || []).filter((scope) => {
-    const keys = state.value?.scopePermissions?.[scope] || []
-    return !keys.length || keys.some((key) => draft.value.permissions?.[key])
-  }),
-)
-watch(permittedScopes, (allowed) => {
-  scopes.value = scopes.value.filter((scope) => allowed.includes(scope))
-})
 const activeTokenCount = computed(
   () => (editing.value?.tokens || []).filter((token) => usableAgentToken(token)).length,
 )
@@ -105,26 +90,22 @@ onBeforeUnmount(() => {
   secret.value = ''
 })
 function configure(agent = null, connect = false) {
+  if (connect && agent) {
+    emit('credentials', agent.id)
+    return
+  }
   editing.value = agent
   draft.value = {
     name: agent?.name || '',
     description: agent?.description || '',
+    instructions: agent?.instructions || '',
     kind: agent?.kind || 'ai',
     active: agent?.active ?? true,
     projectIds: [...(agent?.projectIds || [])],
     webhookUrl: agent?.webhook?.url || '',
     permissions: { ...(state.value?.permissionDefaults || {}), ...(agent?.permissions || {}) },
   }
-  scopes.value = [
-    ...(agent?.allowedScopes ||
-      state.value?.scopes?.filter((scope) => {
-        const keys = state.value?.scopePermissions?.[scope] || []
-        return !keys.length || keys.some((key) => draft.value.permissions[key])
-      }) ||
-      []),
-  ]
   connectOpen.value = connect
-  expiresAt.value = ''
   projectSearch.value = ''
   projectOpen.value = !agent
   baseline.value = fingerprint()
@@ -143,6 +124,7 @@ async function action(path, method, body, close = false) {
     if (!path && method === 'POST') createdAgent.value = result.data.id
     secret.value = result.secret || result.webhookSecret || ''
     await load(version)
+    emit('changed')
     if (editing.value && version === revision)
       editing.value = state.value.data.find((a) => a.id === editing.value.id) || null
   } catch (cause) {
@@ -150,6 +132,10 @@ async function action(path, method, body, close = false) {
   } finally {
     if (version === revision) busy.value = false
   }
+}
+function manageCredentials() {
+  open.value = false
+  emit('credentials', editing.value.id)
 }
 function remove(agent) {
   if (window.confirm(t('agents.confirmDelete', { name: agent.name })))
@@ -169,19 +155,6 @@ async function connectCreated() {
   } catch (cause) {
     error.value = formatApiError(cause)
   }
-}
-function issueToken(replace = false) {
-  if (replace && !window.confirm(t('agents.rotateWarning'))) return
-  action(
-    '/' + editing.value.id + '/tokens',
-    'POST',
-    {
-      scopes: scopes.value,
-      expiresAt: expiresAt.value ? new Date(expiresAt.value).toISOString() : null,
-      replace,
-    },
-    true,
-  )
 }
 async function copySecret() {
   try {
@@ -404,12 +377,22 @@ async function copySecret() {
                 </p>
               </fieldset>
             </div>
-            <p class="small muted">{{ t('agents.grantHint') }}</p>
+            <p class="small muted">{{ t('collaboration.autoMembership') }}</p>
           </section>
           <p class="small muted">{{ t('agents.consent') }}</p>
+          <label class="field" for="agent-instructions"
+            >{{ t('collaboration.agentInstruction')
+            }}<textarea
+              id="agent-instructions"
+              v-model="draft.instructions"
+              rows="3"
+              maxlength="10000"
+              :disabled="busy"
+            />
+          </label>
           <details class="agent-permissions" data-agent-permissions>
             <summary>
-              <AppIcon name="shield" :size="17" /> {{ t('agents.permissionsTitle') }}
+              <AppIcon name="shield" :size="17" /> {{ t('collaboration.permissionCeiling') }}
               <span class="status-pill">{{
                 t('agents.extraCount', { count: extraPermissions })
               }}</span>
@@ -460,81 +443,15 @@ async function copySecret() {
               :disabled="busy"
           /></label>
           <p v-if="!editing" class="small muted">{{ t('agents.saveBeforeKey') }}</p>
-          <template v-else>
-            <p>{{ t('agents.validTokenCount', { count: activeTokenCount }) }}</p>
-            <p class="small muted">{{ t('agents.once') }} {{ t('agents.tokenCeiling') }}</p>
-            <p v-if="fingerprint() !== baseline" class="small muted">
-              {{ t('agents.savePermissionsFirst') }}
+          <template v-else
+            ><p>{{ t('agents.validTokenCount', { count: activeTokenCount }) }}</p>
+            <p v-if="editing.lastActivityAt" class="small muted">
+              {{ t('agents.lastActivity') }}: {{ formatDate(editing.lastActivityAt) }}
             </p>
-            <fieldset class="project-choices" :disabled="busy || fingerprint() !== baseline">
-              <legend>{{ t('agents.scopes') }}</legend>
-              <label v-for="scope in permittedScopes" :key="scope"
-                ><input v-model="scopes" type="checkbox" :value="scope" /><span>{{
-                  scope
-                }}</span></label
-              >
-            </fieldset>
-            <label class="field" for="agent-token-expiry"
-              >{{ t('agents.tokenExpiry')
-              }}<input
-                id="agent-token-expiry"
-                type="datetime-local"
-                v-model="expiresAt"
-                :disabled="busy"
-            /></label>
-            <div class="team-actions">
-              <button
-                type="button"
-                class="button secondary"
-                :disabled="busy || !scopes.length || !editing.active || fingerprint() !== baseline"
-                @click="issueToken()"
-              >
-                {{ t('agents.createKey') }}</button
-              ><button
-                v-if="activeTokenCount"
-                type="button"
-                class="text-button"
-                :disabled="busy || !scopes.length || !editing.active || fingerprint() !== baseline"
-                @click="issueToken(true)"
-              >
-                {{ t('agents.reissueKey') }}
-              </button>
-            </div>
-            <div class="agent-token-list">
-              <article v-for="token in editing.tokens" :key="token.id" class="agent-token-row">
-                <code>{{ token.id }}</code
-                ><span>{{
-                  t(
-                    token.revokedAt
-                      ? 'agents.revoked'
-                      : usableAgentToken(token)
-                        ? 'agents.active'
-                        : 'agents.expiredKey',
-                  )
-                }}</span
-                ><span
-                  >{{ t('agents.tokenExpiry') }}:
-                  {{
-                    token.expiresAt
-                      ? formatDate(agentTimestamp(token.expiresAt))
-                      : t('agents.noExpiry')
-                  }}</span
-                ><span v-if="token.lastUsedAt"
-                  >{{ t('agents.tokenLastUse') }}:
-                  {{ formatDate(agentTimestamp(token.lastUsedAt)) }}</span
-                ><span class="agent-token-scopes">{{ token.scopes.join(' · ') }}</span
-                ><button
-                  v-if="!token.revokedAt"
-                  type="button"
-                  class="text-button danger"
-                  :disabled="busy"
-                  @click="action('/' + editing.id + '/tokens/' + token.id, 'DELETE')"
-                >
-                  {{ t('agents.revoke') }}
-                </button>
-              </article>
-            </div>
-          </template>
+            <button type="button" class="button secondary" @click="manageCredentials">
+              {{ t('collaboration.manageKeys') }}
+            </button></template
+          >
         </details>
       </div>
       <template #footer

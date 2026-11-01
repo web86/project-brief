@@ -26,7 +26,7 @@ class AgentAudit
         $agent = $assignment->agent;
         $assignment->task->history()->create(['actor_type' => 'agent', 'event_type' => $operation,
             'meta' => ['agentId' => $agent->uuid, 'agentName' => $agent->name, 'assignmentId' => $assignment->uuid,
-                ...(in_array($operation, ['agent_reports', 'agent_comments', 'agent_attachments'], true) ? ['teamOnly' => true] : []), 'credentialId' => $request->attributes->get('integration_token')?->uuid, ...$meta], 'created_at' => now()]);
+                ...(in_array($operation, ['agent_reports', 'agent_comments', 'agent_attachments', 'agent_messages'], true) ? ['teamOnly' => true] : []), 'credentialId' => $request->attributes->get('integration_token')?->uuid, ...$meta], 'created_at' => now()]);
         $assignment->task->touch();
         app(LiveSync::class)->record($agent->workspace_id, $assignment->task->project_id, 'project');
     }

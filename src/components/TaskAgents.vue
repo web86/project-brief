@@ -5,10 +5,14 @@ import { t, formatApiError } from '../i18n/index.js'
 import { agentIcon, latestAgentReport } from '../services/agentPresentation.js'
 import { formatDate } from '../constants/project.js'
 import AppIcon from './AppIcon.vue'
+import BaseDialog from './BaseDialog.vue'
+import AttachmentList from './AttachmentList.vue'
+const report = ref(null)
 const props = defineProps({ task: Object, projectId: String, agents: Array })
 const emit = defineEmits(['changed', 'share'])
 const available = computed(() => props.agents || []),
   selected = ref(''),
+  instruction = ref(''),
   busy = ref(false),
   error = ref('')
 const assignments = computed(() =>
@@ -33,15 +37,23 @@ watch(
   },
 )
 onBeforeUnmount(() => revision++)
+function shareReport() {
+  emit('share', report.value)
+  report.value = null
+}
 async function assign(agentId, method) {
   if (busy.value) return
   const version = revision
   busy.value = true
   error.value = ''
   try {
-    await api.request(`/api/admin/tasks/${props.task.id}/agents`, { method, body: { agentId } })
+    await api.request(`/api/admin/tasks/${props.task.id}/agents`, {
+      method,
+      body: { agentId, ...(method === 'POST' ? { instruction: instruction.value } : {}) },
+    })
     if (version === revision) {
       selected.value = ''
+      instruction.value = ''
       emit('changed')
     }
   } catch (cause) {
@@ -103,9 +115,15 @@ async function assign(agentId, method) {
             target="_blank"
             rel="noopener noreferrer"
             >{{ t('agents.result') }}</a
-          ><a v-if="row.latestReport.commentId" :href="'#comment-' + row.latestReport.commentId">{{
-            t('agents.fullReport')
-          }}</a>
+          ><button
+            v-if="row.latestReport.commentId"
+            class="text-button"
+            @click="
+              report = task.comments.find((comment) => comment.id === row.latestReport.commentId)
+            "
+          >
+            {{ t('agents.fullReport') }}
+          </button>
           <button
             v-if="
               task.canShareAgentResults && row.latestReport.teamOnly && row.latestReport.commentId
@@ -139,6 +157,10 @@ async function assign(agentId, method) {
             {{ agent.name }}
           </option>
         </select></label
+      >
+      <label class="field agent-instruction-field"
+        >{{ t('collaboration.instruction')
+        }}<textarea v-model="instruction" rows="2" maxlength="5000" :disabled="busy" /></label
       ><button class="button secondary" :disabled="busy || !selected">
         {{ t('agents.assignAction') }}
       </button>
@@ -149,6 +171,26 @@ async function assign(agentId, method) {
     <p v-if="!assignments.length && !choices.length" class="small muted">
       {{ t('agents.noExecutors') }}
     </p>
+    <BaseDialog
+      :open="!!report"
+      :title="t('agents.fullReport')"
+      id="agent-full-report"
+      @close="report = null"
+      ><div class="agent-full-report-body">
+        <p class="preserve-lines">{{ report?.text }}</p>
+        <AttachmentList v-if="report?.attachments?.length" :attachments="report.attachments" />
+      </div>
+      <template #footer
+        ><button class="button secondary" @click="report = null">{{ t('ai.close') }}</button
+        ><button
+          v-if="task.canShareAgentResults && report?.teamOnly"
+          class="button primary"
+          @click="shareReport"
+        >
+          {{ t('agents.shareClient') }}
+        </button></template
+      ></BaseDialog
+    >
   </section>
 </template>
 <style scoped>
@@ -227,5 +269,20 @@ async function assign(agentId, method) {
   flex: 1;
   min-width: 0;
   margin: 0;
+}
+</style>
+
+<style scoped>
+.agent-instruction-field {
+  flex-basis: 100% !important;
+}
+</style>
+
+<style scoped>
+.agent-full-report-body {
+  padding: 16px 24px;
+  max-height: 60dvh;
+  overflow: auto;
+  overflow-wrap: anywhere;
 }
 </style>

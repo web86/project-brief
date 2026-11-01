@@ -1,4 +1,87 @@
 export default {
+  collaboration: {
+    moreMessages: 'Earlier messages',
+    moreHistory: 'Earlier runs',
+    scopeBoundary: 'Applies only to authorized workspace resources.',
+    dialogue: 'Executor dialogue',
+    privateHint: 'Only the authorized team and assigned executor can access this conversation.',
+    instruction: 'Agent instruction',
+    requestRun: 'Send instruction',
+    history: 'Run history',
+    internalResults: 'Internal agent results',
+    manageKeys: 'Manage API keys',
+    agentInstruction: 'Executor instructions',
+    projectInstruction: 'AI executor instructions',
+    contextHint:
+      'Project stack, report language and constraints. Do not include secrets or client contacts.',
+    autoMembership: 'The agent will be added to the teams of newly selected projects',
+    permissionCeiling: 'Registration permission ceiling',
+    keyType: 'API key type',
+    all: 'All',
+    integration: 'Integration',
+    agent: 'External executor',
+    improveHint: 'Helps describe the task more clearly for the developer',
+    undo: 'Undo',
+    redo: 'Redo',
+    author: {
+      human: 'Team',
+      agent: 'Executor',
+    },
+    state: {
+      queued: 'Request saved',
+      delivered: 'Delivered to executor',
+      running: 'Running',
+      submitted: 'Result received',
+      failed: 'Failed',
+      cancelled: 'Cancelled',
+    },
+    scope: {
+      agent_profile: 'Executor profile',
+      agent_tasks_read: 'Read assigned tasks',
+      agent_projects_tasks_read: 'Read tasks in allowed projects',
+      agent_tasks_report: 'Submit reports',
+      agent_comments_read: 'Read task comments',
+      agent_comments_create: 'Create comments',
+      agent_discussions_read: 'Read client discussions',
+      'agent_team-chat_read': 'Read internal team chat',
+      agent_attachments_read: 'Read authorized files',
+      agent_attachments_create: 'Upload results',
+      agent_runs_read: 'Read runs and execution context',
+      agent_runs_write: 'Acknowledge execution start',
+      agent_messages_read: 'Read private dialogue',
+      agent_messages_create: 'Reply in private dialogue',
+    },
+    scopeHint: {
+      agent_profile:
+        'Executor profile. Only within explicitly authorized resources and assignments.',
+      agent_tasks_read:
+        'Read assigned tasks. Only within explicitly authorized resources and assignments.',
+      agent_projects_tasks_read:
+        'Read tasks in allowed projects. Only within explicitly authorized resources and assignments.',
+      agent_tasks_report:
+        'Submit reports. Only within explicitly authorized resources and assignments.',
+      agent_comments_read:
+        'Read task comments. Only within explicitly authorized resources and assignments.',
+      agent_comments_create:
+        'Create comments. Only within explicitly authorized resources and assignments.',
+      agent_discussions_read:
+        'Read client discussions. Only within explicitly authorized resources and assignments.',
+      'agent_team-chat_read':
+        'Read internal team chat. Only within explicitly authorized resources and assignments.',
+      agent_attachments_read:
+        'Read authorized files. Only within explicitly authorized resources and assignments.',
+      agent_attachments_create:
+        'Upload results. Only within explicitly authorized resources and assignments.',
+      agent_runs_read:
+        'Read runs and execution context. Only within explicitly authorized resources and assignments.',
+      agent_runs_write:
+        'Acknowledge execution start. Only within explicitly authorized resources and assignments.',
+      agent_messages_read:
+        'Read private dialogue. Only within explicitly authorized resources and assignments.',
+      agent_messages_create:
+        'Reply in private dialogue. Only within explicitly authorized resources and assignments.',
+    },
+  },
   agents: {
     lastExecution: 'Last reported execution',
     permissionsTitle: 'Permissions',
@@ -112,8 +195,7 @@ export default {
     description: 'Description',
 
     allowedProjects: 'Allowed projects',
-    consent:
-      'The external provider will receive assigned task content. Select projects only if you authorize this transfer. Add the agent to the project team, then assign tasks.',
+    consent: 'The external executor receives the authorized task context in selected projects.',
     webhook: 'Webhook URL (optional)',
     active: 'Active',
     disabled: 'Disabled',

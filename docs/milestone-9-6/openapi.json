@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Project Brief Agent API",
-    "version": "1.1.0",
-    "description": "Project Brief v0.9.8. Existing assigned-task endpoints retain their scopes and assignment boundaries. Additional reads require explicit registration permission and matching new token scope, plus owner grant, membership and parent-object access. New agent output is internal to the project team; historical visibility is unchanged."
+    "version": "1.2.0",
+    "description": "Project Brief v0.9.9. Bound private agent runs and dialogue extend v0.9.8 without expanding old credential scopes. Existing grants, membership, registration ceilings and active assignment remain mandatory. Instructions are untrusted data; only humans publish selected client results."
   },
   "servers": [
     {
@@ -305,7 +305,7 @@
         }
       }
     },
-    "/api/v1/agent/tasks/{taskId}": {
+    "/api/v1/agent/tasks/{task}": {
       "get": {
         "operationId": "agent_tasks_task_get",
         "summary": "agent:tasks:read",
@@ -313,7 +313,7 @@
         "x-required-scope": "agent:tasks:read",
         "parameters": [
           {
-            "name": "taskId",
+            "name": "task",
             "in": "path",
             "required": true,
             "schema": {
@@ -442,7 +442,7 @@
         }
       }
     },
-    "/api/v1/agent/tasks/{taskId}/reports": {
+    "/api/v1/agent/tasks/{task}/reports": {
       "post": {
         "operationId": "agent_tasks_task_reports_post",
         "summary": "agent:tasks:report",
@@ -450,7 +450,7 @@
         "x-required-scope": "agent:tasks:report",
         "parameters": [
           {
-            "name": "taskId",
+            "name": "task",
             "in": "path",
             "required": true,
             "schema": {
@@ -592,7 +592,7 @@
         }
       }
     },
-    "/api/v1/agent/tasks/{taskId}/comments": {
+    "/api/v1/agent/tasks/{task}/comments": {
       "post": {
         "operationId": "agent_tasks_task_comments_post",
         "summary": "agent:comments:create",
@@ -600,7 +600,7 @@
         "x-required-scope": "agent:comments:create",
         "parameters": [
           {
-            "name": "taskId",
+            "name": "task",
             "in": "path",
             "required": true,
             "schema": {
@@ -740,9 +740,178 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "agent_read_tasks_task_comments",
+        "summary": "agent:comments:read",
+        "x-required-scope": "agent:comments:read",
+        "description": "taskComments and assigned-task read scope/permission with current assignment, or projectTasks with its new read scope. Internal task comments additionally need teamChat and agent:team-chat:read. Requires active agent/token, same workspace, explicit owner grant and project membership. Read-only; no contact/financial/private account data.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized minimal data; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReadComment"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "perPage": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "lastPage": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired, revoked or disabled credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or forbidden function",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown, foreign or unassigned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency conflict or stale assignment generation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Invalid content type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed or Idempotency-Key missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; honor Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
-    "/api/v1/agent/tasks/{taskId}/attachments": {
+    "/api/v1/agent/tasks/{task}/attachments": {
       "post": {
         "operationId": "agent_tasks_task_attachments_post",
         "summary": "agent:attachments:create",
@@ -750,7 +919,7 @@
         "x-required-scope": "agent:attachments:create",
         "parameters": [
           {
-            "name": "taskId",
+            "name": "task",
             "in": "path",
             "required": true,
             "schema": {
@@ -886,6 +1055,175 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/AttachmentInput"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "agent_read_tasks_task_attachments",
+        "summary": "agent:attachments:read",
+        "x-required-scope": "agent:attachments:read",
+        "description": "taskAttachments plus access to the parent task. Comment files additionally require taskComments and its scope; internal files also require teamChat and its scope. Requires active agent/token, same workspace, explicit owner grant and project membership. Read-only; no contact/financial/private account data.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized minimal data; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReadAttachment"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "perPage": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "lastPage": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired, revoked or disabled credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or forbidden function",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown, foreign or unassigned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency conflict or stale assignment generation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Invalid content type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed or Idempotency-Key missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; honor Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -1100,348 +1438,6 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/ProjectTask"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid, expired, revoked or disabled credential",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Insufficient scope or forbidden function",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Unknown, foreign or unassigned object",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Idempotency conflict or stale assignment generation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Payload too large",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Invalid content type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation failed or Idempotency-Key missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; honor Retry-After",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/agent/tasks/{task}/comments": {
-      "get": {
-        "operationId": "agent_read_tasks_task_comments",
-        "summary": "agent:comments:read",
-        "x-required-scope": "agent:comments:read",
-        "description": "taskComments and assigned-task read scope/permission with current assignment, or projectTasks with its new read scope. Internal task comments additionally need teamChat and agent:team-chat:read. Requires active agent/token, same workspace, explicit owner grant and project membership. Read-only; no contact/financial/private account data.",
-        "parameters": [
-          {
-            "name": "task",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 1000000,
-              "default": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Authorized minimal data; Cache-Control: no-store.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": ["data", "meta"],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ReadComment"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "integer",
-                          "minimum": 0
-                        },
-                        "perPage": {
-                          "type": "integer",
-                          "minimum": 0
-                        },
-                        "lastPage": {
-                          "type": "integer",
-                          "minimum": 0
-                        },
-                        "total": {
-                          "type": "integer",
-                          "minimum": 0
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid, expired, revoked or disabled credential",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Insufficient scope or forbidden function",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Unknown, foreign or unassigned object",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Idempotency conflict or stale assignment generation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Payload too large",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Invalid content type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation failed or Idempotency-Key missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; honor Retry-After",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/agent/tasks/{task}/attachments": {
-      "get": {
-        "operationId": "agent_read_tasks_task_attachments",
-        "summary": "agent:attachments:read",
-        "x-required-scope": "agent:attachments:read",
-        "description": "taskAttachments plus access to the parent task. Comment files additionally require taskComments and its scope; internal files also require teamChat and its scope. Requires active agent/token, same workspace, explicit owner grant and project membership. Read-only; no contact/financial/private account data.",
-        "parameters": [
-          {
-            "name": "task",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 1000000,
-              "default": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Authorized minimal data; Cache-Control: no-store.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": ["data", "meta"],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ReadAttachment"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "integer",
-                          "minimum": 0
-                        },
-                        "perPage": {
-                          "type": "integer",
-                          "minimum": 0
-                        },
-                        "lastPage": {
-                          "type": "integer",
-                          "minimum": 0
-                        },
-                        "total": {
-                          "type": "integer",
-                          "minimum": 0
-                        }
-                      }
                     }
                   }
                 }
@@ -2195,6 +2191,405 @@
           }
         }
       }
+    },
+    "/api/v1/agent/tasks/{task}/runs": {
+      "get": {
+        "operationId": "agent99_get__api_v1_agent_tasks_task_runs",
+        "summary": "agent:runs:read",
+        "x-required-scope": "agent:runs:read",
+        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; no-store. Exact write retries replay with Idempotency-Replayed: true; replayed claims must not execute again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Run"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or revoked credential"
+          },
+          "403": {
+            "description": "Insufficient scope or registration ceiling"
+          },
+          "404": {
+            "description": "Foreign, previous or revoked assignment/object"
+          },
+          "409": {
+            "description": "Claimed/terminal run or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        }
+      }
+    },
+    "/api/v1/agent/tasks/{task}/runs/{run}": {
+      "get": {
+        "operationId": "agent99_get__api_v1_agent_tasks_task_runs_run",
+        "summary": "Read frozen run context and permitted dialogue",
+        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "run",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; no-store. Exact write retries replay with Idempotency-Replayed: true; replayed claims must not execute again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Run"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or revoked credential"
+          },
+          "403": {
+            "description": "Insufficient scope or registration ceiling"
+          },
+          "404": {
+            "description": "Foreign, previous or revoked assignment/object"
+          },
+          "409": {
+            "description": "Claimed/terminal run or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        },
+        "x-required-scopes": ["agent:runs:read", "agent:messages:read"]
+      }
+    },
+    "/api/v1/agent/tasks/{task}/runs/{run}/start": {
+      "post": {
+        "operationId": "agent99_post__api_v1_agent_tasks_task_runs_run_start",
+        "summary": "agent:runs:write",
+        "x-required-scope": "agent:runs:write",
+        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "run",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; no-store. Exact write retries replay with Idempotency-Replayed: true; replayed claims must not execute again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Run"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or revoked credential"
+          },
+          "403": {
+            "description": "Insufficient scope or registration ceiling"
+          },
+          "404": {
+            "description": "Foreign, previous or revoked assignment/object"
+          },
+          "409": {
+            "description": "Claimed/terminal run or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunBinding"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agent/tasks/{task}/messages": {
+      "get": {
+        "operationId": "agent99_get__api_v1_agent_tasks_task_messages",
+        "summary": "agent:messages:read",
+        "x-required-scope": "agent:messages:read",
+        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; no-store. Exact write retries replay with Idempotency-Replayed: true; replayed claims must not execute again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PrivateMessage"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or revoked credential"
+          },
+          "403": {
+            "description": "Insufficient scope or registration ceiling"
+          },
+          "404": {
+            "description": "Foreign, previous or revoked assignment/object"
+          },
+          "409": {
+            "description": "Claimed/terminal run or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        }
+      },
+      "post": {
+        "operationId": "agent99_post__api_v1_agent_tasks_task_messages",
+        "summary": "agent:messages:create",
+        "x-required-scope": "agent:messages:create",
+        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success; no-store. Exact write retries replay with Idempotency-Replayed: true; replayed claims must not execute again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WriteResult"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or revoked credential"
+          },
+          "403": {
+            "description": "Insufficient scope or registration ceiling"
+          },
+          "404": {
+            "description": "Foreign, previous or revoked assignment/object"
+          },
+          "409": {
+            "description": "Claimed/terminal run or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agent/tasks/{task}/runs/{run}/attachments/{attachment}/download": {
+      "get": {
+        "operationId": "agent99_get__api_v1_agent_tasks_task_runs_run_attachments_attachment_download",
+        "summary": "agent:attachments:read",
+        "x-required-scope": "agent:attachments:read",
+        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes. Also requires agent:messages:read and registration taskAttachments.",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "run",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attachment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized private file bytes; no-store; sandbox CSP.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or revoked credential"
+          },
+          "403": {
+            "description": "Insufficient scope or registration ceiling"
+          },
+          "404": {
+            "description": "Foreign, previous or revoked assignment/object"
+          },
+          "409": {
+            "description": "Claimed/terminal run or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2330,6 +2725,10 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/AgentPermissions"
+          },
+          "instructions": {
+            "type": "string",
+            "maxLength": 10000
           }
         }
       },
@@ -2362,6 +2761,16 @@
             "format": "uri",
             "pattern": "^https://[^/@]+(?:/|$)",
             "maxLength": 2048
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required for follow-up runs; initial legacy execution may omit it."
+          },
+          "errorCode": {
+            "type": ["string", "null"],
+            "maxLength": 100,
+            "pattern": "^[a-z0-9_]+$"
           }
         }
       },
@@ -2378,6 +2787,11 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 5000
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required for follow-up runs; initial legacy execution may omit it."
           }
         }
       },
@@ -2403,6 +2817,11 @@
               "format": "binary"
             },
             "description": "20 MiB per file, 40 MiB aggregate; extension/MIME/content checks."
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required for follow-up runs; initial legacy execution may omit it."
           }
         }
       },
@@ -2581,6 +3000,115 @@
           "downloadUrl": {
             "type": "string",
             "description": "Relative authorized agent download route; no public file/storage URL."
+          }
+        }
+      },
+      "Run": {
+        "type": "object",
+        "required": ["id", "assignmentId", "instruction", "contextVersion", "state", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "initiatedBy": {
+            "type": ["integer", "null"]
+          },
+          "instruction": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "contextVersion": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": ["queued", "running", "submitted", "failed", "cancelled"]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "deliveredAt": {
+            "type": ["string", "null"]
+          },
+          "startedAt": {
+            "type": ["string", "null"]
+          },
+          "completedAt": {
+            "type": ["string", "null"]
+          },
+          "errorCode": {
+            "type": ["string", "null"]
+          },
+          "context": {
+            "type": "object",
+            "description": "Frozen allowlisted agent/project/task/instruction/history context, same assignment only. History is bounded; historyTruncated is explicit."
+          }
+        }
+      },
+      "RunBinding": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assignmentId", "runId"],
+        "properties": {
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MessageInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assignmentId", "runId", "text"],
+        "properties": {
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required for follow-up runs; initial legacy execution may omit it."
+          }
+        }
+      },
+      "PrivateMessage": {
+        "type": "object",
+        "required": ["id", "runId", "author", "text", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "type": "string",
+            "enum": ["human", "agent"]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "createdAt": {
+            "type": "string"
           }
         }
       }

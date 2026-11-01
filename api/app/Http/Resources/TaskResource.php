@@ -25,7 +25,7 @@ class TaskResource extends JsonResource
 
         return ['canShareAgentResults' => $this->when($admin, fn () => ProjectPermissions::effective($request, $this->resource->project)['manage_structure']), 'agentAssignments' => $this->when($admin, fn () => AgentAssignments::taskState($this->resource)), 'editVersion' => $this->resource->editVersion($admin), 'id' => $this->uuid, 'title' => $this->title, 'location' => $this->location ?? $this->section ?? trans('interface.sections.4'), 'section' => $this->projectSection ? ProjectStructure::sectionData($this->projectSection) : null,
             'sectionId' => $this->projectSection?->uuid, 'position' => $this->position, 'displayNumber' => ProjectStructure::number($this->resource), 'display_number' => ProjectStructure::number($this->resource),
-            'description' => $this->description, 'expectedResult' => $this->expected_result ?? '', 'priority' => $this->priority, 'status' => $this->status, 'clientApproved' => $this->client_approved,
+            'description' => $this->description, 'descriptionHtml' => $this->resource->formattedDescription(), 'expectedResult' => $this->expected_result ?? '', 'priority' => $this->priority, 'status' => $this->status, 'clientApproved' => $this->client_approved,
             'clientEditable' => $this->resource->isClientEditable(),
             'clientApprovedAt' => $this->client_approved_at?->toISOString(),
             'estimateHours' => $this->when($admin, $this->estimate_hours), 'price' => $this->when($admin, $this->price), 'developerNotes' => $this->when($admin, $this->developer_notes ?? ''),

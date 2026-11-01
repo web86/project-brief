@@ -6,7 +6,13 @@ import BaseDialog from './BaseDialog.vue'
 import { readAgreementEditor, safeAgreementUrl } from '../utils/agreementEditor.js'
 import { useWorkspaceAppearance } from '../services/workspaceAppearance.js'
 import { t } from '../i18n/index.js'
-const props = defineProps({ modelValue: Array, disabled: Boolean })
+const props = defineProps({
+  modelValue: Array,
+  disabled: Boolean,
+  compact: Boolean,
+  editorId: String,
+  invalid: Boolean,
+})
 const emit = defineEmits(['update:modelValue'])
 const { tokens } = useWorkspaceAppearance()
 const editor = ref(null),
@@ -74,7 +80,7 @@ function restoreSelection() {
   return range
 }
 function update() {
-  emit('update:modelValue', readAgreementEditor(editor.value))
+  emit('update:modelValue', readAgreementEditor(editor.value, { preserveEmpty: props.compact }))
   selectionChanged()
 }
 function command(name, value) {
@@ -164,10 +170,12 @@ onMounted(() => document.addEventListener('selectionchange', selectionChanged))
 onBeforeUnmount(() => document.removeEventListener('selectionchange', selectionChanged))
 </script>
 <template>
-  <div class="agreement-editor">
+  <div class="agreement-editor" :class="{ 'task-description-editor': compact }">
     <div class="editor-tools" role="group" :aria-label="t('agreement.formatting')">
       <button
-        v-for="tool in tools"
+        v-for="tool in tools.filter(
+          (item) => !compact || !['heading', 'subheading'].includes(item[0]),
+        )"
         :key="tool[0]"
         type="button"
         class="icon-button"
@@ -179,6 +187,19 @@ onBeforeUnmount(() => document.removeEventListener('selectionchange', selectionC
         @click="command(tool[2], tool[3])"
       >
         <AppIcon :name="tool[1]" :size="19" />
+      </button>
+      <button
+        v-for="action in compact ? ['undo', 'redo'] : []"
+        :key="action"
+        type="button"
+        class="icon-button"
+        :disabled="disabled"
+        :title="t('collaboration.' + action)"
+        :aria-label="t('collaboration.' + action)"
+        @mousedown.prevent
+        @click="command(action)"
+      >
+        <AppIcon :name="action" :size="19" />
       </button>
       <button
         type="button"
@@ -206,11 +227,14 @@ onBeforeUnmount(() => document.removeEventListener('selectionchange', selectionC
     </div>
     <div
       ref="editor"
+      :id="editorId"
+      :aria-invalid="invalid || undefined"
+      :aria-describedby="compact && invalid ? 'description-error' : undefined"
       class="editor-content"
       :contenteditable="!disabled"
       role="textbox"
       aria-multiline="true"
-      :aria-label="t('agreement.text')"
+      :aria-label="t(compact ? 'ui.tellUsMore' : 'agreement.text')"
       @input="update"
       @paste="paste"
       @drop.prevent
@@ -309,5 +333,14 @@ onBeforeUnmount(() => document.removeEventListener('selectionchange', selectionC
     min-width: 44px;
     min-height: 44px;
   }
+}
+</style>
+
+<style scoped>
+.task-description-editor .editor-content {
+  min-height: 130px;
+  max-height: 24rem;
+  overflow: auto;
+  padding: 12px 14px;
 }
 </style>
