@@ -284,12 +284,12 @@ class AccountSecurity
         $this->audit($user, $event);
     }
 
-    public function audit(User $user, string $event): void
+    public function audit(User $user, string $event, array $context = []): void
     {
         if ($user->platform_admin) {
-            app(PlatformAudit::class)->record($user->id, $event, 'user', (string) $user->id);
+            app(PlatformAudit::class)->record($user->id, $event, $context['object_type'] ?? 'user', array_key_exists('object_id', $context) ? $context['object_id'] : (string) $user->id);
         }
-        Log::notice('account_security', ['user_id' => $user->id, 'event' => $event]);
+        Log::notice('account_security', ['user_id' => $user->id, 'event' => $event, ...array_intersect_key($context, ['agent_id' => true, 'credential_id' => true])]);
     }
 
     public function valid(bool $condition, ?string $diagnosticCode = null): void

@@ -4,6 +4,9 @@ import { t } from '../i18n/index.js'
 
 export const canDeleteTask = (task) => !!task && task.status === 'new' && !task.clientApproved
 
+export const canEditDeveloperTask = (task) =>
+  !!task && (task.canEditBrief ?? (!task.clientApproved && task.status !== 'approved'))
+
 export const canEditClientTask = (task) =>
   !!task && !task.clientApproved && ['new', 'clarification'].includes(task.status)
 

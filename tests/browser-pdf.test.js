@@ -270,3 +270,31 @@ test('a stalled worker times out and releases its resources', async (context) =>
   await rejected
   assert.equal(terminated, true)
 })
+
+test('formatted descriptions preserve bold, italic, lists and links in the PDF definition', () => {
+  const input = structuredClone(document)
+  input.sections[0].tasks[0].content[0] = {
+    key: 'description',
+    block: true,
+    label: 'Description',
+    value: 'Formatted requirement\n1. First\n2. Second',
+    richText: [
+      {
+        type: 'paragraph',
+        content: [
+          { text: 'Formatted requirement', bold: true },
+          { text: ' note', italic: true, href: 'https://example.com/spec' },
+        ],
+      },
+      { type: 'number', content: [{ text: 'First' }] },
+      { type: 'number', content: [{ text: 'Second' }] },
+    ],
+  }
+  const definition = documentDefinition(input)
+  const serialized = JSON.stringify(definition)
+  assert.ok(serialized.includes('https://example.com/spec'))
+  assert.ok(serialized.includes('"bold":true'))
+  assert.ok(serialized.includes('"italics":true'))
+  assert.ok(serialized.includes('1. '))
+  assert.ok(serialized.includes('2. '))
+})

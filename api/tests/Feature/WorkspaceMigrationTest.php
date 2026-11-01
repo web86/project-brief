@@ -194,6 +194,13 @@ class WorkspaceMigrationTest extends TestCase
                     }
                     unset($row);
                 }
+                if ($table === 'comments') {
+                    foreach ($after as &$row) {
+                        $this->assertNull($row['external_agent_id']);
+                        unset($row['external_agent_id']);
+                    }
+                    unset($row);
+                }
                 $this->assertSame($rows, $after, $table.' existing values must survive');
             }
             $this->postJson('/api/admin/login', ['email' => 'first@example.test', 'password' => 'Legacy-password-long'])->assertOk()->assertJsonPath('state', 'enrollment_required');

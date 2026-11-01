@@ -31,6 +31,6 @@ class IntegrationResources
 
     public static function task(Task $task, bool $estimates): array
     {
-        return ['id' => $task->uuid, 'projectId' => $task->project->uuid, 'sectionId' => $task->projectSection?->uuid, 'number' => ProjectStructure::number($task), 'title' => $task->title, 'location' => $task->location, 'description' => $task->description, 'expectedResult' => $task->expected_result, 'priority' => $task->priority, 'status' => $task->status, 'clientApproved' => $task->client_approved, 'clientApprovedAt' => $task->client_approved_at?->toISOString(), ...($estimates ? ['estimateHours' => $task->estimate_hours, 'price' => $task->price] : [])];
+        return ['id' => $task->uuid, 'projectId' => $task->project->uuid, 'sectionId' => $task->projectSection?->uuid, 'number' => ProjectStructure::number($task), 'title' => $task->title, 'location' => $task->location, 'description' => $task->description, 'descriptionHtml' => $task->formattedDescription(), 'expectedResult' => $task->expected_result, 'priority' => $task->priority, 'status' => $task->status, 'clientApproved' => $task->client_approved, 'clientApprovedAt' => $task->client_approved_at?->toISOString(), ...($estimates ? ['estimateHours' => $task->estimate_hours, 'price' => $task->price] : [])];
     }
 }

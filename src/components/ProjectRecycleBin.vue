@@ -1,4 +1,5 @@
 <script setup>
+import { useRoute } from 'vue-router'
 import { isSecurityCancellation } from '../services/stepUp.js'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { toast } from '../services/toast.js'
@@ -13,7 +14,7 @@ const emit = defineEmits(['changed'])
 const nav = useAdminNavigationStore()
 const workspaceId = nav.workspace?.id
 const projects = ref([]),
-  expanded = ref(false),
+  expanded = ref(useRoute().hash === '#project-recycle-bin'),
   loading = ref(false),
   busy = ref(false)
 const error = ref(null),
@@ -106,7 +107,11 @@ onMounted(refresh)
 defineExpose({ refresh })
 </script>
 <template>
-  <section class="project-recycle-bin surface" :aria-label="t('projectList.trash')">
+  <section
+    id="project-recycle-bin"
+    class="project-recycle-bin surface"
+    :aria-label="t('projectList.trash')"
+  >
     <div class="project-bin-heading">
       <button
         class="text-button project-bin-toggle"

@@ -1,0 +1,187 @@
+{
+  "release": "0.9.10",
+  "hotfix": "Agent & Webhook Simplification",
+  "baseline": "3bb7f3f2ea2df0e52f7eb6c83fd6c592435306a9",
+  "branch": "codex/release-0-9-10-team-reviews",
+  "rootCause": "Platform owner audit action included credential UUID: at least 63 characters vs platform_audit.action VARCHAR(60). Strict MariaDB SQLSTATE 22001/1406 rolled back key binding. Stable short action and structured IDs fix the cause.",
+  "noNewDatabaseMigrations": true,
+  "scopesAndAuthorizationUnchangedByHotfix": true,
+  "newWebhookExternalAgentId": null,
+  "mixedSubscriptionsPreserved": true,
+  "checks": {
+    "sqlite": {
+      "tests": 1064,
+      "passed": 1064,
+      "assertions": 15729
+    },
+    "mariadb": {
+      "tests": 1064,
+      "passed": 1064,
+      "assertions": 15729,
+      "version": "11.8.9",
+      "storage": "owned tmpfs container"
+    },
+    "php84": {
+      "tests": 132,
+      "passed": 132,
+      "assertions": 1825,
+      "version": "8.4.26",
+      "database": "MariaDB 11.8.9"
+    },
+    "frontend": {
+      "tests": 434,
+      "passed": 434
+    },
+    "pint": "passed",
+    "vite": "passed",
+    "sourceBrowser": {
+      "ok": true,
+      "package": false,
+      "database": "isolated MariaDB",
+      "platformOwner": true,
+      "results": [
+        "Agent-event webhook created before any agent, independent identity, seven event choices and no agent-name selector.",
+        "Platform owner on MariaDB creates with/without a key, edits, attaches/replaces/detaches/rebinds; UUID is selectable card text only and saves never contain webhookUrl.",
+        "Editing a mixed ordinary subscription retains all selected agent and integration events and the null identity binding."
+      ],
+      "captures": 0,
+      "errors": [],
+      "providerRequests": 0,
+      "webhookNotificationsGrantApiAccess": false
+    },
+    "publicHttpsAndExecutor": {
+      "ok": true,
+      "package": false,
+      "results": [
+        "Shared key created before registrations; two explicit linked identities, scope-only setup, automatic memberships and factual project counter",
+        "Real public HTTPS webhook: original DNS/SSRF/TLS checks, raw-body HMAC, HTTP 503 then 204 with the same delivery ID and payload",
+        "Two independent Node executions through a shared key; exact three-level contexts, future-only updates, frozen history, private chat files and explicit separate client/team copies",
+        "WYSIWYG save, safe HTML, AI single immediate request, explicit apply and retained unchanged formatting",
+        "MariaDB concurrent same-submission requests create one run; competing shared-key claims execute once",
+        "Assignment removal keeps read-only chat/history; project access revocation cancels pending webhook delivery without another network send",
+        "Assigned developer edits the rich task before agreement; approval hides editing and server rejects a stale description save",
+        "Shared-key revocation stops both agents immediately and removes the key from active lists and selectors while preserving audit/history"
+      ],
+      "captures": 0,
+      "errors": [],
+      "elapsedMs": 103253,
+      "providerRequests": 0,
+      "providerMetrics": [],
+      "provider": "deterministic",
+      "transportEnvironment": "Synthetic temporary Cloudflare HTTPS receiver; QA-only answers from public DoH and system CA selection. Original public-IP/SSRF, pinned destination and TLS verification remain enabled. No production override."
+    },
+    "canonicalBuilder": {
+      "command": "./bin/build-release",
+      "passed": true,
+      "files": 8942,
+      "packagedRuntimeChecks": "MFA/Passkey, SSO, owner/platform access, tenant isolation, invitations, feedback, comments/files, scoped integrations, webhook cron, installation and migrations."
+    },
+    "artifact": {
+      "file": "project-brief-v0.9.10-bd09dd5.zip",
+      "bytes": 39448453,
+      "sha256": "52755bcdad23268092b570efd28f6720bb68a9b27380a7759f55073f0c70baaf",
+      "manifestEntries": 8942,
+      "zipEntries": 10190,
+      "crc": "passed",
+      "internalChecksums": "passed",
+      "collaborationExampleMatchesSource": true,
+      "ownerGuideMatchesSource": true,
+      "dedicatedGroqKeyAbsent": true,
+      "testEnvAbsent": true,
+      "testKeyAbsentFromChangesAndQaLogs": true,
+      "release": {
+        "version": "0.9.10",
+        "commit": "bd09dd5cb2ec4b2ad8b4e25fc0c24840cde3bc09",
+        "builtAt": "2026-11-01T21:05:46.400Z",
+        "phpTarget": "8.4",
+        "domain": "brief.web86.site"
+      }
+    },
+    "extractedPackageBrowser": {
+      "ok": true,
+      "package": true,
+      "database": "isolated MariaDB",
+      "platformOwner": true,
+      "results": [
+        "Agent-event webhook created before any agent, independent identity, seven event choices and no agent-name selector.",
+        "Platform owner on MariaDB creates with/without a key, edits, attaches/replaces/detaches/rebinds; UUID is selectable card text only and saves never contain webhookUrl.",
+        "Editing a mixed ordinary subscription retains all selected agent and integration events and the null identity binding."
+      ],
+      "captures": 96,
+      "errors": [],
+      "providerRequests": 0,
+      "webhookNotificationsGrantApiAccess": false
+    },
+    "visual": {
+      "passed": true,
+      "captures": 96,
+      "languages": ["ru", "en", "tr", "zh-CN"],
+      "themes": ["light", "dark"],
+      "widths": [1440, 390],
+      "surfaces": [
+        "keys",
+        "agent-cards",
+        "agent-editor",
+        "webhook-agent",
+        "webhook-integration",
+        "webhook-mixed-edit"
+      ],
+      "manualInspection": "Representative RU/TR/zh-CN mobile and desktop captures inspected; readable labels, selectable card UUID, no UUID/webhook inputs in agent form, no agent selector in webhook form.",
+      "directory": "/tmp/project-brief-hotfix-package-qa",
+      "newQaImagesOutsideGit": true
+    }
+  },
+  "packaging": "Canonical ZIP, CRC, all 8942 internal checksums, dedicated-secret exclusion and extracted-ZIP MariaDB browser workflow passed.",
+  "aiRequestsThisHotfix": 0,
+  "safety": {
+    "syntheticDataOnly": true,
+    "deployment": false,
+    "productionDatabaseChanges": false,
+    "newQaImagesCommitted": false,
+    "providerEnvOutsideRepository": true
+  },
+  "preservedUserDocuments": {
+    "path": "docs/milestone-10-0",
+    "count": 8,
+    "hashesPreserved": true,
+    "excludedFromCommitAndZip": true
+  },
+  "notPerformed": [
+    "Production deployment/smoke",
+    "Production SMTP",
+    "Physical-device/Safari/WebKit testing",
+    "Real-model E2E for this hotfix"
+  ],
+  "sourceCommit": "bd09dd5cb2ec4b2ad8b4e25fc0c24840cde3bc09",
+  "reproduction": {
+    "sqlite": "HTTP creation succeeds but original audit action length is 63 (limit 60).",
+    "mariadb": "Original key-binding create fails with SQLSTATE 22001 / 1406, platform_audit.action.",
+    "fixed": "New feature suite: five tests / 72 assertions pass on strict MariaDB; no FK or scope changes."
+  },
+  "requirements": {
+    "1_createWithAndWithoutKey": "Platform-owner MariaDB feature and browser tests pass.",
+    "2_sharedKeyForMultipleAgents": "Two identities share a key, then revoke denies both.",
+    "3_cardUuidOnly": "DOM assertions and 96-capture matrix; no input/copy control.",
+    "4_agentEditsPreserveWebhook": "Existing personal row remains byte-for-byte identical; UI saves omit webhookUrl; nonempty field rejected.",
+    "5_webhookBeforeAnyAgent": "Feature and extracted-ZIP browser create independent receiver while agent count is zero.",
+    "6_oneReceiverTwoSources": "Two-agent enqueue regression verifies two deliveries for one endpoint.",
+    "7_payloadAgentId": "Both source UUIDs and project IDs verified.",
+    "8_eventAndProjectFilters": "All/selected projects and distinct events verified; mixed edit retains subscriptions.",
+    "9_existingPersonalReceivers": "Existing personal fixture and unchanged delivery/access tests pass, without migration.",
+    "10_securityAndDelivery": "Actual HTTPS HMAC, 503-to-204 retry, stable body/delivery ID, deduplication and grant-revoke cancellation; full SSRF, tenant and API authorization regressions pass.",
+    "11_languagesMobileThemes": "96 captures / 16 language-theme-width configurations; browser reports no page errors."
+  },
+  "cleanup": {
+    "ownedMariaDbContainerRemoved": true,
+    "ownedTemporaryHttpsTunnelRemoved": true,
+    "scratchApplicationsClosedAndRemoved": true,
+    "testProviderEnvPreservedOutsideRepository": true
+  },
+  "publication": {
+    "branch": "codex/release-0-9-10-team-reviews",
+    "hotfixPushPerformed": false,
+    "deploymentPerformed": false,
+    "artifactSourceCommit": "bd09dd5cb2ec4b2ad8b4e25fc0c24840cde3bc09"
+  },
+  "allRequiredChecksPassed": true
+}

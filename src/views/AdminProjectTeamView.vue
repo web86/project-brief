@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
+import { agentIcon } from '../services/agentPresentation.js'
+import { formatDate } from '../constants/project.js'
 import { api } from '../api/client.js'
 import { toast } from '../services/toast.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
@@ -10,10 +12,14 @@ import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import UserAvatar from '../components/UserAvatar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import LoadingButton from '../components/LoadingButton.vue'
+import BaseDialog from '../components/BaseDialog.vue'
 const route = useRoute(),
   nav = useAdminNavigationStore()
 const state = ref(null),
   adding = ref(false),
+  addTab = ref('existing'),
+  agentAdding = ref(false),
+  selectedAgent = ref(''),
   selected = ref([]),
   search = ref(''),
   busy = ref(false),
@@ -31,11 +37,7 @@ const available = computed(() =>
   ),
 )
 const inviteEmail = ref(''),
-  inviteName = ref(''),
-  invitationLink = ref('')
-async function copyInvitation() {
-  await navigator.clipboard.writeText(invitationLink.value)
-}
+  inviteName = ref('')
 let revision = 0
 async function load(current = revision) {
   const result = await api.request(root.value)
@@ -48,6 +50,10 @@ watch(
     state.value = null
     selected.value = []
     adding.value = false
+    inviteEmail.value = ''
+    inviteName.value = ''
+    agentAdding.value = false
+    selectedAgent.value = ''
     search.value = ''
     busy.value = false
     error.value = ''
@@ -67,12 +73,15 @@ async function action(path, method, body) {
   busy.value = true
   error.value = ''
   try {
-    const result = await api.request(root.value + path, { method, body })
-    invitationLink.value = result.link || ''
+    await api.request(root.value + path, { method, body })
     if (current !== revision) return
     await load(current)
     if (current !== revision) return
     adding.value = false
+    inviteEmail.value = ''
+    inviteName.value = ''
+    agentAdding.value = false
+    selectedAgent.value = ''
     selected.value = []
     toast.success(() => t('team.saved'))
   } catch (cause) {
@@ -80,6 +89,10 @@ async function action(path, method, body) {
   } finally {
     if (current === revision) busy.value = false
   }
+}
+function openAdd() {
+  addTab.value = state.value.available.length ? 'existing' : 'invite'
+  adding.value = true
 }
 function remove(member) {
   if (window.confirm(t('projectTeam.confirmRemove', { name: member.user.name })))
@@ -95,42 +108,14 @@ function remove(member) {
       </div>
       <button
         class="button primary"
-        :disabled="busy || !state?.available.length"
+        :disabled="busy || !state"
         :aria-expanded="adding"
-        @click="adding = !adding"
+        @click="openAdd"
       >
         <AppIcon name="plus" :size="18" />{{ t('projectTeam.add') }}
       </button>
     </div>
-    <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-    <details class="surface project-team-invite">
-      <summary>{{ t('team95.invite') }}</summary>
-      <form
-        @submit.prevent="
-          action('/invitations', 'POST', {
-            email: inviteEmail,
-            name: inviteName,
-            generateLink: true,
-          })
-        "
-      >
-        <label class="field"
-          >{{ t('team.email')
-          }}<input v-model="inviteEmail" type="email" required :disabled="busy" /></label
-        ><label class="field"
-          >{{ t('account.name') }}<input v-model="inviteName" :disabled="busy" /></label
-        ><button class="button secondary" :disabled="busy">{{ t('team95.invite') }}</button>
-        <p v-if="invitationLink" class="team-invitation-link">
-          <input :value="invitationLink" readonly :aria-label="t('adminEditor.getLink')" /><button
-            type="button"
-            class="text-button"
-            @click="copyInvitation"
-          >
-            {{ t('integrations.copy') }}
-          </button>
-        </p>
-      </form>
-    </details>
+    <p v-if="error && !adding" class="field-error" role="alert">{{ error }}</p>
     <template v-if="state">
       <section v-if="state.owner" class="surface team-list project-owner-card">
         <h3>{{ t('team.owner') }}</h3>
@@ -181,79 +166,202 @@ function remove(member) {
           }}</RouterLink>
         </p>
       </section>
-      <form
-        v-if="adding"
-        class="surface team-list"
-        @submit.prevent="action('/members', 'POST', { members: selected })"
-      >
-        <h3>{{ t('projectTeam.add') }}</h3>
-        <label class="field" for="team-member-search"
-          >{{ t('administrators.search')
-          }}<input id="team-member-search" v-model="search" type="search" :disabled="busy"
-        /></label>
-        <fieldset class="project-choices" :disabled="busy">
-          <legend>{{ t('projectTeam.available') }}</legend>
-          <label v-for="member in available" :key="member.id"
-            ><input v-model="selected" type="checkbox" :value="member.id" /><span
-              >{{ member.user.name }} · {{ member.user.email }}</span
-            ></label
+      <section class="surface team-list team-agent-section" data-team-agents>
+        <h3>{{ t('agentUx.agents') }}</h3>
+        <article
+          v-for="agent in state.agents || []"
+          :key="agent.id"
+          class="team-member project-team-member"
+        >
+          <div class="team-identity">
+            <span class="task-account-avatar user-avatar"
+              ><AppIcon :name="agentIcon(agent.kind)" :size="24"
+            /></span>
+            <div>
+              <strong>{{ agent.name }}</strong>
+              <p class="small muted">{{ t('agents.kind.' + agent.kind) }}</p>
+            </div>
+          </div>
+          <div class="project-team-status">
+            <span class="status-pill">{{
+              t(agent.active ? 'agents.active' : 'agents.disabled')
+            }}</span
+            ><span v-if="agent.lastActivityAt"
+              >{{ t('agents.lastActivity') }}:
+              {{ agent.lastActivityAt ? formatDate(agent.lastActivityAt) : '—' }}</span
+            >
+          </div>
+          <button
+            class="text-button danger"
+            :disabled="busy"
+            @click="action('/agents/' + agent.id, 'DELETE')"
           >
-          <p v-if="!available.length" class="small muted">{{ t('administrators.empty') }}</p>
-        </fieldset>
-        <div class="team-actions">
-          <LoadingButton
-            type="submit"
-            class="button primary"
-            :busy="busy"
-            :disabled="busy || !selected.length"
-            >{{ t('projectTeam.add') }}</LoadingButton
-          ><button type="button" class="text-button" :disabled="busy" @click="adding = false">
-            {{ t('account.cancel') }}
+            {{ t('projectTeam.remove') }}
+          </button>
+        </article>
+        <p v-if="!state.agents?.length" class="muted">{{ t('agents.noExecutors') }}</p>
+        <button
+          v-if="!agentAdding"
+          class="button secondary"
+          :disabled="busy || !state.availableAgents?.length"
+          :aria-expanded="agentAdding"
+          @click="agentAdding = true"
+        >
+          <AppIcon name="plus" :size="16" />{{ t('agents.addExecutor') }}
+        </button>
+        <form
+          v-else
+          class="team-agent-picker"
+          @submit.prevent="action('/agents/' + selectedAgent, 'POST')"
+        >
+          <label class="field" for="team-agent-choice"
+            >{{ t('agents.choose')
+            }}<select id="team-agent-choice" v-model="selectedAgent" required :disabled="busy">
+              <option value="" disabled>{{ t('agents.choose') }}</option>
+              <option
+                v-for="agent in state.availableAgents || []"
+                :key="agent.id"
+                :value="agent.id"
+              >
+                {{ agent.name }} · {{ t('agents.kind.' + agent.kind) }}
+              </option>
+            </select></label
+          ><button class="button primary" :disabled="busy || !selectedAgent">
+            {{ t('agents.addExecutor') }}</button
+          ><button type="button" class="text-button" :disabled="busy" @click="agentAdding = false">
+            {{ t('ui.cancel') }}
+          </button>
+        </form>
+      </section>
+    </template>
+    <BaseDialog
+      :open="adding"
+      :title="t('projectTeam.add')"
+      id="team-add-title"
+      class="management-dialog team-add-dialog"
+      @close="!busy && (adding = false)"
+    >
+      <div class="management-body">
+        <div role="tablist" class="team-add-tabs" :aria-label="t('projectTeam.add')">
+          <button
+            v-for="tab in ['existing', 'invite']"
+            :id="'team-add-' + tab + '-tab'"
+            :key="tab"
+            type="button"
+            role="tab"
+            :aria-selected="addTab === tab"
+            :aria-controls="'team-add-' + tab"
+            class="button"
+            :class="addTab === tab ? 'primary' : 'secondary'"
+            :disabled="busy"
+            @click="addTab = tab"
+          >
+            {{ t(tab === 'existing' ? 'release910.existingMember' : 'release910.inviteMember') }}
           </button>
         </div>
-      </form>
-    </template>
+        <p v-if="error" class="field-error" role="alert">{{ error }}</p>
+        <form
+          v-if="addTab === 'existing'"
+          id="team-add-existing"
+          role="tabpanel"
+          aria-labelledby="team-add-existing-tab"
+          @submit.prevent="action('/members', 'POST', { members: selected })"
+        >
+          <label class="field" for="team-member-search"
+            >{{ t('administrators.search')
+            }}<input id="team-member-search" v-model="search" type="search" :disabled="busy"
+          /></label>
+          <fieldset class="project-choices" :disabled="busy">
+            <legend>{{ t('projectTeam.available') }}</legend>
+            <label v-for="member in available" :key="member.id"
+              ><input v-model="selected" type="checkbox" :value="member.id" /><span
+                >{{ member.user.name }} · {{ member.user.email }}</span
+              ></label
+            >
+            <p v-if="!available.length" class="small muted">{{ t('administrators.empty') }}</p>
+          </fieldset>
+        </form>
+        <form
+          v-else
+          id="team-add-invite"
+          role="tabpanel"
+          aria-labelledby="team-add-invite-tab"
+          @submit.prevent="
+            action('/invitations', 'POST', {
+              email: inviteEmail,
+              name: inviteName,
+            })
+          "
+        >
+          <label class="field"
+            >{{ t('team.email')
+            }}<input v-model="inviteEmail" type="email" required :disabled="busy" /></label
+          ><label class="field"
+            >{{ t('account.name') }}<input v-model="inviteName" :disabled="busy"
+          /></label>
+        </form>
+      </div>
+      <template #footer
+        ><button type="button" class="button secondary" :disabled="busy" @click="adding = false">
+          {{ t('ui.cancel') }}</button
+        ><LoadingButton
+          :form="addTab === 'existing' ? 'team-add-existing' : 'team-add-invite'"
+          type="submit"
+          class="button primary"
+          :busy="busy"
+          :disabled="busy || (addTab === 'existing' && !selected.length)"
+          >{{ t(addTab === 'existing' ? 'projectTeam.add' : 'team95.invite') }}</LoadingButton
+        ></template
+      >
+    </BaseDialog>
   </div>
 </template>
 <style scoped>
-.project-team-invite {
-  margin: 1rem 0 1.5rem;
-  padding: 1rem 1.25rem;
-}
-.project-team-invite summary {
-  cursor: pointer;
-  font-weight: 600;
-  line-height: 1.5;
-}
-.project-team-invite form {
+.team-agent-section {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 1.25rem;
+  gap: 16px;
 }
-.project-team-invite .field {
-  display: grid;
-  gap: 0.4rem;
+.team-agent-section h2,
+.team-agent-section p {
+  margin-top: 0;
+  margin-bottom: 0;
 }
-.project-team-invite form > button {
+.team-agent-section .project-team-member {
+  padding: 16px;
+  gap: 16px;
+  margin: 0;
+}
+.team-agent-section > .button {
   justify-self: start;
 }
-.team-invitation-link {
-  grid-column: 1/-1;
+.team-agent-picker {
   display: flex;
-  gap: 0.75rem;
-  min-width: 0;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
 }
-.team-invitation-link input {
-  min-width: 0;
+.team-agent-picker .field {
   flex: 1;
-}
-@media (max-width: 600px) {
-  .project-team-invite form {
-    grid-template-columns: 1fr;
-  }
+  min-width: 160px;
+  margin: 0;
 }
 
+.team-add-dialog {
+  width: min(900px, calc(100vw - 32px));
+}
+.team-add-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.team-add-dialog form {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.team-add-dialog .field {
+  margin: 0;
+}
 .project-team-member {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

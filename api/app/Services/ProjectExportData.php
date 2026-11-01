@@ -36,6 +36,10 @@ class ProjectExportData
         foreach ($source as $key => $column) {
             if ($fields[$key]) {
                 $columns[] = $column;
+                if ($key === 'description') {
+                    $columns[] = 'description_html';
+                    $columns[] = 'description_html_hash';
+                }
             }
         }
         if ($fields['approvalDate']) {
@@ -51,7 +55,7 @@ class ProjectExportData
         }
         if ($maxTextBytes !== null) {
             $connection = $project->getConnection();
-            $textColumns = array_values(array_intersect($columns, ['title', 'description', 'expected_result', 'developer_notes']));
+            $textColumns = array_values(array_intersect($columns, ['title', 'description', 'description_html', 'expected_result', 'developer_notes']));
             $lengths = array_map(function (string $column) use ($connection): string {
                 $value = 'COALESCE('.$connection->getQueryGrammar()->wrap($column).", '')";
 
@@ -110,7 +114,7 @@ class ProjectExportData
                         $totals[$key]['minorUnits'] = $this->addMinorUnits($totals[$key]['minorUnits'], $this->minorUnits($task->getRawOriginal($column)));
                         $totals[$key]['providedTaskCount']++;
                     }
-                    $content[] = ['key' => $key, 'label' => $labels[$key], 'value' => $value, 'block' => in_array($key, ['description', 'expectedResult', 'developerNotes'], true)];
+                    $content[] = ['key' => $key, 'label' => $labels[$key], 'value' => $value, 'block' => in_array($key, ['description', 'expectedResult', 'developerNotes'], true), ...($key === 'description' && $task->formattedDescription() ? ['richText' => TaskDescription::blocks($task->description_html)] : [])];
                 }
                 if ($fields['approvalDate'] && $task->client_approved && $task->client_approved_at) {
                     $content[] = ['key' => 'approvalDate', 'label' => $labels['approvedOn'], 'value' => $task->client_approved_at->locale($locale)->isoFormat(SupportedLocales::settings($locale)['approval_date']), 'block' => false];

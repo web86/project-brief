@@ -1,7 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ref } from 'vue'
-import { canEditClientTask, useDraftDeletion } from '../src/utils/clientDraft.js'
+import {
+  canEditClientTask,
+  canEditDeveloperTask,
+  useDraftDeletion,
+} from '../src/utils/clientDraft.js'
 
 test('edit/delete visibility is restricted to unapproved new or clarification ideas', () => {
   for (const status of ['new', 'clarification', 'approved', 'in_progress', 'review', 'done']) {
@@ -56,4 +60,15 @@ test('failed deletion keeps dialog open and does not navigate; approval prevents
   task.value.clientApproved = true
   assert.equal(await action.confirm(), false)
   assert.deepEqual(calls, [])
+})
+
+test('developer brief editing is available before agreement and obeys the server permission flag', () => {
+  assert.equal(canEditDeveloperTask({ status: 'new', clientApproved: false }), true)
+  assert.equal(canEditDeveloperTask({ status: 'in_progress', clientApproved: false }), true)
+  assert.equal(canEditDeveloperTask({ status: 'new', clientApproved: true }), false)
+  assert.equal(canEditDeveloperTask({ status: 'approved', clientApproved: false }), false)
+  assert.equal(
+    canEditDeveloperTask({ status: 'new', clientApproved: false, canEditBrief: false }),
+    false,
+  )
 })

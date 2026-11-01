@@ -251,7 +251,7 @@ test('actual AI dialog escapes model text in editable fields, questions and spli
   assert.ok(!html.includes(hostile))
 })
 
-test('AI trigger guards empty descriptions, saving and pending without requiring other fields', async () => {
+test('AI trigger immediately requests once and guards empty descriptions, saving and pending', async () => {
   const AiTaskAssistant = (await server.ssrLoadModule('/src/components/AiTaskAssistant.vue'))
     .default
   const service = (await server.ssrLoadModule('/src/services/ideaAssistant.js')).ideaAssistant
@@ -281,9 +281,11 @@ test('AI trigger guards empty descriptions, saving and pending without requiring
       })
       const html = await renderToString(app)
       setup.pending = pending
+      requests = 0
+      setup.openAssistant()
       setup.openAssistant()
       assert.equal(setup.open, allowed)
-      assert.equal(requests, 0)
+      assert.equal(requests, allowed ? 1 : 0)
       if (!allowed) {
         setup.requestSuggestion()
         assert.equal(requests, 0)

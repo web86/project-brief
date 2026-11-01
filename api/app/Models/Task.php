@@ -12,7 +12,7 @@ class Task extends Model
     use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     // section is deprecated, retained only for legacy backfill/fallback.
-    protected $fillable = ['project_id', 'project_section_id', 'position', 'title', 'location', 'section', 'description', 'expected_result', 'priority', 'status', 'client_approved', 'client_approved_at', 'estimate_hours', 'price', 'developer_notes'];
+    protected $fillable = ['project_id', 'project_section_id', 'position', 'title', 'location', 'section', 'description', 'description_html', 'description_html_hash', 'expected_result', 'priority', 'status', 'client_approved', 'client_approved_at', 'estimate_hours', 'price', 'developer_notes'];
 
     protected function casts(): array
     {
@@ -31,7 +31,7 @@ class Task extends Model
 
     public function editVersion(bool $admin): string
     {
-        $fields = ['title', 'location', 'project_section_id', 'description', 'expected_result', 'priority', 'status', 'client_approved'];
+        $fields = ['title', 'location', 'project_section_id', 'description', 'description_html', 'expected_result', 'priority', 'status', 'client_approved'];
         if ($admin) {
             $fields = [...$fields, 'estimate_hours', 'price', 'developer_notes'];
         }
@@ -41,9 +41,20 @@ class Task extends Model
         return hash_hmac('sha256', json_encode($values, JSON_THROW_ON_ERROR), config('app.key'));
     }
 
+    public function formattedDescription(): ?string
+    {
+        return $this->description_html && is_string($this->description_html_hash) && hash_equals(hash('sha256', $this->description), $this->description_html_hash)
+            ? $this->description_html : null;
+    }
+
     public function canClientChangeStatusTo(string $status): bool
     {
         return $this->status === 'review' && in_array($status, ['approved', 'done'], true);
+    }
+
+    public function isDeveloperBriefEditable(): bool
+    {
+        return ! $this->client_approved && $this->status !== 'approved';
     }
 
     public function isClientEditable(): bool
@@ -61,9 +72,14 @@ class Task extends Model
         return $this->belongsTo(ProjectSection::class);
     }
 
+    public function agentAssignments(): HasMany
+    {
+        return $this->hasMany(TaskAgentAssignment::class)->whereNull('revoked_at')->with('agent');
+    }
+
     public function comments(): HasMany
     {
-        return $this->hasMany(Comment::class)->with(['attachments.projectClient', 'authorUser'])->orderBy('id');
+        return $this->hasMany(Comment::class)->with(['attachments.projectClient', 'authorUser', 'agent', 'agentReport'])->orderBy('id');
     }
 
     public function attachments(): HasMany

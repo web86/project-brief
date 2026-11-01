@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DeveloperInvitation;
+use App\Models\ExternalAgent;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\Workspace;
@@ -63,6 +64,8 @@ class ProjectTeamController extends Controller
         $state = fn ($m) => ['id' => $m->id, 'status' => $m->status, 'isProjectSuperadmin' => (bool) $m->is_project_superadmin, 'security' => ['totp' => $m->user->hasEnabledTwoFactorAuthentication(), 'passkey' => (bool) $m->user->security_passkey_configured], 'role' => $m->role, 'user' => [...app(AccountProfile::class)->state($m->user), 'name' => $m->display_name ?? $m->user->name]];
 
         return response()->json([
+            'agents' => ExternalAgent::where('workspace_id', $owner->workspace_id)->whereIn('id', $project->members()->whereNotNull('external_agent_id')->select('external_agent_id'))->get()->map(fn ($agent) => $agent->publicState()),
+            'availableAgents' => ExternalAgent::where('workspace_id', $owner->workspace_id)->where('active', true)->whereIn('id', DB::table('agent_project_grants')->where('workspace_id', $owner->workspace_id)->where('project_id', $project->id)->select('external_agent_id'))->whereNotIn('id', $project->members()->whereNotNull('external_agent_id')->select('external_agent_id'))->get()->map(fn ($agent) => $agent->publicState()),
             'owner' => $members->where('role', 'owner')->map($state)->values()->first(),
             'members' => $members->where('role', 'admin')->whereIn('id', $assigned)->map($state)->values(),
             'available' => $members->where('role', 'admin')->whereNotIn('id', $assigned)->map($state)->values(),

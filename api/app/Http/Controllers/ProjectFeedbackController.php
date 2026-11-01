@@ -11,10 +11,34 @@ use App\Services\ProjectFeedbacks;
 use App\Services\ProjectStructure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ProjectFeedbackController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $member = app(CurrentWorkspace::class)->resolve($request);
+        abort_unless($member->role === 'owner', 403);
+        $input = $request->validate(['from' => ['sometimes', 'date_format:Y-m-d'], 'to' => ['sometimes', 'date_format:Y-m-d', ...($request->filled('from') ? ['after_or_equal:from'] : [])], 'timezone' => ['sometimes', 'timezone'], 'page' => ['sometimes', 'integer', 'min:1', 'max:100000']]);
+        $timezone = $input['timezone'] ?? 'UTC';
+        $query = ProjectFeedback::where('workspace_id', $member->workspace_id)->whereNotNull('submitted_at')
+            ->whereIn('project_id', Project::withTrashed()->where('workspace_id', $member->workspace_id)->select('id'))
+            ->with(['project' => fn ($query) => $query->withTrashed(), 'projectClient']);
+        if (isset($input['from'])) {
+            $query->where('submitted_at', '>=', Carbon::parse($input['from'], $timezone)->startOfDay()->utc());
+        }
+        if (isset($input['to'])) {
+            $query->where('submitted_at', '<', Carbon::parse($input['to'], $timezone)->startOfDay()->addDay()->utc());
+        }
+        $page = $query->orderByDesc('submitted_at')->orderByDesc('id')->paginate(25);
+
+        return response()->json(['data' => $page->getCollection()->map(fn ($row) => ['id' => $row->id, 'rating' => $row->rating, 'text' => $row->text,
+            'author' => (int) $row->projectClient?->project_id === (int) $row->project_id ? $row->projectClient?->name : null, 'email' => (int) $row->projectClient?->project_id === (int) $row->project_id ? $row->projectClient?->email : null,
+            'project' => ['id' => $row->project->uuid, 'name' => $row->project->title, 'archived' => $row->project->trashed()], 'submittedAt' => $row->submitted_at->toISOString()]),
+            'meta' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()]])->header('Cache-Control', 'no-store');
+    }
+
     public function request(Request $request, Project $project, ProjectFeedbacks $feedbacks): JsonResponse
     {
         DB::transaction(function () use ($request, $project, $feedbacks): void {

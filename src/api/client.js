@@ -295,6 +295,8 @@ export function taskBody(input) {
   const form = new FormData()
   for (const key of ['title', 'location', 'description', 'expectedResult', 'priority'])
     form.append(key, input[key] || '')
+  if (typeof input.descriptionHtml === 'string')
+    form.append('descriptionHtml', input.descriptionHtml)
   if (typeof input.section === 'string' && input.section.trim())
     form.append('section', input.section)
   for (const attachment of input.attachments || []) {

@@ -1,5 +1,6 @@
 <script setup>
 import LoadingButton from './LoadingButton.vue'
+import TaskDescriptionView from './TaskDescriptionView.vue'
 import { t } from '../i18n/index.js'
 
 import { canEditClientTask } from '../utils/clientDraft.js'
@@ -44,7 +45,7 @@ function toggle() {
       <div class="notes-body">
         <div class="detail-block">
           <h2>{{ t('ui.whatYouWouldLikeToChange') }}</h2>
-          <p class="prose">{{ task.description }}</p>
+          <TaskDescriptionView :task="task" />
         </div>
         <div class="detail-block">
           <h2>{{ t('ui.whatTheResultShouldLookLike') }}</h2>

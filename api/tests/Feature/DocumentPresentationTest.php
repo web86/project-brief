@@ -50,7 +50,7 @@ class DocumentPresentationTest extends TestCase
             $section = $sections[min(2, intdiv(($index - 1) * 3, $count))];
             $task = Task::factory()->for($project)->create([
                 'project_section_id' => $section->id, 'position' => $index,
-                'title' => $title.' #'.$index, 'description' => $description,
+                'title' => mb_substr($title, 0, 150).' #'.$index, 'description' => $description,
                 'expected_result' => $index % 3 === 0 ? $paragraph.' [RESULT-'.$index.']' : null,
                 'developer_notes' => $index % 4 === 0 ? "Use the existing API; preserve access rules.\nKeep literal <tags> & original punctuation. [NOTE-".$index.']' : null,
                 'priority' => $index % 5 === 0 ? 'high' : 'normal',

@@ -7,6 +7,7 @@ import { ref, watch } from 'vue'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import ProjectFields from '../components/ProjectFields.vue'
+import ProjectAgentInstructions from '../components/ProjectAgentInstructions.vue'
 const nav = useAdminNavigationStore()
 const store = useProjectManagementStore()
 const form = ref({})
@@ -59,4 +60,5 @@ async function save() {
       t('ui.saveSettings')
     }}</LoadingButton>
   </form>
+  <ProjectAgentInstructions v-if="store.project" :project-id="store.project.id" />
 </template>

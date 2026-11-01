@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ExternalAgent;
 use App\Models\Project;
 use App\Models\Workspace;
 use App\Services\AccountSecurity;
+use App\Services\AgentAccess;
+use App\Services\AgentCredentials;
 use App\Services\ClientSso;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
@@ -38,15 +41,18 @@ class IntegrationController extends Controller
         $workspace = $this->workspace($request);
 
         return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'sources' => DB::table('integration_sources')->where('workspace_id', $workspace)->whereNull('archived_at')->orderBy('name')->get()->map(fn ($source) => ['id' => $source->uuid, 'name' => $source->name, 'ssoEnabled' => (bool) $source->sso_enabled, 'ssoOrigin' => $source->sso_origin, 'automaticSsoProjectIds' => Project::where('workspace_id', $workspace)->whereIn('id', app(ClientSso::class)->automaticProjects($source->id, $workspace))->orderBy('uuid')->pluck('uuid')->all(), 'ssoProjectIds' => Project::where('workspace_id', $workspace)->whereIn('id', DB::table('integration_source_projects')->where('workspace_id', $workspace)->where('integration_source_id', $source->id)->select('project_id'))->orderBy('uuid')->pluck('uuid')->all()]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
-            'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->orderByDesc('id')->get(['uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at', 'provisioning_enabled', 'integration_source_id'])->map(fn ($t) => ['sourceId' => $t->integration_source_id ? DB::table('integration_sources')->where('workspace_id', $workspace)->where('id', $t->integration_source_id)->value('uuid') : null, 'id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at, 'provisioningEnabled' => (bool) $t->provisioning_enabled]),
-            'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['id', 'workspace_id', 'uuid', 'name', 'url', 'events', 'enabled', 'created_at', 'project_filter'])->map(fn ($e) => ['id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'projectFilter' => $e->project_filter, 'projectIds' => app(WebhookProjectFilter::class)->ids($e), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
+            'agents' => ExternalAgent::where('workspace_id', $workspace)->where('active', true)->get()->map(fn ($a) => ['id' => $a->uuid, 'name' => $a->name, 'scopes' => AgentAccess::SCOPES]), 'agentScopes' => AgentAccess::SCOPES, 'agentEvents' => AgentAccess::EVENTS,
+            'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->whereNull('revoked_at')->orderByDesc('id')->get(['id', 'agent_shared', 'uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at', 'provisioning_enabled', 'integration_source_id', 'external_agent_id'])->map(fn ($t) => ['type' => AgentCredentials::isAgent($t) ? 'agent' : 'integration', 'shared' => (bool) $t->agent_shared, 'linkedAgents' => $t->agent_shared ? ExternalAgent::where('workspace_id', $workspace)->whereIn('id', DB::table('agent_credential_links')->where('integration_token_id', $t->id)->select('external_agent_id'))->get()->map(fn ($a) => ['id' => $a->uuid, 'name' => $a->name]) : [], 'agentId' => $t->external_agent_id ? ExternalAgent::withTrashed()->find($t->external_agent_id)?->uuid : null, 'agentName' => $t->external_agent_id ? ExternalAgent::withTrashed()->find($t->external_agent_id)?->name : null, 'sourceId' => $t->integration_source_id ? DB::table('integration_sources')->where('workspace_id', $workspace)->where('id', $t->integration_source_id)->value('uuid') : null, 'id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at, 'provisioningEnabled' => (bool) $t->provisioning_enabled]),
+            'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['id', 'workspace_id', 'uuid', 'name', 'url', 'events', 'enabled', 'created_at', 'project_filter', 'external_agent_id'])->map(fn ($e) => ['agentId' => $e->external_agent_id ? ExternalAgent::withTrashed()->find($e->external_agent_id)?->uuid : null, 'id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'projectFilter' => $e->project_filter, 'projectIds' => app(WebhookProjectFilter::class)->ids($e), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
         ])->header('Cache-Control', 'no-store');
     }
 
     public function token(Request $request): JsonResponse
     {
         $workspace = $this->workspace($request);
-        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'scopes' => ['required', 'array', 'min:1', 'max:'.count(IntegrationTokens::SCOPES)], 'scopes.*' => ['required', Rule::in(IntegrationTokens::SCOPES), 'distinct'], 'sourceId' => ['nullable', 'uuid', 'prohibits:sourceName'], 'sourceName' => ['nullable', 'string', 'max:100', 'regex:/\S/u', 'prohibits:sourceId'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()]]);
+        $agentType = $request->input('type', 'integration') === 'agent';
+        $allowedScopes = $agentType ? AgentAccess::SCOPES : IntegrationTokens::SCOPES;
+        $data = $request->validate(['type' => ['sometimes', Rule::in(['integration', 'agent'])], 'agentId' => [$agentType ? 'sometimes' : 'prohibited', 'uuid'], 'name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'scopes' => ['required', 'array', 'min:1', 'max:'.count($allowedScopes)], 'scopes.*' => ['required', Rule::in($allowedScopes), 'distinct'], 'sourceId' => ['nullable', 'uuid', 'prohibits:sourceName'], 'sourceName' => ['nullable', 'string', 'max:100', 'regex:/\S/u', 'prohibits:sourceId'], 'expiresAt' => ['nullable', 'date', 'after:now', 'before:'.now()->addYears(2)->toDateString()]]);
         if (! empty($data['expiresAt'])) {
             $data['expiresAt'] = Carbon::parse($data['expiresAt'])->utc();
         }
@@ -56,6 +62,20 @@ class IntegrationController extends Controller
             $this->workspace($request);
             abort_if(DB::table('integration_tokens')->where('workspace_id', $workspace)->count() >= 100, 422, 'Token limit reached.');
 
+            if (($data['type'] ?? 'integration') === 'agent') {
+                abort_if(! empty($data['sourceId']) || ! empty($data['sourceName']), 422);
+                if (empty($data['agentId'])) {
+                    app(AccountSecurity::class)->audit($request->user(), 'agent_shared_credential_created');
+
+                    return response()->json(app(IntegrationTokens::class)->create($workspace, [...$data, 'shared' => true]), 201)->header('Cache-Control', 'no-store');
+                }
+                $agent = ExternalAgent::where('workspace_id', $workspace)->where('uuid', $data['agentId'])->where('active', true)->firstOrFail();
+                abort_if(array_diff($data['scopes'], AgentAccess::SCOPES), 422);
+                $data['agentId'] = $agent->id;
+                app(AccountSecurity::class)->audit($request->user(), 'agent_token_created:'.$agent->id);
+
+                return response()->json(app(IntegrationTokens::class)->create($workspace, $data), 201)->header('Cache-Control', 'no-store');
+            }
             if (! empty($data['sourceId'])) {
                 $data['sourceId'] = DB::table('integration_sources')->where('workspace_id', $workspace)->where('uuid', $data['sourceId'])->whereNull('archived_at')->value('id');
                 abort_unless($data['sourceId'], 422, 'Unknown integration source.');
@@ -193,6 +213,11 @@ class IntegrationController extends Controller
             $row = DB::table('integration_tokens')->where('workspace_id', $workspace)->where('uuid', $uuid)->lockForUpdate()->first();
             abort_unless($row, 404);
             DB::table('integration_tokens')->where('id', $row->id)->update(['revoked_at' => now(), 'updated_at' => now()]);
+            $agents = ExternalAgent::where('workspace_id', $workspace)->where(fn ($q) => $q->whereKey($row->external_agent_id)->orWhereIn('id', DB::table('agent_credential_links')->where('integration_token_id', $row->id)->select('external_agent_id')))->get();
+            foreach ($agents as $agent) {
+                AgentCredentials::cancelUnavailableDeliveries($agent);
+            }
+            app(AccountSecurity::class)->audit($request->user(), 'credential_revoked:'.$row->id);
         });
 
         return response()->json(['ok' => true]);
@@ -201,8 +226,10 @@ class IntegrationController extends Controller
     public function webhook(Request $request, ?string $uuid = null): JsonResponse
     {
         $workspace = $this->workspace($request);
+        $existing = $uuid ? $this->endpoint($workspace, $uuid) : null;
+        $allowedEvents = WebhookEvents::TYPES;
         $required = $uuid ? 'sometimes' : 'required';
-        $data = $request->validate(['name' => [$required, 'string', 'max:100', 'regex:/\S/u'], 'url' => [$required, 'string', 'max:2048'], 'events' => [$required, 'array', 'min:1', 'max:'.count(WebhookEvents::TYPES)], 'events.*' => [Rule::in(WebhookEvents::TYPES), 'distinct'], 'enabled' => ['sometimes', 'boolean'], 'projectFilter' => ['sometimes', Rule::in(['all', 'selected'])], 'projectIds' => ['sometimes', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct']]);
+        $data = $request->validate(['agentId' => ['prohibited'], 'name' => [$required, 'string', 'max:100', 'regex:/\S/u'], 'url' => [$required, 'string', 'max:2048'], 'events' => [$required, 'array', 'min:1', 'max:'.count($allowedEvents)], 'events.*' => [Rule::in($allowedEvents), 'distinct'], 'enabled' => ['sometimes', 'boolean'], 'projectFilter' => ['sometimes', Rule::in(['all', 'selected'])], 'projectIds' => ['sometimes', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct']]);
         if (isset($data['url'])) {
             app(WebhookDestination::class)->resolve($data['url']);
         }
@@ -210,6 +237,7 @@ class IntegrationController extends Controller
         return DB::transaction(function () use ($request, $workspace, $uuid, $data): JsonResponse {
             Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
             $this->workspace($request);
+            unset($data['agentId']);
             $existing = $uuid ? DB::table('webhook_endpoints')->where('workspace_id', $workspace)->where('uuid', $uuid)->first() : null;
             abort_if($uuid && ! $existing, 404);
             $filters = app(WebhookProjectFilter::class);
@@ -237,7 +265,7 @@ class IntegrationController extends Controller
             abort_if(DB::table('webhook_endpoints')->where('workspace_id', $workspace)->count() >= 20, 422, 'Endpoint limit reached.');
             $secret = 'whsec_'.bin2hex(random_bytes(32));
             $id = (string) Str::uuid();
-            DB::table('webhook_endpoints')->insert(['project_filter' => $filter['mode'], 'uuid' => $id, 'workspace_id' => $workspace, 'name' => $data['name'], 'url' => $data['url'], 'events' => json_encode($data['events'], JSON_THROW_ON_ERROR), 'enabled' => $data['enabled'] ?? true, 'secret' => Crypt::encryptString($secret), 'secret_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('webhook_endpoints')->insert(['external_agent_id' => null, 'project_filter' => $filter['mode'], 'uuid' => $id, 'workspace_id' => $workspace, 'name' => $data['name'], 'url' => $data['url'], 'events' => json_encode($data['events'], JSON_THROW_ON_ERROR), 'enabled' => $data['enabled'] ?? true, 'secret' => Crypt::encryptString($secret), 'secret_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
 
             $created = DB::table('webhook_endpoints')->where('uuid', $id)->first();
             $filters->replace($created, $filter);
@@ -299,7 +327,7 @@ class IntegrationController extends Controller
             $endpoint = $this->endpoint($workspace, $uuid);
             abort_unless($endpoint->enabled, 422, 'Enable this endpoint first.');
             $workspaceUuid = Workspace::findOrFail($workspace)->uuid;
-            $id = app(WebhookEvents::class)->enqueue($workspace, 'webhook.test', ['workspaceId' => $workspaceUuid, 'projectId' => null, 'taskId' => null, 'actor' => ['type' => 'admin', 'id' => null], 'changes' => (object) [], 'origin' => 'test'], $endpoint->id);
+            $id = app(WebhookEvents::class)->enqueue($workspace, 'webhook.test', ['agentId' => $endpoint->external_agent_id ? ExternalAgent::withTrashed()->find($endpoint->external_agent_id)?->uuid : null, 'workspaceId' => $workspaceUuid, 'projectId' => null, 'taskId' => null, 'actor' => ['type' => 'admin', 'id' => null], 'changes' => (object) [], 'origin' => 'test'], $endpoint->id);
 
             return response()->json(['eventId' => $id, 'queued' => true], 202);
         });
@@ -315,7 +343,7 @@ class IntegrationController extends Controller
             $event = DB::table('webhook_events')->find($d->webhook_event_id);
             $payload = json_decode($event->body, true, 512, JSON_THROW_ON_ERROR);
 
-            return ['id' => $d->uuid, 'eventId' => $event->uuid, 'type' => $event->type, 'status' => $d->status, 'attempts' => $d->attempts, 'httpStatus' => $d->http_status, 'errorCode' => $d->error_code, 'availableAt' => $d->available_at, 'createdAt' => $d->created_at, 'canRetry' => app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null) && $d->status === 'failed' && $endpoint->enabled && $d->secret_version === $endpoint->secret_version, 'history' => DB::table('webhook_attempts')->where('webhook_delivery_id', $d->id)->orderBy('id')->get(['attempt', 'status', 'http_status', 'error_code', 'duration_ms', 'created_at'])];
+            return ['id' => $d->uuid, 'eventId' => $event->uuid, 'type' => $event->type, 'status' => $d->status, 'attempts' => $d->attempts, 'httpStatus' => $d->http_status, 'errorCode' => $d->error_code, 'availableAt' => $d->available_at, 'createdAt' => $d->created_at, 'canRetry' => (! $endpoint->external_agent_id || AgentAccess::deliveryAllowed($endpoint, $payload)) && app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null) && $d->status === 'failed' && $endpoint->enabled && $d->secret_version === $endpoint->secret_version, 'history' => DB::table('webhook_attempts')->where('webhook_delivery_id', $d->id)->orderBy('id')->get(['attempt', 'status', 'http_status', 'error_code', 'duration_ms', 'created_at'])];
         }), 'meta' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()]])->header('Cache-Control', 'no-store');
     }
 
@@ -332,7 +360,7 @@ class IntegrationController extends Controller
             $event = $row ? DB::table('webhook_events')->find($row->webhook_event_id) : null;
             $payload = $event ? json_decode($event->body, true, 512, JSON_THROW_ON_ERROR) : [];
             abort_unless($event && $event->workspace_id === $endpoint->workspace_id && app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null), 409);
-            abort_unless($endpoint->enabled && $endpoint->secret_version === $row->secret_version && $row->status === 'failed', 409);
+            abort_unless($endpoint->enabled && $endpoint->secret_version === $row->secret_version && $row->status === 'failed' && (! $endpoint->external_agent_id || AgentAccess::deliveryAllowed($endpoint, $payload)), 409);
             DB::table('webhook_deliveries')->where('id', $row->id)->update(['status' => 'pending', 'attempts' => 0, 'available_at' => now(), 'http_status' => null, 'error_code' => null, 'updated_at' => now()]);
 
             return response()->json(['queued' => true], 202);

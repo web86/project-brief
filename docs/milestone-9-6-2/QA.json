@@ -1,0 +1,99 @@
+{
+  "version": "0.9.8",
+  "sourceCommit": "8e2795bc97ea13a4c9b9aab9089d922d44a731e5",
+  "laravel": "13.34.0",
+  "php": "8.5.10",
+  "frontend": {
+    "passed": 424,
+    "failed": 0
+  },
+  "fullSQLite": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 1029,
+    "passed": 1029,
+    "assertions": 15251,
+    "duration_ms": 118736
+  },
+  "fullMariaDB": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 1029,
+    "passed": 1029,
+    "assertions": 15251,
+    "duration_ms": 354776
+  },
+  "php84MariaDB": {
+    "php": "8.4.26",
+    "passed": 85,
+    "assertions": 1239
+  },
+  "databaseVersion": "11.8.9-MariaDB-ubu2404",
+  "phpLint": {
+    "passed": 20
+  },
+  "visualMatrix": {
+    "languages": ["ru", "en", "tr", "zh-CN"],
+    "widths": [1440, 390],
+    "themes": ["light", "dark", "system"],
+    "captures": 168,
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "fixedDialogActions": true
+  },
+  "sourceE2E": {
+    "ok": true,
+    "results": [
+      "Real owner UI registration, one-time credential, project team and task assignment, independent Node executor, agent authorship and unchanged human workflow",
+      "Real HTTP bearer/scopes/privacy, six concurrent idempotent reports, multipart upload and human-only authorized file download",
+      "Unassigned and foreign-project tasks denied; immediate assignment revocation; stale-generation replay rejected after reassignment",
+      "UX tabs, all executor types, searchable grants, empty search, clear selection, API error draft retention, dirty cancellation, connection guide, all five execution states and only latest linked report",
+      "v0.9.8 UI permissions/key expiry/one-time secret; old token unchanged; parent/scopes/foreign-project denial; concurrent immediate read/write revocation; private client API/files; explicit human text/PR/file publication with separate file copies",
+      "Real HTTP credential rotation: former bearer rejected, replacement accepted",
+      "Real TLS webhook transport: HMAC/raw bytes, 503→204 retry with same delivery ID, revoked delivery cancelled",
+      "Owner deactivation revokes credential; independent executor fails with HTTP 401",
+      "All five tabs at 390/1440; three kinds created/edited with unchanged scopes and no automatic membership; owner grant revoke/regrant; team remove/re-add; inline task picker; confirmed editor deletion"
+    ],
+    "captures": 0,
+    "output": "/tmp/project-brief-m96-qa"
+  },
+  "extractedZipE2E": {
+    "ok": true,
+    "results": [
+      "Real owner UI registration, one-time credential, project team and task assignment, independent Node executor, agent authorship and unchanged human workflow",
+      "Real HTTP bearer/scopes/privacy, six concurrent idempotent reports, multipart upload and human-only authorized file download",
+      "Unassigned and foreign-project tasks denied; immediate assignment revocation; stale-generation replay rejected after reassignment",
+      "UX tabs, all executor types, searchable grants, empty search, clear selection, API error draft retention, dirty cancellation, connection guide, all five execution states and only latest linked report",
+      "v0.9.8 UI permissions/key expiry/one-time secret; old token unchanged; parent/scopes/foreign-project denial; concurrent immediate read/write revocation; private client API/files; explicit human text/PR/file publication with separate file copies",
+      "Real HTTP credential rotation: former bearer rejected, replacement accepted",
+      "Real TLS webhook transport: HMAC/raw bytes, 503→204 retry with same delivery ID, revoked delivery cancelled",
+      "Owner deactivation revokes credential; independent executor fails with HTTP 401",
+      "All five tabs at 390/1440; three kinds created/edited with unchanged scopes and no automatic membership; owner grant revoke/regrant; team remove/re-add; inline task picker; confirmed editor deletion"
+    ],
+    "captures": 0,
+    "output": "/tmp/project-brief-m96-package-qa"
+  },
+  "credentialsRevokedThroughUI": true,
+  "connectionAndExecutionStatesSeparate": true,
+  "concurrentPermissionRevocation": "passed",
+  "defaultExpandedReadFlags": false,
+  "oldTokenScopesUnmodified": true,
+  "newAgentOutput": "team_only",
+  "historicalVisibility": "unchanged",
+  "clientPublication": "separate human comment, blank draft, explicit selected links and independent selected file copies, idempotent",
+  "migration": "nullable JSON external_agents.permissions only; old records/scopes/grants/memberships preserved",
+  "archive": {
+    "file": "project-brief-v0.9.8-8e2795b.zip",
+    "bytes": 39401396,
+    "sha256": "246d6c47c50ba03a82b9b38a5794f2fb619ccce488a1e6987ffdac99784350f0",
+    "manifestEntries": 8923,
+    "zipEntries": 10171,
+    "crc": "passed",
+    "internalChecksums": "passed",
+    "exampleMatchesSource": true
+  },
+  "canonicalPackagedRuntime": "passed",
+  "push": false,
+  "deployment": false,
+  "productionDatabaseChanges": false
+}

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\ExternalAgent;
 use App\Services\LiveSync;
 use App\Services\ProjectDiscussions;
 use App\Services\ProjectFeedbacks;
@@ -24,12 +25,13 @@ class ProjectResource extends JsonResource
         $unreadComments = $client ? app(ProjectDiscussions::class)->count($this->resource, $client) : $this->when($admin && isset($this->unread_comment_count), (int) $this->unread_comment_count);
 
         return ['syncCursor' => $this->when(! $admin, fn () => app(LiveSync::class)->seed($request)), 'id' => $this->uuid, 'name' => $this->title, 'website' => $this->website_url ?? '', 'description' => $this->description ?? '', 'language' => $this->language, 'currency' => $this->currency,
+            'agents' => $this->when($admin && $this->resource->relationLoaded('briefSections'), fn () => ExternalAgent::where('workspace_id', $this->workspace_id)->whereIn('id', $this->members()->whereNotNull('external_agent_id')->select('external_agent_id'))->get()->map(fn ($agent) => $agent->publicState())),
             'permissions' => $this->when($admin, fn () => ProjectPermissions::effective($request, $this->resource)),
             'status' => $this->status, 'updatedAt' => $this->updated_at?->toISOString(),
             'branding' => $this->when($request->attributes->has('project_client'), fn () => app(WorkspaceBranding::class)->portal($this->workspace)),
             'feedback' => $this->when($admin, fn () => ['eligible' => app(ProjectFeedbacks::class)->eligible($this->resource), 'requested' => (bool) $this->feedback_requested, 'submitted' => (bool) $this->feedback_submitted]),
             'clientsCount' => $this->when($admin && isset($this->clients_count), (int) $this->clients_count),
-            'teamCount' => $this->when($admin && isset($this->team_count), (int) $this->team_count),
+            'agentsCount' => $this->when($admin && isset($this->agents_count), (int) $this->agents_count), 'teamCount' => $this->when($admin && isset($this->team_count), (int) $this->team_count),
             'sections' => $this->whenLoaded('briefSections', fn () => $this->briefSections->map(fn ($section) => ProjectStructure::sectionData($section))),
             'teamUnreadCount' => $this->when($admin && isset($this->team_unread_count), (int) $this->team_unread_count), 'tasksCount' => $this->when($admin, $this->tasks_count), 'doneCount' => $this->when($admin, $this->done_count), 'unreadCommentCount' => $unreadComments, 'unreadCount' => $this->when($admin && isset($this->unread_count), (int) $this->unread_count)];
     }

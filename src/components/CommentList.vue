@@ -6,8 +6,8 @@ import { formatDate } from '../constants/project'
 import UserAvatar from './UserAvatar.vue'
 import AppIcon from './AppIcon.vue'
 import AttachmentList from './AttachmentList.vue'
-const props = defineProps({ comments: Array, target: String })
-const emit = defineEmits(['seen'])
+const props = defineProps({ comments: Array, target: String, canShareAgentResults: Boolean })
+const emit = defineEmits(['seen', 'share'])
 const container = ref(null),
   highlighted = ref('')
 let observer,
@@ -69,18 +69,52 @@ onUnmounted(() => {
         class="comment-avatar"
       />
       <span v-else class="comment-avatar"
-        ><AppIcon :name="comment.author === 'developer' ? 'code' : 'user'" :size="17"
+        ><AppIcon
+          :name="
+            comment.author === 'agent' ? 'bot' : comment.author === 'developer' ? 'code' : 'user'
+          "
+          :size="17"
       /></span>
       <div class="comment-content">
         <div class="comment-heading">
           <strong>{{
-            (comment.authorId ? comment.authorName : null) ||
+            (comment.authorId || comment.author === 'agent' ? comment.authorName : null) ||
             (comment.author === 'developer' ? t('ui.developer') : t('ui.client'))
           }}</strong
+          ><span v-if="comment.author === 'agent'" class="status-pill">{{
+            t('agents.kind.' + (comment.agentKind || 'ai'))
+          }}</span
           ><time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
         </div>
+        <span v-if="comment.teamOnly" class="agent-private-marker small muted"
+          ><AppIcon name="lock" :size="14" /> {{ t('agents.internalResult') }}</span
+        >
         <p v-if="comment.text">{{ comment.text }}</p>
+        <div v-if="comment.agentReport" class="agent-comment-result">
+          <span class="status-pill">{{ t('agents.state.' + comment.agentReport.state) }}</span>
+          <a
+            v-if="comment.agentReport.pullRequestUrl"
+            :href="comment.agentReport.pullRequestUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ t('agents.pullRequest') }}</a
+          >
+          <a
+            v-if="comment.agentReport.resultUrl"
+            :href="comment.agentReport.resultUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ t('agents.result') }}</a
+          >
+        </div>
         <AttachmentList :attachments="comment.attachments || []" compact />
+        <button
+          v-if="canShareAgentResults && comment.teamOnly && comment.author === 'agent'"
+          class="text-button agent-share-action"
+          @click="emit('share', comment)"
+        >
+          {{ t('agents.shareClient') }}
+        </button>
       </div>
     </article>
   </div>
@@ -88,3 +122,22 @@ onUnmounted(() => {
     <p>{{ t('ui.noCommentsYet') }}</p>
   </div>
 </template>
+
+<style scoped>
+.agent-private-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0;
+}
+.agent-share-action {
+  margin-top: 8px;
+}
+.agent-comment-result {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+</style>

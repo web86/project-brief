@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\ExternalAgent;
+use App\Models\Project;
 use App\Models\ProjectFeedback;
 use App\Models\Task;
 use App\Models\User;
@@ -53,6 +55,21 @@ $png = ob_get_clean();
 Storage::disk('local')->put('branding/live-logo.png', $png);
 $settings['assets']['logo'] = ['token' => str_repeat('a', 48), 'path' => 'branding/live-logo.png', 'extension' => 'png', 'mime' => 'image/png', 'bytes' => strlen($png)];
 $workspace->update(['branding' => $settings]);
+$refinement = [];
+if (($argv[1] ?? '') === 'hotfix') {
+    $owner->forceFill(['platform_admin' => true])->save();
+}
+if (($argv[1] ?? '') === 'release910') {
+    $available = User::factory()->memberOf($workspace)->create(['name' => 'Existing teammate', 'email' => 'existing@example.test']);
+    $archived = app(ProjectCreation::class)->create($workspace->id, ['title' => 'Archived synthetic delivery', 'currency' => 'USD'], ['clientName' => 'Archive Author', 'clientEmail' => 'archive@example.test']);
+    $archived->clients()->first()->update(['email' => 'archive@example.test']);
+    ProjectFeedback::create(['workspace_id' => $workspace->id, 'project_id' => $archived->id, 'project_client_id' => $archived->clients()->first()->id, 'rating' => 4, 'text' => 'ARCHIVED-REVIEW', 'submitted_at' => '2026-10-20 12:00:00']);
+    $archived->delete();
+    $foreign = Project::factory()->create();
+    ProjectFeedback::create(['workspace_id' => $foreign->workspace_id, 'project_id' => $foreign->id, 'project_client_id' => $foreign->clients()->first()->id, 'rating' => 1, 'text' => 'FOREIGN-REVIEW', 'submitted_at' => now()]);
+    $legacy = ExternalAgent::create(['workspace_id' => $workspace->id, 'name' => 'Legacy service', 'kind' => 'service', 'active' => true]);
+    $refinement = ['availableMember' => $available->workspaceMembers()->first()->id, 'legacyAgent' => $legacy->uuid];
+}
 $token = bin2hex(random_bytes(32));
 $project->accessTokens()->create(['project_client_id' => $project->clients()->first()->id, 'token_hash' => hash('sha256', $token)]);
-echo json_encode(['project' => $project->uuid, 'task' => $task->uuid, 'workspace' => $workspace->uuid, 'token' => $token, 'reviewed' => $reviewed->uuid], JSON_THROW_ON_ERROR);
+echo json_encode(['project' => $project->uuid, 'task' => $task->uuid, 'workspace' => $workspace->uuid, 'token' => $token, 'reviewed' => $reviewed->uuid, ...$refinement], JSON_THROW_ON_ERROR);

@@ -150,14 +150,54 @@ try {
     path.join(staging, 'deployment/rollback-public.htaccess'),
   )
   await copyRelease(
-    path.join(root, 'docs/milestone-9-5/PRODUCTION.md'),
+    path.join(root, 'docs/agent-ux-shared-keys/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
+  )
+  await mkdir(path.join(staging, 'agent-api/examples'), { recursive: true })
+  for (const file of [
+    'AGENT-API.md',
+    'AGENT-WEBHOOKS.md',
+    'AGENT-SECURITY.md',
+    'AGENT-EXAMPLE.md',
+    'openapi.json',
+    'PRODUCTION.md',
+    'examples/README.md',
+    'examples/agent.mjs',
+  ]) {
+    await copyRelease(
+      file === 'PRODUCTION.md'
+        ? path.join(root, 'docs/agent-ux-shared-keys/PRODUCTION.md')
+        : path.join(root, 'docs/milestone-9-6', file),
+      path.join(staging, 'agent-api', file),
+    )
+  }
+  await copyRelease(
+    path.join(root, 'docs/agent-ux-shared-keys/API.md'),
+    path.join(staging, 'agent-api/COLLABORATION.md'),
+  )
+  await copyRelease(
+    path.join(root, 'docs/agent-ux-shared-keys/examples/collaboration.mjs'),
+    path.join(staging, 'agent-api/examples/collaboration.mjs'),
+  )
+  await copyRelease(
+    path.join(root, 'AGENT-LIVE-SMOKE-RU.md'),
+    path.join(staging, 'agent-api/AGENT-LIVE-SMOKE-RU.md'),
+  )
+  const collaborationGuide = path.join(staging, 'agent-api/COLLABORATION.md')
+  await writeFile(
+    collaborationGuide,
+    (await readFile(collaborationGuide, 'utf8')).replaceAll(
+      '(../milestone-9-6/openapi.json)',
+      '(openapi.json)',
+    ),
   )
   const deploymentGuide = path.join(staging, 'DEPLOY-JINO.md')
   await writeFile(
     deploymentGuide,
     (await readFile(deploymentGuide, 'utf8'))
-      .replaceAll('(docs/milestone-9-5/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-9-6-2/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-9-6-1/PRODUCTION.md)', '(PRODUCTION.md)')
+      .replaceAll('(docs/milestone-9-6/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-9-4/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-9-2/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-8-5/PRODUCTION.md)', '(PRODUCTION.md)')
@@ -176,7 +216,7 @@ try {
   )
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.9.5', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.9.10', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }
@@ -205,7 +245,7 @@ try {
   const secrets = await knownLocalSecrets()
   const fileCount = await validateRelease(staging, secrets)
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
-  const archive = path.join(releaseRoot, `project-brief-v0.9.5-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(releaseRoot, `project-brief-v0.9.10-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
   // Test the actual ZIP in a fresh directory, never an existing installation.

@@ -18,12 +18,32 @@ const forbiddenDirectories = new Set([
   'secrets',
 ])
 
+// Exact portable integration documentation/example allowlist, outside the web root.
+const agentApiFiles = new Set([
+  'agent-api',
+  'agent-api/examples',
+  ...[
+    'AGENT-API.md',
+    'AGENT-WEBHOOKS.md',
+    'AGENT-SECURITY.md',
+    'AGENT-EXAMPLE.md',
+    'COLLABORATION.md',
+    'AGENT-LIVE-SMOKE-RU.md',
+    'openapi.json',
+    'PRODUCTION.md',
+    'examples/README.md',
+    'examples/agent.mjs',
+    'examples/collaboration.mjs',
+  ].map((file) => 'agent-api/' + file),
+])
+
 const vendorRuntimeSources = new Set([
   'web-auth/webauthn-lib/src/Credential.php',
   'laravel/framework/src/Illuminate/Console/View/Components/Secret.php',
 ])
 
 export function forbiddenPath(relative) {
+  if (agentApiFiles.has(relative)) return false
   const parts = relative.split('/').map((part) => part.toLowerCase())
   const name = parts.at(-1)
   const vendorRelative = relative.startsWith('private/project-brief-app/vendor/')
@@ -80,6 +100,7 @@ export function forbiddenProductionPath(relative) {
   const parts = relative.split('/')
   const name = parts.at(-1).toLowerCase()
   const permitted =
+    agentApiFiles.has(relative) ||
     ['DEPLOY-JINO.md', 'PRODUCTION.md', 'release.json', 'checksums.txt'].includes(relative) ||
     parts[0] === 'public' ||
     relative === 'private' ||
@@ -244,6 +265,29 @@ export async function validateRelease(root, localSecrets = []) {
         (group) => `private/project-brief-app/lang/${locale}/${group}.php`,
       ),
     ),
+    'agent-api/AGENT-API.md',
+    'agent-api/AGENT-WEBHOOKS.md',
+    'agent-api/AGENT-SECURITY.md',
+    'agent-api/AGENT-EXAMPLE.md',
+    'agent-api/openapi.json',
+    'agent-api/examples/agent.mjs',
+    'agent-api/COLLABORATION.md',
+    'agent-api/AGENT-LIVE-SMOKE-RU.md',
+    'private/project-brief-app/app/Services/AgentCredentials.php',
+    'private/project-brief-app/app/Services/AgentChat.php',
+    'private/project-brief-app/database/migrations/2026_11_01_111241_add_shared_agent_credentials.php',
+    'agent-api/examples/collaboration.mjs',
+    'private/project-brief-app/app/Services/AgentRuns.php',
+    'private/project-brief-app/app/Services/TaskDescription.php',
+    'private/project-brief-app/app/Http/Controllers/AgentCollaborationController.php',
+    'private/project-brief-app/app/Http/Controllers/AgentRunApiController.php',
+    'private/project-brief-app/database/migrations/2026_11_01_074535_add_agent_collaboration_and_task_formatting.php',
+    'private/project-brief-app/app/Services/AgentAccess.php',
+    'private/project-brief-app/app/Services/AgentPermissions.php',
+    'private/project-brief-app/app/Http/Controllers/AgentReadController.php',
+    'private/project-brief-app/app/Http/Controllers/AgentResultController.php',
+    'private/project-brief-app/database/migrations/2026_10_31_065854_add_permissions_to_external_agents.php',
+    'private/project-brief-app/database/migrations/2026_10_30_213603_add_external_agents.php',
     'release.json',
   ]
   for (const file of required) {

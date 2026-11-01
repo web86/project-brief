@@ -279,6 +279,7 @@ test('client history omits every private audit event while preserving the order 
 
 test('administrative breadcrumbs use existing project routes, localized names and a non-link current page', async () => {
   const { router, data, path } = await fixture()
+  Object.assign(data.tasks[0], { status: 'new', clientApproved: false, canEditBrief: true })
   for (const lang of ['en', 'ru']) {
     i18n.global.locale.value = lang
     for (const section of [

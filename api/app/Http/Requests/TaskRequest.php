@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Services\TaskAccess;
 use App\Services\TaskAudit;
+use App\Services\TaskDescription;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -43,7 +44,7 @@ class TaskRequest extends FormRequest
     public static function publicRules(string $required = 'required'): array
     {
         return ['title' => [$required, 'string', 'max:160'], 'location' => [$required, 'string', 'max:2048'],
-            'description' => [$required, 'string', 'max:10000'], 'expectedResult' => ['nullable', 'string', 'max:10000'],
+            'description' => [$required, 'string', 'max:10000'], 'descriptionHtml' => ['sometimes', 'nullable', 'string', 'max:60000'], 'expectedResult' => ['nullable', 'string', 'max:10000'],
             'priority' => [$required, Rule::in(['low', 'normal', 'high'])], 'section' => ['sometimes', 'string', 'max:2048', 'regex:/\S/u']];
     }
 
@@ -68,6 +69,9 @@ class TaskRequest extends FormRequest
                 $result[$map[$key] ?? $key] = $value;
             }
         }
+
+        $result = array_replace($result, TaskDescription::attributes($this->validated()));
+        unset($result['descriptionHtml']);
 
         return $result;
     }

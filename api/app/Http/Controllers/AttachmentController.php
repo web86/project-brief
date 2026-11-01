@@ -45,12 +45,13 @@ class AttachmentController extends Controller
     private function file(Request $request, string $uuid, string $mode): StreamedResponse
     {
         $projects = TaskAccess::isAdmin($request) ? ProjectAccess::query($request)->pluck('projects.id') : [TaskAccess::project($request)->id];
-        $file = Attachment::where('uuid', $uuid)->where(function ($query) use ($request, $projects) {
+        $file = Attachment::query()->when(TaskAccess::isAdmin($request), fn ($q) => $q->withoutGlobalScope('public_channel'))->where('uuid', $uuid)->where(function ($query) use ($request, $projects) {
             $query->whereIn('task_id', TaskAccess::query($request)->select('tasks.id'))
                 ->orWhere(fn ($general) => $general->whereNull('task_id')->whereHas('comment', fn ($comment) => $comment->whereNull('task_id')->whereIn('project_id', $projects)));
         })->firstOrFail();
         if ($file->comment_id && $file->task_id) {
-            abort_unless($file->comment && $file->comment->task_id === $file->task_id && $file->comment->project_id === $file->task->project_id, 404);
+            $comment = $file->comment()->when(TaskAccess::isAdmin($request), fn ($q) => $q->withoutGlobalScope('public_channel'))->first();
+            abort_unless($comment && $comment->task_id === $file->task_id && $comment->project_id === $file->task->project_id, 404);
         }
         abort_if($mode !== 'download' && ! in_array($file->mime_type, ['image/jpeg', 'image/png', 'image/webp']), 404);
         $thumbnail = $mode === 'preview' && $file->thumbnail_path;

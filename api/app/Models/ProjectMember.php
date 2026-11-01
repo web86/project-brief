@@ -7,11 +7,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProjectMember extends Model
 {
-    protected $fillable = ['workspace_id', 'project_id', 'workspace_member_id', 'permissions'];
+    protected $fillable = ['workspace_id', 'project_id', 'workspace_member_id', 'external_agent_id', 'permissions'];
 
     protected function casts(): array
     {
         return ['workspace_id' => 'integer', 'project_id' => 'integer', 'workspace_member_id' => 'integer', 'permissions' => 'array'];
+    }
+
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(ExternalAgent::class, 'external_agent_id');
     }
 
     public function project(): BelongsTo

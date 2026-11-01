@@ -17,7 +17,7 @@ import { appDestination } from '../services/session.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { useProjectManagementStore } from '../stores/projectManagement.js'
 import { useProjectStore } from '../stores/project'
-import { canEditClientTask } from '../utils/clientDraft.js'
+import { canEditClientTask, canEditDeveloperTask } from '../utils/clientDraft.js'
 import { api, API_MODE } from '../api/client'
 import ProjectView from '../views/ProjectView.vue'
 
@@ -103,6 +103,16 @@ export function createProjectRouter({
               ownerOnly: true,
               get title() {
                 return t('administrators.title')
+              },
+            },
+          },
+          {
+            path: 'reviews',
+            component: () => import('../views/AdminReviewsView.vue'),
+            meta: {
+              ownerOnly: true,
+              get title() {
+                return t('release910.reviews')
               },
             },
           },
@@ -370,6 +380,7 @@ export function createProjectRouter({
       },
     ],
     scrollBehavior(to, from, savedPosition) {
+      if (to.hash === '#project-recycle-bin') return { el: to.hash, top: 24 }
       if (to.hash === '#telegram-settings') return { el: to.hash, top: 24 }
       if (to.hash.startsWith('#comment-')) return false
       return savedPosition || { top: 0 }
@@ -459,7 +470,7 @@ export function createProjectRouter({
       if (to.meta.editTask) {
         const store = useProjectStore()
         const task = store.findTask(to.params.id)
-        if (!task || (!store.isDeveloper && !canEditClientTask(task)))
+        if (!task || (store.isDeveloper ? !canEditDeveloperTask(task) : !canEditClientTask(task)))
           return store.taskPath(to.params.id)
       }
       return true
@@ -644,7 +655,12 @@ export function createProjectRouter({
     const store = useProjectStore()
     if (to.params.id && to.meta.apiProject && !store.findTask(to.params.id))
       return to.meta.admin ? '/admin/unavailable' : '/access-error?reason=unavailable'
-    if (to.meta.editTask && !to.meta.admin && !canEditClientTask(store.findTask(to.params.id)))
+    if (
+      to.meta.editTask &&
+      (to.meta.admin
+        ? !canEditDeveloperTask(store.findTask(to.params.id))
+        : !canEditClientTask(store.findTask(to.params.id)))
+    )
       return store.taskPath(to.params.id)
   })
   router.onError((error, to) => {

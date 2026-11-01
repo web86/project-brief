@@ -1,0 +1,14 @@
+{
+  "archive": "release/project-brief-v0.9.6-6b4b493.zip",
+  "bytes": 39380715,
+  "sha256": "7ec9088747b47839547961d2f9886bd45640f14ba173aed094bbf2d162c05715",
+  "checksums": 8918,
+  "crc": "passed",
+  "release": {
+    "version": "0.9.6",
+    "commit": "6b4b49372af0f30abb8e483b525f0775d76fe815",
+    "builtAt": "2026-10-30T22:31:14.643Z",
+    "phpTarget": "8.4",
+    "domain": "brief.web86.site"
+  }
+}

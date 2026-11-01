@@ -8,12 +8,18 @@ import { useProjectStore } from '../stores/project'
 import { PRIORITIES } from '../constants/project'
 import AttachmentList from './AttachmentList.vue'
 import { getTaskLocation } from '../constants/project.js'
-import { canEditClientTask } from '../utils/clientDraft.js'
+import { canEditClientTask, canEditDeveloperTask } from '../utils/clientDraft.js'
 import LoadingButton from './LoadingButton.vue'
 import FileUploader from './FileUploader.vue'
 import LocationInput from './LocationInput.vue'
 import AiTaskAssistant from './AiTaskAssistant.vue'
 import AppIcon from './AppIcon.vue'
+import TaskDescriptionEditor from './TaskDescriptionEditor.vue'
+import {
+  blocksDescription,
+  descriptionBlocks,
+  mergeDescriptionText,
+} from '../utils/taskRichText.js'
 const props = defineProps({ task: Object })
 const store = useProjectStore()
 const router = useRouter()
@@ -32,6 +38,12 @@ const detailLocation = ref(
   props.task && getTaskLocation(props.task) !== initialSection ? getTaskLocation(props.task) : '',
 )
 const description = ref(props.task?.description || '')
+const descriptionHtml = ref(props.task?.descriptionHtml || null)
+const descriptionRevision = ref(0)
+function updateDescription(value) {
+  description.value = value.text
+  descriptionHtml.value = value.html
+}
 const expectedResult = ref(props.task?.expectedResult || '')
 const aiSource = computed(() => ({
   title: title.value,
@@ -49,7 +61,17 @@ const aiContext = computed(() => ({
 function applyAiSuggestion(values) {
   if (saving.value) return
   title.value = values.title
-  description.value = values.description
+  if (values.description !== description.value) {
+    updateDescription(
+      blocksDescription(
+        mergeDescriptionText(
+          values.description,
+          descriptionBlocks(descriptionHtml.value, description.value),
+        ),
+      ),
+    )
+    descriptionRevision.value++
+  }
   expectedResult.value = values.expectedResult
 }
 const priority = ref(props.task?.priority || 'normal')
@@ -84,11 +106,16 @@ async function submit() {
       section: location.value.trim(),
       location: detailLocation.value.trim() || location.value.trim(),
       description: description.value,
+      ...(descriptionHtml.value ? { descriptionHtml: descriptionHtml.value } : {}),
       expectedResult: expectedResult.value,
       priority: priority.value,
     }
     if (props.task) {
-      if (!store.isDeveloper && !canEditClientTask(store.findTask(props.task.id)))
+      if (
+        store.isDeveloper
+          ? !canEditDeveloperTask(store.findTask(props.task.id))
+          : !canEditClientTask(store.findTask(props.task.id))
+      )
         throw new Error(t('flow.briefLocked'))
       if (!(await store.updateTask(props.task.id, input))) {
         if (store.apiError?.code === 'task_conflict') {
@@ -187,25 +214,22 @@ async function submit() {
       <input id="idea-location-detail" v-model="detailLocation" maxlength="2048" />
     </div>
     <div class="field">
-      <div class="field-label-row">
-        <label for="idea-description"
-          >{{ t('ui.tellUsMore') }} <span class="required-dot" aria-hidden="true">*</span></label
-        ><AiTaskAssistant
-          :source="aiSource"
-          :context="aiContext"
-          :disabled="saving"
-          @apply="applyAiSuggestion"
-        />
-      </div>
-      <textarea
-        id="idea-description"
-        v-model="description"
-        :placeholder="t('ui.describeInYourOwnWordsWhatYouDislike')"
-        rows="4"
-        maxlength="10000"
-        required
-        :aria-invalid="submitted && errors.description"
-        :aria-describedby="submitted && errors.description ? 'description-error' : undefined"
+      <label for="idea-description"
+        >{{ t('ui.tellUsMore') }} <span class="required-dot" aria-hidden="true">*</span></label
+      >
+      <TaskDescriptionEditor
+        :key="descriptionRevision"
+        :text="description"
+        :html="descriptionHtml"
+        :disabled="saving"
+        :invalid="submitted && errors.description"
+        @change="updateDescription"
+      />
+      <AiTaskAssistant
+        :source="aiSource"
+        :context="aiContext"
+        :disabled="saving"
+        @apply="applyAiSuggestion"
       />
       <p v-if="submitted && errors.description" id="description-error" class="field-error">
         {{ t('ui.addSomeDetailsToHelpUsUnderstandYour') }}
