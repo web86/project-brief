@@ -29,7 +29,6 @@ class AgentAccess
         $request->attributes->set('integration_required_scope', $scope);
 
         $agent = self::identity($request);
-        abort_unless(in_array($scope, AgentPermissions::scopes($agent), true), 403);
 
         return $agent;
     }
@@ -59,7 +58,7 @@ class AgentAccess
 
     public static function tokenAllows(Request $request, string $scope): bool
     {
-        return in_array($scope, json_decode($request->attributes->get('integration_token')->scopes, true), true) && in_array($scope, AgentPermissions::scopes(self::identity($request)), true);
+        return in_array($scope, json_decode($request->attributes->get('integration_token')->scopes, true), true);
     }
 
     public static function accessibleTask(Request $request, string $uuid): Task

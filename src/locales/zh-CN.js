@@ -1,4 +1,18 @@
 export default {
+  release910: {
+    reviews: '评价',
+    reviewsHint: '显示工作区所有项目的评价，最新评价在前。',
+    from: '开始日期',
+    to: '结束日期',
+    apply: '应用',
+    allDates: '所有日期',
+    emptyReviews: '此期间暂无评价。',
+    unknownAuthor: '客户',
+    archived: '已归档项目',
+    existingMember: '选择现有成员',
+    inviteMember: '邀请新成员',
+    noKeys: '没有密钥，请先创建',
+  },
   agentUx: {
     publicHistory: '此历史报告已对客户可见',
     identityId: '外部执行程序使用的代理 ID',
@@ -234,6 +248,7 @@ export default {
     pullRequest: '拉取请求',
     result: '外部结果',
     kind: {
+      agent: '代理',
       ai: 'AI 智能体',
       automation: '自动化',
       service: '外部服务',

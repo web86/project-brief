@@ -1,47 +1,30 @@
-# Project Brief v0.9.10 — Agent UX, shared API keys and workflow refinement
+# Project Brief v0.9.10 — Team, reviews and simpler agent setup
 
-Based on the verified v0.9.9 working version. Separate branch:
-`codex/agent-ux-shared-api-keys`. Milestone 10 plans/subscriptions remain separate.
+Final refinement of the local v0.9.10 candidate; branch
+`codex/release-0-9-10-team-reviews`, based on `400e603`.
 
-This patch adds generation-bound shared agent credentials over the existing bearer
-stack, compact API/webhook dialogs and agent key selection without losing drafts.
-It removes revoked keys from normal lists, counts actual active project agents,
-hides empty task AI surfaces and places assignment controls in the right column.
-Private chat contains reports, files and inline long replies, with preserved legacy
-history and explicit reviewed publication to the team or client. Developers can
-edit the task brief before agreement, including rich text, with a server guard
-against stale writes after client approval.
+- One Team modal, maximum 900px, reuses existing assignment and email-invitation
+  APIs. It closes and refreshes after success; the existing toast is retained.
+- Owner-only workspace Reviews uses existing submitted feedback, including
+  completed and archived projects. Date bounds are inclusive in the display
+  timezone. Archived links open the existing recycle bin.
+- Global personal settings reuse the project's collapsible navigation component.
+- Agent form has one shared-key select, optional at creation, no kind chooser,
+  permission grid or key-creation action. Active is the last field. New kind is
+  `agent`; existing kinds remain unchanged.
+- Credential scopes are the sole operation ceiling. Existing hashes/scopes,
+  bearer namespaces, identity/binding, workspace, grant, membership, assignment
+  and object/file checks remain. No automatic key creation or database migration.
 
-Contracts and compatibility: [API.md](API.md),
-[OpenAPI](../milestone-9-6/openapi.json). Deployment/migration/rollback:
-[PRODUCTION.md](PRODUCTION.md). Owner checklist:
-[AGENT-LIVE-SMOKE-RU.md](../../AGENT-LIVE-SMOKE-RU.md).
-Independent executor: [examples/collaboration.mjs](examples/collaboration.mjs).
+See [API.md](API.md) and [PRODUCTION.md](PRODUCTION.md) for the scope-only policy
+change and upgrade/rollback implications. In particular, review broad existing
+keys which previously relied on restrictive registration flags before installing.
 
-Validation: 1056 Laravel tests / 15607 assertions on SQLite and MariaDB;
-124 focused PHP 8.4 tests / 1703 assertions; 434 frontend tests. Full source browser
-workflow passes with an independent deterministic Node executor, private file
-authorization, signed real HTTPS delivery with 503 retry/deduplication and access
-revocation, rich editing and shared-key revocation.
+Available checks: 1059 Laravel tests / 15657 assertions on SQLite and MariaDB;
+127 focused PHP 8.4 tests / 1753 assertions; 434 frontend tests; production Vite
+build and Pint; source browser workflow with actual local SMTP delivery of a
+synthetic invitation. No external AI requests are needed for this refinement.
 
-Detailed validation, model request accounting, visual checks and extracted-ZIP
-evidence are in [QA.json](QA.json). Exact archive metadata is in
-[RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json). Screenshots remain outside Git.
-No push, deployment or production DB changes are part of this work.
-
-Final package workflow passes on the extracted production ZIP with an independent
-Node executor and real signed HTTPS receiver. Visual phase: 288 captures across
-four languages, three themes and two widths; all visual assertions passed. A late
-asynchronous-history test assertion was corrected, and the full package workflow
-passed separately. Screenshots are retained outside Git.
-
-Additional Groq E2E: exactly **2** requests, both HTTP 200, using
-`openai/gpt-oss-120b`; **1541 input / 437 output tokens**. First instruction and
-private follow-up both produced reports in the same chat. No real provider rerun
-was needed after later dialog-only adjustments; the backend and independent
-executor remain identical. No secrets or test env are included in the archive.
-
-Final artifact: `project-brief-v0.9.10-00793c2.zip`, **39443130 bytes**.
-SHA-256: `d5047cbcb236dfa7d144b34e88add22e817b6d596b97fd92b43da9079a206207`.
-CRC and all **8940** internal checksum records pass. The packaged executor and
-Russian owner guide match the source byte for byte.
+Final package/visual evidence is recorded in [QA.json](QA.json), with exact ZIP
+metadata in [RELEASE-ARTIFACT.json](RELEASE-ARTIFACT.json). Screenshots stay outside
+Git and the production package. No push, deployment or production DB changes.

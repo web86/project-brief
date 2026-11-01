@@ -1,4 +1,18 @@
 export default {
+  release910: {
+    reviews: 'Değerlendirmeler',
+    reviewsHint: 'Tüm çalışma alanı projelerinin değerlendirmeleri, en yeniden başlayarak.',
+    from: 'Başlangıç',
+    to: 'Bitiş',
+    apply: 'Uygula',
+    allDates: 'Tüm tarihler',
+    emptyReviews: 'Bu dönem için henüz değerlendirme yok.',
+    unknownAuthor: 'Müşteri',
+    archived: 'Arşivlenmiş proje',
+    existingMember: 'Mevcut üyeyi seç',
+    inviteMember: 'Yeni üye davet et',
+    noKeys: 'Anahtar yok. Önce bir tane oluşturun.',
+  },
   agentUx: {
     publicHistory: 'Bu eski rapor müşteriye zaten görünür',
     identityId: 'Harici yürütücü için ajan kimliği',
@@ -261,6 +275,7 @@ export default {
     pullRequest: 'Pull request',
     result: 'Harici sonuç',
     kind: {
+      agent: 'Ajan',
       ai: 'Yapay zekâ aracısı',
       automation: 'Otomasyon',
       service: 'Harici servis',

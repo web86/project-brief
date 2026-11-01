@@ -6,13 +6,12 @@ import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
-import ApiKeyDialog from './ApiKeyDialog.vue'
 import BaseDialog from './BaseDialog.vue'
 import AppIcon from './AppIcon.vue'
 import LoadingButton from './LoadingButton.vue'
 const nav = useAdminNavigationStore()
 const props = defineProps({ tokenCatalog: Array })
-const emit = defineEmits(['credentials', 'changed', 'credential-created'])
+const emit = defineEmits(['changed'])
 const liveTokens = (agent) =>
   (agent?.tokens || []).filter(
     (token) =>
@@ -35,42 +34,17 @@ async function copyIdentity() {
     error.value = t('agents.copyManually')
   }
 }
-const keyCreateOpen = ref(false)
-const selectedCredential = computed(() =>
-  credentialChoices.value.find((key) => key.id === draft.value.credentialId),
-)
-const scopeLabel = (scope) => t('collaboration.scope.' + scope.replaceAll(':', '_'))
-async function keyCreated(key) {
-  const current = revision
-  emit('credential-created', key)
-  if (open.value && key.type === 'agent') {
-    state.value.credentials = [
-      ...(state.value.credentials || []).filter((item) => item.id !== key.id),
-      key,
-    ]
-    draft.value.credentialId = key.id
-  }
-  try {
-    await load(current)
-  } catch (cause) {
-    if (current === revision) error.value = formatApiError(cause)
-  }
-  emit('changed')
-}
-
 const state = ref(null),
   error = ref(''),
   busy = ref(false),
   open = ref(false),
   secret = ref(''),
   editing = ref(null)
-const draft = ref({ permissions: {}, kind: 'ai', projectIds: [] })
+const draft = ref({ projectIds: [] })
 const projectSearch = ref(''),
   projectOpen = ref(true),
   guideOpen = ref(false),
-  baseline = ref(''),
-  connectOpen = ref(false),
-  createdAgent = ref('')
+  baseline = ref('')
 const projectChoices = computed(() =>
   (state.value?.projects || []).filter((project) =>
     project.name.toLocaleLowerCase().includes(projectSearch.value.trim().toLocaleLowerCase()),
@@ -78,24 +52,6 @@ const projectChoices = computed(() =>
 )
 const selectedProjects = computed(() =>
   (state.value?.projects || []).filter((project) => draft.value.projectIds?.includes(project.id)),
-)
-const readPermissions = [
-  'assignedTasks',
-  'projectTasks',
-  'taskComments',
-  'clientDiscussions',
-  'teamChat',
-  'taskAttachments',
-  'discussionAttachments',
-]
-const writePermissions = ['reports', 'comments', 'attachments']
-const extraPermissions = computed(
-  () =>
-    readPermissions.filter((key) => key !== 'assignedTasks' && draft.value.permissions?.[key])
-      .length,
-)
-const activeTokenCount = computed(
-  () => (editing.value?.tokens || []).filter((token) => usableAgentToken(token)).length,
 )
 const fingerprint = () =>
   JSON.stringify({ ...draft.value, projectIds: [...(draft.value.projectIds || [])].sort() })
@@ -119,10 +75,8 @@ watch(
     state.value = null
     secret.value = ''
     editing.value = null
-    createdAgent.value = ''
     guideOpen.value = false
     open.value = false
-    keyCreateOpen.value = false
     error.value = ''
     busy.value = false
     try {
@@ -137,7 +91,7 @@ onBeforeUnmount(() => {
   revision++
   secret.value = ''
 })
-function configure(agent = null, connect = false) {
+function configure(agent = null) {
   editing.value = agent
   copiedIdentity.value = false
   draft.value = {
@@ -145,13 +99,10 @@ function configure(agent = null, connect = false) {
     name: agent?.name || '',
     description: agent?.description || '',
     instructions: agent?.instructions || '',
-    kind: agent?.kind || 'ai',
     active: agent?.active ?? true,
     projectIds: [...(agent?.projectIds || [])],
     webhookUrl: agent?.webhook?.url || '',
-    permissions: { ...(state.value?.permissionDefaults || {}), ...(agent?.permissions || {}) },
   }
-  connectOpen.value = connect
   projectSearch.value = ''
   projectOpen.value = !agent
   baseline.value = fingerprint()
@@ -167,7 +118,6 @@ async function action(path, method, body, close = false) {
     const result = await api.request(root + path, { method, body })
     if (version !== revision) return
     if (close) open.value = false
-    if (!path && method === 'POST' && !body?.credentialId) createdAgent.value = result.data.id
     secret.value = result.secret || result.webhookSecret || ''
     await load(version)
     emit('changed')
@@ -179,28 +129,9 @@ async function action(path, method, body, close = false) {
     if (version === revision) busy.value = false
   }
 }
-function manageCredentials() {
-  open.value = false
-  emit('credentials', editing.value.id)
-}
 function remove(agent) {
   if (window.confirm(t('agents.confirmDelete', { name: agent.name })))
     action('/' + agent.id, 'DELETE', undefined, true)
-}
-async function connectCreated() {
-  try {
-    let agent = state.value?.data.find((agent) => agent.id === createdAgent.value)
-    if (!agent) {
-      await load()
-      agent = state.value?.data.find((agent) => agent.id === createdAgent.value)
-    }
-    if (agent) {
-      createdAgent.value = ''
-      configure(agent, true)
-    }
-  } catch (cause) {
-    error.value = formatApiError(cause)
-  }
 }
 async function copySecret() {
   try {
@@ -297,14 +228,6 @@ async function copySecret() {
         </div>
       </dl>
       <div class="team-actions">
-        <button
-          v-if="agent.active && credentialState(agent) === 'missing'"
-          class="button secondary"
-          :disabled="busy"
-          @click="configure(agent, true)"
-        >
-          {{ t('agents.createKey') }}
-        </button>
         <button v-if="!agent.lastActivityAt" class="text-button" @click="guideOpen = true">
           {{ t('agents.howTo') }}
         </button>
@@ -331,7 +254,7 @@ async function copySecret() {
           "
         >
           <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-          <div class="agent-primary-fields">
+          <div class="agent-name-field">
             <label class="field" for="agent-name"
               >{{ t('agents.name')
               }}<input
@@ -341,23 +264,7 @@ async function copySecret() {
                 maxlength="100"
                 :disabled="busy"
             /></label>
-            <label class="field" for="agent-kind"
-              >{{ t('agents.type')
-              }}<select
-                id="agent-kind"
-                v-model="draft.kind"
-                :disabled="busy"
-                aria-describedby="agent-kind-hint"
-              >
-                <option v-for="kind in ['ai', 'automation', 'service']" :key="kind" :value="kind">
-                  {{ t('agents.kind.' + kind) }}
-                </option>
-              </select></label
-            >
           </div>
-          <p id="agent-kind-hint" class="small muted">
-            {{ t('agents.kindHint.' + draft.kind) }} {{ t('agents.sameApi') }}
-          </p>
           <label class="field" for="agent-description"
             >{{ t('agents.description')
             }}<textarea
@@ -436,91 +343,47 @@ async function copySecret() {
               :disabled="busy"
             />
           </label>
-          <details class="agent-permissions" data-agent-permissions>
-            <summary>
-              <AppIcon name="shield" :size="17" /> {{ t('collaboration.permissionCeiling') }}
-              <span class="status-pill">{{
-                t('agents.extraCount', { count: extraPermissions })
-              }}</span>
-            </summary>
-            <p class="small muted">{{ t('agents.permissionIntersection') }}</p>
-            <fieldset class="agent-permission-grid" :disabled="busy">
-              <legend>{{ t('agents.readPermissions') }}</legend>
-              <label v-for="key in readPermissions" :key="key" class="agent-permission"
-                ><input type="checkbox" v-model="draft.permissions[key]" /><span
-                  >{{ t('agents.permission.' + key)
-                  }}<small v-if="key === 'teamChat'" class="muted">{{
-                    t('agents.teamChatWarning')
-                  }}</small></span
-                ></label
+          <section class="agent-credential-selector" data-agent-connection>
+            <label class="field" for="agent-credential"
+              >{{ t('agentUx.apiKey')
+              }}<select
+                id="agent-credential"
+                v-model="draft.credentialId"
+                form="agent-editor"
+                :disabled="busy"
               >
-            </fieldset>
-            <fieldset class="agent-permission-grid" :disabled="busy">
-              <legend>{{ t('agents.writePermissions') }}</legend>
-              <label v-for="key in writePermissions" :key="key" class="agent-permission"
-                ><input type="checkbox" v-model="draft.permissions[key]" /><span>{{
-                  t('agents.permission.' + key)
-                }}</span></label
-              >
-            </fieldset>
-            <p class="small muted">{{ t('agents.tokenCeiling') }}</p>
-          </details>
-          <label class="checkbox-field"
+                <option value="" :disabled="!credentialChoices.length">
+                  {{ t(credentialChoices.length ? 'agentUx.noKey' : 'release910.noKeys') }}
+                </option>
+                <option v-for="key in credentialChoices" :key="key.id" :value="key.id">
+                  {{ key.name }}
+                </option>
+              </select></label
+            >
+            <div v-if="editing" class="agent-identity-copy">
+              <label class="field" for="agent-identity-id"
+                >{{ t('agentUx.identityId')
+                }}<input id="agent-identity-id" :value="editing.id" readonly /></label
+              ><button type="button" class="text-button" @click="copyIdentity">
+                {{ t(copiedIdentity ? 'integrations.copied' : 'integrations.copy') }}
+              </button>
+            </div>
+            <label class="field"
+              >{{ t('agents.webhook')
+              }}<input
+                form="agent-editor"
+                v-model="draft.webhookUrl"
+                type="url"
+                placeholder="https://"
+                :disabled="busy"
+            /></label>
+          </section>
+          <label class="checkbox-field agent-active-setting"
             ><input v-model="draft.active" type="checkbox" :disabled="busy" />{{
               t('agents.active')
             }}</label
           >
         </form>
-        <section class="agent-credential-selector" data-agent-connection>
-          <label class="field" for="agent-credential"
-            >{{ t('agentUx.apiKey')
-            }}<select
-              id="agent-credential"
-              v-model="draft.credentialId"
-              form="agent-editor"
-              :disabled="busy"
-            >
-              <option value="">{{ t('agentUx.noKey') }}</option>
-              <option v-for="key in credentialChoices" :key="key.id" :value="key.id">
-                {{ key.name }}
-              </option>
-            </select></label
-          >
-          <div v-if="editing" class="agent-identity-copy">
-            <label class="field" for="agent-identity-id"
-              >{{ t('agentUx.identityId')
-              }}<input id="agent-identity-id" :value="editing.id" readonly /></label
-            ><button type="button" class="text-button" @click="copyIdentity">
-              {{ t(copiedIdentity ? 'integrations.copied' : 'integrations.copy') }}
-            </button>
-          </div>
-          <p v-if="!credentialChoices.length" class="small muted">
-            {{ t('agentUx.noAgentKey') }}
-          </p>
-          <p v-if="selectedCredential" class="small">
-            {{ selectedCredential.scopes.map(scopeLabel).join(' · ') }}
-          </p>
-          <p v-if="selectedCredential" class="small muted">{{ t('agentUx.sharedTrust') }}</p>
-          <p
-            v-if="editing?.tokens?.some((token) => !token.shared && usableAgentToken(token))"
-            class="small muted"
-          >
-            {{ t('agentUx.legacyKeys') }}
-          </p>
-          <button type="button" class="text-button" :disabled="busy" @click="keyCreateOpen = true">
-            {{ t('agents.createKey') }}
-          </button>
-          <p class="small muted">{{ t('agents.connectionHint') }}</p>
-          <label class="field"
-            >{{ t('agents.webhook')
-            }}<input
-              form="agent-editor"
-              v-model="draft.webhookUrl"
-              type="url"
-              placeholder="https://"
-              :disabled="busy"
-          /></label>
-        </section>
       </div>
       <template #footer
         ><button
@@ -542,21 +405,6 @@ async function copySecret() {
         ></template
       >
     </BaseDialog>
-    <BaseDialog
-      :open="!!createdAgent && !secret && !open"
-      :title="t('agents.created')"
-      id="agent-created-title"
-      @close="createdAgent = ''"
-      ><p>{{ t('agents.saveBeforeKeyDone') }}</p>
-      <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-      <template #footer
-        ><button class="button secondary" @click="createdAgent = ''">
-          {{ t('ui.closeDialog') }}</button
-        ><button class="button primary" @click="connectCreated">
-          {{ t('agents.createKey') }}
-        </button></template
-      ></BaseDialog
-    >
     <BaseDialog
       :open="guideOpen"
       :title="t('agents.howTo')"
@@ -594,92 +442,14 @@ async function copySecret() {
         </button></template
       ></BaseDialog
     >
-    <ApiKeyDialog
-      v-if="keyCreateOpen"
-      :open="keyCreateOpen"
-      agent-only
-      initial-type="agent"
-      @close="keyCreateOpen = false"
-      @created="keyCreated"
-    />
   </section>
 </template>
 <style scoped>
-.agent-permissions {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 12px;
-}
-.agent-permissions summary {
-  cursor: pointer;
-  font-weight: 600;
-}
-.agent-permission-grid {
-  display: grid;
-  gap: 8px;
-  border: 0;
-  padding: 8px 0;
-  margin: 8px 0;
-}
-.agent-permission-grid legend {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-.agent-permission {
-  min-height: 32px;
-  padding: 4px 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 0.875rem;
-}
-.agent-permission input[type='checkbox'] {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  min-height: 18px;
-  padding: 0;
-  margin: 2px 0 0;
-}
-.agent-permission small {
-  display: block;
-  margin-top: 4px;
-  line-height: 1.45;
-}
-.agent-token-list {
-  display: grid;
-  gap: 12px;
-  max-height: 360px;
-  overflow-y: auto;
-}
-.agent-token-row {
+.agent-active-setting {
   border-top: 1px solid var(--border);
-  padding-top: 12px;
+  padding-top: 20px;
+  margin-top: 8px;
 }
-.agent-token-scopes {
-  width: 100%;
-  overflow-wrap: anywhere;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
-.agent-editor-dialog {
-  width: min(880px, calc(100% - 24px));
-  max-height: 90dvh;
-}
-.agent-editor-dialog :deep(.modal-content) {
-  max-height: 90dvh;
-}
-.agent-editor-body {
-  gap: 14px;
-}
-
-.agent-primary-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr);
-  gap: 16px;
-}
-.agent-primary-fields .field,
 .agent-form .field {
   margin: 0;
   min-width: 0;
@@ -793,14 +563,7 @@ async function copySecret() {
   margin-top: 0;
 }
 .agent-credentials[open] > summary,
-.agent-permissions[open] > summary {
-  margin-bottom: 12px;
-}
 .agent-credentials summary svg,
-.agent-permissions summary svg {
-  vertical-align: -0.15em;
-  margin-inline-end: 4px;
-}
 .agent-credentials > p,
 .agent-credentials > label,
 .agent-credentials > fieldset {

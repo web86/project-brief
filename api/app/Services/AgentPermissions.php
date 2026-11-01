@@ -19,14 +19,16 @@ class AgentPermissions
         return array_replace(self::DEFAULTS, array_intersect_key(array_map(fn ($value) => $value === true, $permissions ?? []), self::DEFAULTS));
     }
 
-    public static function allows(ExternalAgent $agent, string $permission): bool
+    public static function fromScopes(array $scopes): array
     {
-        return self::normalize($agent->permissions)[$permission] ?? false;
-    }
+        $permissions = array_fill_keys(array_keys(self::DEFAULTS), false);
+        foreach ($scopes as $scope) {
+            foreach (self::SCOPE_PERMISSIONS[$scope] ?? [] as $permission) {
+                $permissions[$permission] = true;
+            }
+        }
 
-    public static function scopes(ExternalAgent $agent): array
-    {
-        return array_values(array_filter(array_keys(self::SCOPE_PERMISSIONS), fn ($scope) => ! self::SCOPE_PERMISSIONS[$scope] || collect(self::SCOPE_PERMISSIONS[$scope])->contains(fn ($permission) => self::allows($agent, $permission))));
+        return $permissions;
     }
 
     public static function hasToken(ExternalAgent $agent): bool

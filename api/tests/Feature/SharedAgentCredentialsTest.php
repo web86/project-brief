@@ -47,14 +47,14 @@ class SharedAgentCredentialsTest extends TestCase
         $this->getJson('/api/admin/integrations')->assertOk()->assertJsonPath('tokens.0.shared', true)->assertJsonCount(2, 'tokens.0.linkedAgents');
     }
 
-    public function test_shared_scopes_intersect_with_each_registration_and_grants_and_membership(): void
+    public function test_shared_scopes_require_grants_membership_and_task_assignment(): void
     {
         [$project, $key, [$one, $two]] = $this->fixture();
         $task = Task::factory()->for($project)->create();
         $this->postJson('/api/admin/tasks/'.$task->uuid.'/agents', ['agentId' => $one])->assertOk();
         $this->getJson('/api/v1/agent/tasks/'.$task->uuid, $this->headers($key, $one))->assertOk();
         $this->getJson('/api/v1/agent/tasks/'.$task->uuid, $this->headers($key, $two))->assertNotFound();
-        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/tasks', $this->headers($key, $one))->assertForbidden();
+        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/tasks', $this->headers($key, $one))->assertOk();
         $this->deleteJson('/api/admin/projects/'.$project->uuid.'/team/agents/'.$one)->assertOk();
         $this->getJson('/api/v1/agent/tasks/'.$task->uuid, $this->headers($key, $one))->assertNotFound();
     }

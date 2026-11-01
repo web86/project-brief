@@ -54,7 +54,7 @@ class AgentController extends Controller
             $endpoint = DB::table('webhook_endpoints')->where('external_agent_id', $agent->id)->first();
             $delivery = $endpoint ? DB::table('webhook_deliveries')->where('webhook_endpoint_id', $endpoint->id)->orderByDesc('id')->first() : null;
 
-            return [...$agent->publicState(), 'instructions' => $agent->instructions ?? '', 'permissions' => AgentPermissions::normalize($agent->permissions), 'allowedScopes' => AgentPermissions::scopes($agent), 'projectCount' => ProjectMember::where('external_agent_id', $agent->id)->count(),
+            return [...$agent->publicState(), 'instructions' => $agent->instructions ?? '', 'permissions' => AgentPermissions::normalize($agent->permissions), 'allowedScopes' => AgentAccess::SCOPES, 'projectCount' => ProjectMember::where('external_agent_id', $agent->id)->count(),
                 'projectIds' => Project::where('workspace_id', $agent->workspace_id)->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->select('project_id'))->pluck('uuid'),
                 'successfulRequests' => (int) $agent->successful_requests, 'failedRequests' => (int) $agent->failed_requests,
                 'tokens' => $tokens->map(fn ($t) => ['id' => $t->uuid, 'name' => $t->name, 'shared' => (bool) $t->agent_shared, 'scopes' => json_decode($t->scopes, true), 'revokedAt' => $t->revoked_at, 'lastUsedAt' => $t->last_used_at, 'expiresAt' => $t->expires_at]),
@@ -68,7 +68,7 @@ class AgentController extends Controller
     {
         $workspace = $this->owner($request);
         AgentAccess::fields($request, ['name', 'description', 'kind', 'active', 'projectIds', 'webhookUrl', 'permissions', 'instructions', 'credentialId']);
-        $data = $request->validate(['credentialId' => ['sometimes', 'nullable', 'uuid'], 'instructions' => ['sometimes', 'nullable', 'string', 'max:10000'], 'name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'description' => ['nullable', 'string', 'max:1000'], 'kind' => ['required', Rule::in(['ai', 'automation', 'service'])],
+        $data = $request->validate(['credentialId' => ['sometimes', 'nullable', 'uuid'], 'instructions' => ['sometimes', 'nullable', 'string', 'max:10000'], 'name' => ['required', 'string', 'max:100', 'regex:/\S/u'], 'description' => ['nullable', 'string', 'max:1000'], 'kind' => ['sometimes', Rule::in(['agent', 'ai', 'automation', 'service'])],
             'active' => ['required', 'boolean'], 'projectIds' => ['present', 'array', 'max:1000'], 'projectIds.*' => ['required', 'uuid', 'distinct'], 'webhookUrl' => ['nullable', 'string', 'max:2048'], 'permissions' => ['sometimes', 'array:'.implode(',', array_keys(AgentPermissions::DEFAULTS))], 'permissions.*' => ['required', 'boolean']]);
         if (! empty($data['webhookUrl'])) {
             app(WebhookDestination::class)->resolve($data['webhookUrl']);
@@ -81,7 +81,7 @@ class AgentController extends Controller
             $projects = Project::where('workspace_id', $workspace)->whereIn('uuid', $data['projectIds'])->get();
             abort_unless($projects->count() === count($data['projectIds']), 422);
             $previousProjects = DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->pluck('project_id')->all();
-            $agent->fill(['instructions' => array_key_exists('instructions', $data) ? $data['instructions'] : $agent->instructions, 'name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $data['kind'], 'active' => $data['active'], 'permissions' => array_key_exists('permissions', $data) ? AgentPermissions::normalize(array_replace(AgentPermissions::normalize($agent->permissions), $data['permissions'])) : AgentPermissions::normalize($agent->permissions)])->save();
+            $agent->fill(['instructions' => array_key_exists('instructions', $data) ? $data['instructions'] : $agent->instructions, 'name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $uuid ? $agent->kind : 'agent', 'active' => $data['active'], 'permissions' => array_key_exists('permissions', $data) ? AgentPermissions::normalize(array_replace(AgentPermissions::normalize($agent->permissions), $data['permissions'])) : $agent->permissions])->save();
             foreach (Project::withTrashed()->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->whereNotIn('project_id', $projects->modelKeys())->select('project_id'))->get() as $project) {
                 AgentAssignments::removeProject($request, $agent, $project);
             }
@@ -167,7 +167,7 @@ class AgentController extends Controller
             $this->owner($request);
             $agent = $this->row($workspace, $uuid);
             abort_unless($agent->active, 422);
-            abort_if(array_diff($data['scopes'], AgentPermissions::scopes($agent)), 422);
+            abort_if(array_diff($data['scopes'], AgentAccess::SCOPES), 422);
             if ($data['replace'] ?? false) {
                 DB::table('integration_tokens')->where('external_agent_id', $agent->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
             }

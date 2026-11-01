@@ -97,6 +97,14 @@ async function select(event) {
       </RouterLink>
       <RouterLink
         v-if="nav.user?.membershipRole === 'owner'"
+        to="/admin/reviews"
+        class="sidebar-request-link"
+        :aria-current="route.path === '/admin/reviews' ? 'page' : undefined"
+        @click="emit('navigate')"
+        ><AppIcon name="star" :size="20" /><span>{{ t('release910.reviews') }}</span></RouterLink
+      >
+      <RouterLink
+        v-if="nav.user?.membershipRole === 'owner'"
         to="/admin/administrators"
         class="sidebar-request-link"
         :aria-current="route.path === '/admin/administrators' ? 'page' : undefined"
@@ -104,7 +112,7 @@ async function select(event) {
         ><AppIcon name="users" :size="20" /><span>{{ t('administrators.title') }}</span></RouterLink
       >
     </nav>
-    <PersonalSettingsNav @navigate="emit('navigate')" />
+    <PersonalSettingsNav collapsible @navigate="emit('navigate')" />
     <AdminAccount
       v-if="nav.user"
       :user="nav.user"

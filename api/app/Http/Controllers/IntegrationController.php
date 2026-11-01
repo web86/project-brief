@@ -8,7 +8,6 @@ use App\Models\Workspace;
 use App\Services\AccountSecurity;
 use App\Services\AgentAccess;
 use App\Services\AgentCredentials;
-use App\Services\AgentPermissions;
 use App\Services\ClientSso;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
@@ -42,7 +41,7 @@ class IntegrationController extends Controller
         $workspace = $this->workspace($request);
 
         return response()->json(['projects' => Project::where('workspace_id', $workspace)->orderBy('title')->orderBy('id')->get(['uuid', 'title'])->map(fn ($p) => ['id' => $p->uuid, 'name' => $p->title]), 'sources' => DB::table('integration_sources')->where('workspace_id', $workspace)->whereNull('archived_at')->orderBy('name')->get()->map(fn ($source) => ['id' => $source->uuid, 'name' => $source->name, 'ssoEnabled' => (bool) $source->sso_enabled, 'ssoOrigin' => $source->sso_origin, 'automaticSsoProjectIds' => Project::where('workspace_id', $workspace)->whereIn('id', app(ClientSso::class)->automaticProjects($source->id, $workspace))->orderBy('uuid')->pluck('uuid')->all(), 'ssoProjectIds' => Project::where('workspace_id', $workspace)->whereIn('id', DB::table('integration_source_projects')->where('workspace_id', $workspace)->where('integration_source_id', $source->id)->select('project_id'))->orderBy('uuid')->pluck('uuid')->all()]), 'scopes' => IntegrationTokens::SCOPES, 'events' => WebhookEvents::TYPES,
-            'agents' => ExternalAgent::where('workspace_id', $workspace)->where('active', true)->get()->map(fn ($a) => ['id' => $a->uuid, 'name' => $a->name, 'scopes' => AgentPermissions::scopes($a)]), 'agentScopes' => AgentAccess::SCOPES, 'agentEvents' => AgentAccess::EVENTS,
+            'agents' => ExternalAgent::where('workspace_id', $workspace)->where('active', true)->get()->map(fn ($a) => ['id' => $a->uuid, 'name' => $a->name, 'scopes' => AgentAccess::SCOPES]), 'agentScopes' => AgentAccess::SCOPES, 'agentEvents' => AgentAccess::EVENTS,
             'tokens' => DB::table('integration_tokens')->where('workspace_id', $workspace)->whereNull('revoked_at')->orderByDesc('id')->get(['id', 'agent_shared', 'uuid', 'name', 'scopes', 'expires_at', 'last_used_at', 'revoked_at', 'created_at', 'provisioning_enabled', 'integration_source_id', 'external_agent_id'])->map(fn ($t) => ['type' => AgentCredentials::isAgent($t) ? 'agent' : 'integration', 'shared' => (bool) $t->agent_shared, 'linkedAgents' => $t->agent_shared ? ExternalAgent::where('workspace_id', $workspace)->whereIn('id', DB::table('agent_credential_links')->where('integration_token_id', $t->id)->select('external_agent_id'))->get()->map(fn ($a) => ['id' => $a->uuid, 'name' => $a->name]) : [], 'agentId' => $t->external_agent_id ? ExternalAgent::withTrashed()->find($t->external_agent_id)?->uuid : null, 'agentName' => $t->external_agent_id ? ExternalAgent::withTrashed()->find($t->external_agent_id)?->name : null, 'sourceId' => $t->integration_source_id ? DB::table('integration_sources')->where('workspace_id', $workspace)->where('id', $t->integration_source_id)->value('uuid') : null, 'id' => $t->uuid, 'name' => $t->name, 'scopes' => json_decode($t->scopes, true), 'expiresAt' => $t->expires_at, 'lastUsedAt' => $t->last_used_at, 'revokedAt' => $t->revoked_at, 'createdAt' => $t->created_at, 'provisioningEnabled' => (bool) $t->provisioning_enabled]),
             'webhooks' => DB::table('webhook_endpoints')->where('workspace_id', $workspace)->orderByDesc('id')->get(['id', 'workspace_id', 'uuid', 'name', 'url', 'events', 'enabled', 'created_at', 'project_filter', 'external_agent_id'])->map(fn ($e) => ['agentId' => $e->external_agent_id ? ExternalAgent::withTrashed()->find($e->external_agent_id)?->uuid : null, 'id' => $e->uuid, 'name' => $e->name, 'url' => $e->url, 'events' => json_decode($e->events, true), 'projectFilter' => $e->project_filter, 'projectIds' => app(WebhookProjectFilter::class)->ids($e), 'enabled' => (bool) $e->enabled, 'createdAt' => $e->created_at]),
         ])->header('Cache-Control', 'no-store');
@@ -71,7 +70,7 @@ class IntegrationController extends Controller
                     return response()->json(app(IntegrationTokens::class)->create($workspace, [...$data, 'shared' => true]), 201)->header('Cache-Control', 'no-store');
                 }
                 $agent = ExternalAgent::where('workspace_id', $workspace)->where('uuid', $data['agentId'])->where('active', true)->firstOrFail();
-                abort_if(array_diff($data['scopes'], AgentPermissions::scopes($agent)), 422);
+                abort_if(array_diff($data['scopes'], AgentAccess::SCOPES), 422);
                 $data['agentId'] = $agent->id;
                 app(AccountSecurity::class)->audit($request->user(), 'agent_token_created:'.$agent->id);
 

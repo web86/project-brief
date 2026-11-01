@@ -1,4 +1,18 @@
 export default {
+  release910: {
+    reviews: 'Отзывы',
+    reviewsHint: 'Отзывы по всем проектам workspace, начиная с новых.',
+    from: 'От',
+    to: 'До',
+    apply: 'Применить',
+    allDates: 'Все даты',
+    emptyReviews: 'За этот период отзывов пока нет.',
+    unknownAuthor: 'Клиент',
+    archived: 'Архивный проект',
+    existingMember: 'Выбрать существующего',
+    inviteMember: 'Пригласить нового',
+    noKeys: 'Ключей нет, вначале создайте',
+  },
   agentUx: {
     publicHistory: 'Исторический отчёт уже доступен клиенту',
     identityId: 'ID агента для внешнего исполнителя',
@@ -262,6 +276,7 @@ export default {
     pullRequest: 'Pull Request',
     result: 'Внешний результат',
     kind: {
+      agent: 'Агент',
       ai: 'AI-агент',
       automation: 'Автоматизация',
       service: 'Внешний сервис',

@@ -79,7 +79,7 @@ class AgentChatTest extends TestCase
         $this->getJson($root.'/runs/'.$run, $headers)->assertOk()->assertJsonPath('data.context', $first['context'])->assertJsonPath('data.contextVersion', $first['contextVersion']);
         $foreign = Task::factory()->create();
         $this->getJson('/api/v1/agent/tasks/'.$foreign->uuid, $headers)->assertNotFound();
-        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/team-chat', $headers)->assertForbidden();
+        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/team-chat', $headers)->assertOk()->assertJsonCount(0, 'data');
     }
 
     public function test_historical_messages_and_legacy_reports_remain_after_registration_deletion(): void

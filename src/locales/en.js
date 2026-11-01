@@ -1,4 +1,18 @@
 export default {
+  release910: {
+    reviews: 'Reviews',
+    reviewsHint: 'Feedback from all workspace projects, newest first.',
+    from: 'From',
+    to: 'To',
+    apply: 'Apply',
+    allDates: 'All dates',
+    emptyReviews: 'No reviews for this period.',
+    unknownAuthor: 'Client',
+    archived: 'Archived project',
+    existingMember: 'Choose existing',
+    inviteMember: 'Invite new',
+    noKeys: 'No keys. Create one first.',
+  },
   agentUx: {
     publicHistory: 'This historical report is already visible to the client',
     identityId: 'Agent ID for the external executor',
@@ -256,6 +270,7 @@ export default {
     pullRequest: 'Pull request',
     result: 'External result',
     kind: {
+      agent: 'Agent',
       ai: 'AI agent',
       automation: 'Automation',
       service: 'External service',

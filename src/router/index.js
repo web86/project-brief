@@ -107,6 +107,16 @@ export function createProjectRouter({
             },
           },
           {
+            path: 'reviews',
+            component: () => import('../views/AdminReviewsView.vue'),
+            meta: {
+              ownerOnly: true,
+              get title() {
+                return t('release910.reviews')
+              },
+            },
+          },
+          {
             path: 'requests',
             component: () => import('../views/AdminProjectRequestsView.vue'),
             meta: {
@@ -370,6 +380,7 @@ export function createProjectRouter({
       },
     ],
     scrollBehavior(to, from, savedPosition) {
+      if (to.hash === '#project-recycle-bin') return { el: to.hash, top: 24 }
       if (to.hash === '#telegram-settings') return { el: to.hash, top: 24 }
       if (to.hash.startsWith('#comment-')) return false
       return savedPosition || { top: 0 }

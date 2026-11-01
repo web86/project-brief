@@ -7,7 +7,6 @@ use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\AgentAccess;
-use App\Services\AgentPermissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -91,8 +90,7 @@ class AgentReadController extends Controller
 
     private function taskFiles(Request $request, Task $task): Builder
     {
-        $agent = AgentAccess::scope($request, 'agent:attachments:read');
-        abort_unless(AgentPermissions::allows($agent, 'taskAttachments'), 403);
+        AgentAccess::scope($request, 'agent:attachments:read');
         $commentIds = AgentAccess::tokenAllows($request, 'agent:comments:read') ? $this->taskComments($request, $task)->select('id') : [];
 
         return Attachment::withoutGlobalScope('public_channel')->where('task_id', $task->id)->where(fn ($q) => $q->whereNull('comment_id')->orWhereIn('comment_id', $commentIds));
@@ -106,7 +104,6 @@ class AgentReadController extends Controller
     private function discussionFiles(Request $request, string $uuid): Builder
     {
         $agent = AgentAccess::scope($request, 'agent:attachments:read');
-        abort_unless(AgentPermissions::allows($agent, 'discussionAttachments'), 403);
         $comment = Comment::withoutGlobalScope('public_channel')->whereNull('task_id')->where('uuid', $uuid)->firstOrFail();
         $project = AgentAccess::projects($agent)->whereKey($comment->project_id)->firstOrFail();
         $this->discussions($request, $project, $comment->team_only)->whereKey($comment->id)->firstOrFail();

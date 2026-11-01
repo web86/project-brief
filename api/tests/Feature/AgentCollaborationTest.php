@@ -84,13 +84,13 @@ class AgentCollaborationTest extends TestCase
         $this->getJson('/api/admin/tasks/'.$task->uuid.'/agent-collaboration')->assertOk()->assertJsonPath('data.0.runs.0.state', 'cancelled');
     }
 
-    public function test_unified_credentials_are_bound_and_namespaces_and_permission_ceilings_remain_separate(): void
+    public function test_unified_credentials_are_bound_and_scope_namespaces_remain_separate(): void
     {
         [, , $agent, $token] = $this->fixture();
         $this->getJson('/api/admin/integrations')->assertOk()->assertJsonPath('tokens.0.type', 'agent')->assertJsonPath('tokens.0.agentId', $agent->uuid);
         $this->postJson('/api/admin/integrations/tokens', ['name' => 'Bad', 'scopes' => ['agent:tasks:read']])->assertUnprocessable();
         $this->postJson('/api/admin/integrations/tokens', ['type' => 'agent', 'agentId' => $agent->uuid, 'name' => 'Bad', 'scopes' => ['projects:read']])->assertUnprocessable();
-        $this->postJson('/api/admin/integrations/tokens', ['type' => 'agent', 'agentId' => $agent->uuid, 'name' => 'Bad', 'scopes' => ['agent:team-chat:read']])->assertUnprocessable();
+        $this->postJson('/api/admin/integrations/tokens', ['type' => 'agent', 'agentId' => $agent->uuid, 'name' => 'Bad', 'scopes' => ['agent:team-chat:read']])->assertCreated();
         $general = $this->postJson('/api/admin/integrations/tokens', ['name' => 'General', 'scopes' => ['projects:read']])->assertCreated()->json();
         $this->getJson('/api/v1/agent/me', $this->headers($general))->assertForbidden();
         $this->getJson('/api/v1/projects', $this->headers($token))->assertForbidden();

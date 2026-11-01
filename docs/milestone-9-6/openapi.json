@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Project Brief Agent API",
-    "version": "1.3.0",
-    "description": "Project Brief v0.9.10. Legacy individual agent credentials remain compatible. Shared agent credentials require an explicit linked X-ProjectBrief-Agent-ID on every request. Effective access is the intersection of credential scopes, registration permissions, owner grants, project membership and object/assignment access. A common secret holder can impersonate any linked agent; use separate tokens for independent providers."
+    "version": "1.4.0",
+    "description": "Project Brief v0.9.10. Legacy individual agent credentials remain compatible. Shared agent credentials require an explicit linked X-ProjectBrief-Agent-ID on every request. Effective access is the intersection of credential scopes, owner grants, project membership and object/assignment access. A common secret holder can impersonate any linked agent; use separate tokens for independent providers."
   },
   "servers": [
     {
@@ -2105,7 +2105,7 @@
         "operationId": "agent_attachment_download",
         "summary": "agent:attachments:read",
         "x-required-scope": "agent:attachments:read",
-        "description": "Rechecks registration permission, scopes and exact task/discussion parent access on every request; no permanent public URL.",
+        "description": "Rechecks credential scopes and exact task/discussion parent access on every request; no permanent public URL.",
         "parameters": [
           {
             "name": "attachment",
@@ -2240,7 +2240,7 @@
         "operationId": "agent99_get__api_v1_agent_tasks_task_runs",
         "summary": "agent:runs:read",
         "x-required-scope": "agent:runs:read",
-        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "description": "Requires valid bound agent credential, credential scopes, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
         "parameters": [
           {
             "name": "task",
@@ -2287,7 +2287,7 @@
             "description": "Invalid or revoked credential"
           },
           "403": {
-            "description": "Insufficient scope or registration ceiling"
+            "description": "Insufficient credential scope"
           },
           "404": {
             "description": "Foreign, previous or revoked assignment/object"
@@ -2305,7 +2305,7 @@
       "get": {
         "operationId": "agent99_get__api_v1_agent_tasks_task_runs_run",
         "summary": "Read frozen run context and permitted dialogue",
-        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "description": "Requires valid bound agent credential, credential scopes, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
         "parameters": [
           {
             "name": "task",
@@ -2349,7 +2349,7 @@
             "description": "Invalid or revoked credential"
           },
           "403": {
-            "description": "Insufficient scope or registration ceiling"
+            "description": "Insufficient credential scope"
           },
           "404": {
             "description": "Foreign, previous or revoked assignment/object"
@@ -2369,7 +2369,7 @@
         "operationId": "agent99_post__api_v1_agent_tasks_task_runs_run_start",
         "summary": "agent:runs:write",
         "x-required-scope": "agent:runs:write",
-        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "description": "Requires valid bound agent credential, credential scopes, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
         "parameters": [
           {
             "name": "task",
@@ -2423,7 +2423,7 @@
             "description": "Invalid or revoked credential"
           },
           "403": {
-            "description": "Insufficient scope or registration ceiling"
+            "description": "Insufficient credential scope"
           },
           "404": {
             "description": "Foreign, previous or revoked assignment/object"
@@ -2452,7 +2452,7 @@
         "operationId": "agent99_get__api_v1_agent_tasks_task_messages",
         "summary": "agent:messages:read",
         "x-required-scope": "agent:messages:read",
-        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "description": "Requires valid bound agent credential, credential scopes, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
         "parameters": [
           {
             "name": "task",
@@ -2498,7 +2498,7 @@
             "description": "Invalid or revoked credential"
           },
           "403": {
-            "description": "Insufficient scope or registration ceiling"
+            "description": "Insufficient credential scope"
           },
           "404": {
             "description": "Foreign, previous or revoked assignment/object"
@@ -2515,7 +2515,7 @@
         "operationId": "agent99_post__api_v1_agent_tasks_task_messages",
         "summary": "agent:messages:create",
         "x-required-scope": "agent:messages:create",
-        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
+        "description": "Requires valid bound agent credential, credential scopes, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes.",
         "parameters": [
           {
             "name": "task",
@@ -2560,7 +2560,7 @@
             "description": "Invalid or revoked credential"
           },
           "403": {
-            "description": "Insufficient scope or registration ceiling"
+            "description": "Insufficient credential scope"
           },
           "404": {
             "description": "Foreign, previous or revoked assignment/object"
@@ -2589,7 +2589,7 @@
         "operationId": "agent99_get__api_v1_agent_tasks_task_runs_run_attachments_attachment_download",
         "summary": "agent:attachments:read",
         "x-required-scope": "agent:attachments:read",
-        "description": "Requires valid bound agent credential, registration ceiling, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes. Also requires agent:messages:read and registration taskAttachments.",
+        "description": "Requires valid bound agent credential, credential scopes, owner grant, membership and current assignment. Private to this assignment. No client publication or task workflow changes. Also requires agent:messages:read and registration taskAttachments.",
         "parameters": [
           {
             "name": "task",
@@ -2638,7 +2638,7 @@
             "description": "Invalid or revoked credential"
           },
           "403": {
-            "description": "Insufficient scope or registration ceiling"
+            "description": "Insufficient credential scope"
           },
           "404": {
             "description": "Foreign, previous or revoked assignment/object"

@@ -6,7 +6,6 @@ use App\Models\Attachment;
 use App\Services\AgentAccess;
 use App\Services\AgentAudit;
 use App\Services\AgentChat;
-use App\Services\AgentPermissions;
 use App\Services\AgentRuns;
 use App\Services\IntegrationWrites;
 use Illuminate\Http\JsonResponse;
@@ -42,8 +41,7 @@ class AgentRunApiController extends Controller
         AgentAccess::scope($request, 'agent:messages:read');
 
         $input = $request->validate(['before' => ['sometimes', 'uuid']]);
-        $agent = AgentAccess::identity($request);
-        $files = AgentAccess::tokenAllows($request, 'agent:attachments:read') && AgentPermissions::allows($agent, 'taskAttachments');
+        $files = AgentAccess::tokenAllows($request, 'agent:attachments:read');
         $messages = AgentChat::messages(AgentAccess::assignment($request, $task), $input['before'] ?? null, $files, true);
 
         return response()->json(['data' => $messages, 'nextCursor' => count($messages) === 200 ? $messages[0]['id'] : null]);
@@ -51,8 +49,7 @@ class AgentRunApiController extends Controller
 
     public function download(Request $request, string $task, string $run, string $attachment): StreamedResponse
     {
-        $agent = AgentAccess::scope($request, 'agent:attachments:read');
-        abort_unless(AgentPermissions::allows($agent, 'taskAttachments'), 403);
+        AgentAccess::scope($request, 'agent:attachments:read');
         AgentAccess::scope($request, 'agent:messages:read');
         $assignment = AgentAccess::assignment($request, $task);
         $row = DB::table('agent_runs')->where('uuid', $run)->where('task_agent_assignment_id', $assignment->id)->firstOrFail();

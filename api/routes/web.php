@@ -183,6 +183,8 @@ Route::middleware(['admin', 'throttle:integration-settings'])->prefix('/api/admi
     Route::post('/{uuid}/reject', [AdminProjectRequestController::class, 'reject']);
 });
 
+Route::get('/api/admin/reviews', [ProjectFeedbackController::class, 'index'])->middleware('admin');
+
 Route::middleware('admin')->prefix('/api/admin/projects')->group(function () {
     Route::get('/', [ProjectController::class, 'index']);
     Route::post('/', [ProjectController::class, 'store']);

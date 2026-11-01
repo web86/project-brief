@@ -24,7 +24,7 @@ class AgentApiController extends Controller
         $agent = AgentAccess::scope($request, 'agent:profile');
 
         return response()->json(['data' => [...$agent->publicState(), 'workspaceId' => DB::table('workspaces')->where('id', $agent->workspace_id)->value('uuid'),
-            'instructions' => $agent->instructions ?? '', 'permissions' => AgentPermissions::normalize($agent->permissions), 'scopes' => json_decode($request->attributes->get('integration_token')->scopes, true),
+            'instructions' => $agent->instructions ?? '', 'permissions' => AgentPermissions::fromScopes(json_decode($request->attributes->get('integration_token')->scopes, true)), 'scopes' => json_decode($request->attributes->get('integration_token')->scopes, true),
             'projectIds' => AgentAccess::projects($agent)->orderBy('uuid')->pluck('uuid')]]);
     }
 

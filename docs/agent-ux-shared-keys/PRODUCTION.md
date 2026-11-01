@@ -3,6 +3,19 @@
 Baseline v0.9.9. Deployment is a separately authorized operation. Local release QA
 does not authorize push, deployment or a production database change.
 
+## Final refinement: scope-only policy
+
+This refinement adds no database migrations. Existing agent kinds and saved
+reviews remain unchanged. Registration permission flags become legacy metadata;
+credential scopes alone control allowed operations, with all existing workspace,
+grant, membership, assignment and file/object checks retained. Review broad keys
+that previously depended on restrictive registration flags and issue/rebind
+appropriately scoped credentials before installing. No token is automatically
+created or widened. A runtime downgrade restores the older registration ceiling.
+
+The shared-key migration below is still required when upgrading from v0.9.9; it
+is already present on the earlier v0.9.10 candidate.
+
 ## Additive migration
 
 `2026_11_01_111241_add_shared_agent_credentials.php` adds the default-false

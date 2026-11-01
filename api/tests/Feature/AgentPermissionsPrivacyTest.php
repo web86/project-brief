@@ -82,8 +82,8 @@ class AgentPermissionsPrivacyTest extends TestCase
         $foreign = Comment::create(['project_id' => Project::factory()->create()->id, 'author_type' => 'admin', 'text' => 'Foreign']);
         $this->getJson('/api/v1/agent/discussions/'.$foreign->uuid.'/attachments', $this->headers($token))->assertNotFound();
         $this->patchJson('/api/admin/integrations/agents/'.$agent->uuid, [...$data, 'permissions' => ['clientDiscussions' => false]])->assertOk();
-        $this->getJson('/api/v1/agent/attachments/'.$file->uuid.'/download', $this->headers($token))->assertForbidden();
-        $this->getJson('/api/v1/agent/discussions/'.$comment->uuid.'/attachments', $this->headers($token))->assertForbidden();
+        $this->getJson('/api/v1/agent/attachments/'.$file->uuid.'/download', $this->headers($token))->assertOk();
+        $this->getJson('/api/v1/agent/discussions/'.$comment->uuid.'/attachments', $this->headers($token))->assertOk();
     }
 
     public function test_existing_assigned_endpoint_stays_assigned_only_with_expanded_project_permission(): void
@@ -94,7 +94,7 @@ class AgentPermissionsPrivacyTest extends TestCase
         $this->getJson('/api/v1/agent/tasks', $this->headers($token))->assertOk()->assertJsonCount(1, 'data');
         $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/tasks', $this->headers($token))->assertOk()->assertJsonCount(2, 'data');
         $this->patchJson('/api/admin/integrations/agents/'.$agent->uuid, [...$data, 'permissions' => ['projectTasks' => false]])->assertOk();
-        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/tasks', $this->headers($token))->assertForbidden();
+        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/tasks', $this->headers($token))->assertOk();
         $this->getJson('/api/v1/agent/tasks', $this->headers($token))->assertOk()->assertJsonCount(1, 'data');
     }
 
@@ -155,7 +155,7 @@ class AgentPermissionsPrivacyTest extends TestCase
     {
         [$project, , $agent, $token, $task, , $data] = $this->fixture();
         $this->assertSame(AgentPermissions::DEFAULTS, $agent->permissions);
-        $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => AgentAccess::SCOPES])->assertUnprocessable();
+        $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => AgentAccess::SCOPES])->assertCreated();
         $this->patchJson('/api/admin/integrations/agents/'.$agent->uuid, [...$data, 'permissions' => array_fill_keys(array_keys(AgentPermissions::DEFAULTS), true)])->assertOk();
         foreach (['projects/'.$project->uuid.'/tasks', 'tasks/'.$task->uuid.'/comments', 'projects/'.$project->uuid.'/discussions', 'projects/'.$project->uuid.'/team-chat', 'tasks/'.$task->uuid.'/attachments'] as $path) {
             $this->getJson('/api/v1/agent/'.$path, $this->headers($token))->assertForbidden();
@@ -197,11 +197,11 @@ class AgentPermissionsPrivacyTest extends TestCase
         $this->getJson('/api/v1/agent/tasks/'.$task->uuid.'/attachments', $headers)->assertOk()->assertJsonCount(1, 'data');
         $this->get('/api/v1/agent/attachments/'.$file->uuid.'/download', $headers)->assertOk();
         $this->patchJson('/api/admin/integrations/agents/'.$agent->uuid, [...$data, 'permissions' => ['teamChat' => false]])->assertOk();
-        $this->getJson('/api/v1/agent/tasks/'.$task->uuid.'/comments', $headers)->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.text', 'Task public');
-        $this->getJson('/api/v1/agent/attachments/'.$file->uuid.'/download', $headers)->assertNotFound();
-        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/team-chat', $headers)->assertForbidden();
+        $this->getJson('/api/v1/agent/tasks/'.$task->uuid.'/comments', $headers)->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('data.0.text', 'Task public');
+        $this->getJson('/api/v1/agent/attachments/'.$file->uuid.'/download', $headers)->assertOk();
+        $this->getJson('/api/v1/agent/projects/'.$project->uuid.'/team-chat', $headers)->assertOk();
         $this->patchJson('/api/admin/integrations/agents/'.$agent->uuid, [...$data, 'permissions' => ['taskComments' => false]])->assertOk();
-        $this->getJson('/api/v1/agent/tasks/'.$task->uuid.'/comments', $headers)->assertForbidden();
+        $this->getJson('/api/v1/agent/tasks/'.$task->uuid.'/comments', $headers)->assertOk();
         $this->assertFalse($agent->fresh()->permissions['teamChat']);
         $this->assertTrue($agent->fresh()->permissions['projectTasks']);
     }
@@ -218,17 +218,17 @@ class AgentPermissionsPrivacyTest extends TestCase
         $this->getJson($url, $this->headers($token))->assertNotFound();
     }
 
-    public function test_registration_write_revocation_blocks_existing_token_and_idempotent_replay(): void
+    public function test_credential_revocation_blocks_existing_token_and_idempotent_replay(): void
     {
         [, , $agent, $token, $task, $assignment, $data] = $this->fixture();
         $body = ['assignmentId' => $assignment->uuid, 'summary' => 'Internal', 'state' => 'submitted'];
         $url = '/api/v1/agent/tasks/'.$task->uuid.'/reports';
         $this->postJson($url, $body, $this->headers($token))->assertCreated();
-        $this->patchJson('/api/admin/integrations/agents/'.$agent->uuid, [...$data, 'permissions' => ['reports' => false]])->assertOk();
-        $this->postJson($url, $body, $this->headers($token))->assertForbidden();
-        $this->postJson($url, $body, $this->headers($token, 'new-key'))->assertForbidden();
+        $this->deleteJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens/'.$token['id'])->assertOk();
+        $this->postJson($url, $body, $this->headers($token))->assertUnauthorized();
+        $this->postJson($url, $body, $this->headers($token, 'new-key'))->assertUnauthorized();
         $this->assertDatabaseCount('agent_reports', 1);
-        $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => ['agent:tasks:report']])->assertUnprocessable();
+        $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => ['agent:tasks:report']])->assertCreated();
     }
 
     public function test_new_agent_results_are_internal_but_history_stays_public_and_unmodified(): void

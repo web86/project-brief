@@ -34,7 +34,7 @@ The header is a **claimed identity**, not cryptographic proof of which program
 holds the secret. Any holder can impersonate any linked agent. Share a key only
 inside one trust boundary; independent providers should receive separate keys.
 The server requires an active, same-workspace link and identity, matching scope,
-registration ceiling, owner grant, project membership and object/assignment access.
+owner grant, project membership and object/assignment access.
 No prompt text can replace those checks. General integration routes reject agent
 credentials; general credentials cannot use Agent API by adding the header.
 
@@ -79,7 +79,7 @@ including after a registration is soft-deleted. New assignments never inherit
 other assignments' private conversation.
 
 Agent `GET /api/v1/agent/tasks/{task}/messages` includes files only with
-`agent:messages:read`, `agent:attachments:read` and registration `taskAttachments`.
+`agent:messages:read` and `agent:attachments:read`.
 Download still requires those permissions, a current assignment, and an exact
 run/comment/task/file binding at
 `GET /api/v1/agent/tasks/{task}/runs/{run}/attachments/{file}/download`.
@@ -134,3 +134,30 @@ API. No permission means no file metadata/body; denial after revocation stops
 execution. Other formats stay available through the authorized API for an external
 executor that supports them. File reading is off by default and never uploads
 files to a provider merely because a user selected them in Project Brief.
+
+## Final v0.9.10 refinement
+
+New agents always use `kind=agent`. The UI omits kind and registration permission
+fields. Editing retains existing `ai`, `automation`, `service` values; stored
+legacy permission JSON is retained for compatibility but is no longer an
+authorization ceiling. `/agent/me` reports permissions derived from the actual
+credential scopes. Existing credential scope arrays are never widened or rewritten.
+A caller cannot gain a missing scope by changing registration fields.
+
+**Access policy change:** credentials are now the sole operation-permission ceiling.
+If a previously broad key relied on restrictive registration flags, review and
+replace/rebind that key with the intended scopes before updating. Shared keys have
+one trust boundary. Active identity, current binding, workspace, owner grants,
+project membership, assignment and exact object/file checks remain mandatory.
+Registration without a key creates no credential and grants no API access.
+
+The Team page uses the same member-assignment and email-invitation endpoints in
+one modal. The invitation form uses the existing SMTP delivery action instead of
+requesting a manual link. No new invitation or account mechanism is introduced.
+
+`GET /api/admin/reviews` is owner-only and workspace-scoped. It reads submitted
+`project_feedback` with a bounded page of 25, newest first. Optional `from` / `to`
+are inclusive dates in the validated `timezone` (UTC by default); the UI supplies
+its existing display timezone without another setting. Completed and soft-deleted
+projects remain represented while feedback exists. Archived project links lead
+to the existing recycle bin. No new feedback table or collection workflow exists.
