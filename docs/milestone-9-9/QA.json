@@ -1,0 +1,198 @@
+{
+  "version": "0.9.9",
+  "sourceCommit": "67779f851ac94970dc8bf054c56f0208b0d9ce1a",
+  "baseline": "v0.9.8 / ded05fadf7d26e28762908d15dc075fed8034689",
+  "scope": "Supplied collaboration brief implemented as Milestone 9.9 before Milestone 10 plans/subscriptions, as requested",
+  "laravel": "13.34.0",
+  "php": "8.5.10",
+  "databaseVersion": "11.8.9-MariaDB-ubu2404",
+  "frontend": {
+    "passed": 429,
+    "failed": 0
+  },
+  "fullSQLite": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 1043,
+    "passed": 1043,
+    "assertions": 15433,
+    "duration_ms": 99778
+  },
+  "fullMariaDB": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 1043,
+    "passed": 1043,
+    "assertions": 15433,
+    "duration_ms": 250944
+  },
+  "php84MariaDB": {
+    "php": "8.4.26",
+    "passed": 99,
+    "failed": 0,
+    "assertions": 1421
+  },
+  "phpLint": {
+    "passed": 28
+  },
+  "formatting": {
+    "pint": "passed",
+    "focusedPrettier": "passed"
+  },
+  "brandCheck": "passed",
+  "viteProductionBuild": "passed",
+  "canonicalPackagedRuntime": "passed",
+  "sourceMobileSmokeE2E": {
+    "ok": true,
+    "package": false,
+    "results": [
+      "registration automatically adds membership; unified bound credential issued with fresh MFA",
+      "independent Node executor completes two private runs; first version preserved; explicit human client publication",
+      "WYSIWYG save, safe HTML, AI single immediate request, explicit apply and retained unchanged formatting",
+      "MariaDB parallel retry creates one run; only one executor can claim it",
+      "grant/membership/token revocation denies access immediately, without hidden membership restoration"
+    ],
+    "captures": 10,
+    "errors": [],
+    "elapsedMs": 21917,
+    "providerRequests": 0,
+    "providerMetrics": [],
+    "provider": "deterministic"
+  },
+  "realGroqE2E": {
+    "primaryVerification": "deterministic tests; real model is supplementary",
+    "syntheticOnly": true,
+    "isolatedDatabase": true,
+    "provider": "groq",
+    "model": "openai/gpt-oss-120b",
+    "generationHttpRequests": 2,
+    "successfulGenerationRequests": 2,
+    "inputTokens": 1422,
+    "outputTokens": 473,
+    "metrics": [
+      {
+        "status": 200,
+        "model": "openai/gpt-oss-120b",
+        "inputTokens": 313,
+        "outputTokens": 242,
+        "finishReason": "stop"
+      },
+      {
+        "status": 200,
+        "model": "openai/gpt-oss-120b",
+        "inputTokens": 1109,
+        "outputTokens": 231,
+        "finishReason": "stop"
+      }
+    ],
+    "workflow": [
+      "registration automatically adds membership; unified bound credential issued with fresh MFA",
+      "independent Node executor completes two private runs; first version preserved; explicit human client publication",
+      "WYSIWYG save, safe HTML, AI single immediate request, explicit apply and retained unchanged formatting",
+      "MariaDB parallel retry creates one run; only one executor can claim it",
+      "grant/membership/token revocation denies access immediately, without hidden membership restoration"
+    ],
+    "preHttpTlsFailureAttempts": 1,
+    "tlsResolution": "Node initially lacked the local issuer; NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem enabled the trusted system CA bundle. Certificate verification remained enabled. No generation request reached Groq during the failed handshake.",
+    "additionalProviderRequestsAfterSuccessfulRun": 0,
+    "testEnvCopiedToRepositoryOrZip": false,
+    "keyLogged": false,
+    "finalExecutorDifference": "Entry-point realpath normalization only; provider and executeRuns code identical. Final CLI was rechecked by deterministic E2E through /tmp in the final ZIP."
+  },
+  "migration": {
+    "file": "2026_11_01_074535_add_agent_collaboration_and_task_formatting.php",
+    "upgrade": "populated v0.9.8 schema upgraded on isolated SQLite and MariaDB",
+    "existingTokensScopesGrantsMemberships": "preserved; no backfill or scope expansion",
+    "down": "refuses destructive rollback; additive schema retained for runtime downgrade",
+    "staleHtmlAfterOldRuntimeTextEdit": "source hash suppresses stale formatting"
+  },
+  "security": {
+    "oldCredentials": "original operations preserved; no new scopes granted",
+    "identityNamespaces": "integration and agent credentials remain separate and immutable",
+    "privateContext": "full run context requires both runs:read and messages:read; current assignment required",
+    "clientPublication": "separate reviewed human copy only",
+    "outbox": "identifier-only events, existing HMAC/SSRF/retry, run-bound cancellation",
+    "concurrency": "one created run for parallel same submission; one successful claim for competing keys",
+    "html": "server allowlist and canonical plain text; safe rich PDF/DOCX",
+    "providerKeyExclusion": "archive, outgoing source changes and QA logs scanned in memory"
+  },
+  "issuesResolved": [
+    "Mobile agent/private results shared a grid area with public comments; grouped agent work now has its own area and browser non-overlap assertions.",
+    "Frozen context includes private dialogue; full context now also requires the explicit messages:read scope.",
+    "Node real-model TLS issuer failure fixed with the trusted system CA bundle without disabling TLS validation.",
+    "Legacy UI tests expected full-report anchor links; expectations now cover the new report dialog.",
+    "Release allowlist and required runtime entries now explicitly include the collaboration contract/executor and new server files.",
+    "Deployment guide now includes explicit maintenance, migration and cache commands required by the packaged runtime gate.",
+    "Executor main guard did not run for symlinked entry paths such as macOS /tmp. Normalize the real path; dedicated CLI regression test and final extracted-ZIP workflow pass."
+  ],
+  "archive": {
+    "file": "project-brief-v0.9.9-67779f8.zip",
+    "bytes": 39429896,
+    "sha256": "27400208a74b7b980a00537ed532fe4807e85d947e00a07b1110fb9f22561d74",
+    "manifestEntries": 8936,
+    "zipEntries": 10184,
+    "crc": "passed",
+    "internalChecksums": "passed",
+    "collaborationExampleMatchesSource": true,
+    "dedicatedGroqKeyAbsent": true,
+    "testEnvAbsent": true,
+    "testKeyAbsentFromChangesAndQaLogs": true,
+    "release": {
+      "version": "0.9.9",
+      "commit": "67779f851ac94970dc8bf054c56f0208b0d9ce1a",
+      "builtAt": "2026-11-01T09:12:27.761Z",
+      "phpTarget": "8.4",
+      "domain": "brief.web86.site"
+    }
+  },
+  "notVerified": [
+    "Production deployment or database",
+    "Jino/FPM load and live SMTP/Telegram delivery",
+    "Physical devices or Safari/WebKit",
+    "Actual production backup recovery"
+  ],
+  "milestone10Documents": "preserved byte-for-byte outside the release source commit and ZIP",
+  "qaScreenshotsInGit": false,
+  "push": false,
+  "deployment": false,
+  "productionDatabaseChanges": false,
+  "extractedZipE2E": {
+    "ok": true,
+    "package": true,
+    "results": [
+      "registration automatically adds membership; unified bound credential issued with fresh MFA",
+      "independent Node executor completes two private runs; first version preserved; explicit human client publication",
+      "WYSIWYG save, safe HTML, AI single immediate request, explicit apply and retained unchanged formatting",
+      "MariaDB parallel retry creates one run; only one executor can claim it",
+      "grant/membership/token revocation denies access immediately, without hidden membership restoration"
+    ],
+    "captures": 0,
+    "errors": [],
+    "elapsedMs": 14094,
+    "providerRequests": 0,
+    "providerMetrics": [],
+    "provider": "deterministic"
+  },
+  "visualMatrix": {
+    "languages": ["ru", "en", "tr", "zh-CN"],
+    "widths": [1440, 390],
+    "themes": ["light", "dark", "system"],
+    "captures": 240,
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "agentAndClientPanelsOverlap": false,
+    "keyboardEscapeFocusTooltip": "passed",
+    "fullReportAndClientPublicationActions": "visible",
+    "screenshotsOutsideGit": true,
+    "runtimeEquivalence": {
+      "visualArtifact": "project-brief-v0.9.9-f05b7e3.zip",
+      "finalArtifact": "project-brief-v0.9.9-67779f8.zip",
+      "identicalPublicAndPhpRuntimeFiles": 8920,
+      "metadataOnlyDifferences": [
+        "private/project-brief-app/vendor/composer/installed.php (root commit reference only)"
+      ],
+      "executorEntryPointNormalizationVerified": true,
+      "providerAndWorkflowIdenticalToRealGroqTest": true
+    }
+  }
+}
