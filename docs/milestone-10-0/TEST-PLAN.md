@@ -1,5 +1,9 @@
 # Milestone 10.0 — проверка проекта и будущая приёмка
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: документационный этап по D1–D12; baseline **v0.9.10 hotfix**.
 Ни один новый runtime/security/concurrency тест 10.0 не считается выполненным:
 реализации пока нет. QA предыдущего v0.9.10 не переносится на эти guards.
@@ -54,24 +58,43 @@ ARCHITECTURE. Production files/git HEAD остаются исходными; com
 Проверять `boundary−1µs`, точное equality и `boundary+1µs` по серверному UTC, не
 только travel на целый день. Local timezone/DST/leap/month end не меняют 7×24h.
 
-| Сценарий                                       | Ожидается                                                                                      |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Новый eligible owner+workspace, verified email | Trial pinned Studio, starts registration t0, end=t0+7d, safety limits действуют                |
-| Unverified email / позднее verification        | Premium deny; onboarding доступен; verification не продлевает исходный end                     |
-| Trial end без paid continuation                | Basic сразу, **нет дополнительного Grace**, suspension/epoch barrier                           |
-| Paid end без renewal                           | Grace ровно 7d прежних paid features, затем Basic                                              |
-| Grace=другое approved policy значение          | Используется pinned duration; редактирование pointer не меняет ongoing interval                |
-| Timely approved paid continuation на boundary  | Нет лишнего Basic gap; target diff/capacity всё равно проверены                                |
-| Late renewal после Basic при выключенном cron  | Сначала recorded gap/suspension/epoch; новый paid не resurrect old work                        |
-| Security termination                           | Separate no-Grace policy, audit/reason, existing security restrictions не обходятся            |
-| Два новых workspace одного владельца           | Один owner Trial claim, не два; first-user/imported workspace legacy exception                 |
-| Email change/delete/re-register/owner transfer | Claim не сбрасывается; verified subject handling/recovery без fake-account merge               |
-| Массовые registrations                         | Existing anti-abuse/email confirmation + durable claim, без содержимого/секретов в diagnostics |
-| Existing workspace/Observe                     | Нет Trial/Basic/нового expiry автоматически, counts only                                       |
+| Сценарий                                       | Ожидается                                                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Новый eligible owner+workspace, verified email | Trial pinned Studio, starts=t_verified, end=t_verified+7×24h, safety limits действуют                         |
+| Unverified email / позднее verification        | Нет кабинета/проектов и Trial dates; только minimal onboarding/recovery; после успешной проверки полные 7×24h |
+| Trial end без paid continuation                | Basic сразу, **нет дополнительного Grace**, suspension/epoch barrier                                          |
+| Paid end без renewal                           | Grace ровно 7d прежних paid features, затем Basic                                                             |
+| Grace=другое approved policy значение          | Используется pinned duration; редактирование pointer не меняет ongoing interval                               |
+| Timely approved paid continuation на boundary  | Нет лишнего Basic gap; target diff/capacity всё равно проверены                                               |
+| Late renewal после Basic при выключенном cron  | Сначала recorded gap/suspension/epoch; новый paid не resurrect old work                                       |
+| Security termination                           | Separate no-Grace policy, audit/reason, existing security restrictions не обходятся                           |
+| Два новых workspace одного владельца           | Один owner Trial claim, не два; first-user/imported workspace legacy exception                                |
+| Email change/delete/re-register/owner transfer | Claim не сбрасывается; verified subject handling/recovery без fake-account merge                              |
+| Массовые registrations                         | Existing anti-abuse/email confirmation + durable claim, без содержимого/секретов в diagnostics                |
+| Existing workspace/Observe                     | Нет Trial/Basic/нового expiry автоматически, counts only                                                      |
 
 Cron полностью остановлен на весь Trial/Grace и до последующего paid approval:
 каждый relevant read/write/job сам соблюдает deadline. Проверить boundary внутри
 долгого запроса: guard в начале HTTP request не разрешает поздний новый side effect.
+
+### Basic registration / Google / Яндекс fixtures
+
+- До завершения проверки cabinet shell/deep links, /admin/me, projects, sync,
+  export и uploads закрыты на backend даже после password login. Только необходимый
+  registration/verification/resend/provider callback/recovery/logout/CSRF allowlist.
+- Google: invalid signature/issuer/audience/nonce/expiry, missing subject или
+  email_verified=false/нет email; Яндекс: invalid code/state/PKCE/client_id/user-info
+  identity. В последнем случае default_email не доказывает verification — local
+  email flow до кабинета и Trial. Callback replay/session fixation rejected.
+- Проверенный provider account не объявляется реальной личностью. Same email у
+  разных Users/provider identities не auto-merge; no existing binding → explicit
+  authenticated linking/fresh proof или account conflict, не чужая session.
+- Один owner через password/email, затем Google/Яндекс, linking, callback retry,
+  новое workspace или повторный login получает один claim/period, без reset.
+  Provider ID change/email change/tombstone/key rotation/registration abuse отдельно.
+- Social login работает на Basic с corporate sso.enabled=false и external API=false;
+  MFA/strong session, source-based ClientSso и Magic Link правила не обходятся.
+  Нет placeholder email/случайного доступного пароля и скрытого platform_admin grant.
 
 ## 4. Human seats, clients и activity regression
 
@@ -92,11 +115,22 @@ Cron полностью остановлен на весь Trial/Grace и до �
 - Archive bypass: human/client task/comment/upload/status/approval routes, direct
   API, old session/live sync и background jobs не продолжают full workflow.
   Owner history/export/security и safe reduce/archive/delete сохраняют permissions;
-  owner data-export включает разрешённую private историю/files held ресурсов,
+  existing PDF/DOCX export и разрешённые downloads held ресурсов сохраняются.
+  Не требуется и не создаётся новый универсальный workspace/private-history exporter;
   public/client export filters не ослабляются.
 - Retained privacy: client не видит private agent originals/messages/context/files;
   human selected team/client copy отдельна. Past output publication не новый run,
   но требует current project activity и прежних permissions.
+
+### Paid-to-paid selection вместо permanent block_growth
+
+Studio → меньший paid plan с превышением projects/developers/clients/agents:
+preview требует точный допустимый active set всех четырёх групп с owner и held
+invitations; unselected reverse-suspended без role/status/data удаления. Проверить
+client union после выбора проектов, concurrent composition drift, scheduled apply,
+повтор одной команды, explicit paid restore. Отсутствующий/небезопасный выбор →
+reject/needs_review; block_growth не оставляет over-limit resources active.
+D9 автоматический Basic не отменяется из-за missing manual selection.
 
 ## 5. Downgrade, Basic activation, paid restore
 
@@ -178,21 +212,24 @@ queued/running/completed runs, mixed/independent/personal webhook fixtures.
 DB/file/event counts. SQLite не доказывает locks. Проверить stale consistent read
 до workspace mutex в existing outer transaction, не COUNT из cache.
 
-| Гонка                                                 | Инвариант                                                                       |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 20 create/activate/restore/provision с одним slot     | Ровно один growth, project+client delta атомарны, orphan нет                    |
-| Invite/accept/reactivate/email edit с одним seat      | Union occupied<=capacity, один User, holds не теряются                          |
-| Client add/edit/alias/backfill + project activate     | Stable identity mapping, unique active union, ambiguity без undercount          |
-| Два Trial claims одного owner/verified subject        | Один claim и period; retry не начинает новую неделю                             |
-| Trial/Grace boundary vs request/renew/cron            | Один applied fallback/cycle/event, no omitted Basic gap                         |
-| Basic activation двух проектов из разных tabs         | Ровно один active project и <=3 clients                                         |
-| Restore vs revoke/key replacement/manual archive      | Recheck baseline/current permission, revoked/inactive не rearm                  |
-| Agent start/result/idempotent replay vs downgrade     | Epoch/activity/auth проверены до outcome, новых writes после cutoff нет         |
-| Independent webhook send vs expiry/revoke             | Согласованный workspace/lease/endpoint order, pre-send rule соблюдён            |
-| Publish/edit/copy rules, два rollout workers + crash  | Immutable hash, revision conflicts, per-item apply один раз, resumable partial  |
-| Primary revoke/recovery vs approval/batch             | No privilege bypass; unfinished manual action reviewed, system expiry действует |
-| Retention purge vs owner activate/renew/delete cancel | Active ресурсы исключены, scope пересмотрен, no destructive stale preview       |
-| Deadlock/timeout/retry                                | Bounded repeat, no duplicate mail/provider call/ledger/event                    |
+| Гонка                                                     | Инвариант                                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 20 create/activate/restore/provision с одним slot         | Ровно один growth, project+client delta атомарны, orphan нет                    |
+| Invite/accept/reactivate/email edit с одним seat          | Union occupied<=capacity, один User, holds не теряются                          |
+| Client add/edit/alias/backfill + project activate         | Stable identity mapping, unique active union, ambiguity без undercount          |
+| Два Trial claims одного owner/verified subject            | Один claim и period; retry не начинает новую неделю                             |
+| Trial/Grace boundary vs request/renew/cron                | Один applied fallback/cycle/event, no omitted Basic gap                         |
+| Basic activation двух проектов из разных tabs             | Ровно один active project и <=3 clients                                         |
+| Restore vs revoke/key replacement/manual archive          | Recheck baseline/current permission, revoked/inactive не rearm                  |
+| Agent start/result/idempotent replay vs downgrade         | Epoch/activity/auth проверены до outcome, новых writes после cutoff нет         |
+| Independent webhook send vs expiry/revoke                 | Согласованный workspace/lease/endpoint order, pre-send rule соблюдён            |
+| Publish/edit/copy rules, два rollout workers + crash      | Immutable hash, revision conflicts, per-item apply один раз, resumable partial  |
+| Primary revoke/recovery vs approval/batch                 | No privilege bypass; unfinished manual action reviewed, system expiry действует |
+| Две uploads/copies при свободном byte/file slot           | Оба capacity reserve атомарны; не второй файл или bytes сверх limits            |
+| Cleanup retry/crash vs новая upload                       | Только verified physical removal освобождает, нет двойного расхода/освобождения |
+| Google/Яндекс callback vs email verification одного owner | Одна start/end boundary, один Trial, no auto-account merge                      |
+| Retention purge vs owner activate/renew/delete cancel     | Active ресурсы исключены, scope пересмотрен, no destructive stale preview       |
+| Deadlock/timeout/retry                                    | Bounded repeat, no duplicate mail/provider call/ledger/event                    |
 
 После корректности — lock duration/p95/query/EXPLAIN; Jino thresholds отдельно.
 
@@ -202,8 +239,26 @@ Quota: reserve/commit/release/uncertain, first bucket race, signed-safe amount,
 UTC windows, repeat key/new payload, crash до/после provider call/commit, no TTL
 release при unknown outcome, reconciliation, plan/version/renew/epoch не обнуляют
 consumption. Scope/window migration переносит consumed/reserved/uncertain или
-ждёт согласованной boundary. Storage trash/suspension не освобождают bytes;
-реальное file delete retry освобождает ровно один раз. FormWatch trusted event ID
+ждёт согласованной boundary. Оба storage limits рассматриваются как capacity, а не calendar quota.
+Проверить separately byte cap и file cap, multi-file batch и оба свободных места,
+существующие technical upload bounds и unconfigured quotas без invented defaults.
+Stored inventory включает private/comment/agent/human-copy/branding files,
+active/archived/suspended/trash проекты и queued deletions после удаления DB rows.
+Original+thumbnail = 1 user file; persistent component bytes учтены, temp/cache/logs/
+build/backups не user files. Реальная publication copy = новый файл/bytes; replay
+не копирует повторно. Asset replacement учитывает старые bytes до удаления.
+
+MariaDB parallel uploads/copies reserving bytes+files: нет oversubscription,
+all-or-nothing, server measured sizes, bounded derivative reserve, partial IO,
+outer transaction rollback/commit failure и crash после file write. Reservation
+не теряется с outer rollback; unknown cleanup/expired lease не освобождают место
+без доказанной очистки. Actual component deletion decrement bytes один раз, file
+unit после удаления всей family. Частичный delete failure и retry/reconcile не
+теряют usage и не дают double release. Direct disk drift/missing manifest→review,
+не false zero. Storage-read-only downgrade сохраняет весь usage, блокирует uploads/
+physical copies, но не разрешённые read/download/delete/PDF/DOCX. Восстановление
+upload только если оба limits с reservations соблюдены; archive не обход.
+FormWatch trusted event ID
 и adapter нужны до availability=true; численные quotas отдельно утверждаются.
 
 Retention: independent active_free/suspended_excess/closed_abandoned/owner_requested
@@ -239,26 +294,31 @@ PHP 8.4 + full existing suites + canonical ZIP/manifest/secret/extracted runtime
 потребуются при будущей реализации, не запускаются ради Markdown.
 
 Архитектурный этап завершён после согласованной сверки восьми документов и явного
-списка изменений/противоречий/рисков. Он **не** разрешает implementation, commit,
-push или deployment. Начало реализации — отдельное поручение пользователя.
+списка изменений/противоречий/рисков. Базовые восемь документов опубликованы в
+main c95a54e по отдельному разрешению, без production code changes. Настоящее
+уточнение не разрешает implementation, commit, push или deployment. Начало реализации — отдельное поручение пользователя.
 
 ### Фактическая проверка документации
 
-Фактически проверено **02.11.2026**: все 8 документов обновлены; 17 локальных
-ссылок разрешаются, 2 fenced JSON-примера валидны, D1–D12 представлены в обеих
-матрицах. Сверены 14 change entries, 12 risk entries и существование 34 ссылок
-на исходные PHP-файлы. Initial limits, canonical seat JSON/API mapping и разделение
-agent/full API проверены между документами. Prettier и whitespace проходят.
+Базовая редакция D1–D12 опубликована в main **c95a54e**; production код остался
+v0.9.10. Исторический исходный doc audit проверил 8 документов, 17 local links,
+2 JSON-примера и traceability D1–D12. Это не утверждение, что документы до сих пор
+untracked/не опубликованы.
 
-Ручная смысловая сверка: Trial без Grace; paid Grace с pinned fallback; inverse
-archive/client counts; no-cron catch-up; сохранение исходных roles/statuses;
-shared-key/replay/independent-webhook guards; owner core access; retention gate;
-primary authority отдельно от platform_admin. Численные quota budgets до approval
-не включаются и не превращаются в implicit limit=0.
+Текущая проверка относится к пяти финальным уточнениям: paid active selection,
+bytes+files capacity, verification-first Trial/basic social login, existing
+PDF/DOCX/download и корректная publication history. Проверяются все 8 файлов,
+local links/JSON/format/whitespace, отсутствие старого registration-start Trial,
+permanent block_growth или требования нового full workspace exporter. Runtime
+тесты 10.0 не выполняются: code implementation отсутствует. Итоговый doc-check
+report и diff к c95a54e сохраняются вне репозитория; commit/push/build/deploy в
+текущем уточнении не выполняются.
 
-Tracked production diff = 0, git HEAD остался 7ec07e6; изменены только восемь
-исходных untracked architecture файлов. Полный diff к сохранённой предыдущей
-редакции находится в `/tmp/project-brief-m10-d1-d12.diff`, doc-check metadata —
-`/tmp/project-brief-m10-doc-check.json`. Это локальные review artifacts, не часть
-runtime или свидетельство реализации. Runtime-тесты Milestone 10.0, commit,
-push, release build и deployment в текущем задании не выполнялись.
+Итог текущей doc-проверки 02.11.2026: изменены ровно 8 запрошенных документов;
+16 local links и 2 JSON-примера корректны, D1–D12 сохранены с явно утверждёнными
+уточнениями. Сверены оба storage keys/неутверждённые значения, canonical seats,
+verification-start timestamps, social-login/corporate-SSO separation и отсутствие
+нового exporter. Prettier/whitespace проходят; production diff=0, git HEAD не менялся.
+Отчёт: `/tmp/project-brief-m10-final-doc-check.json`; review diff к c95a54e:
+`/tmp/project-brief-m10-final-clarifications.diff`. Будущие runtime/concurrency/
+provider tests этим не считаются выполненными.

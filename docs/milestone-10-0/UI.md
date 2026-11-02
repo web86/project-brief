@@ -1,5 +1,9 @@
 # Milestone 10.0 — проект интерфейсов
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: **экранные структуры и UX, без Vue/CSS/routes implementation**.
 Сохранить существующие shell/navigation, CSS tokens, themes, buttons/LoadingButton,
 API client, CSRF/step-up, loading/empty/error states. Новый UI framework не нужен.
@@ -20,6 +24,20 @@ Owner: «Мои настройки → Тариф workspace», «Приоста�
 и удаление». Сохранить текущую collapsible navigation. Suspended non-owner видит
 безопасное объяснение и ссылку обратиться к owner, свой profile/security и доступ
 к другим workspace; не видит чужие subscription/content/usage details.
+
+### Registration / verification entry
+
+Сохранить существующий login UI и добавить email verification, «Войти с Google» /
+«Войти с Яндекс ID» как базовые способы входа. Pending user видит только необходимые
+onboarding/verification/recovery действия, без sidebar workspace, projects или
+countdown. Текст: «7 дней начнутся после успешной проверки». Проверить server deny
+на прямом URL, а не только скрытие navigation.
+
+При недоказанном provider email запросить адрес и подтвердить его в приложении.
+Совпадение с existing User → предложить вход в свой existing account и явное linking,
+не автоматическое объединение. OAuth не «подтверждение реальной личности» и не
+кнопка включения paid corporate SSO. Error/cancel/provider outage позволяют вернуться
+к безопасному email flow; secrets/tokens и raw callback data не отображаются.
 
 ## 2. Глобальные Trial / Grace / fallback settings
 
@@ -93,13 +111,30 @@ Rule copy: выбрать старую/новую version → увидеть rem
 Нет скрытого копирования при publish. Paid transitions — «Подтверждение платформы»;
 payment approval недоступно до adapter. History сохраняет actor/time/reason/diff.
 
+### Выбор active set при меньших лимитах
+
+Downgrade preview содержит отдельные выборы active projects, human developers
+(owner закреплён), уникальных clients по выбранным проектам и agents. Показать
+целевые limits, occupied/reserved и сколько остальных будет reversible suspended.
+Не предлагать «оставить всё активным, запретить только рост». Некорректный набор,
+потеря owner/прав или drift → понятный reject/review, не скрытый выбор сервера.
+
+Storage показывается двумя индикаторами: bytes/files, used/reserved/delete pending,
+оба limits/asOf. Объяснить, что архив/корзина не освобождают quota, thumbnail не
+отдельный user file, а реальная копия файла увеличивает usage. При storage overage
+переход сохраняет данные и показывает «Новые загрузки недоступны» до выполнения
+обоих limits. Read/download/delete и существующий PDF/DOCX export доступны;
+никакой кнопки автоматического удаления. Undefined tariff values обозначаются
+«не настроено», не 0/unlimited. Pending cleanup не обещает уже свободное место.
+
 ## 5. Страница owner и уведомления
 
 Current plan/version, pinned policy, effective phase, UTC deadline с локальным
 представлением через существующий formatter, usage asOf и next change. Блоки:
 
 - Trial: «Полный пробный доступ до …; затем Basic без дополнительного Grace».
-  Pending email verification объясняет оставшееся время, не предлагает restart.
+  До verification рабочий кабинет закрыт: отдельный onboarding сообщает, что
+  Trial ещё не начат. После проверки всегда полные 7×24h; resend/login не restart.
 - Grace: «Предыдущие paid возможности сохраняются до …; затем Basic».
 - Basic после expiry: причина и дата, сколько проектов/людей приостановлено,
   «Выбрать проект», «Запросить paid доступ», «Экспортировать данные».
@@ -156,7 +191,7 @@ backup-retention. Automatic purge disabled с причиной «Не пройд
 от удаления из-за прошлого Trial/paid expiry.
 
 Owner видит только применимую policy и понятные consequences. Удаление workspace:
-impact preview/counts → предложение export → fresh step-up → typed confirmation
+impact preview/counts → существующий PDF/DOCX/download → fresh step-up → typed confirmation
 → durable job status/cancel до purge. Ясно отделить private storage deletion от
 сроков backups и не обещать мгновенного уничтожения всех копий. Глобальный User
 и другие workspace не удаляются. После начала purge нет ложной кнопки rollback.

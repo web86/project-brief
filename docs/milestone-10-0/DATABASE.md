@@ -1,5 +1,9 @@
 # Milestone 10.0 — структура данных
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: **предлагаемая схема по D1–D12, migrations/SQL не созданы**.
 База v0.9.10 и traceability: [ARCHITECTURE.md](ARCHITECTURE.md).
 MariaDB/InnoDB, PHP 8.4; production inventory здесь не проводился.
@@ -22,16 +26,16 @@ MariaDB/InnoDB, PHP 8.4; production inventory здесь не проводилс
 
 ## 2. Authority, каталог и платформенные политики
 
-| Таблица                    | Основные поля                                                                                                                                                                                                   | Ключи и правила                                                                                                                                               |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `platform_plan_authority`  | id=1, primary_user_id?, revision, assigned_at, operator_event_id?                                                                                                                                               | UQ id; FK user RESTRICT; singleton разрешает ровно одного primary. Null до безопасного bootstrap. Не backfill из любого platform_admin                        |
-| `plan_settings`            | id=1, current_policy_version_id?, legacy_version_id?, rollout_mode(off/observe/enforce), registry_revision, revision                                                                                            | Published FK RESTRICT; изменяет только primary authority с preview                                                                                            |
-| `platform_policy_versions` | id, uuid, number, state(draft/published), trial_days, grace_days, trial_version_id, fallback_version_id, eligibility_json, security_termination_json, retention_json, content_hash, revision, actors/timestamps | UQ uuid/number; published immutable; trial первоначально 7, grace 7; trial target paid Studio, fallback free Basic; pointer update не меняет активные периоды |
-| `entitlement_definitions`  | key, kind, allowed_scopes_json, schema_json, paid_requirement, availability, derived, schema_revision                                                                                                           | PK key; read-only mirror code registry. Ни handler names, ни формулы из UI                                                                                    |
-| `plans`                    | id, uuid, code, status(draft/published/archived), visibility(public/hidden), published_version_id?, sort_order, revision, actor IDs                                                                             | UQ code/uuid; code immutable после publish; current pointer только для новых назначений                                                                       |
-| `plan_versions`            | id, uuid, plan_id, number, state, access_class(free/paid/compatibility), translations_json, price_json, developer_seats_json, registry_revision, content_hash, revision, actor/time fields                      | UQ(plan_id,number), UQ(id,plan_id), UQ uuid; одна editable draft под plan lock; published immutable                                                           |
-| `plan_entitlement_values`  | plan_version_id, entitlement_key, scope_kind, value_json                                                                                                                                                        | PK(version,key); FK version/definition RESTRICT; derived keys не записываются                                                                                 |
-| `plan_transition_rules`    | id, uuid, source_version_id, target_version_id, initiator(platform/owner), approval(none/manual/payment), timing(immediate/period_end), overage_policy, enabled, revision, actor/time fields                    | UQ(source_version_id,target_version_id,initiator); source != target; immutable published endpoints, mutable audited rule revision                             |
+| Таблица                    | Основные поля                                                                                                                                                                                                                                            | Ключи и правила                                                                                                                                               |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `platform_plan_authority`  | id=1, primary_user_id?, revision, assigned_at, operator_event_id?                                                                                                                                                                                        | UQ id; FK user RESTRICT; singleton разрешает ровно одного primary. Null до безопасного bootstrap. Не backfill из любого platform_admin                        |
+| `plan_settings`            | id=1, current_policy_version_id?, legacy_version_id?, rollout_mode(off/observe/enforce), registry_revision, revision                                                                                                                                     | Published FK RESTRICT; изменяет только primary authority с preview                                                                                            |
+| `platform_policy_versions` | id, uuid, number, state(draft/published), trial_days, grace_days, trial_version_id, fallback_version_id, eligibility_json, security_termination_json, retention_json, content_hash, revision, actors/timestamps                                          | UQ uuid/number; published immutable; trial первоначально 7, grace 7; trial target paid Studio, fallback free Basic; pointer update не меняет активные периоды |
+| `entitlement_definitions`  | key, kind, allowed_scopes_json, schema_json, paid_requirement, availability, derived, schema_revision                                                                                                                                                    | PK key; read-only mirror code registry. Ни handler names, ни формулы из UI                                                                                    |
+| `plans`                    | id, uuid, code, status(draft/published/archived), visibility(public/hidden), published_version_id?, sort_order, revision, actor IDs                                                                                                                      | UQ code/uuid; code immutable после publish; current pointer только для новых назначений                                                                       |
+| `plan_versions`            | id, uuid, plan_id, number, state, access_class(free/paid/compatibility), translations_json, price_json, developer_seats_json, registry_revision, content_hash, revision, actor/time fields                                                               | UQ(plan_id,number), UQ(id,plan_id), UQ uuid; одна editable draft под plan lock; published immutable                                                           |
+| `plan_entitlement_values`  | plan_version_id, entitlement_key, scope_kind, value_json                                                                                                                                                                                                 | PK(version,key); FK version/definition RESTRICT; derived keys не записываются                                                                                 |
+| `plan_transition_rules`    | id, uuid, source_version_id, target_version_id, initiator(platform/owner), approval(none/manual/payment), timing(immediate/period_end), overage_policy(active=select_and_suspend/reject; storage=read_only/reject), enabled, revision, actor/time fields | UQ(source_version_id,target_version_id,initiator); source != target; immutable published endpoints, mutable audited rule revision                             |
 
 Composite FK `(published_version_id,id) → plan_versions(id,plan_id)` исключает
 чужую версию в plan pointer. Циклический nullable pointer добавляется после обеих
@@ -71,24 +75,42 @@ availability + подтверждённой policy; при первом внед
 
 ## 3. Подписки, периоды и защита Trial
 
-| Таблица                           | Основные поля                                                                                                                                                                                                                                                                                                                                             | Инварианты                                                                                                                                                                  |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `workspace_subscriptions`         | id, uuid, workspace_id, current_period_id, approved_extra_seats, enforcement_mode(observe/enforce), revision, next_boundary_at?, materialized_phase, timestamps                                                                                                                                                                                           | UQ workspace_id/uuid, UQ(id,workspace_id); один current aggregate; phase — projection, не право                                                                             |
-| `subscription_periods`            | id, uuid, workspace_id, subscription_id, kind(compatibility/free/trial/paid), entitlement_version_id, policy_version_id?, fallback_version_id?, starts_at, service_ends_at?, grace_ends_at?, superseded_at?, approval_kind/manual actor/change, timestamps                                                                                                | UQ(id,workspace_id), UQ uuid; composite subscription/workspace; facts append-only, supersession только audited executor; index(service_ends_at,id), index(grace_ends_at,id) |
-| `owner_trial_claims`              | id, uuid, owner_user_id?, workspace_id, period_id, subject_hash?, subject_hash_key_version, registered_at, verified_at?, ends_at, state(pending/active/used/expired/denied), reason_code                                                                                                                                                                  | UQ owner_user_id, UQ subject_hash когда подтверждён; NULL user после account deletion не освобождает surviving subject claim; index(workspace_id), index(state,ends_at,id)  |
-| `workspace_entitlement_overrides` | id, uuid, workspace_id, subscription_id, entitlement_key, scope_kind, value_json, starts_at, ends_at?, reason_code, approved_by, revision                                                                                                                                                                                                                 | Composite FK(subscription_id,workspace_id); index(workspace_id,key,starts_at,ends_at); overlap запрещён под workspace lock                                                  |
-| `subscription_changes`            | id, uuid, workspace_id, subscription_id, kind(assign/transition/renew/seats/enforcement/restore/terminate), target_version_id?, expected_revision, payload_json, rule_id/revision?, policy_snapshot_json, preview_id?, batch_uuid?, requested_by?, approved_by?, authority_revision?, state, effective_at?, operation_key_hash, request_hash, applied_at? | UQ(workspace_id,operation_key_hash); index(state,effective_at,id), index(batch_uuid,id); один approved/scheduled change под workspace lock                                  |
-| `plan_events`                     | id, uuid, aggregate_type/uuid, workspace_id?, actor_kind(primary/owner/system/operator), actor_user_id?, action, result, before/after revision, reason_code?, diff_json, change_id?, operation_key_hash?, request_hash?, result_json?, created_at                                                                                                         | Append-only; UQ uuid/operation_key_hash; indexes aggregate/workspace/time; allowlisted configuration/counts/IDs, без content/secrets                                        |
+| Таблица                           | Основные поля                                                                                                                                                                                                                                                                                                                                             | Инварианты                                                                                                                                                                    |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workspace_subscriptions`         | id, uuid, workspace_id, current_period_id, approved_extra_seats, enforcement_mode(observe/enforce), revision, next_boundary_at?, materialized_phase, timestamps                                                                                                                                                                                           | UQ workspace_id/uuid, UQ(id,workspace_id); один current aggregate; phase — projection, не право                                                                               |
+| `subscription_periods`            | id, uuid, workspace_id, subscription_id, kind(compatibility/free/trial/paid), entitlement_version_id, policy_version_id?, fallback_version_id?, starts_at, service_ends_at?, grace_ends_at?, superseded_at?, approval_kind/manual actor/change, timestamps                                                                                                | UQ(id,workspace_id), UQ uuid; composite subscription/workspace; facts append-only, supersession только audited executor; index(service_ends_at,id), index(grace_ends_at,id)   |
+| `owner_trial_claims`              | id, uuid, owner_user_id?, workspace_id, period_id?, registered_at, verified_at?, starts_at?, ends_at?, state(pending/active/used/expired/denied), reason_code                                                                                                                                                                                             | UQ owner_user_id, verified subject aliases в owner_trial_claim_subjects; NULL user после deletion не сбрасывает surviving claim; index(workspace_id), index(state,ends_at,id) |
+| `workspace_entitlement_overrides` | id, uuid, workspace_id, subscription_id, entitlement_key, scope_kind, value_json, starts_at, ends_at?, reason_code, approved_by, revision                                                                                                                                                                                                                 | Composite FK(subscription_id,workspace_id); index(workspace_id,key,starts_at,ends_at); overlap запрещён под workspace lock                                                    |
+| `subscription_changes`            | id, uuid, workspace_id, subscription_id, kind(assign/transition/renew/seats/enforcement/restore/terminate), target_version_id?, expected_revision, payload_json, rule_id/revision?, policy_snapshot_json, preview_id?, batch_uuid?, requested_by?, approved_by?, authority_revision?, state, effective_at?, operation_key_hash, request_hash, applied_at? | UQ(workspace_id,operation_key_hash); index(state,effective_at,id), index(batch_uuid,id); один approved/scheduled change под workspace lock                                    |
+| `plan_events`                     | id, uuid, aggregate_type/uuid, workspace_id?, actor_kind(primary/owner/system/operator), actor_user_id?, action, result, before/after revision, reason_code?, diff_json, change_id?, operation_key_hash?, request_hash?, result_json?, created_at                                                                                                         | Append-only; UQ uuid/operation_key_hash; indexes aggregate/workspace/time; allowlisted configuration/counts/IDs, без content/secrets                                          |
+
+Минимальные identity bindings для двух basic-login adapters (не новая auth-система):
+
+| Таблица                      | Поля и инварианты                                                                                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user_external_identities`   | id, user_id, provider_key, issuer_key, subject_hash, hash_key_version, verified_at, timestamps; UQ(provider,issuer,subject_hash), принадлежит одному User. Provider email не ключ linking; no provider tokens |
+| `owner_trial_claim_subjects` | claim_id, subject_kind(email/provider), issuer_key, subject_hash, hash_key_version, retained_until; UQ(kind,issuer,subject_hash), FK claim RESTRICT; verified-only aliases, не auth grant                     |
 
 Current_period_id принадлежит тому же subscription/workspace; composite FK после
-создания обеих таблиц. Trial end = registration UTC + pinned duration. До verified
-email premium запрещён; поздняя verification не сдвигает end. User-level claim
-переживает новые workspace/смену email; подтверждённый keyed normalized-email
-subject помогает не переиспользовать Trial после пересоздания аккаунта. HMAC ключ
-не APP_KEY без key-version/rotation policy; hash не публикуется. Retention такого
-anti-abuse tombstone ограничен отдельной policy, не хранится бесконечно по умолчанию. При rotation subject key проверяются все
-неистёкшие key versions; смена ключа не обнуляет использованные Trial. Raw keys
-находятся только в server secret configuration, не в plan settings/UI.
+создания обеих таблиц. Pending onboarding хранится в ограниченном server session
+context; без email не создаётся fake User. Existing users.email_verified_at отражает
+доказанный local/provider email, не один факт получения OAuth subject. Provider
+identity и email assurance фиксируются раздельно. Ошибка linking/unique conflict не
+даёт войти existing User автоматически и не создаёт второй аккаунт с тем же email.
+
+До проверки у pending Trial claim period_id/verified_at/starts_at/ends_at=NULL.
+TTL pending onboarding не означает использованный Trial: при новой проверке
+переиспользуется never-started claim, а не удаляется history и не меняется уже
+начатый starts_at. Если claim ранее active/used, второй Trial невозможен.
+При успешном verification+eligibility check атомарно задаются period и pinned
+policy/version, starts_at=t_verified и ends_at=t_verified+7×24h. Повтор callback или
+другой login method не обновляет их. User-level unique claim и verified subject
+aliases защищают один Trial владельцу; при linking нового provider used claim
+остаётся used. Email/provider HMAC subjects не публикуются, retention ограничен;
+rotation проверяет все неистёкшие key versions, не сбрасывая claim. Секреты adapters
+и hash keys только в server configuration, не в тарифах/audit. Ограничения social-only
+credential (без usable password до явной настройки/recovery) проектируются в
+существующей User/session/security модели, без фиктивного пароля или обхода MFA.
 
 Trial period имеет grace_ends_at=NULL; paid period — service_end + закреплённая
 Grace duration. Free/compatibility бессрочны без искусственного конца. Получение
@@ -104,17 +126,25 @@ Operation replay восстанавливается по unique event/change out
 
 ## 4. Обратимая приостановка и execution barriers
 
-| Таблица                                 | Основные поля                                                                                                                                                                          | Назначение                                                                                                                         |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `workspace_suspension_cycles`           | id, uuid, workspace_id, source_period_id, source_change_id?, effective_at, reason_code, fallback_version_id, state(open/resolved), resource_high_watermarks_json, revision, created_at | UQ(workspace_id,source_period_id,reason_code); index(workspace_id,state,id). Bounded marker при downgrade, а не 100 status updates |
-| `workspace_entitlement_resource_states` | id, workspace_id, cycle_id, resource_kind, resource_id, resource_uuid, state(held/released), baseline_revision?, reviewed_revision?, reason_code, confirmed_by?, changed_at            | UQ(cycle_id,kind,resource_id); composite cycle/workspace; index(workspace_id,kind,state,resource_id)                               |
-| `workspace_execution_epochs`            | workspace_id, feature_group, epoch, state(ready/blocked/needs_confirmation), blocked_at?, resume_at?, confirmation_change_id?, revision                                                | PK(workspace_id,feature_group); группы из registry, не пользовательские строки                                                     |
+| Таблица                                 | Основные поля                                                                                                                                                                        | Назначение                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `workspace_suspension_cycles`           | id, uuid, workspace_id, source_period_id, source_change_id?, effective_at, reason_code, target_version_id, state(open/resolved), resource_high_watermarks_json, revision, created_at | UQ(workspace_id,source_period_id,reason_code); index(workspace_id,state,id). Bounded marker при downgrade, а не 100 status updates |
+| `workspace_entitlement_resource_states` | id, workspace_id, cycle_id, resource_kind, resource_id, resource_uuid?, state(held/released), baseline_revision?, reviewed_revision?, reason_code, confirmed_by?, changed_at         | UQ(cycle_id,kind,resource_id); composite cycle/workspace; index(workspace_id,kind,state,resource_id)                               |
+| `workspace_execution_epochs`            | workspace_id, feature_group, epoch, state(ready/blocked/needs_confirmation), blocked_at?, resume_at?, confirmation_change_id?, revision                                              | PK(workspace_id,feature_group); группы из registry, не пользовательские строки                                                     |
+
+Paid-downgrade preview policy_json хранит typed active_selection и его hash:
+projects, developer member IDs с owner, client identity IDs, agents и pending invite
+решения. Apply делает current recheck и сохраняет released выбранным / held остальным
+в том же cycle; target_version_id может быть paid. Для D9 это конкретный pinned
+Basic fallback, source period продолжает хранить свой fallback_version_id. Нет
+permanent active overage через block_growth. Storage read_only policy хранится
+отдельно, без удаления превышающих files/usage.
 
 Resource kinds ограничены: project, workspace_member, project_client,
 external_agent, integration_token, webhook_endpoint, integration_source.
 Это внутренние ссылки, не произвольная ORM/table строка. Для polymorphic ссылки
-общий FK к ресурсам невозможен: service обязан проверить ID+UUID+workspace под
-lock; composite FK к cycle обязателен. Если implementation review выберет typed
+общий FK к ресурсам невозможен: service обязан проверить ID+(UUID если он есть)+workspace под
+lock; existing WorkspaceMember использует свой ID, без новой UUID migration; composite FK к cycle обязателен. Если implementation review выберет typed
 FK дочерние таблицы, семантика и API остаются теми же, без общего ACL engine.
 
 Preexisting определяется зафиксированными под workspace lock high-watermarks IDs
@@ -156,6 +186,25 @@ Reserved occupied seats = union активных user identities и nonexpired h
 identities. Два приглашения одному человеку не два seats. Accept заменяет hold
 membership в той же transaction; нет второго User. Suspended holds после Basic
 не держат активное seat и не позволяют accept без нового capacity/permission check.
+
+### Storage capacity metadata (узкий adapter D11)
+
+storage.bytes.max и storage.files.max — workspace capacity без календарного окна.
+Не помещать их в периодические quota buckets и не сбрасывать при renewal/downgrade.
+
+| Метаданные                       | Поля / назначение                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workspace_file_usage`           | id, uuid, workspace_id, source_kind(attachment/branding_asset), source_ref, component metadata(size/state/cleanup reference), state(stored/delete_pending/deleted), revision; UQ(workspace,kind,source_ref), index(workspace,state,id). source_ref = attachment UUID либо branding kind/version token. Один logical user file, bytes — сумма его persistent components; private paths не в platform output |
+| `workspace_storage_reservations` | uuid, workspace_id, operation_key_hash, request_hash, bytes_reserved, files_reserved, state(held/committed/cleanup_pending/released), lease/expiry, timestamps; UQ(workspace,operation_key_hash), index(workspace,state,expiry). Оба limits резервируются атомарно                                                                                                                                         |
+
+Это только capacity accounting вокруг AttachmentStorage/asset writers и existing
+cleanup journal, не отдельный storage backend/framework. В project_file_deletions
+достаточно добавить workspace/file-usage/component reference и verified deletion
+receipt, чтобы usage не исчезал после удаления attachment DB row. Lifetime tracking
+и reserve/commit/release используют существующий QuotaLedger protocol, но без
+calendar reset и без выдуманных численных лимитов. Источник bytes — проверенный
+фактический размер persistent components, file count — logical originals, не
+SUM(attachments.size)/COUNT по active project relation. Подробный протокол в ENTITLEMENTS.
 
 ## 6. Preview, уведомления, quotas и retention jobs
 

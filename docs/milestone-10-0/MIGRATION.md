@@ -1,5 +1,9 @@
 # Milestone 10.0 — внедрение, compatibility и rollback
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: **будущий план реализации после review обновлённой архитектуры**.
 Сейчас изменяется только документация: migrations/seeds/commands/runtime/gates
 не создаются и не запускаются, commit/push/deployment не разрешены этим заданием.
@@ -8,7 +12,8 @@ D1–D12 уже утверждены; не требуется заново со�
 ## 1. База и предварительные решения
 
 Использовать **v0.9.10 hotfix**, runtime bd09dd5 / source 7ec07e6, main publication
-0a7ef45. Не откатываться к v0.9.8: потеряются shared-key semantics, scope-only
+0a7ef45; восемь архитектурных документов уже опубликованы в main c95a54e.
+Production-код этой публикацией не менялся. Не откатываться к v0.9.8: потеряются shared-key semantics, scope-only
 permissions, private chat/follow-ups и independent webhooks. Source diff/audit
 зафиксирован в [ARCHITECTURE.md](ARCHITECTURE.md); проверить свежий checkout перед
 будущей реализацией. Версия следующего runtime пока не назначена.
@@ -37,6 +42,31 @@ Automatic destructive purge остаётся off до отдельного stagi
 Canonical release builder запускается только для будущей реализации после её QA,
 а не для текущих восьми архитектурных файлов.
 
+### План начала реализации после отдельного поручения
+
+1. Зафиксировать code baseline v0.9.10 / doc c95a54e с текущими уточнениями и
+   contract tests для active-set downgrade, обоих storage limits, verification-first
+   Trial и existing PDF/DOCX/download. Не начинать с универсального billing/storage.
+2. Узкое domain core/additive schema: typed registry/canonical seats/clock и claims,
+   basic-login identity bindings, storage usage/reservations вокруг existing writers
+   и cleanup journal; пока Observe, численные storage quotas ещё не seed/enforce.
+3. Подключить минимальный verification-only onboarding + Google/Яндекс adapters к
+   текущим User/session/security; server-side readiness gate до кабинета. Тестировать
+   code/state/PKCE/nonce/replay и explicit linking fixtures, не живыми аккаунтами.
+4. Аудировать все persistent upload/copy/branding/delete paths, durable reservation
+   до outer transaction/IO, then commit/reconcile. Backfill включает private files,
+   trash/suspended projects и queued deletions, а не только existing attachment rows.
+5. Реализовать preview/selection/suspension и guards в Observe, затем canary Trial/
+   Grace/Basic/restore, MariaDB races, basic export/download regressions. Enforce
+   storage только после утверждения обоих численных limits и доказанного inventory.
+
+Google/Яндекс credentials/callback setup — server integration configuration, не
+тарифная настройка; не включать working provider buttons без готового adapter.
+Existing users не становятся verified от одного email match или заполнения
+email_verified_at=now в backfill. Нужны inventory доверенных proof и безопасный
+re-verification/recovery rollout; D6 plan/rights/data не переписываются, Trial не
+выдаётся старым workspace. Verification — auth requirement, не paid entitlement.
+
 ## 3. Seed, published policies и existing workspace D6
 
 Идемпотентно создать draft Basic/Freelancer/Studio из ENTITLEMENTS и draft global
@@ -52,8 +82,8 @@ Basic, Trial claim или countdown автоматически. Observe ниче
 
 Перед commercial launch зафиксировать cohort/cutoff inventory: workspace,
 существовавшие до этого включения (в том числе созданные в shadow phase), получают
-legacy treatment. Новые eligible owner registrations после включения получают
-Trial по pinned policy; неподходящие — обычную free policy, без повторного Trial.
+legacy treatment. Новые eligible owners после successful account/email verification получают
+один Trial по pinned policy; до этого только pending onboarding без кабинета; неподходящие — обычную free policy, без повторного Trial.
 Первый owner, принявший импортированный workspace через OwnerProvisioning, не
 делает его новым. Проверить все Workspace::create paths, invitations, factories,
 LegacyWorkspaceBackfill и initial installer, не только registration controller.
@@ -160,10 +190,16 @@ CRC/manifest/secret scan/extracted runtime. Результаты прежнег�
    runtime/APP_KEY, учёт более поздних deletes/tombstones и потери новых данных.
    Retention backup copies не тождественен удалению active files.
 
-## 8. Границы текущего задания
+## 8. Границы текущего уточнения
 
-Подготовлены восемь обновлённых документов и source-audit/consistency evidence.
-Не изменены production PHP/Vue/config/migrations/tests и исходные права/данные.
-Не запускались migrations, seed, будущие команды, providers, release builder или
-production проверки. Нет нового commit, push, deploy. Конкретные doc checks и
-оставшиеся future gates — [TEST-PLAN.md](TEST-PLAN.md).
+Исходные восемь архитектурных документов опубликованы в main **c95a54e** после
+отдельного разрешения на push; production PHP/Vue/config/migrations не изменялись.
+Текущая точечная корректировка затрагивает только эти восемь tracked Markdown
+файлов. Обновлены active downgrade selection, два storage capacity entitlements,
+verification-first Trial/basic social login и предел existing export.
+
+Implementation, migrations, commands, providers, сборка релиза, commit/push/deploy
+в этом уточнении не выполняются. Существующие D1–D12, scopes/privacy/MFA/SSRF/HMAC,
+compatibility/Observe и purge gate сохранены. Новая система полной выгрузки workspace,
+универсальный billing/storage framework и платежи не входят. План начала выше —
+порядок будущих работ, не утверждение их выполнения.

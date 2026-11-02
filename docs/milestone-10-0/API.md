@@ -1,5 +1,9 @@
 # Milestone 10.0 — проект API
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: **предлагаемые контракты, маршруты не реализованы**.
 База v0.9.10. Существующие `/api/admin`, `/api/platform`, `/api/v1/agent` и
 обычные client routes не переименовываются; новый auth/scopes stack не создаётся.
@@ -29,6 +33,36 @@ External UUID, typed allowlist, bounded JSON/page size 25..100, safe sort mappin
 Не принимать paid=true, bypass, role, raw SQL/handler, чужой workspace_id или
 подменяемый subscriptionId в domain payload. Owner видит свой usage; non-owner и
 bearer получают только подходящий reason/code без чужих точных workspace counts.
+
+### Базовая регистрация и social login (предлагаемые routes)
+
+| Метод / путь                                     | Минимальный контракт                                                                                |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| POST `/api/registration`                         | Pending owner onboarding; no workspace/project access, Trial dates=NULL                             |
+| GET `/api/registration/status`                   | Только собственный pending state/следующий шаг; нет workspace contents                              |
+| POST `/api/registration/email/send` / `/confirm` | Throttled single-use confirmation нужного email; replay не начинает новый Trial                     |
+| GET `/auth/{provider}/start` / `/callback`       | Allowlist google/yandex, server-bound state/PKCE, validated account proof; OIDC nonce где применимо |
+
+Эти routes пока не существуют. Pending session разрешает только необходимые
+registration/verification/provider callback/logout/recovery/CSRF действия. Даже
+правильный password не открывает кабинет/проекты до readiness; middleware guards
+охватывают deep links, /admin/me, lists, downloads, sync и APIs, не только меню.
+
+При callback owner определяется persisted provider+issuer+subject binding, не
+email query. Link existing User требует уже аутентифицированного existing account
+и fresh proof; start purpose=link хранится на сервере, callback не принимает
+arbitrary user/workspace ID. Email collision не auto-login/auto-merge. Нельзя
+подменить отсутствующий email фиктивным адресом: требуется отдельная проверка.
+После trusted account proof и доказанного email successful verification атомарно
+создаёт один Trial startsAt=t_verified / endsAt=t_verified+7×24h и pinned version;
+повтор любого способа входа возвращает тот же период. Provider login сам не proof
+реальной личности, не заменяет MFA и не создаёт platform_admin/membership права.
+
+Google/Яндекс — basic authentication: доступность не зависит от paid features,
+api.external.enabled или corporate sso.enabled. Provider secrets только в server
+config; ClientSso/integration_sources и client Magic Links не используются как
+социальный login bridge. Validation contract — TRANSITIONS, migration legacy
+verification readiness — MIGRATION. Не вводить универсальный identity/billing engine.
 
 ## 2. Registry, каталог и версии — только primary
 
@@ -105,6 +139,15 @@ fallbackVersion=конкретная Basic. Backfill legacy использует
 change, не PATCH singleton pointer. Security terminate не masquerades как обычное
 paid expiry и не создаёт Grace автоматически.
 
+Paid downgrade preview/changes дополнительно связывают activeSelection с target
+version и текущим usage: projectIds, developerMemberIds, clientIdentityIds, agentIds,
+а также решения о pending приглашениях. UUID используются где существуют;
+WorkspaceMember ID — существующий bounded decimal-string ID, проверенный в workspace.
+Owner включён обязательно. Каждая группа после выбора в целевой capacity; остальные
+held. Missing/unsafe selection →422/409 с review reasons. Постоянный block_growth
+для active-resource overage не допускается. Storage overage подтверждается как
+отдельный read-only режим по обоим ключам, без destructive side effects.
+
 ## 4. Owner: подписка, Basic activation и восстановление
 
 | Метод / путь                                                   | Доступ / результат                                                                                            |
@@ -132,12 +175,28 @@ Restoration payload не содержит enableAll/replayPending. Explicit sele
 manual inactive/delete или permission loss элемент не восстанавливается. Новый
 run требует нового submissionId; чужой/старый preview не разрешает новый запуск.
 
-Owner data export при Basic — core operation, включая held resources по текущим
-owner permissions. До enforcement проверить полноту existing export adapters;
-при отсутствии private-history coverage предусмотреть owner-only streaming
-export endpoint (session + fresh proof, no-store, bounded chunks, workspace-bound),
-без новых external scopes и без изменения client/public export filters. Его точный
-формат/контракт — implementation review, не обещанный существующий маршрут.
+Existing PDF/DOCX export и разрешённый owner file download остаются core
+операциями для held ресурсов после Trial/downgrade/project suspension с прежними
+privacy/object filters. Новый full-workspace streaming/export endpoint/adapter
+в Milestone 10.0 не создаётся. Если выявятся отдельные обязательные требования
+переносимости персональных данных, сформировать отдельное описание/scope для
+согласования, без неявного универсального экспортёра.
+
+### Storage decisions на существующих upload paths
+
+Owner subscription/usage response содержит used/reserved/pendingCleanup bytes и
+files, оба typed limits или unconfigured, asOf и storageReadOnly. Non-owner/bearer
+получает только разрешённый code/key, без workspace-wide counts. Регистрация
+нового storage API/framework не нужна: существующие multipart/branding/copy paths
+вызывают единый capacity adapter и unchanged authorization/size/mime checks.
+
+Оба reserve атомарны до persistent write, measured input/derivative bound берётся
+сервером. New delta over storage.bytes.max либо storage.files.max →409
+entitlement_limit_exceeded с соответствующим key; при неизвестном accounting
+state growth fail closed, safe read/download/delete остаются доступны. Ответ
+не объявляет row delete освобождением storage. При existing successful replay
+нет новых copies/usage, но auth/feature/activity/epoch проверяются как прежде.
+Target storage-read-only не отключает existing PDF/DOCX/export/download routes.
 
 ## 5. Retention и owner deletion
 

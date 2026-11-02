@@ -1,5 +1,9 @@
 # Milestone 10.0 — Dynamic Plans & Entitlements
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: **архитектура обновлена по утверждённым решениям D1–D12; реализации нет**.
 Дата source audit: **2 ноября 2026**, Europe/Istanbul. Предыдущий проект от
 31.10.2026 на v0.9.8 заменён этим документом. D1–D12 не являются открытыми
@@ -32,22 +36,29 @@ push, deployment и новый релизный ZIP в это задание н�
 
 ## 1. Аудит актуальной базы
 
-| Область и исходники от корня репозитория                                                                   | Фактическое состояние v0.9.10                                                                                                                                  | Требование к 10.0                                                                                          |
-| ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `CurrentWorkspace.php`, `WorkspaceMember.php`, `ProjectPermissions.php`                                    | Активные owner/admin, project assignments, owner-only создание, `DEFAULTS`; legacy users.role не разрешение                                                    | Human seats по user_id; entitlement дополняет текущую authorization                                        |
-| `EnsurePlatformAdmin.php`, `SetPlatformAdmin.php`, `User.php`                                              | Boolean platform_admin, MFA/strong/fresh session; CLI может назначить нескольких администраторов                                                               | Отдельная singleton authority главного администратора тарифов; не повышать всех platform_admin             |
-| `OwnerProvisioning.php`, `DeveloperInvitations.php`, `AccountProfile.php`                                  | Регистрация/присоединение существующих людей, email verification, один email — один User; возможен приём старого workspace первым владельцем                   | Trial только подходящему новому владельцу нового workspace; импортированный legacy не превращается в Trial |
-| `ProjectAccess.php`, `TaskAccess.php`, `ProjectAccessToken.php`, `ProjectLifecycle.php`                    | Inactive исключает клиентский Magic Link и AgentAccess, но общий human TaskAccess сам не запрещает все записи в inactive; trash возвращает status_before_trash | Единый project activity guard; tariff suspension отдельно от status/inactive/trash                         |
-| `ClientIdentities.php`, `ClientSso.php`, migrations provisioning/SSO                                       | Nullable workspace_client_id; workspace_clients — контакты с email_hash; SSO binding ограничен source/workspace, не глобальный client account                  | Стабильные accounting UUID с проверяемым provenance и fallback; не менять auth identities                  |
-| `AgentCredentials.php`, `IntegrationTokens.php`, shared-credential migration                               | Один shared key у нескольких identities; явный X-ProjectBrief-Agent-ID; link UUID — generation; individual keys сохранены                                      | Agent API отдельно от полного API; guard всех путей ключей, без изменения scopes/hash/bindings             |
-| `AgentPermissions.php`, `AgentAccess.php`, `AuthenticateIntegration.php`                                   | Scopes — потолок операций, сохранённые registration permissions — legacy metadata; workspace/grant/membership/assignment/object checks обязательны             | Не возвращать старый permission ceiling v0.9.8; тариф не выдаёт отсутствующие права                        |
-| `AgentCollaborationController.php`, `AgentRuns.php`, `AgentRunApiController.php`, `AgentApiController.php` | Приватный чат, вложения, initial/deferRun и повторные поручения, queued/running runs, frozen context, explicit claim                                           | Guard до submission replay, context read, start и каждого result/file write; устаревшие runs не оживают    |
-| `AgentResultController.php`, `AgentChat.php`, comment/file/export filters                                  | Human создаёт отдельную выбранную team/client copy; private original остаётся team-only                                                                        | Чтение истории владельцем сохраняется; нет автоматической публикации при downgrade/restore                 |
-| `IntegrationWrites.php`                                                                                    | Workspace lock, token/scope/assignment recheck перед idempotency replay; shared dedupe включает identity + binding generation                                  | Добавить текущие entitlement/project/epoch checks **до** чтения success replay                             |
-| `IntegrationController.php`, `AgentController.php`, `WebhookEvents.php`                                    | Независимые webhooks external_agent_id=NULL, все 7 AgentAccess::EVENTS, mixed subscriptions; agent save не управляет webhookUrl                                | Webhooks имеют собственный paid gate; endpoint не предоставляет Agent API доступ                           |
-| `WebhookProcessor.php`                                                                                     | Для personal receiver workspace lock предшествует lease/endpoint, для независимого — пока нет; HMAC/TLS/SSRF/retries                                           | Review lock order и pre-send guard для **всех** получателей, не только personal                            |
-| `ClientSso.php`, `ProjectAccessToken.php`                                                                  | issue/consume/sessionUsable, source/origin/grants/TTL; обычный Magic Link отдельный                                                                            | SSO-only ключ не требует full API; Basic не блокирует основной SPA/API/Magic Link                          |
-| `AiTaskAssistant.php`, `AiTaskAssistantRequest.php`, `ApiUsage.php`                                        | Встроенный AI assistant вызывает provider; minute/day Cache/RateLimiter; внешние агенты исполняются вне сервера; telemetry best-effort                         | Разделить AI-запрос, agent run и реальный внешний model call; durable quota не строить на diagnostics      |
+| Область и исходники от корня репозитория                                                                   | Фактическое состояние v0.9.10                                                                                                                                                     | Требование к 10.0                                                                                          |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `CurrentWorkspace.php`, `WorkspaceMember.php`, `ProjectPermissions.php`                                    | Активные owner/admin, project assignments, owner-only создание, `DEFAULTS`; legacy users.role не разрешение                                                                       | Human seats по user_id; entitlement дополняет текущую authorization                                        |
+| `EnsurePlatformAdmin.php`, `SetPlatformAdmin.php`, `User.php`                                              | Boolean platform_admin, MFA/strong/fresh session; CLI может назначить нескольких администраторов                                                                                  | Отдельная singleton authority главного администратора тарифов; не повышать всех platform_admin             |
+| `OwnerProvisioning.php`, `CreateAdmin.php`, `DeveloperInvitations.php`, `AccountProfile.php`               | Owner provisioning вызывается CLI CreateAdmin; public Google/Яндекс login отсутствует; invitations подтверждают mailbox, один email — один User; возможен приём старого workspace | Trial только подходящему новому владельцу нового workspace; импортированный legacy не превращается в Trial |
+| `ProjectAccess.php`, `TaskAccess.php`, `ProjectAccessToken.php`, `ProjectLifecycle.php`                    | Inactive исключает клиентский Magic Link и AgentAccess, но общий human TaskAccess сам не запрещает все записи в inactive; trash возвращает status_before_trash                    | Единый project activity guard; tariff suspension отдельно от status/inactive/trash                         |
+| `ClientIdentities.php`, `ClientSso.php`, migrations provisioning/SSO                                       | Nullable workspace_client_id; workspace_clients — контакты с email_hash; SSO binding ограничен source/workspace, не глобальный client account                                     | Стабильные accounting UUID с проверяемым provenance и fallback; не менять auth identities                  |
+| `AgentCredentials.php`, `IntegrationTokens.php`, shared-credential migration                               | Один shared key у нескольких identities; явный X-ProjectBrief-Agent-ID; link UUID — generation; individual keys сохранены                                                         | Agent API отдельно от полного API; guard всех путей ключей, без изменения scopes/hash/bindings             |
+| `AgentPermissions.php`, `AgentAccess.php`, `AuthenticateIntegration.php`                                   | Scopes — потолок операций, сохранённые registration permissions — legacy metadata; workspace/grant/membership/assignment/object checks обязательны                                | Не возвращать старый permission ceiling v0.9.8; тариф не выдаёт отсутствующие права                        |
+| `AgentCollaborationController.php`, `AgentRuns.php`, `AgentRunApiController.php`, `AgentApiController.php` | Приватный чат, вложения, initial/deferRun и повторные поручения, queued/running runs, frozen context, explicit claim                                                              | Guard до submission replay, context read, start и каждого result/file write; устаревшие runs не оживают    |
+| `AgentResultController.php`, `AgentChat.php`, comment/file/export filters                                  | Human создаёт отдельную выбранную team/client copy; private original остаётся team-only                                                                                           | Чтение истории владельцем сохраняется; нет автоматической публикации при downgrade/restore                 |
+| `IntegrationWrites.php`                                                                                    | Workspace lock, token/scope/assignment recheck перед idempotency replay; shared dedupe включает identity + binding generation                                                     | Добавить текущие entitlement/project/epoch checks **до** чтения success replay                             |
+| `IntegrationController.php`, `AgentController.php`, `WebhookEvents.php`                                    | Независимые webhooks external_agent_id=NULL, все 7 AgentAccess::EVENTS, mixed subscriptions; agent save не управляет webhookUrl                                                   | Webhooks имеют собственный paid gate; endpoint не предоставляет Agent API доступ                           |
+| `WebhookProcessor.php`                                                                                     | Для personal receiver workspace lock предшествует lease/endpoint, для независимого — пока нет; HMAC/TLS/SSRF/retries                                                              | Review lock order и pre-send guard для **всех** получателей, не только personal                            |
+| `ClientSso.php`, `ProjectAccessToken.php`                                                                  | issue/consume/sessionUsable, source/origin/grants/TTL; обычный Magic Link отдельный                                                                                               | SSO-only ключ не требует full API; Basic не блокирует основной SPA/API/Magic Link                          |
+| `AiTaskAssistant.php`, `AiTaskAssistantRequest.php`, `ApiUsage.php`                                        | Встроенный AI assistant вызывает provider; minute/day Cache/RateLimiter; внешние агенты исполняются вне сервера; telemetry best-effort                                            | Разделить AI-запрос, agent run и реальный внешний model call; durable quota не строить на diagnostics      |
+
+Storage audit: AttachmentStorage сохраняет original и thumbnail, AgentResultController
+физически копирует выбранные файлы в новую human copy. ProjectLifecycle::purge
+сначала переносит paths в project_file_deletions и удаляет attachment rows, затем
+cleanupFiles удаляет bytes. Поэтому row count attachments и SUM(size) по active
+projects не являются полным usage после purge и не охватывают derivatives/assets.
+Все эти пути входят в узкий storage capacity adapter, без нового storage framework.
 
 В проверенных app/migrations тарифов, Trial ledger, entitlement overlays и
 FormWatch adapter пока нет. Push subscriptions относятся к уведомлениям браузера.
@@ -55,20 +66,20 @@ FormWatch adapter пока нет. Push subscriptions относятся к ув
 
 ## 2. Утверждённые продуктовые решения
 
-| Решение | Норма проекта                                                                                                                                                                                                                              |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| D1      | Human developer — активный owner/admin с действующими workspace правами; owner всегда считается. Basic/Freelancer 1, Studio 10 included / hard maximum 50; agents исключены                                                                |
-| D2      | Уникальный клиент workspace с устойчивым accounting UUID: проверенные существующие соответствия, затем обоснованный normalized-email fallback, иначе отдельная identity; auth не объединяется                                              |
-| D3      | Только эффективно активные проекты и их активно участвующие клиенты расходуют slots; inactive/архив и tariff-suspended исключены; reactivate проверяет оба лимита                                                                          |
-| D4      | Published версии immutable; existing subscriptions pinned; publish отдельно от preview/rollout, частичный outcome/resume/audit; копирование правил с проверкой                                                                             |
-| D5      | Первоначальный Trial 7 суток полного Studio, без следующего Grace; оплаченный/подтверждённый вручную paid service period → Grace 7 суток прежнего доступа → Basic. UTC, без зависимости от cron; настройки платформы и закреплённые версии |
-| D6      | Existing workspace → hidden compatibility + Observe, без Basic/Trial автоматически                                                                                                                                                         |
-| D7      | Seats = min(hard maximum, included + approved extra); единая seat policy; holds приглашений и пересчёт состава; extra только с подтверждением платформы                                                                                    |
-| D8      | Paid-only внешние API/agents/webhooks/SSO/integrations; полный Trial/Grace — допустимые контексты. Freelancer: agent API да, full API/webhooks/SSO по умолчанию нет. Studio agents без тарифного предела                                   |
-| D9      | На Basic все прежде активные проекты и non-owner developers приостанавливаются обратимым overlay; owner сохраняет вход/историю/export/subscription, выбирает один проект с не более 3 clients; premium execution закрыт                    |
-| D10     | Раздельные retention classes, owner deletion с step-up; automatic destructive purge выключен до подтверждённых staging tests                                                                                                               |
-| D11     | Quota Ledger для agents/runs/AI/FormWatch/storage; число agent runs не равно числу model requests; реальный FormWatch пока unavailable                                                                                                     |
-| D12     | Только поддержанные workspace/project scopes; изменение scope/window требует preview и migration policy с переносом usage                                                                                                                  |
+| Решение | Норма проекта                                                                                                                                                                                                                                                               |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1      | Human developer — активный owner/admin с действующими workspace правами; owner всегда считается. Basic/Freelancer 1, Studio 10 included / hard maximum 50; agents исключены                                                                                                 |
+| D2      | Уникальный клиент workspace с устойчивым accounting UUID: проверенные существующие соответствия, затем обоснованный normalized-email fallback, иначе отдельная identity; auth не объединяется                                                                               |
+| D3      | Только эффективно активные проекты и их активно участвующие клиенты расходуют slots; inactive/архив и tariff-suspended исключены; reactivate проверяет оба лимита                                                                                                           |
+| D4      | Published версии immutable; existing subscriptions pinned; publish отдельно от preview/rollout, частичный outcome/resume/audit; копирование правил с проверкой                                                                                                              |
+| D5      | Первоначальный Trial 7×24 часа полного Studio от успешной проверки владельца, без следующего Grace; оплаченный/подтверждённый вручную paid service period → Grace 7 суток прежнего доступа → Basic. UTC, без зависимости от cron; настройки платформы и закреплённые версии |
+| D6      | Existing workspace → hidden compatibility + Observe, без Basic/Trial автоматически                                                                                                                                                                                          |
+| D7      | Seats = min(hard maximum, included + approved extra); единая seat policy; holds приглашений и пересчёт состава; extra только с подтверждением платформы                                                                                                                     |
+| D8      | Paid-only внешние API/agents/webhooks/корпоративный SSO/integrations; Google/Яндекс basic login не платный SSO; полный Trial/Grace — допустимые контексты. Freelancer: agent API да, full API/webhooks/SSO по умолчанию нет. Studio agents без тарифного предела            |
+| D9      | На Basic все прежде активные проекты и non-owner developers приостанавливаются обратимым overlay; owner сохраняет вход/историю/export/subscription, выбирает один проект с не более 3 clients; premium execution закрыт                                                     |
+| D10     | Раздельные retention classes, owner deletion с step-up; automatic destructive purge выключен до подтверждённых staging tests                                                                                                                                                |
+| D11     | Quota Ledger для agents/runs/AI/FormWatch/storage; storage.bytes.max + storage.files.max охватывают сохраняемые файлы до физического удаления; число agent runs не равно числу model requests; реальный FormWatch пока unavailable                                          |
+| D12     | Только поддержанные workspace/project scopes; изменение scope/window требует preview и migration policy с переносом usage                                                                                                                                                   |
 
 ## 3. Компоненты и общие инварианты
 
@@ -76,17 +87,17 @@ FormWatch adapter пока нет. Push subscriptions относятся к ув
 stack, role engine, billing SDK, expression DSL, постоянного worker или Redis как
 обязательной зависимости. Сохранять MFA, agreements, tenant isolation и privacy.
 
-| Предлагаемый компонент                            | Ответственность                                                                                                      |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `PlanAuthority`                                   | Узкий capability check; сейчас только один primary platform administrator, future delegation без ролей/UI            |
-| `EntitlementRegistry` / `PlanCatalog`             | Типы, supported scopes, paid requirement, availability, версии и validation                                          |
-| `PlanImpact` / `SubscriptionChanges`              | Metadata-only preview; единый executor назначения, seats, renewal, rollout, восстановления                           |
-| `SubscriptionClock` / `EntitlementResolver`       | UTC boundaries и pinned policy; предсказуемый snapshot, validUntil, effective Basic при пропущенном cron             |
-| `WorkspaceUsage` / `ClientCountingIdentities`     | Те же authoritative counters в preview и mutation; accounting не authentication                                      |
-| `ProjectActivityGuard` / `WorkspaceParticipation` | Единое effective active состояние для людей/клиентов/проектов; overlay не переписывает роли/status                   |
-| `ExecutionGate`                                   | Current feature, project/resource release, execution epoch и pre-replay/pre-send проверки                            |
-| `QuotaLedger`                                     | Reserve/commit/release/uncertain и durable dedupe; отдельный adapter на реальное потребление                         |
-| Bounded commands / notification outbox            | Backfill, due transitions, cancel stale work, notices/reconcile; lease/checkpoint; cron не является источником права |
+| Предлагаемый компонент                            | Ответственность                                                                                                                              |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PlanAuthority`                                   | Узкий capability check; сейчас только один primary platform administrator, future delegation без ролей/UI                                    |
+| `EntitlementRegistry` / `PlanCatalog`             | Типы, supported scopes, paid requirement, availability, версии и validation                                                                  |
+| `PlanImpact` / `SubscriptionChanges`              | Metadata-only preview; единый executor назначения, seats, renewal, rollout, восстановления                                                   |
+| `SubscriptionClock` / `EntitlementResolver`       | UTC boundaries и pinned policy; предсказуемый snapshot, validUntil, effective Basic при пропущенном cron                                     |
+| `WorkspaceUsage` / `ClientCountingIdentities`     | Те же authoritative counters в preview и mutation; accounting не authentication                                                              |
+| `ProjectActivityGuard` / `WorkspaceParticipation` | Единое effective active состояние для людей/клиентов/проектов; overlay не переписывает роли/status                                           |
+| `ExecutionGate`                                   | Current feature, project/resource release, execution epoch и pre-replay/pre-send проверки                                                    |
+| `QuotaLedger`                                     | Reserve/commit/release/uncertain и durable dedupe; storage capacity для bytes/files без календарного reset; отдельный adapter на потребление |
+| Bounded commands / notification outbox            | Backfill, due transitions, cancel stale work, notices/reconcile; lease/checkpoint; cron не является источником права                         |
 
 Permission = existing authorization AND effective participation AND entitlement
 AND safety limits. Workspace определяется проверенным объектом/token, не чужим
@@ -160,20 +171,20 @@ expiry по ранее закреплённой политике работае�
 
 ## 7. Оставшиеся технические риски и решения до реализации
 
-| Риск                                                                                                          | Требуемое доказательство / решение                                                                                                                                    |
-| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1: Lock inversion в human, independent webhook и Agent API transactions                                      | Общий workspace-first protocol, current reads и MariaDB concurrency/lock-order tests                                                                                  |
-| R2: Одновременные 100-project downgrade/renew/restore без cron                                                | O(1) barriers/cycle и catch-up всех elapsed boundaries; никаких промежуточных разрешений                                                                              |
-| R3: Неоднозначные mailbox/SSO/contact identities или несколько owner memberships                              | Provenance/completeness gate, bounded backfill и owner review без auth merge; ambiguous ownership не переводить в enforce автоматически                               |
-| R4: Смена email/ownership или повторная регистрация обходит Trial                                             | Durable claim/user linkage, ограниченно хранимый keyed email subject, verified-email и anti-abuse tests; процедуру ownership transfer включить в review               |
-| R5: Внешний агент уже начал LLM до boundary                                                                   | Прекратить новые claims/data/result writes; уже ушедший HTTP/model call физически не отозвать; внешний executor соблюдает cancellation                                |
-| R6: Pending events/runs оживают после восстановления                                                          | Epoch/cutoff metadata, cancel terminal outcomes, stale replay rejection и explicit new submission                                                                     |
-| R7: Client identity scan/preview слишком дорог                                                                | Индексы, batched counts, EXPLAIN и измерение на synthetic MariaDB; не использовать telemetry как permit                                                               |
-| R8: Registry capability без проверенного adapter                                                              | availability=false сильнее plan value; FormWatch не объявлять работающим                                                                                              |
-| R9: Численные AI/run/storage quotas, цены, retention сроки не утверждены                                      | Не выдумывать значения; quota adapter/enforcement конкретного нового бюджета включать только после отдельного решения                                                 |
-| R10: Граница branding basic/full, AI assistant, owner data-export coverage, export/ads/support не уточнена D8 | Сохранить текущие core/security/export права; определить точный field/operation allowlist до коммерческого ограничения, не наследовать старые предложения как решения |
-| R11: Root bootstrap/recovery и authority turnover                                                             | Operator runbook, отсутствие самоэскалации, fail-closed management; expiry не зависит от доступности root                                                             |
-| R12: Destructive purge, files/backups и runtime rollback                                                      | Отдельная staging репетиция, durable cleanup journal, backup-retention disclosure; automatic purge off до gate, rollback только к v0.9.10 с reconcile                 |
+| Риск                                                                                                       | Требуемое доказательство / решение                                                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1: Lock inversion в human, independent webhook и Agent API transactions                                   | Общий workspace-first protocol, current reads и MariaDB concurrency/lock-order tests                                                                                                |
+| R2: Одновременные 100-project downgrade/renew/restore без cron                                             | O(1) barriers/cycle и catch-up всех elapsed boundaries; никаких промежуточных разрешений                                                                                            |
+| R3: Неоднозначные mailbox/SSO/contact identities или несколько owner memberships                           | Provenance/completeness gate, bounded backfill и owner review без auth merge; ambiguous ownership не переводить в enforce автоматически                                             |
+| R4: Смена email/ownership или повторная регистрация обходит Trial                                          | Durable owner claim с email/provider aliases, verified account/email, без auto-link по email; OAuth не доказывает реальную личность; процедуру ownership transfer включить в review |
+| R5: Внешний агент уже начал LLM до boundary                                                                | Прекратить новые claims/data/result writes; уже ушедший HTTP/model call физически не отозвать; внешний executor соблюдает cancellation                                              |
+| R6: Pending events/runs оживают после восстановления                                                       | Epoch/cutoff metadata, cancel terminal outcomes, stale replay rejection и explicit new submission                                                                                   |
+| R7: Client identity scan/preview слишком дорог                                                             | Индексы, batched counts, EXPLAIN и измерение на synthetic MariaDB; не использовать telemetry как permit                                                                             |
+| R8: Registry capability без проверенного adapter                                                           | availability=false сильнее plan value; FormWatch не объявлять работающим                                                                                                            |
+| R9: Численные AI/run/storage quotas, цены, retention сроки не утверждены                                   | Не выдумывать значения; quota adapter/enforcement конкретного нового бюджета включать только после отдельного решения                                                               |
+| R10: Граница branding basic/full, AI assistant и ads/support; возможные отдельные требования переносимости | Сохранить текущие core/security/export права; уточнить field/operation allowlist; PDF/DOCX/download сохраняются, универсальный workspace exporter не входит                         |
+| R11: Root bootstrap/recovery и authority turnover                                                          | Operator runbook, отсутствие самоэскалации, fail-closed management; expiry не зависит от доступности root                                                                           |
+| R12: Destructive purge, files/backups и runtime rollback                                                   | Отдельная staging репетиция, durable cleanup journal, backup-retention disclosure; automatic purge off до gate, rollback только к v0.9.10 с reconcile                               |
 
 Цены/квоты и указанные operation boundaries — открытые технические/продуктовые
 уточнения, а не разрешение отложить утверждённые D1–D12. Тесты, необходимые до
@@ -187,3 +198,35 @@ MariaDB DDL может делать implicit commit; additive upgrade/retry не
 одной откатываемой transaction —
 [официальная документация MariaDB](https://mariadb.com/docs/server/reference/sql-statements/transactions/sql-statements-that-cause-an-implicit-commit).
 Проверено 02.11.2026; это обоснование проекта, не доказательство будущей реализации.
+
+## 9. Финальные уточнения к опубликованной c95a54e
+
+1. Paid downgrade не оставляет сверхлимитные проекты, human developers, clients
+   или agents активными через block_growth. Preview фиксирует допустимый active
+   set; остальные tariff-held обратимо. Небезопасный/неполный выбор → reject.
+   Обязательный Basic fallback D9 по-прежнему сначала приостанавливает все прежние
+   active проекты и non-owner developers. Storage overage имеет отдельный read-only
+   режим и не решается архивированием/удалением данных без согласия владельца.
+2. Два configurable capacity entitlements: storage.bytes.max и storage.files.max.
+   Все состояния проектов и trash включены до физического удаления. Логический
+   пользовательский файл считается один раз; его persistent derivatives не отдельные
+   user files, но их реальные bytes относятся к parent. Temporary/system files
+   исключены. Числа тарифов не утверждены; никаких произвольных seed limits.
+3. До account/email verification нет доступа в рабочий кабинет/проекты, только
+   узкий registration/verification/recovery flow. Trial начинается один раз при
+   успешной проверке, а не при отправке формы. Google OIDC / Яндекс ID OAuth —
+   базовая аутентификация с проверяемой provider identity, не платный corporate SSO.
+   Нет auto-merge/link разных Users по email; недоказанный email проверяется отдельно.
+4. Milestone 10.0 сохраняет existing PDF/DOCX export и разрешённые downloads owner
+   после Trial/downgrade/project suspension. Полная выгрузка workspace, новый
+   streaming exporter и его API не создаются. Отдельные обязательные требования
+   переносимости, если выявятся, фиксируются отдельно до согласования scope.
+5. D1–D12, immutable/pinned policies, compatibility/Observe, primary authority,
+   privacy, MFA, scopes, SSRF/HMAC, execution barriers и purge gate сохранены.
+   Текущие уточнения — документация; код, commit, push, build/deploy не выполняются.
+
+Provider contract references (проверены 02.11.2026):
+[Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect),
+[Яндекс ID user info](https://yandex.ru/dev/id/doc/ru/user-information),
+[Яндекс authorization code / PKCE](https://yandex.ru/dev/id/doc/ru/codes/code-url).
+Конкретные validation rules — в TRANSITIONS; реальный вход ещё не реализован.

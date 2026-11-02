@@ -1,5 +1,9 @@
 # Milestone 10.0 — registry, usage и guards
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: проект по **утверждённым D1–D12**, база v0.9.10.
 Связи: [архитектура](ARCHITECTURE.md), [БД](DATABASE.md),
 [переходы](TRANSITIONS.md), [тест-план](TEST-PLAN.md).
@@ -48,6 +52,8 @@ assignment, override и в resolver/runtime. Availability и safety сильне
 | `sso.enabled`          | workspace boolean; paid_or_trial                         | false               | false               | true                                   |
 | `formwatch.enabled`    | workspace boolean; paid_or_trial, unavailable            | false               | false               | предусмотрено, без работающего adapter |
 | `branding.level`       | workspace enum none<basic<full; basic/full paid_or_trial | none                | basic               | full                                   |
+| `storage.bytes.max`    | workspace capacity integer/unlimited, no period          | не утверждено       | не утверждено       | не утверждено                          |
+| `storage.files.max`    | workspace capacity integer/unlimited, no period          | не утверждено       | не утверждено       | не утверждено                          |
 
 Это editable initial published configuration после безопасной публикации, не
 проверки строк Basic/Freelancer/Studio в backend. Семантика fallback использует
@@ -57,10 +63,11 @@ Studio extra=0 по умолчанию; +1..40 только с подтверж�
 не факт оплаты. Hard maximum 50 сохраняется и в Trial; полный Trial не означает
 unlimited safety/technical quotas или автоматическое предоставление 40 extra seats.
 
-Core вход, security/recovery, подписка, owner history/export и базовый Magic Link
+Basic login (email/Google/Яндекс), security/recovery, подписка, owner history/export и базовый Magic Link
 не являются внешними интеграциями и не выключаются api.external.enabled=false.
-Export минимум позволяет владельцу забрать свои доступные данные с текущими
-privacy/object filters и operational bounds. Новые commercial export tiers,
+Существующий PDF/DOCX export и разрешённые downloads владельца сохраняются
+для held проектов с текущими privacy/object filters и operational bounds. Новый
+универсальный workspace exporter/private-history export adapter не создаётся. Новые commercial export tiers,
 ads/support и точный branding field allowlist требуют уточнения; предыдущие
 неутверждённые значения не перенесены как продуктовые решения.
 
@@ -72,6 +79,13 @@ false. Включение adapter потребует утверждённых qu
 а не только переключения глобальной availability для старых версий.
 Политика встроенного AI assistant не выводится из запрета внешних интеграций:
 отдельно утвердить capability/value до ограничения его существующего core UI.
+
+Paid downgrade проверяет целиком выбранный active set, а не только positive delta.
+Projects, humans (owner включён), unique clients и agents после выбора должны
+помещаться в target limits; остальные held обратимо. Missing/unsafe selection →
+reject/review. block_growth не оставляет сверхлимитные ресурсы активными навсегда;
+правило delta<=0 ниже относится к разрешённым операциям, не bypass смены тарифа.
+Storage overage отдельно сохраняет files и запрещает positive storage delta.
 
 ## 3. Counts и единое effective состояние
 
@@ -246,7 +260,7 @@ api.external.enabled внутри domain service; ручное core создан
 проверяет Basic capacity и не возрождает source/SSO automation.
 
 Registry предусматривает `agents.runs.quota` (initial и повторные run creation),
-`ai.requests.quota`, `formwatch.checks.quota`, `storage.bytes.max`, при реальной
+`ai.requests.quota`, `formwatch.checks.quota`, `storage.bytes.max`, `storage.files.max`, при реальной
 необходимости tokens/bytes quotas. Числа и тарификация не утверждены. Count agent
 run относится к server-created run UUID, не к model tokens или числу HTTP retries.
 До отдельного утверждения чисел новые tariff budgets для runs/AI/storage не
@@ -272,7 +286,63 @@ unknown timeout — uncertain с удержанием amount. Ни lease expiry,
 применять на согласованной boundary после закрытия прежнего окна/обязательств.
 Unlimited тоже учитывает usage; безопасность и operational caps сохраняются.
 
-Storage включает сохранённые private files, в том числе trash/suspended проекты;
-release bytes только после подтверждённого физического удаления. FormWatch остаётся
-unavailable до реального adapter/trusted event ID/reconciliation tests. Наличие
-quota definition не симулирует успешную интеграцию.
+### Storage: два capacity limits и точный lifetime count
+
+storage.bytes.max = реально хранимые workspace-owned user-file bytes, включая
+persistent thumbnails/variants в составе parent; storage.files.max = количество
+logical сохраняемых пользовательских файлов. Учитываются active/inactive/архивные/
+suspended/trash проекты, private team/agent/comment files и workspace branding
+assets. Временные PHP uploads, caches, logs, build assets и backups не являются
+user files этих entitlements; их ограничивают отдельные operational safety bounds.
+Global account avatars не принадлежат workspace и не списываются произвольно туда.
+
+Один original + thumbnail/служебные variants = 1 user file; bytes компонентов
+суммируются один раз по persistent object. Служебные производные не самостоятельные
+user files. Реальная human publication copy из AgentResultController создаёт новый
+logical файл и новые bytes; повтор idempotency key не второе хранение. Замена asset
+учитывает оба набора bytes, пока старый физически не удалён. Архив/приостановка/
+soft delete не освобождают storage; стирание attachment row до cleanup также нет.
+
+Точный provider читает workspace_file_usage (включая delete_pending/private/trash),
+verified component sizes и held/cleanup_pending reservations под workspace mutex/
+current reads. Истечение lease не исключает storage hold из occupied usage;
+committed reservation уже заменена manifest usage и второй раз не суммируется. Не использовать public_channel scope, active-project joins или telemetry.
+Backfill/reconcile сверяет actual disk objects и existing cleanup journal; потерянное
+соответствие/orphan/unknown IO — conservative hold + review, не ложное свободное место.
+Platform видит counts/bytes/asOf, не filenames/paths/private content.
+
+Перед persistent upload/copy/derivative/branding write валидируются current auth,
+activity/feature/epoch, файлы и server-measured sizes. Под workspace lock атомарно
+резервируются **оба** значения: stored_bytes+held_bytes+new_bytes<=bytes_limit и
+stored_files+held_files+new_files<=files_limit. Bytes reserve включает bounded
+верхнюю оценку derivatives; client Content-Length не доверен. All-or-nothing для
+multipart. После записи/stat bytes commit заменяет hold фактическим usage, остаток
+освобождается; превышение reserve требует дополнительного reserve **до** записи.
+
+Reservation должна переживать outer DB rollback/crash. В текущем Agent API есть
+внешняя transaction: нельзя просто вложить туда reserve и назвать его durable.
+Validated preflight/reservation завершается до persistent IO/внешней resource
+transaction; при последующем use повторяются auth/grant/epoch проверки под тем же
+workspace mutex. Integration review сохраняет существующую безопасность, а не
+убирает её ради upload. Неизвестный исход/rollback с неудачной очисткой оставляет
+cleanup_pending hold до verified cleanup/reconcile, не release только по TTL.
+
+Deletion переиспользует existing project_file_deletions journal: после verified
+absence компонента decrement bytes ровно один раз; file count освобождается,
+когда все persistent компоненты logical family удалены. Частичный delete failure
+сохраняет remaining bytes/file usage. Между filesystem IO и DB commit возможна
+uncertainty: conservatively удержать capacity, затем идемпотентно reconcile; это
+не обещание общей filesystem/DB transaction. Ни повтор cleanup, ни row delete не
+дают двойного освобождения. Права и private download filters сохраняются.
+
+На меньший storage plan preview показывает оба overage, pending reserves и режим
+storage read-only. Данные не удаляются и не становятся «неучитываемыми» в архиве:
+блокируются новые uploads, physical copies и прочий положительный storage delta;
+read/download/delete и existing PDF/DOCX export доступны по прежним правам.
+Возобновление uploads только при выполнении обоих limits, с учётом reservations.
+Это отдельное storage поведение, а не block_growth для active projects/people.
+Значения Basic/Freelancer/Studio пока не утверждены; до approval не вводить новый
+0/unlimited budget и не включать enforcement, сохраняя существующие safety caps.
+
+FormWatch остаётся unavailable до реального adapter/trusted event ID/reconciliation
+tests. Наличие quota definition не симулирует успешную интеграцию.

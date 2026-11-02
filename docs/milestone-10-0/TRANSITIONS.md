@@ -1,5 +1,9 @@
 # Milestone 10.0 — версии, жизненный цикл и восстановление
 
+Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
+production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
+от 02.11.2026; реализация ещё не начата.
+
 Статус: архитектура по D4–D10, **исполняемого lifecycle пока нет**.
 Схема: [DATABASE.md](DATABASE.md); counts/guards: [ENTITLEMENTS.md](ENTITLEMENTS.md).
 
@@ -42,13 +46,21 @@ change допустим только явным rule, с preview, step-up и cap
 закрывает новые назначения, сохраняет подписки/history; replacement global pointers
 подтверждаются отдельно, закреплённые периоды не переписываются.
 
-Generic paid-to-paid overage по умолчанию reject до выбора безопасной policy.
-Explicit reviewed block_growth сохраняет excess данные/config и запрещает рост;
-он не даёт бесконечное право external execution сверх конечного agents.active.max.
-Например, Studio → Freelancer с несколькими агентами требует в preview выбора
-одной effective active identity; остальные tariff-held, без удаления registrations
-или shared key. Для обязательного Basic fallback применяется D9, а не generic
-block_growth: все прежние active проекты/non-owner developers приостановлены.
+Paid-to-paid downgrade требует preview с выбранными active project UUIDs,
+human developer member IDs (owner обязательно включён), client accounting identities
+и agent UUIDs. Все четыре эффективных usage после выбора должны помещаться в
+целевую версию, включая pending seat reservations и client union по выбранным
+проектам. Не выбранные ресурсы приостанавливаются обратимо теми же tariff overlays;
+roles/memberships/statuses/keys/files/history не переписываются и не удаляются.
+
+block_growth не является разрешённым постоянным решением active-resource overage.
+Отсутствие выбора, невозможность сохранить owner/права или stale preview → reject /
+needs_review с понятной причиной; произвольный active subset не выбирается сервером.
+Scheduled apply повторяет проверку; автоматический expiry не отклоняет обязательный
+Basic fallback D9: сначала все прежние active проекты/non-owner developers held,
+затем owner выбирает один проект с <=3 client identities. Storage рассматривается
+отдельно: превышающие target bytes/files данные остаются и новые uploads/copies
+блокируются до устранения overage по обоим ключам, без самовольного удаления.
 
 ## 2. Глобальные настройки и закрепление версий
 
@@ -63,31 +75,72 @@ Primary редактирует draft → preview → publish pointer. Дейст
 Нельзя удалить/подменить pinned fallback или читать latest Basic по slug на expiry.
 Сроки дня — 24 часа по UTC, не локальная полночь и не выполнение cron.
 
-## 3. Первоначальный Trial D5
+## 3. Первоначальный Trial D5 и проверка регистрации
 
-Eligibility: новый подходящий owner и действительно новый workspace, нет ранее
-использованного owner Trial claim/подтверждённого subject claim; существующий/imported
-workspace не подходит. Registration t0 атомарно создаёт Trial claim и pinned period:
-`ends_at=t0+7*24h`. Claim scoped владельцем, не workspace, и не переносится на новые
-workspace. Existing user, уже использовавший Trial, получает только разрешённый
-обычный free assignment, без повторного Trial; D6 legacy untouched.
+Eligibility D5/D6 сохраняется: подходящий новый owner нового workspace, не
+использовавший Trial. Отправка registration form создаёт только pending onboarding
+context/claim; Trial period, starts_at и ends_at ещё отсутствуют. До успешной
+проверки backend запрещает рабочий кабинет, /admin/me с workspace content,
+project lists/reads/writes, sync, exports и uploads; разрешены только минимальные
+registration/login callback, CSRF, verification/resend, logout и security recovery.
+Password-only login unverified account не обходит этот gate; frontend не защита.
 
-До email verification Trial pending и premium недоступен; core onboarding/verification
-доступны, active project workflow нового коммерческого workspace ещё не начинается. Verified email активирует **оставшееся** время до того же ends_at, не
-перезапускает семь дней. Смена email, удаление/создание workspace, owner transfer
-или повтор регистрации не сбрасывают claim. Anti-abuse дополняет существующие
-registration/IP/mail throttles; не вводить fingerprint как authentication principal.
-Root может разбирать отказ metadata-only; публичного reset/restart Trial API нет.
+`t_verified` — UTC момент завершения всех необходимых проверок аккаунта/email.
+Под lock/unique claim constraint тогда **один раз** закрепляются current published
+policy/Studio/fallback versions, starts_at=t_verified и ends_at=t_verified+7×24h.
+Позднее подтверждение email даёт полные семь дней от проверки, не остаток от формы.
+Повтор link/callback/retry/login/new workspace не меняет эти dates. Email/ownership
+change и смена login method не сбрасывают owner Trial claim; existing/imported
+workspace не получает новый Trial. Не хранить ложные Trial dates для pending user.
 
-| UTC условие                                                   | Effective entitlement                                                             |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| t0<=now<ends_at, eligibility/verified email подтверждены      | Полная pinned Studio version, в рамках included seats и safety/technical limits   |
-| До verification в том же интервале                            | Core onboarding, Trial pending; нет premium execution или active project workflow |
-| now>=ends_at и paid continuation не активирована              | Pinned Basic, без дополнительного Grace, immediate suspension cycle               |
-| Valid paid continuation уже одобрена и начинается на boundary | Paid version по approved change, без искусственного Basic gap                     |
+Базовые способы проверки: локальное подтверждение email либо trusted provider
+login (первоначально Google или Яндекс ID) с надёжным email assurance. OAuth доказывает
+контроль provider account, **не** реальную личность. При отсутствии verified email
+сначала отдельное подтверждение email в приложении; до него кабинет закрыт и Trial
+не идёт. Ограниченный pending context имеет TTL/anti-abuse, не недельный Trial clock.
 
-Конец Trial не превращается в paid service end и не выдаёт следующие семь дней
-Grace. Семь дней доступа не означают отключение текущих server quotas.
+Google adapter проверяет OIDC signature/issuer/audience/expiry/nonce и stable sub;
+email принимается подтверждённым только по validated email_verified=true и
+совпадению с адресом выбранного local account. Яндекс adapter проверяет server-side
+code exchange и authenticated user info с нужным client_id/stable account ID;
+default_email сам по себе не принимается за email verification. Пока assurance
+не доказан контрактом adapter, применяется local email confirmation.
+
+Использовать allowlisted providers/redirect URIs, code flow с state+PKCE, single-use
+callback/replay protection, session rotation и существующие MFA/strong/fresh gates.
+Не передавать access/refresh tokens в URL, logs, localStorage или plan settings;
+постоянные provider tokens для базового входа не нужны. OIDC nonce проверяется там,
+где есть ID token; OAuth Яндекса не объявлять OIDC без такого контракта.
+
+Local account связывается по persisted provider+issuer+subject, не по email.
+Если такой binding отсутствует, совпадение email с existing User требует явного
+входа в существующий аккаунт и подтверждённого linking с fresh proof; callback
+не объединяет аккаунты и не выдаёт их memberships/roles. Сохраняется один local
+User на normalized email; нельзя обходить конфликт созданием placeholder email.
+Для отсутствующего email сначала pending flow с отдельной проверкой, не fake User.
+
+Anti-repeat ledger имеет owner ID и verified email/provider subject aliases;
+link нового метода входа к использовавшему Trial owner не создаёт второй Trial.
+Удаление/пересоздание account/workspace, смена email/provider рассматриваются
+по bounded-retention tombstones и anti-abuse policy, без auto-merge разных Users.
+Разные accounts/provider IDs не доказывают разных реальных людей: сохраняются
+registration/IP/mail throttles, audit и review. Public Trial reset API нет.
+
+Google/Яндекс basic login не зависит от api.external.enabled/sso.enabled/paid plan.
+Corporate ClientSso, integration_sources, client Magic Links и paid gates остаются
+отдельными. D6 backfill не подделывает verification existing owners и не выдаёт им
+Trial; rollout нового authentication gate для legacy требует inventory/proof или
+безопасного re-verification/recovery, без смены тарифа/ролей и без потери данных.
+
+| UTC условие                                          | Effective entitlement                                                         |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Verification не завершена                            | Только минимальный onboarding/recovery, нет кабинета/проектов, Trial не начат |
+| t_verified<=now<ends_at, eligible owner              | Полная pinned Studio version с safety/technical limits                        |
+| now>=ends_at, paid continuation нет                  | Pinned Basic сразу, без дополнительного Grace, suspension cycle               |
+| Valid paid continuation заранее approved на boundary | Paid version без искусственного Basic gap                                     |
+
+Конец Trial не становится paid-service end. Grace 7 дней по-прежнему только после
+paid периода; точные server UTC boundaries и no-cron policy не меняются.
 
 ## 4. Paid service → Grace → Basic
 
@@ -157,11 +210,14 @@ Cron только materializes/reconciles, отменяет stale work, отпр
 как tariff overlay. Настоящий manual revoke сохраняет свою прежнюю семантику.
 
 Owner не теряет вход, MFA/recovery, чтение разрешённой истории, безопасный экспорт,
-subscription/settings и управление приостановкой/удалением. Owner data-export
-coverage должна включать разрешённую private историю/файлы приостановленных
-ресурсов; обычный client PDF не считается полной выгрузкой владельца. Для неё
-нужен owner-only adapter поверх существующих private file/stream checks, без
-ослабления public export filters или автоматической публикации originals. Non-owner suspended
+subscription/settings и управление приостановкой/удалением. Existing PDF/DOCX export и разрешённое скачивание файлов владельцем остаются
+доступными после Trial, downgrade и tariff suspension. Существующие object/privacy
+filters не ослабляются; отдельный full-workspace/private-history exporter и новый
+export API не входят в Milestone 10.0. Если обнаружатся обязательные требования
+переносимости персональных данных, их отдельно описать и согласовать, не считать
+обычный PDF универсальной выгрузкой и не разрабатывать её по умолчанию.
+
+Non-owner suspended
 участник не продолжает работу через старую session/live sync/download; сохраняет
 свой account/security и доступ в другие разрешённые workspace.
 
