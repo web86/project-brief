@@ -1,3 +1,4 @@
+import { isImmutableStaticAsset } from './static-demo-cache.mjs'
 import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
@@ -43,7 +44,7 @@ export function staticDemoServer(directory) {
       response.writeHead(200, {
         'Content-Type': types[path.extname(file)] || 'application/octet-stream',
         'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': /(?:-[A-Za-z0-9_-]{8,}|[a-f0-9]{64})\.[a-z]+$/.test(file)
+        'Cache-Control': isImmutableStaticAsset(file)
           ? 'public, max-age=31536000, immutable'
           : 'no-cache, must-revalidate',
         'Referrer-Policy': 'no-referrer',

@@ -1,3 +1,4 @@
+import { staticImmutablePattern } from './static-demo-cache.mjs'
 import { spawnSync } from 'node:child_process'
 import { cp, mkdir, readFile, readdir, rm, writeFile, rename, mkdtemp } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
@@ -72,7 +73,7 @@ Header always set Content-Security-Policy "${csp}"
 <FilesMatch "^(?:index\\.html|manifest\\.json|manifest\\.webmanifest|release\\.json)$">
 Header set Cache-Control "no-cache, must-revalidate"
 </FilesMatch>
-<FilesMatch "(?:-[A-Za-z0-9_-]{8,}|[a-f0-9]{64})\\.(?:js|css|json|png|svg|webp|txt)$">
+<FilesMatch "${staticImmutablePattern}">
 Header set Cache-Control "public, max-age=31536000, immutable"
 </FilesMatch>
 </IfModule>

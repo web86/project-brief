@@ -1,3 +1,4 @@
+import { isImmutableStaticAsset } from '../deployment/static-demo-cache.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createStaticDemoClient, querySnapshot } from '../src/api/staticDemo.js'
@@ -109,4 +110,23 @@ test('pinned schemas reject new fields, wrong types, malformed UUIDs and unrevie
     { ...value, items: [{}] },
   ])
     assert.throws(() => validateSchema(bad, schema))
+})
+
+test('only fingerprinted static files are immutable across brand updates', () => {
+  for (const file of [
+    'index.html',
+    'manifest.json',
+    'release.json',
+    'brand-logo-light.svg',
+    'brand-mark-dark.svg',
+    'apple-touch-icon.png',
+  ])
+    assert.equal(isImmutableStaticAsset(file), false, file)
+  for (const file of [
+    'assets/index-AbC_12-8.js',
+    'assets/index-AbC_12-8.css',
+    'snapshots/developer-' + 'a'.repeat(64) + '.json',
+    'demo-assets/' + 'b'.repeat(64) + '.svg',
+  ])
+    assert.equal(isImmutableStaticAsset(file), true, file)
 })

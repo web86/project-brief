@@ -25,3 +25,5 @@
 ## Обновление до Dev2Done / Static Demo v2
 
 Использовать новый `dev2done-static-demo-v2-<commit>.zip`. Имя домена и SPA routes остаются прежними. Загрузить новые hashed assets/snapshots, затем manifest/index либо атомарно переключить полный web root. Старые hashed resources оставить для уже открытых вкладок. PHP/БД/secrets и изменений production не требуется. Новый manifest использует Dev2Done/D2D; пользовательский Core experience отображается первым с задачами `1.x`. Проверить обе роли, профиль/безопасность/соглашение, новый знак/акцент и reload/deep links. Откат — полный предыдущий статический web root; предыдущий production ZIP независим.
+
+В Dev2Done v2 immutable применяется только к файлам с content hash. Фиксированные `brand-logo-light.svg`/`brand-mark-dark.svg` и иконки должны перепроверяться. При переходе со старого хостинга с уже закешированными постоянными именами может потребоваться обновление browser cache; текущий UI использует новый inline mark, новые hashed snapshots/JS и новую revision URL иконок.
