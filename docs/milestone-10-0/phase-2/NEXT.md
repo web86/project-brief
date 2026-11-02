@@ -1,5 +1,7 @@
 # Ограничения и следующий этап
 
+Обновление 03.11.2026: Phase 3 реализован — [Inventory, Accounting и Observe Preview](../phase-3/README.md). Список ниже фиксирует историческую границу Phase 2; актуальные оставшиеся Phase 4 задачи — [Phase 3 NEXT](../phase-3/NEXT.md).
+
 - Панель управляет конфигурацией; usage/accounting providers, реальные workspace
   previews, rollout executor и owner subscription UI не подключены.
 - Нет auto subscriptions/backfill, Trial activation/verification/OAuth,

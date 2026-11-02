@@ -34,3 +34,5 @@
 Existing PlanAuthority + verified account/MFA/strong/fresh proof, CSRF/session revocation, rate limit, no-store/no-referrer. Обычный platform_admin сохраняет старую диагностику, но не получает новые plan operations. Server shell и API защищены независимо от Vue. В platform output только workspace/version IDs, counts/configuration/reasons; email, task titles, chat, private reports, files/paths и credentials отсутствуют.
 
 [Операторский протокол и обновление](PRODUCTION.md) · [API](API.md) · [Lock review](LOCKS.md) · [QA](TESTS.md) · [Phase 4](NEXT.md).
+
+Финальный production ZIP, exact commit, SHA-256 и QA: [ARTIFACTS.md](ARTIFACTS.md).

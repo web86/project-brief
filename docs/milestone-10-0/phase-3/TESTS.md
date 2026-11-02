@@ -6,14 +6,14 @@
 
 | Проверка                                                                                     | Результат                                                                                                       |
 | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Полный Laravel PHP8.4.26 / MariaDB11.8.9                                                     | 1123 passed, 16483 assertions; 0 skips/failures/errors                                                          |
+| Полный Laravel PHP8.4.26 / MariaDB11.8.9                                                     | 1124 passed, 16487 assertions; 0 skips/failures/errors                                                          |
 | Последующий focused inventory + PlatformPlans после запрета public compatibility publication | 24 passed, 214 assertions                                                                                       |
 | Frontend                                                                                     | 449 passed, 0 skipped                                                                                           |
 | Production frontend build / brand:check                                                      | Passed; прежнее предупреждение о chunks >500kB                                                                  |
 | Browser plans + Inventory/Impact                                                             | 6 RU/EN×theme scenarios; desktop/mobile375/390, errors=[]                                                       |
 | Static build / браузер                                                                       | Passed, 75 UI scenarios; 0 API requests/writes/external connections/errors; 314 developer / 26 client contracts |
 
-Логи: ignored `artifacts/milestone-10-0-phase-3/logs/`; screenshots и machine browser reports рядом. Реальные Jino/production inventory, физический TouchID, настоящий Safari/WebKit и коммерческие execution/retention gates не проверялись. Packaging результаты фиксируются отдельно после проверки ZIP.
+Логи: ignored `artifacts/milestone-10-0-phase-3/logs/`; screenshots и machine browser reports рядом. Реальные Jino/production inventory, физический TouchID, настоящий Safari/WebKit и коммерческие execution/retention gates не проверялись. Итоговая проверка final ZIP и exact hashes: [ARTIFACTS.md](ARTIFACTS.md).
 
 ## Покрытие
 
