@@ -1,4 +1,6 @@
+import { planMessages } from './planManagement.js'
 export default {
+  planManagement: planMessages.en,
   release910: {
     reviews: 'Değerlendirmeler',
     reviewsHint: 'Tüm çalışma alanı projelerinin değerlendirmeleri, en yeniden başlayarak.',

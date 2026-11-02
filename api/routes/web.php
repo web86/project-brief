@@ -24,6 +24,7 @@ use App\Http\Controllers\LiveSyncController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\PlatformController;
+use App\Http\Controllers\PlatformPlansController;
 use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
 use App\Http\Controllers\ProjectController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\WorkspaceAdministratorController;
 use App\Http\Controllers\WorkspaceAgreementController;
 use App\Http\Controllers\WorkspaceBrandingController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\EnsurePlanAuthority;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
@@ -66,6 +68,41 @@ Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(func
         Route::get('/audit', 'audit')->name('platform.audit');
     });
 });
+
+Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(function (): void {
+    Route::get('/api/platform/plan-access', [PlatformPlansController::class, 'access'])->name('platform.plan_access');
+    Route::middleware(EnsurePlanAuthority::class)->group(function (): void {
+        Route::get('/platform/plans/{path?}', SpaController::class)->where('path', '.*')->name('platform.plans.enter');
+        Route::prefix('/api/platform')->controller(PlatformPlansController::class)->group(function (): void {
+            Route::get('/entitlement-definitions', 'definitions');
+            Route::get('/plans', 'index');
+            Route::post('/plans', 'store');
+            Route::get('/published-plan-versions', 'publishedVersions');
+            Route::get('/plans/{plan}', 'show')->whereUuid('plan');
+            Route::patch('/plans/{plan}', 'metadata')->whereUuid('plan');
+            Route::get('/plans/{plan}/history', 'history')->whereUuid('plan');
+            Route::post('/plans/{plan}/draft', 'draft')->whereUuid('plan');
+            Route::post('/plans/{plan}/archive', 'archive')->whereUuid('plan');
+            Route::post('/plans/{plan}/unarchive', 'archive')->whereUuid('plan');
+            Route::get('/plans/{plan}/versions/{version}', 'version')->whereUuid(['plan', 'version']);
+            Route::put('/plans/{plan}/versions/{version}', 'saveVersion')->whereUuid(['plan', 'version']);
+            Route::post('/plans/{plan}/versions/{version}/previews', 'preview')->whereUuid(['plan', 'version']);
+            Route::post('/plans/{plan}/versions/{version}/publish', 'publish')->whereUuid(['plan', 'version']);
+            Route::get('/plan-previews/{preview}', 'showPreview')->whereUuid('preview');
+            Route::get('/plan-settings', 'settings');
+            Route::post('/plan-settings/drafts', 'savePolicy');
+            Route::put('/plan-settings/drafts/{policy}', 'savePolicy')->whereUuid('policy');
+            Route::post('/plan-settings/drafts/{policy}/previews', 'policyOperation')->whereUuid('policy');
+            Route::post('/plan-settings/drafts/{policy}/publish', 'policyOperation')->whereUuid('policy');
+            Route::get('/plan-transition-rules', 'rules');
+            Route::post('/plan-transition-rules', 'saveRule');
+            Route::patch('/plan-transition-rules/{rule}', 'saveRule')->whereUuid('rule');
+            Route::post('/plan-transition-rules/copy-previews', 'copyPreview');
+            Route::post('/plan-transition-rules/copies', 'copyRules');
+        });
+    });
+});
+
 Route::get('/', SpaController::class);
 Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cache-Control', 'no-store'))
     ->withoutMiddleware([

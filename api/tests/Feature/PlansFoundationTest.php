@@ -298,7 +298,15 @@ class PlansFoundationTest extends TestCase
         } catch (\InvalidArgumentException) {
             $this->addToAssertionCount(1);
         }
-        $catalog->archive($actor, $basic->plan_id, 2, 'archive');
+        try {
+            $catalog->archive($actor, $basic->plan_id, 2, 'archive-dependency');
+            $this->fail('Policy dependency was ignored');
+        } catch (HttpException $e) {
+            $this->assertSame(409, $e->getStatusCode());
+        }
+        $unused = $catalog->create($actor, 'archivable', $catalog->configuration($basic), 'unused-create');
+        $catalog->publish($actor, $unused->id, 1, 'unused-publish');
+        $catalog->archive($actor, $unused->plan_id, 2, 'archive');
         $this->assertDatabaseHas('plan_versions', ['id' => $basic->id, 'state' => 'published']);
     }
 

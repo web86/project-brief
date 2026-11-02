@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAccountSecurity;
 use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
+use App\Http\Middleware\EnsurePlanAuthority;
 use App\Http\Middleware\EnsureProjectPermission;
 use App\Http\Middleware\MeasureApiUsage;
 use App\Http\Middleware\SecurityResponseHeaders;
@@ -54,6 +55,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/security/*')) {
                 return app(AccountSecurityDiagnostics::class)->render($e, $request);
+            }
+            if ($request->is('api/platform/plans', 'api/platform/plans/*', 'api/platform/plan-settings*', 'api/platform/plan-previews/*', 'api/platform/plan-transition-rules*', 'api/platform/entitlement-definitions', 'api/platform/published-plan-versions')) {
+                return EnsurePlanAuthority::failure($e);
             }
             if (! $request->is('api/v1/*')) {
                 return null;

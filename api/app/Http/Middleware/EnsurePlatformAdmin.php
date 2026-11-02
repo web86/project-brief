@@ -25,7 +25,7 @@ class EnsurePlatformAdmin
             return response()->json(['code' => 'account_security_required', 'state' => $security->state($request)], 403)->header('Cache-Control', 'no-store');
         }
         // Cross-tenant diagnostics require the same five-minute proof as sensitive settings.
-        if ($request->route()?->getName() !== 'platform.enter' && ! $security->fresh($request)) {
+        if (! in_array($request->route()?->getName(), ['platform.enter', 'platform.plans.enter'], true) && ! $security->fresh($request)) {
             $audit->record($user->id, 'access_denied', result: 'step_up_required');
             $security->requireFresh($request);
         }

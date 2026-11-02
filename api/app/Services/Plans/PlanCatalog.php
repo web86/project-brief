@@ -63,12 +63,12 @@ final class PlanCatalog
         return PlanVersion::findOrFail($outcome['id']);
     }
 
-    public function nextDraft(User $actor, int $planId, int $revision, string $key): PlanVersion
+    public function nextDraft(User $actor, int $planId, int $revision, string $key, ?int $sourceVersionId = null): PlanVersion
     {
-        $outcome = $this->commands->run($actor, 'plan.next_draft', $key, compact('planId', 'revision'), function () use ($actor, $planId, $revision): array {
+        $outcome = $this->commands->run($actor, 'plan.next_draft', $key, compact('planId', 'revision') + ($sourceVersionId === null ? [] : ['sourceVersionId' => $sourceVersionId]), function () use ($actor, $planId, $revision, $sourceVersionId): array {
             $plan = Plan::whereKey($planId)->lockForUpdate()->firstOrFail();
             abort_unless((int) $plan->revision === $revision && $plan->status === 'published' && ! $plan->versions()->where('state', 'draft')->exists(), 409, 'Plan revision conflict.');
-            $configuration = $this->configuration(PlanVersion::findOrFail($plan->published_version_id));
+            $configuration = $this->configuration(PlanVersion::where('plan_id', $planId)->where('state', 'published')->findOrFail($sourceVersionId ?? $plan->published_version_id));
             $version = $this->writeVersion($plan, $actor, $configuration, (int) $plan->versions()->max('number') + 1);
             $plan->increment('revision');
 
@@ -83,6 +83,15 @@ final class PlanCatalog
         $outcome = $this->commands->run($actor, 'plan.archive', $key, compact('planId', 'revision'), function () use ($planId, $revision): array {
             $plan = Plan::whereKey($planId)->lockForUpdate()->firstOrFail();
             abort_unless((int) $plan->revision === $revision && $plan->status !== 'archived', 409);
+            $versionIds = $plan->versions()->pluck('id');
+            $settings = DB::table('plan_settings')->where('id', 1)->first();
+            $dependencies = DB::table('platform_policy_versions')->where(function ($q) use ($settings): void {
+                $q->where('state', 'draft');
+                if ($settings?->current_policy_version_id) {
+                    $q->orWhere('id', $settings->current_policy_version_id);
+                }
+            })->where(fn ($q) => $q->whereIn('trial_version_id', $versionIds)->orWhereIn('fallback_version_id', $versionIds))->exists();
+            abort_if($dependencies || ($settings?->legacy_version_id && $versionIds->contains($settings->legacy_version_id)) || DB::table('plan_transition_rules')->where('enabled', true)->where(fn ($q) => $q->whereIn('source_version_id', $versionIds)->orWhereIn('target_version_id', $versionIds))->exists(), 409, 'Plan has active configuration dependencies.');
             $plan->update(['status' => 'archived', 'revision' => $revision + 1]);
 
             return ['type' => 'plan', 'id' => $plan->id, 'uuid' => $plan->uuid, 'before' => $revision, 'after' => $revision + 1];

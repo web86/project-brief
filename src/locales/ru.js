@@ -1,4 +1,6 @@
+import { planMessages } from './planManagement.js'
 export default {
+  planManagement: planMessages.ru,
   release910: {
     reviews: 'Отзывы',
     reviewsHint: 'Отзывы по всем проектам workspace, начиная с новых.',

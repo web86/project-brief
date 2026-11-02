@@ -6,6 +6,13 @@ import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import LoadingButton from '../components/LoadingButton.vue'
 const router = useRouter()
 const usageWorkspace = ref('')
+const canManagePlans = ref(false)
+api
+  .request('/api/platform/plan-access')
+  .then((result) => {
+    canManagePlans.value = result.canManage
+  })
+  .catch(() => {})
 const tab = ref('overview'),
   period = ref('24h'),
   search = ref(''),
@@ -122,6 +129,9 @@ load()
         {{ t('platform.' + item) }}
       </button>
     </nav>
+    <RouterLink v-if="canManagePlans" class="button secondary" to="/platform/plans">{{
+      t('planManagement.title')
+    }}</RouterLink>
     <div class="surface platform-controls">
       <label for="platform-period">{{ t('platform.period') }}</label
       ><select id="platform-period" v-model="period">

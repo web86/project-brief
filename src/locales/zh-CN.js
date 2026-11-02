@@ -1,4 +1,6 @@
+import { planMessages } from './planManagement.js'
 export default {
+  planManagement: planMessages.en,
   release910: {
     reviews: '评价',
     reviewsHint: '显示工作区所有项目的评价，最新评价在前。',

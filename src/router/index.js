@@ -34,6 +34,23 @@ export function createProjectRouter({
         component: () => import('../views/PlatformView.vue'),
         meta: { platform: true, title: 'ProjectBrief Platform' },
       },
+      ...[
+        ['/platform/plans', 'catalog'],
+        ['/platform/plans/policies', 'policies'],
+        ['/platform/plans/transitions', 'rules'],
+        ['/platform/plans/:planId/versions/:versionId', 'editor'],
+      ].map(([path, section]) => ({
+        path,
+        component: () => import('../views/PlatformPlansView.vue'),
+        meta: {
+          platform: true,
+          planManagement: true,
+          planSection: section,
+          get title() {
+            return t('planManagement.title')
+          },
+        },
+      })),
       {
         path: '/app',
         component: () => import('../views/AppEntryView.vue'),
@@ -424,6 +441,11 @@ export function createProjectRouter({
         if (!status.signedIn || status.state === 'pending_2fa') return '/admin/security'
         if (status.state === 'enrollment_required') return '/admin/security'
         if (!status.platformAdmin) return '/admin/unavailable?reason=permission'
+        if (to.meta.planManagement) {
+          const access = await request('/api/platform/plan-access')
+          if (current !== revision) return false
+          if (!access.canManage) return '/admin/unavailable?reason=permission'
+        }
       } catch (error) {
         if (current !== revision) return false
         toast.error(() => formatApiError(error))

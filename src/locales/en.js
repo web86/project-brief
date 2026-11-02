@@ -1,4 +1,6 @@
+import { planMessages } from './planManagement.js'
 export default {
+  planManagement: planMessages.en,
   release910: {
     reviews: 'Reviews',
     reviewsHint: 'Feedback from all workspace projects, newest first.',
