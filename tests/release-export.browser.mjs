@@ -25,6 +25,11 @@ export async function verifyPackagedExports(origin, project, outputDirectory) {
           await page.locator('#admin-email').fill('release@example.test')
           await page.locator('#admin-password').fill('Release-only-long-password')
           await page.locator('form button[type=submit]').click()
+          await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
+          await page
+            .getByLabel('Recovery code', { exact: true })
+            .fill(`Release-export-${engine.name()}-${width}`)
+          await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
           await page.waitForURL(origin + '/admin')
           for (const locale of ['ru', 'en', 'tr', 'zh-CN']) {
             await page.goto(origin + `/admin/projects/${project}/export`)
