@@ -132,6 +132,8 @@ test('all plan routes verify primary authority without opening any workspace con
     '/platform/plans',
     '/platform/plans/policies',
     '/platform/plans/transitions',
+    '/platform/plans/inventory',
+    '/platform/plans/inventory/19fe7520-ef15-51ae-ae94-3a582ed5474e',
     '/platform/plans/p/versions/v',
   ]) {
     setActivePinia(createPinia())

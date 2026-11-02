@@ -1,5 +1,7 @@
+import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  inventory: inventoryMessages.ru,
   planManagement: planMessages.ru,
   release910: {
     reviews: 'Отзывы',

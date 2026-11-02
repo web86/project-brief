@@ -43,6 +43,17 @@ export function createProjectRouter({
         component: () => import('../views/PlatformView.vue'),
         meta: { platform: true, title: 'Dev2Done Platform' },
       },
+      ...['/platform/plans/inventory', '/platform/plans/inventory/:workspaceId'].map((path) => ({
+        path,
+        component: () => import('../views/PlatformInventoryView.vue'),
+        meta: {
+          platform: true,
+          planManagement: true,
+          get title() {
+            return t('inventory.title')
+          },
+        },
+      })),
       ...[
         ['/platform/plans', 'catalog'],
         ['/platform/plans/policies', 'policies'],

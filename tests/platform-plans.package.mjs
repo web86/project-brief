@@ -59,7 +59,33 @@ verify(Illuminate\Support\Facades\DB::table('owner_trial_claims')->count() === 0
 verify(! class_exists('Faker\\Factory'));
 $route = app('router')->getRoutes()->match(Illuminate\Http\Request::create('/api/platform/plans'));
 verify(str_contains($route->getActionName(),'PlatformPlansController'));
-echo json_encode(['passed'=>true,'draftSeed'=>'idempotent','publication'=>'immutable','subscriptions'=>0,'trialClaims'=>0,'productionVendor'=>true],JSON_THROW_ON_ERROR);
+$workspace = App\Models\Workspace::create(['name'=>'Synthetic packaged inventory']);
+App\Models\WorkspaceMember::create(['workspace_id'=>$workspace->id,'user_id'=>$user->id,'role'=>'owner','status'=>'active']);
+foreach ([1,2] as $index) {
+    $project = App\Models\Project::create(['workspace_id'=>$workspace->id,'title'=>'Private packaged fixture','currency'=>'USD','status'=>'active']);
+    App\Models\ProjectClient::create(['project_id'=>$project->id,'name'=>'Synthetic contact','email'=>'shared@example.test','active'=>true]);
+}
+verify(Illuminate\Support\Facades\Artisan::call('plans:inventory',['--dry-run'=>true]) === 0);
+verify(Illuminate\Support\Facades\DB::table('workspace_subscriptions')->count() === 0);
+verify(Illuminate\Support\Facades\DB::table('entitlement_client_identities')->count() === 0);
+verify(Illuminate\Support\Facades\Artisan::call('plans:inventory',['--apply'=>true]) === 0);
+$subscription = Illuminate\Support\Facades\DB::table('workspace_subscriptions')->where('workspace_id',$workspace->id)->first();
+verify($subscription->enforcement_mode === 'observe');
+verify(Illuminate\Support\Facades\DB::table('subscription_periods')->where('workspace_id',$workspace->id)->value('kind') === 'compatibility');
+verify(Illuminate\Support\Facades\Artisan::call('plans:inventory',['--apply'=>true]) === 0);
+verify(Illuminate\Support\Facades\DB::table('workspace_subscriptions')->count() === 1);
+verify(Illuminate\Support\Facades\DB::table('owner_trial_claims')->count() === 0);
+$resolved = app(App\Services\Plans\EntitlementResolver::class)->resolve($workspace->id);
+verify($resolved['phase'] === 'compatibility' && $resolved['values']['developers.max'] === ['kind'=>'unlimited'] && ! $resolved['values']['formwatch.enabled']['value']);
+Illuminate\Support\Facades\DB::table('plan_settings')->where('id',1)->update(['rollout_mode'=>'enforce']);
+$before = json_encode(Illuminate\Support\Facades\DB::table('workspace_subscriptions')->get());
+$impact = app(App\Services\Plans\WorkspaceImpact::class)->preview($workspace->id,$published->uuid);
+verify($impact['usage']['clients.max']['count'] === 1);
+verify($impact['usage']['projects.active.max']['count'] === 2);
+verify(collect($impact['decisions'])->firstWhere('key','projects.active.max')['state'] === 'would_deny');
+verify(! $impact['policy']['executionGuardsEnabled'] && $impact['policy']['effectiveMode'] === 'observe');
+verify($before === json_encode(Illuminate\Support\Facades\DB::table('workspace_subscriptions')->get()));
+echo json_encode(['passed'=>true,'draftSeed'=>'idempotent','publication'=>'immutable','automaticSubscriptions'=>0,'operatorCompatibilitySubscriptions'=>1,'trialClaims'=>0,'shadowImpact'=>true,'productionVendor'=>true],JSON_THROW_ON_ERROR);
 `
   const inherited = Object.fromEntries(
     Object.entries(process.env).filter(

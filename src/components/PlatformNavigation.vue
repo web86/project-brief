@@ -42,6 +42,7 @@ async function logout() {
         <RouterLink
           v-for="[key, path] in [
             ['catalog', '/platform/plans'],
+            ['inventory', '/platform/plans/inventory'],
             ['policies', '/platform/plans/policies'],
             ['rules', '/platform/plans/transitions'],
           ]"
@@ -53,7 +54,7 @@ async function logout() {
               : undefined
           "
           @click="emit('navigate')"
-          >{{ t('planManagement.' + key) }}</RouterLink
+          >{{ key === 'inventory' ? t('inventory.title') : t('planManagement.' + key) }}</RouterLink
         >
       </template>
     </nav>

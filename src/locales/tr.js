@@ -1,5 +1,7 @@
+import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  inventory: inventoryMessages.en,
   planManagement: planMessages.en,
   release910: {
     reviews: 'Değerlendirmeler',

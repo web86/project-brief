@@ -218,6 +218,7 @@ require __DIR__.'/../vendor/autoload.php';
     0,
   )
   await guest.close()
+  php(['artisan', 'plans:inventory', '--apply', '--no-interaction'])
   let created
   for (const language of ['en', 'ru'])
     for (const theme of ['light', 'dark', 'system']) {
@@ -474,6 +475,53 @@ require __DIR__.'/../vendor/autoload.php';
           }
         }
       }
+      php(['artisan', 'cache:clear', '--no-interaction'])
+      await page.goto(origin + '/platform/plans/inventory')
+      await page.locator('.inventory-card').first().waitFor()
+      await capture(page, `${language}-${theme}-inventory.png`)
+      assert.equal(await page.locator('.inventory-card').count(), 2)
+      assert.equal(
+        await page
+          .locator('.inventory-card')
+          .first()
+          .innerText()
+          .then((t) => t.includes('shared-client@example.test')),
+        false,
+      )
+      await page.locator('.inventory-card a').first().click()
+      await page.locator('.inventory-table tbody tr').first().waitFor()
+      const picker = page.locator('.inventory-controls select')
+      const basic = await picker
+        .locator('option')
+        .evaluateAll((items) => items.find((o) => /Basic · v1/.test(o.textContent))?.value)
+      assert.ok(basic)
+      await picker.selectOption(basic)
+      await page.locator('[data-state="would_deny"]').first().waitFor()
+      assert.equal(
+        await page
+          .locator('.inventory-page')
+          .innerText()
+          .then((t) => t.includes('Private fixture title')),
+        false,
+      )
+      assert.equal(
+        await page
+          .locator('.inventory-page')
+          .innerText()
+          .then((t) => t.includes('inventory.resources.')),
+        false,
+      )
+      for (const width of mobile ? [390, 375] : [1440]) {
+        await page.setViewportSize({ width, height: 900 })
+        await capture(page, `${language}-${theme}-impact-${width}.png`)
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        )
+      }
+      await page.reload()
+      await page.locator('.inventory-table tbody tr').first().waitFor()
+      assert.equal((await call(context, '/api/platform/workspace-inventory')).status(), 200)
       results.push({ language, theme, mobile })
       await context.close()
       php(['artisan', 'cache:clear', '--no-interaction'])
