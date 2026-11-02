@@ -67,6 +67,7 @@ RewriteRule \\.(?:json|js|css|png|svg|webp|txt|webmanifest)$ - [R=404,L]
 RewriteRule ^ index.html [L]
 </IfModule>
 <IfModule mod_headers.c>
+Header set Cache-Control "no-cache, must-revalidate"
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "no-referrer"
 Header always set Content-Security-Policy "${csp}"
