@@ -6815,3 +6815,5 @@ button.attachment-item:hover {
   gap: 12px;
   margin-bottom: 16px;
 }
+
+.demo-account-fields { border: 0; padding: 0; margin: 0; min-inline-size: 0; }

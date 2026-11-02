@@ -1,4 +1,5 @@
 <script setup>
+import { STATIC_DEMO } from '../services/demo.js'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '../stores/project.js'
@@ -52,6 +53,10 @@ const fields = ref(
   ),
 )
 async function download(selectedFormat = 'pdf') {
+  if (STATIC_DEMO) {
+    toast.info('Demo · View only')
+    return
+  }
   if (pending.value) return
   const projectId = store.project.id
   format.value = selectedFormat

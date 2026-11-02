@@ -204,14 +204,14 @@ try {
   assert.equal((await request('/api/security/status')).body.state, 'authenticated')
   assert.equal((await request('/api/security/status')).body.fresh, false)
   assert.equal((await request('/api/admin/projects')).status, 200)
-  await page.getByRole('button', { name: 'Later — continue to workspace', exact: true }).waitFor()
+  await page.waitForURL(origin + '/admin')
+  await page.goto(origin + '/admin/account/security')
   results.push('Owner with saved TOTP recovery has full access without a Passkey')
   await page.evaluate(() => {
     globalThis.m7OriginalCreate = navigator.credentials.create
     navigator.credentials.create = () =>
       Promise.reject(new DOMException('User cancelled', 'NotAllowedError'))
   })
-  await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   await page.getByLabel('Device name', { exact: true }).fill('Virtual authenticator')
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
   const stepUp = page.getByRole('dialog')
@@ -265,7 +265,10 @@ try {
     'Created but unsaved credential: real challenge rejection, toast + form reference, full access and safe fresh retry',
   )
   await page.getByRole('button', { name: 'Add Passkey', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
+  await page
+    .locator('.security-passkeys')
+    .getByText('Virtual authenticator', { exact: true })
+    .waitFor()
   await page.locator('.toast-success').filter({ hasText: 'Passkey registered.' }).waitFor()
   assert.equal((await request('/api/admin/projects')).status, 200)
   results.push(
@@ -643,7 +646,7 @@ try {
   await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
   await page.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[0])
   await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
+  await page.waitForURL(origin + '/admin')
   results.push('Password requires recovery challenge before workspace access')
   const csrfResponse = await context.request.post(transportOrigin + '/api/security/totp/setup', {
     headers: { Accept: 'application/json' },
@@ -695,7 +698,7 @@ try {
   await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
   await page.getByLabel('Recovery code', { exact: true }).fill(developerCodes[0])
   await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue to workspace', exact: true }).waitFor()
+  await page.waitForURL(origin + '/admin')
   assert.equal((await request('/api/admin/projects')).status, 200)
   php(['tests/account-security-fixture.php', 'reset-limiter'])
   await page.goto(origin + '/admin/account/security')
@@ -811,9 +814,7 @@ try {
         .click()
       await compatibilityPage.getByLabel('Recovery code', { exact: true }).fill(recoveryCodes[5])
       await compatibilityPage.getByRole('button', { name: 'Confirm identity', exact: true }).click()
-      await compatibilityPage
-        .getByRole('button', { name: 'Continue to workspace', exact: true })
-        .waitFor()
+      await compatibilityPage.waitForURL(origin + '/admin')
       await compatibilityPage.goto(origin + '/admin/administrators')
       await compatibilityPage.locator('.team-member').first().waitFor()
       php(['tests/account-security-fixture.php', 'expire-proof'])

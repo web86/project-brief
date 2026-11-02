@@ -100,6 +100,8 @@ export function formatCurrency(value, project) {
   return new Intl.NumberFormat(intlLocale(), { style: 'currency', currency }).format(value)
 }
 export function formatApiError(error) {
+  if (['demo_read_only', 'demo_view_only'].includes(error?.code))
+    return 'Demo · View only. Changes are unavailable.'
   if (error?.code === 'task_conflict') return t('liveSync.conflict')
   if (!error) return ''
   if (typeof error === 'string') return error

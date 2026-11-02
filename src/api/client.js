@@ -1,4 +1,5 @@
-import { demo } from '../services/demo.js'
+import { createStaticDemoClient } from './staticDemo.js'
+import { demo, STATIC_DEMO } from '../services/demo.js'
 import { stepUp, isSensitiveMutation } from '../services/stepUp.js'
 import { t, locale } from '../i18n/index.js'
 export class ApiError extends Error {
@@ -279,7 +280,9 @@ export function createApiClient({
     },
   }
 }
-export const api = createApiClient({ baseUrl: import.meta.env?.VITE_API_BASE_URL || '' })
+export const api = STATIC_DEMO
+  ? createStaticDemoClient({ ApiError })
+  : createApiClient({ baseUrl: import.meta.env?.VITE_API_BASE_URL || '' })
 export const API_MODE = !!import.meta.env?.PROD || import.meta.env?.VITE_DATA_SOURCE === 'api'
 
 export function commentBody(text, attachments = [], submissionId) {

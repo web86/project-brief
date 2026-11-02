@@ -24,7 +24,11 @@
     "demo:build": "PROJECTBRIEF_DEMO_BUILD=1 vite build",
     "demo:up": "bin/demo up",
     "demo:reset": "bin/demo reset",
-    "test:demo": "node tests/demo.browser.mjs"
+    "test:demo": "node tests/demo.browser.mjs",
+    "demo:export": "node deployment/export-static-demo.mjs",
+    "demo:build:static": "node deployment/build-static-demo.mjs",
+    "test:static-demo": "node tests/static-demo.browser.mjs",
+    "demo:preview:static": "node deployment/static-demo-server.mjs"
   },
   "dependencies": {
     "@laravel/passkeys": "0.4.0",

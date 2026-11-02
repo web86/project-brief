@@ -1,9 +1,8 @@
+import { STATIC_DEMO } from './demo.js'
 export function pushSupport(env) {
-  return !!(
-    env?.isSecureContext &&
-    env.navigator?.serviceWorker &&
-    env.PushManager &&
-    env.Notification
+  return (
+    !STATIC_DEMO &&
+    !!(env?.isSecureContext && env.navigator?.serviceWorker && env.PushManager && env.Notification)
   )
 }
 export function decodePublicKey(key) {

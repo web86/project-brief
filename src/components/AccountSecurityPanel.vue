@@ -1,4 +1,5 @@
 <script setup>
+import { STATIC_DEMO } from '../services/demo.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { api } from '../api/client.js'
@@ -50,6 +51,10 @@ onBeforeUnmount(() => {
   setup.value = null
 })
 async function action(run, success, context = 'general') {
+  if (STATIC_DEMO && run !== load) {
+    toast.info('Demo · View only')
+    return
+  }
   if (busy.value) return
   busy.value = true
   error.value = null
@@ -270,6 +275,9 @@ function finish() {
               {{ t('account.cancel') }}
             </button>
           </form>
+          <p v-if="STATIC_DEMO && state.recoverySaved" class="small" role="status">
+            {{ t('security.recoverySaved') }}
+          </p>
           <template v-if="state.totp">
             <template v-if="!(state.owner || state.platformAdmin)">
               <button

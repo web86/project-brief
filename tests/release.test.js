@@ -227,6 +227,12 @@ test('public package rejects executable aliases, compound suffixes, hidden direc
     'public/snapshot.bak',
     'public/archive.zip',
     'public/package.json',
+    'public/manifest.json',
+    'public/snapshots/developer-safe.json',
+    'public/demo-assets/avatar.png',
+    'public/schemas/contracts-v1.schema.json',
+    'private/project-brief-app/app/Console/Commands/ExportStaticDemo.php',
+    'private/project-brief-app/app/Services/DemoStaticSnapshotExport.php',
   ])
     assert.equal(forbiddenProductionPath(file), true, file)
   for (const file of [

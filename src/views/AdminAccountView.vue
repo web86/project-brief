@@ -1,4 +1,5 @@
 <script setup>
+import { STATIC_DEMO } from '../services/demo.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -146,141 +147,149 @@ function changePassword() {
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
     <p v-if="success" class="account-success" role="status">{{ success }}</p>
     <template v-if="state">
-      <template v-if="!security">
-        <form class="surface admin-form" @submit.prevent="save">
-          <div class="account-heading">
-            <UserAvatar :user="state.user" />
-            <h2>{{ t('account.profile') }}</h2>
-          </div>
-          <div class="field">
-            <label for="account-name">{{ t('account.name') }}</label
-            ><input id="account-name" v-model="name" autocomplete="name" maxlength="255" required />
-          </div>
-          <div class="field">
-            <label for="account-language">{{ t('account.language') }}</label
-            ><select id="account-language" v-model="language">
-              <option
-                v-for="item in LANGUAGE_CATALOG"
-                :key="item.code"
-                :value="item.code"
-                :lang="item.code"
-              >
-                {{ item.name }}
-              </option>
-            </select>
-          </div>
-          <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
-            t('account.save')
-          }}</LoadingButton>
-        </form>
-        <form class="surface admin-form" @submit.prevent="saveAvatar">
-          <h2>{{ t('account.avatar') }}</h2>
-          <div class="field">
-            <label for="avatar-source">{{ t('account.avatar') }}</label
-            ><select id="avatar-source" v-model="source">
-              <option value="initials">{{ t('account.initials') }}</option>
-              <option value="gravatar">{{ t('account.gravatar') }}</option>
-              <option value="upload">{{ t('account.upload') }}</option>
-            </select>
-          </div>
-          <p v-if="source === 'gravatar'" class="muted small">{{ t('account.gravatarHelp') }}</p>
-          <div v-if="source === 'upload'" class="field">
-            <label for="avatar-file">{{ t('account.upload') }}</label
-            ><input
-              id="avatar-file"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              required
-              @change="file = $event.target.files[0]"
-            />
-            <p class="small muted">{{ t('account.avatarHelp') }}</p>
-          </div>
-          <LoadingButton class="button secondary" type="submit" :busy="busy" :disabled="busy">{{
-            t('account.save')
-          }}</LoadingButton>
-        </form>
-      </template>
-      <template v-else>
-        <AccountSecurityPanel />
-        <form class="surface admin-form" @submit.prevent="changeEmail">
-          <h2>{{ t('account.email') }}</h2>
-          <p>{{ state.user.email }}</p>
-          <p class="muted small">{{ t('account.emailHelp') }}</p>
-          <p v-if="state.pendingEmail" role="status">
-            {{ t('account.pendingEmail', { email: state.pendingEmail }) }}
-            <button class="text-button" type="button" :disabled="busy" @click="cancelEmail">
-              {{ t('account.cancel') }}
-            </button>
-          </p>
-          <div class="field">
-            <label for="new-email">{{ t('account.newEmail') }}</label
-            ><input
-              id="new-email"
-              v-model="email"
-              type="email"
-              autocomplete="email"
-              maxlength="254"
-              required
-            />
-          </div>
-          <div class="field">
-            <label for="email-password">{{ t('account.currentPassword') }}</label
-            ><input
-              id="email-password"
-              v-model="emailPassword"
-              type="password"
-              autocomplete="current-password"
-              maxlength="1024"
-              required
-            />
-          </div>
-          <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
-            t('account.sendConfirmation')
-          }}</LoadingButton>
-        </form>
-        <form class="surface admin-form" @submit.prevent="changePassword">
-          <h2>{{ t('account.changePassword') }}</h2>
-          <p class="small muted">{{ t('account.passwordHelp') }}</p>
-          <div class="field">
-            <label for="current-password">{{ t('account.currentPassword') }}</label
-            ><input
-              id="current-password"
-              v-model="current"
-              type="password"
-              autocomplete="current-password"
-              maxlength="1024"
-              required
-            />
-          </div>
-          <div class="field">
-            <label for="new-password">{{ t('account.newPassword') }}</label
-            ><input
-              id="new-password"
-              v-model="password"
-              type="password"
-              autocomplete="new-password"
-              minlength="9"
-              maxlength="1024"
-              required
-            />
-          </div>
-          <div class="field">
-            <label for="confirm-password">{{ t('account.confirmPassword') }}</label
-            ><input
-              id="confirm-password"
-              v-model="confirmation"
-              type="password"
-              autocomplete="new-password"
-              minlength="9"
-              maxlength="1024"
-              required
-            />
-          </div>
-          <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
-            t('account.changePassword')
-          }}</LoadingButton>
-        </form>
-      </template>
+      <fieldset class="demo-account-fields" :disabled="STATIC_DEMO">
+        <template v-if="!security">
+          <form class="surface admin-form" @submit.prevent="save">
+            <div class="account-heading">
+              <UserAvatar :user="state.user" />
+              <h2>{{ t('account.profile') }}</h2>
+            </div>
+            <div class="field">
+              <label for="account-name">{{ t('account.name') }}</label
+              ><input
+                id="account-name"
+                v-model="name"
+                autocomplete="name"
+                maxlength="255"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="account-language">{{ t('account.language') }}</label
+              ><select id="account-language" v-model="language">
+                <option
+                  v-for="item in LANGUAGE_CATALOG"
+                  :key="item.code"
+                  :value="item.code"
+                  :lang="item.code"
+                >
+                  {{ item.name }}
+                </option>
+              </select>
+            </div>
+            <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
+              t('account.save')
+            }}</LoadingButton>
+          </form>
+          <form class="surface admin-form" @submit.prevent="saveAvatar">
+            <h2>{{ t('account.avatar') }}</h2>
+            <div class="field">
+              <label for="avatar-source">{{ t('account.avatar') }}</label
+              ><select id="avatar-source" v-model="source">
+                <option value="initials">{{ t('account.initials') }}</option>
+                <option value="gravatar">{{ t('account.gravatar') }}</option>
+                <option value="upload">{{ t('account.upload') }}</option>
+              </select>
+            </div>
+            <p v-if="source === 'gravatar'" class="muted small">{{ t('account.gravatarHelp') }}</p>
+            <div v-if="source === 'upload'" class="field">
+              <label for="avatar-file">{{ t('account.upload') }}</label
+              ><input
+                id="avatar-file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                required
+                @change="file = $event.target.files[0]"
+              />
+              <p class="small muted">{{ t('account.avatarHelp') }}</p>
+            </div>
+            <LoadingButton class="button secondary" type="submit" :busy="busy" :disabled="busy">{{
+              t('account.save')
+            }}</LoadingButton>
+          </form>
+        </template>
+        <template v-else>
+          <AccountSecurityPanel />
+          <form class="surface admin-form" @submit.prevent="changeEmail">
+            <h2>{{ t('account.email') }}</h2>
+            <p>{{ state.user.email }}</p>
+            <p class="muted small">{{ t('account.emailHelp') }}</p>
+            <p v-if="state.pendingEmail" role="status">
+              {{ t('account.pendingEmail', { email: state.pendingEmail }) }}
+              <button class="text-button" type="button" :disabled="busy" @click="cancelEmail">
+                {{ t('account.cancel') }}
+              </button>
+            </p>
+            <div class="field">
+              <label for="new-email">{{ t('account.newEmail') }}</label
+              ><input
+                id="new-email"
+                v-model="email"
+                type="email"
+                autocomplete="email"
+                maxlength="254"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="email-password">{{ t('account.currentPassword') }}</label
+              ><input
+                id="email-password"
+                v-model="emailPassword"
+                type="password"
+                autocomplete="current-password"
+                maxlength="1024"
+                required
+              />
+            </div>
+            <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
+              t('account.sendConfirmation')
+            }}</LoadingButton>
+          </form>
+          <form class="surface admin-form" @submit.prevent="changePassword">
+            <h2>{{ t('account.changePassword') }}</h2>
+            <p class="small muted">{{ t('account.passwordHelp') }}</p>
+            <div class="field">
+              <label for="current-password">{{ t('account.currentPassword') }}</label
+              ><input
+                id="current-password"
+                v-model="current"
+                type="password"
+                autocomplete="current-password"
+                maxlength="1024"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="new-password">{{ t('account.newPassword') }}</label
+              ><input
+                id="new-password"
+                v-model="password"
+                type="password"
+                autocomplete="new-password"
+                minlength="9"
+                maxlength="1024"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="confirm-password">{{ t('account.confirmPassword') }}</label
+              ><input
+                id="confirm-password"
+                v-model="confirmation"
+                type="password"
+                autocomplete="new-password"
+                minlength="9"
+                maxlength="1024"
+                required
+              />
+            </div>
+            <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy">{{
+              t('account.changePassword')
+            }}</LoadingButton>
+          </form>
+        </template>
+      </fieldset>
     </template>
   </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup>
+import { STATIC_DEMO } from '../services/demo.js'
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { api } from '../api/client.js'
@@ -9,7 +10,7 @@ import LoadingButton from '../components/LoadingButton.vue'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 const locales = ['ru', 'en', 'tr', 'zh-CN']
 const state = ref(null),
-  language = ref('ru'),
+  language = ref(STATIC_DEMO ? 'en' : 'ru'),
   busy = ref(false),
   error = ref(null),
   success = ref(false),
@@ -127,13 +128,19 @@ onMounted(load)
     <p v-if="success" role="status">{{ t('agreement.saved') }}</p>
     <form v-if="state" class="surface agreement-settings-form" @submit.prevent="save(false)">
       <label class="agreement-option"
-        ><input v-model="state.enabled" type="checkbox" :disabled="busy" />{{
-          t('agreement.require')
-        }}</label
+        ><input
+          v-model="state.enabled"
+          type="checkbox"
+          :disabled="STATIC_DEMO || busy"
+        />{{ t('agreement.require') }}</label
       >
       <label class="field agreement-date"
         >{{ t('agreement.version')
-        }}<input v-model="state.draft.date" type="date" required :disabled="busy"
+        }}<input
+          v-model="state.draft.date"
+          type="date"
+          required
+          :disabled="STATIC_DEMO || busy"
       /></label>
       <div class="agreement-languages" role="tablist" :aria-label="t('agreement.languages')">
         <div
@@ -163,7 +170,7 @@ onMounted(load)
                 type="checkbox"
                 :aria-label="lang.toUpperCase() + ': ' + t('agreement.languageEnabled')"
                 :checked="state.draft.enabledLocales.includes(lang)"
-                :disabled="busy"
+                :disabled="STATIC_DEMO || busy"
                 @change="changeLanguage(lang, $event)"
               />{{ t('agreement.languageEnabled') }}</label
             >
@@ -174,7 +181,7 @@ onMounted(load)
                 :value="lang"
                 name="agreement-default-language"
                 :aria-label="lang.toUpperCase() + ': ' + t('agreement.defaultLanguage')"
-                :disabled="busy || !state.draft.enabledLocales.includes(lang)"
+                :disabled="STATIC_DEMO || busy || !state.draft.enabledLocales.includes(lang)"
               />{{ t('agreement.defaultLanguage') }}</label
             >
           </div>
@@ -183,7 +190,7 @@ onMounted(load)
       <button
         type="button"
         class="text-button agreement-template"
-        :disabled="busy"
+        :disabled="STATIC_DEMO || busy"
         @click="useTemplate"
       >
         {{ t('agreement.fillTemplate') }}
@@ -196,23 +203,26 @@ onMounted(load)
         <AgreementEditor
           :key="language + editorRevision"
           v-model="state.draft.texts[language]"
-          :disabled="busy"
+          :disabled="STATIC_DEMO || busy"
         />
       </div>
       <label class="agreement-option"
-        ><input v-model="again" type="checkbox" :disabled="busy" />{{
+        ><input v-model="again" type="checkbox" :disabled="STATIC_DEMO || busy" />{{
           t('agreement.requireAgain')
         }}</label
       >
       <p class="small muted">{{ t('agreement.publishHint') }}</p>
       <div class="agreement-settings-actions">
-        <LoadingButton class="button secondary" type="submit" :busy="busy" :disabled="busy">{{
-          t('account.save')
-        }}</LoadingButton
+        <LoadingButton
+          class="button secondary"
+          type="submit"
+          :busy="busy"
+          :disabled="STATIC_DEMO || busy"
+          >{{ t('account.save') }}</LoadingButton
         ><button
           class="button primary"
           type="button"
-          :disabled="busy || !state.draft.date"
+          :disabled="STATIC_DEMO || busy || !state.draft.date"
           @click="save(true)"
         >
           {{ t('agreement.publish') }}

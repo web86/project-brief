@@ -5,6 +5,7 @@ import {
   startRegistration,
   startAuthentication,
 } from '@simplewebauthn/browser'
+import { STATIC_DEMO } from './demo.js'
 import { api } from '../api/client.js'
 
 export const passkeysSupported = () =>
@@ -16,6 +17,7 @@ export function createPasskeyClient({
   authenticate = startAuthentication,
 } = {}) {
   return async function ceremony(purpose, name, preparedOptions) {
+    if (STATIC_DEMO) throw { status: 403, code: 'demo_read_only', message: 'Demo · View only' }
     let stage = 'options'
     let created = false
     client.resetCsrf()

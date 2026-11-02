@@ -1,5 +1,5 @@
 <script setup>
-import { demo } from '../services/demo.js'
+import { demo, STATIC_DEMO } from '../services/demo.js'
 import { ref, computed, watch, useId } from 'vue'
 import { useRoute } from 'vue-router'
 import { settingsMenu } from '../services/adminMenu.js'
@@ -16,6 +16,7 @@ const items = computed(() =>
   settingsMenu.filter(
     (item) =>
       (!demo.readOnly ||
+        STATIC_DEMO ||
         ![
           '/admin/account',
           '/admin/account/security',

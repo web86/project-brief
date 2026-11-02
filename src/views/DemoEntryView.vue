@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api/client.js'
-import { demo } from '../services/demo.js'
+import { demo, STATIC_DEMO } from '../services/demo.js'
 import { setManualLocale } from '../i18n/index.js'
 const route = useRoute(),
   busy = ref(false),
@@ -15,7 +15,9 @@ async function enter(role) {
     const result = await api.request('/api/demo/enter/' + role)
     window.location.assign(result.destination)
   } catch {
-    error.value = 'The demo is unavailable. Please restore the local dataset and try again.'
+    error.value = STATIC_DEMO
+      ? 'This demo is temporarily unavailable. Please try again later.'
+      : 'The demo is unavailable. Please restore the local dataset and try again.'
     busy.value = false
   }
 }

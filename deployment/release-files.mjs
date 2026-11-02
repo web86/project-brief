@@ -122,6 +122,8 @@ export function forbiddenProductionPath(relative) {
   return (
     !permitted ||
     demoOnlyRuntimePath(relative) ||
+    /^public\/(?:snapshots|demo-assets|schemas)(?:\/|$)/.test(relative) ||
+    relative === 'public/manifest.json' ||
     forbiddenPath(relative) ||
     parts.some((part) =>
       /^(?:guides|integrations|artifacts|screenshots|reports|fixtures|milestone(?:s|[-_].*)?)$/i.test(
@@ -358,7 +360,9 @@ export async function validateRelease(root, localSecrets = []) {
       !directory && relative.startsWith('public/') && /\.(?:js|json|html)$/.test(relative),
   )) {
     if (
-      (await readFile(path.join(root, file.relative), 'utf8')).includes('Harborline Digital Studio')
+      /Harborline Digital Studio|harborline-v1|projectbrief\.staticDemo\.role/.test(
+        await readFile(path.join(root, file.relative), 'utf8'),
+      )
     )
       throw new Error('Synthetic demo content in production: ' + file.relative)
   }

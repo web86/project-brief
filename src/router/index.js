@@ -1,3 +1,4 @@
+import { STATIC_DEMO } from '../services/demo.js'
 import { canCreateProjects } from '../services/projectPermissions.js'
 import { ref } from 'vue'
 import { useDiscussionsStore, useClientDiscussionsStore } from '../stores/discussions.js'
@@ -435,6 +436,7 @@ export function createProjectRouter({
     )
   }
   router.beforeEach(async (to, from) => {
+    if (STATIC_DEMO && to.path === '/') return '/demo'
     const current = ++revision
     attempts.set(to, current)
     navigationPending.value = true

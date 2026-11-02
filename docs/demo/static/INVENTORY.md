@@ -1,0 +1,22 @@
+# Supported interface and read contracts
+
+| Persona / section           | Existing routes / behavior                                                                                                                                                                                     |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entry                       | `/demo`, `/demo/developer`, `/demo/client`; direct URL selects the public fictional role; switching roles uses the demo menu link                                                                              |
+| Developer projects          | `/admin`; ten projects; search, active/inactive filter, sorting and pagination metadata; existing project pages and task views                                                                                 |
+| Project workspace           | `/admin/projects/:uuid/{brief,team,clients,discussions,structure,notifications,settings,export}`; all 150 tasks; sections, 22 client profiles, memberships, feedback, allowed internal AI history and reports  |
+| Team chat / agents          | Existing project discussion tabs and Team Chat, task agent conversations/runs/reports, project agent instructions; no AI or external execution                                                                 |
+| Profile                     | `/admin/account`; Morgan Ellis, fictional generated portrait, `.test` email, existing profile/language/avatar controls disabled; workspace remains in real navigation                                          |
+| Security                    | `/admin/account/security`; TOTP active, acknowledged recovery, two fictional Passkey devices; protected account goes directly to workspace; no QR, OTP secret, recovery material or native credential ceremony |
+| Agreement                   | `/admin/settings/agreement`, `/w/:workspace/agreement`; English studio agreement, published revision/date, team accepted states; no gate and no edit/publish/accept/revoke action                              |
+| Personal/workspace settings | Notifications, branding, administrators; existing information/settings controls; uploads disabled; mutations return `demo_read_only`                                                                           |
+| Integrations                | API token masked placeholders, Webhooks/delivery history, SSO, Agents and recent operations tabs; no active bearer token, signing secret, provider credential or external request                              |
+| Business workflow           | `/admin/requests`, `/admin/reviews`; fourteen requests and eight reviews; request details, search/status/order/page and review date filtering                                                                  |
+| Client                      | `/project/:uuid`, task details, discussions, notifications and export settings; Northstar Commerce only, public comments/history/attachments, branding and public studio information                           |
+| Unavailable                 | Platform administration, real sign-in/SSO/token handoffs, credential enrollment, server exports and any write API; no production authority/data exists in this package                                         |
+
+The current reviewed fixture provides 314 developer and 26 client read paths grouped into 52 pinned contract schemas. Task-detail paths reuse their project's immutable task snapshot rather than duplicating the dataset. Files load on demand per screen/project. Client JSON has no agent identity/metadata, private collaboration, developer notes, estimate hours, internal price, API or SSO settings.
+
+The existing product forms remain the same components; local field previews never persist changes. Profile/security/agreement actions are disabled; other attempted writes show the view-only message. UI language and theme are local visitor preferences. Client has no invented account security or administration pages.
+
+Synthetic statuses for integration previews, security devices and agreement acceptance are illustrations of existing supported fields. They do not represent active integrations or real enrollment. Existing production functionality is exercised separately through its original Laravel transport.
