@@ -182,7 +182,8 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.admin-project-card').length === 1)
   assert.ok((await page.locator('.admin-project-card').innerText()).includes('Northstar'))
   await check(page, '/admin', 'project-status-filter', false)
-  await page.locator('.project-filter-trigger').click()
+  if (await page.locator('.project-filter-trigger').isVisible())
+    await page.locator('.project-filter-trigger').click()
   await page.locator('#project-list-filters select').first().selectOption('inactive')
   await page.waitForFunction(() => document.querySelectorAll('.admin-project-card').length === 1)
   assert.ok(
