@@ -49,7 +49,9 @@ async function logout() {
           :key="key"
           :to="path"
           :aria-current="
-            route.path === path || (key === 'catalog' && route.meta.planSection === 'editor')
+            route.path === path ||
+            (key === 'inventory' && route.path.startsWith(path + '/')) ||
+            (key === 'catalog' && route.meta.planSection === 'editor')
               ? 'page'
               : undefined
           "

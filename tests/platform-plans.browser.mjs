@@ -490,6 +490,12 @@ require __DIR__.'/../vendor/autoload.php';
       )
       await page.locator('.inventory-card a').first().click()
       await page.locator('.inventory-table tbody tr').first().waitFor()
+      assert.equal(
+        await page
+          .locator('.platform-desktop-sidebar a[href="/platform/plans/inventory"]')
+          .getAttribute('aria-current'),
+        'page',
+      )
       const picker = page.locator('.inventory-controls select')
       const basic = await picker
         .locator('option')
