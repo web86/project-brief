@@ -31,6 +31,15 @@ async function load() {
     codes.value = []
     setup.value = null
   }
+  continueProtected()
+}
+function continueProtected() {
+  if (
+    props.onboarding &&
+    state.value?.state === 'authenticated' &&
+    state.value.recommendationsPending === false
+  )
+    emit('ready')
 }
 onMounted(() => action(load))
 onBeforeUnmount(() => {
@@ -68,6 +77,7 @@ async function action(run, success, context = 'general') {
 async function refreshed(result) {
   state.value = result
   api.resetCsrf()
+  continueProtected()
 }
 function startTotp() {
   return action(

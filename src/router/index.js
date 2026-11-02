@@ -470,6 +470,8 @@ export function createProjectRouter({
     if (apiMode && to.path === '/admin/security') {
       const status = await request('/api/security/status')
       if (status.state === 'guest') return '/admin/login'
+      if (status.state === 'authenticated' && status.recommendationsPending === false)
+        return status.platformAdmin ? '/platform' : '/admin'
     }
     if (to.path === '/app') {
       const store = useProjectStore()
