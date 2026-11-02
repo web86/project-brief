@@ -21,6 +21,9 @@ class CurrentWorkspace
     {
         $query = $this->memberships($request)->with('workspace');
         if ($lock) {
+            // Resolve without child locks, then recheck membership after taking the workspace mutex.
+            $preview = $this->resolve($request);
+            IntegrationWrites::lockWorkspace($preview->workspace_id);
             $query->lockForUpdate();
         }
         if ($request->session()->has(self::SESSION_KEY)) {

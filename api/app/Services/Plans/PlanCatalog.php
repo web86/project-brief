@@ -20,6 +20,7 @@ final class PlanCatalog
                 throw new InvalidArgumentException('Invalid plan code.');
             }
             $configuration = $this->validator->validate($configuration);
+            abort_if($configuration['access_class'] === 'compatibility', 422, 'Compatibility is operator bootstrap only.');
             abort_if(Plan::where('code', $code)->exists(), 409, 'Plan code already exists.');
             $this->mirrorDefinitions();
             $plan = Plan::create(['code' => $code, 'status' => 'draft', 'visibility' => $configuration['visibility'], 'sort_order' => 0, 'revision' => 1, 'created_by' => $actor->id]);
@@ -37,6 +38,7 @@ final class PlanCatalog
             $version = PlanVersion::whereKey($versionId)->lockForUpdate()->firstOrFail();
             abort_unless($version->state === 'draft' && $version->revision === $revision && $version->plan->status !== 'archived', 409, 'Draft revision conflict.');
             $configuration = $this->validator->validate($configuration);
+            abort_if($configuration['access_class'] === 'compatibility', 422, 'Compatibility is operator bootstrap only.');
             $version->update($this->attributes($configuration) + ['revision' => $revision + 1]);
             $version->plan->update(['visibility' => $configuration['visibility'], 'revision' => $version->plan->revision + 1]);
             $this->writeValues($version, $configuration['entitlements']);
@@ -54,6 +56,7 @@ final class PlanCatalog
             $plan = Plan::whereKey($version->plan_id)->lockForUpdate()->firstOrFail();
             abort_unless($version->state === 'draft' && $version->revision === $revision && $plan->status !== 'archived', 409, 'Draft revision conflict.');
             $configuration = $this->validator->validate($this->configuration($version));
+            abort_if($configuration['access_class'] === 'compatibility', 422, 'Compatibility is operator bootstrap only.');
             $version->update(['state' => 'published', 'content_hash' => PlanConfiguration::versionHash($configuration), 'revision' => $revision + 1, 'published_by' => $actor->id, 'published_at' => now('UTC')]);
             $plan->update(['published_version_id' => $version->id, 'status' => 'published', 'revision' => $plan->revision + 1]);
 
@@ -69,6 +72,7 @@ final class PlanCatalog
             $plan = Plan::whereKey($planId)->lockForUpdate()->firstOrFail();
             abort_unless((int) $plan->revision === $revision && $plan->status === 'published' && ! $plan->versions()->where('state', 'draft')->exists(), 409, 'Plan revision conflict.');
             $configuration = $this->configuration(PlanVersion::where('plan_id', $planId)->where('state', 'published')->findOrFail($sourceVersionId ?? $plan->published_version_id));
+            abort_if($configuration['access_class'] === 'compatibility', 422, 'Compatibility is operator bootstrap only.');
             $version = $this->writeVersion($plan, $actor, $configuration, (int) $plan->versions()->max('number') + 1);
             $plan->increment('revision');
 

@@ -180,7 +180,7 @@ class PlatformPlansController extends Controller
     public function publishedVersions(Request $request): JsonResponse
     {
         $request->validate(['page' => 'nullable|integer|min:1']);
-        $rows = PlanVersion::with('plan')->where('state', 'published')->whereHas('plan', fn ($q) => $q->where('status', '<>', 'archived'))->latest('id')->paginate(100);
+        $rows = PlanVersion::with('plan')->where('state', 'published')->where('access_class', '<>', 'compatibility')->whereHas('plan', fn ($q) => $q->where('status', '<>', 'archived'))->latest('id')->paginate(100);
 
         return response()->json(['data' => $rows->getCollection()->map(fn ($v) => ['id' => $v->uuid, 'planId' => $v->plan->uuid, 'number' => $v->number, 'accessClass' => $v->access_class, 'code' => $v->plan->code, 'translations' => $v->translations_json]), 'meta' => ['page' => $rows->currentPage(), 'lastPage' => $rows->lastPage()]]);
     }

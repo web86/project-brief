@@ -24,6 +24,7 @@ use App\Http\Controllers\LiveSyncController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\PlatformController;
+use App\Http\Controllers\PlatformInventoryController;
 use App\Http\Controllers\PlatformPlansController;
 use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectClientController;
@@ -73,6 +74,8 @@ Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(func
     Route::get('/api/platform/plan-access', [PlatformPlansController::class, 'access'])->name('platform.plan_access');
     Route::middleware(EnsurePlanAuthority::class)->group(function (): void {
         Route::get('/platform/plans/{path?}', SpaController::class)->where('path', '.*')->name('platform.plans.enter');
+        Route::get('/api/platform/workspace-inventory', [PlatformInventoryController::class, 'index'])->name('platform.inventory');
+        Route::get('/api/platform/workspace-inventory/{workspace}', [PlatformInventoryController::class, 'show'])->whereUuid('workspace')->name('platform.inventory.show');
         Route::prefix('/api/platform')->controller(PlatformPlansController::class)->group(function (): void {
             Route::get('/entitlement-definitions', 'definitions');
             Route::get('/plans', 'index');

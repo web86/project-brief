@@ -10,6 +10,7 @@ use App\Models\WorkspaceMember;
 use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
 use App\Services\DeveloperInvitations;
+use App\Services\Plans\InvitationOccupancy;
 use App\Services\ProjectPermissions;
 use App\Services\WorkspaceAgreements;
 use Illuminate\Http\JsonResponse;
@@ -77,6 +78,7 @@ class WorkspaceAdministratorController extends Controller
                 return response()->json(['code' => 'administrator_invitation_exists', 'errors' => ['invitationId' => $pending->uuid]], 409);
             }
             $invitation = DeveloperInvitation::create(['workspace_id' => $owner->workspace_id, 'invited_by' => $owner->user_id, 'email' => $email, 'name' => $data['name'] ?? null, 'project_ids' => $ids, 'locale' => $owner->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7), 'is_project_superadmin' => $data['isProjectSuperadmin'] ?? false, 'can_create_projects' => false, 'project_permissions' => $data['projectPermissions'] ?? null]);
+            app(InvitationOccupancy::class)->observe($invitation->id);
             $sent = ($data['sendEmail'] ?? true) ? $invitations->deliver($invitation) : false;
             $link = ($data['generateLink'] ?? false) ? $invitations->issue($invitation) : null;
             $failed = ($data['sendEmail'] ?? true) && ! $sent;
@@ -163,6 +165,7 @@ class WorkspaceAdministratorController extends Controller
             $item = DeveloperInvitation::where('workspace_id', $owner->workspace_id)->where('uuid', $invitation)->lockForUpdate()->firstOrFail();
             abort_if($item->accepted_at, 410);
             $item->forceFill(['revoked_at' => now()])->save();
+            app(InvitationOccupancy::class)->observe($item->id);
         });
 
         return response()->json(['revoked' => true]);
@@ -202,6 +205,7 @@ class WorkspaceAdministratorController extends Controller
                 $target->update(['status' => $data['status']]);
                 if ($data['status'] === 'inactive') {
                     DeveloperInvitation::where('workspace_id', $owner->workspace_id)->whereRaw('LOWER(TRIM(email)) = ?', [DeveloperInvitations::normalizeEmail($target->user->email)])->whereNull('accepted_at')->update(['revoked_at' => now()]);
+                    app(InvitationOccupancy::class)->observeRevocations($owner->workspace_id);
                 }
             }
             if (array_key_exists('name', $data)) {
@@ -239,6 +243,7 @@ class WorkspaceAdministratorController extends Controller
             $target->delete();
             app(AccountSecurity::class)->audit($request->user(), 'workspace_administrator_deleted:'.$member);
             DeveloperInvitation::where('workspace_id', $owner->workspace_id)->whereRaw('LOWER(TRIM(email)) = ?', [DeveloperInvitations::normalizeEmail($target->user->email)])->whereNull('accepted_at')->update(['revoked_at' => now()]);
+            app(InvitationOccupancy::class)->observeRevocations($owner->workspace_id);
         });
 
         return response()->json(['revoked' => true]);

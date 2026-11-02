@@ -53,7 +53,7 @@ class WebhookProcessor
 
         return DB::transaction(function () use ($delivery, $owner): bool|array {
             $recipient = DB::table('webhook_endpoints')->find($delivery->webhook_endpoint_id);
-            if ($recipient?->external_agent_id) {
+            if ($recipient) {
                 IntegrationWrites::lockWorkspace($recipient->workspace_id);
             }
             $lease = DB::table('integration_locks')->where('name', 'webhooks')->lockForUpdate()->first();

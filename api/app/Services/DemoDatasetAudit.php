@@ -12,7 +12,8 @@ class DemoDatasetAudit
     {
         DemoEnvironment::assertIsolated();
         $errors = [];
-        foreach (Schema::getTableListing() as $table) {
+        $tables = Schema::getTableListing(DB::getDriverName() === 'mysql' ? DB::getDatabaseName() : null);
+        foreach ($tables as $table) {
             foreach (Schema::getForeignKeys($table) as $foreign) {
                 $query = DB::table($table.' as child')->leftJoin($foreign['foreign_table'].' as parent', function ($join) use ($foreign): void {
                     foreach ($foreign['columns'] as $index => $column) {
@@ -72,7 +73,7 @@ class DemoDatasetAudit
         $content = DB::table('tasks')->orderBy('uuid')->get(['uuid', 'title', 'description', 'expected_result', 'developer_notes', 'status', 'priority', 'estimate_hours', 'price', 'created_at'])->toJson();
 
         $snapshot = [];
-        foreach (Schema::getTableListing() as $table) {
+        foreach ($tables as $table) {
             $rows = DB::table($table)->get()->map(fn ($row) => json_encode($row))->all();
             sort($rows);
             $snapshot[$table] = hash('sha256', implode('\n', $rows));

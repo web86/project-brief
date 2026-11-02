@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Project;
+use App\Models\ProjectClient;
 use App\Models\User;
 use Database\Seeders\PlansFoundationSeeder;
 use Illuminate\Contracts\Console\Kernel;
@@ -17,4 +19,10 @@ $other = User::factory()->owner()->create(['email' => 'diagnostics@example.test'
 $primary->forceFill(['two_factor_recovery_codes' => Fortify::currentEncrypter()->encrypt(json_encode(array_map(fn ($i) => 'qa-recovery-'.$i, range(1, 60))))])->save();
 DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $primary->id, 'revision' => 1]);
 (new PlansFoundationSeeder)->run();
+$workspaceId = $primary->workspaceMembers()->firstOrFail()->workspace_id;
+for ($index = 0; $index < 3; $index++) {
+    $project = Project::factory()->create(['workspace_id' => $workspaceId, 'status' => 'active', 'title' => 'Private fixture title must not appear in inventory']);
+    $project->clients()->delete();
+    ProjectClient::factory()->create(['project_id' => $project->id, 'email' => 'shared-client@example.test']);
+}
 echo json_encode(['admin' => $primary->email, 'other' => $other->email, 'password' => 'Plans-QA-only!84']);

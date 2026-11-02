@@ -125,6 +125,9 @@ class PlansFoundationMigrationTest extends TestCase
         try {
             Schema::dropAllTables();
             foreach (glob(database_path('migrations/*.php')) as $path) {
+                if (str_contains($path, 'add_plan_inventory_accounting')) {
+                    continue; // The pre-foundation upgrade fixture excludes later implementation phases.
+                }
                 if (str_contains($path, 'create_plans_foundation')) {
                     $migration = require $path;
                 } else {

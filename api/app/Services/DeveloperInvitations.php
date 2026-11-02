@@ -8,6 +8,7 @@ use App\Models\ProjectMember;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
+use App\Services\Plans\InvitationOccupancy;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,10 +49,15 @@ class DeveloperInvitations
 
     public function issue(DeveloperInvitation $invitation): string
     {
-        $token = bin2hex(random_bytes(32));
-        $invitation->forceFill(['token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7), 'revoked_at' => null, 'sent_at' => null])->save();
+        return DB::transaction(function () use ($invitation): string {
+            IntegrationWrites::lockWorkspace($invitation->workspace_id);
+            $invitation->refresh();
+            $token = bin2hex(random_bytes(32));
+            $invitation->forceFill(['token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7), 'revoked_at' => null, 'sent_at' => null])->save();
+            app(InvitationOccupancy::class)->observe($invitation->id);
 
-        return rtrim(config('app.url'), '/').'/invitation#token='.$token;
+            return rtrim(config('app.url'), '/').'/invitation#token='.$token;
+        }, 3);
     }
 
     public function deliver(DeveloperInvitation $invitation): bool
@@ -146,6 +152,7 @@ class DeveloperInvitations
                 }
             }
             $invitation->forceFill(['accepted_at' => now()])->save();
+            app(InvitationOccupancy::class)->observe($invitation->id);
 
             return $user;
         }, 5);

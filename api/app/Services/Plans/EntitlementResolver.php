@@ -23,7 +23,7 @@ final class EntitlementResolver
         try {
             $facts = ['kind' => $row->kind, 'starts_at' => CarbonImmutable::parse($row->starts_at, 'UTC'), 'service_ends_at' => $row->service_ends_at === null ? null : CarbonImmutable::parse($row->service_ends_at, 'UTC'), 'grace_ends_at' => $row->grace_ends_at === null ? null : CarbonImmutable::parse($row->grace_ends_at, 'UTC')];
             $phase = $this->clock->phase($facts, $at);
-            if ($row->superseded_at !== null || ! in_array($phase['phase'], ['free', 'paid', 'trial', 'grace'], true) || (($row->kind === 'free') !== ($row->access_class === 'free')) || (in_array($row->kind, ['paid', 'trial'], true) && ($row->policy_state !== 'published' || $row->fallback_version_id === null || $row->fallback_version_id !== $row->policy_fallback_version_id))) {
+            if ($row->superseded_at !== null || ! in_array($phase['phase'], ['free', 'paid', 'trial', 'grace', 'compatibility'], true) || (($row->kind === 'free') !== ($row->access_class === 'free')) || (in_array($row->kind, ['paid', 'trial'], true) && ($row->policy_state !== 'published' || $row->fallback_version_id === null || $row->fallback_version_id !== $row->policy_fallback_version_id))) {
                 return $this->unavailable('lifecycle_adapter_required');
             }
             if (DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')->exists() || DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->where('state', '<>', 'ready')->exists()) {
@@ -81,7 +81,7 @@ final class EntitlementResolver
                     $validUntil = $end;
                 }
             }
-            $values['developers.max'] = $this->registry->seats(json_decode($row->developer_seats_json, true, 16, JSON_THROW_ON_ERROR), (int) $row->approved_extra_seats);
+            $values['developers.max'] = $this->registry->seats(json_decode($row->developer_seats_json, true, 16, JSON_THROW_ON_ERROR), (int) $row->approved_extra_seats, $row->access_class === 'compatibility');
 
             return ['state' => 'available', 'reason' => null, 'version_id' => (int) $row->entitlement_version_id, 'period_id' => (int) $row->id, 'policy_version_id' => $row->policy_version_id, 'subscription_revision' => (int) $row->subscription_revision, 'registry_revision' => EntitlementRegistry::REVISION, 'content_hash' => $row->content_hash, 'phase' => $phase['phase'], 'valid_until' => $validUntil?->format('Y-m-d\TH:i:s.u\Z'), 'availability' => $availability, 'values' => $values];
         } catch (InvalidArgumentException|\JsonException $e) {

@@ -205,7 +205,8 @@ class PlansFoundationTest extends TestCase
         $this->assertSame('unavailable', app(EntitlementResolver::class)->resolve($workspace->id)['state']);
         $usage = app(WorkspaceUsage::class);
         $this->assertSame('unavailable', $usage->measure($workspace->id, 'storage.bytes.max')['state']);
-        $this->assertSame('incomplete', $usage->measure($workspace->id, 'clients.max')['state']);
+        $this->assertSame('ready', $usage->measure($workspace->id, 'clients.max')['state']);
+        $this->assertSame(0, $usage->measure($workspace->id, 'clients.max')['count']);
     }
 
     public function test_seats_have_one_source_and_bounded_primary_approved_extras(): void
@@ -230,7 +231,7 @@ class PlansFoundationTest extends TestCase
         ExternalAgent::create(['workspace_id' => $project->workspace_id, 'name' => 'Not a human', 'active' => true]);
         $usage = app(WorkspaceUsage::class)->measure($project->workspace_id, 'developers.max');
         $this->assertSame(1, $usage['observed_human_members']);
-        $this->assertSame('incomplete', $usage['state']);
+        $this->assertSame('ready', $usage['state']);
         $this->assertDatabaseMissing('plan_entitlement_values', ['entitlement_key' => 'developers.max']);
     }
 
