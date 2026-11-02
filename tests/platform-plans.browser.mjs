@@ -206,8 +206,9 @@ require __DIR__.'/../vendor/autoload.php';
     403,
   )
   const deniedPage = await guest.newPage()
-  await deniedPage.goto(origin + '/platform/plans')
-  await deniedPage.waitForURL('**/admin/unavailable?reason=permission')
+  const deniedNavigation = await deniedPage.goto(origin + '/platform/plans')
+  if (packageRoot) assert.equal(deniedNavigation.status(), 403)
+  else await deniedPage.waitForURL('**/admin/unavailable?reason=permission')
   await deniedPage.goto(origin + '/platform')
   await deniedPage.locator('.platform-desktop-sidebar').waitFor()
   assert.equal(
