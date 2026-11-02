@@ -107,7 +107,7 @@ class AccountSecurity
 
     public function recommendationsPending(User $user): bool
     {
-        return ! $user->security_recommendations_seen_at && (! $user->hasEnabledTwoFactorAuthentication() || ! $user->hasPasskeysEnabled());
+        return ! $user->security_recommendations_seen_at && ! ($this->enrolled($user) || (! ($user->platform_admin || $user->isWorkspaceOwner()) && $user->hasPasskeysEnabled()));
     }
 
     public function requireFresh(Request $request): void

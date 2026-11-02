@@ -64,7 +64,7 @@ class AgentCollaborationMigrationTest extends TestCase
             $this->assertSame(0, DB::table('agent_runs')->count());
             $this->assertSame(0, DB::table('agent_messages')->count());
             $this->assertFalse(DB::table('project_members')->where('external_agent_id', $agent->id)->exists());
-            $this->assertFalse(Comment::firstOrFail()->team_only);
+            $this->assertFalse(Comment::withoutGlobalScope('public_channel')->firstOrFail()->team_only);
             $this->assertSame(['agent:tasks:read'], json_decode(DB::table('integration_tokens')->where('uuid', $token['id'])->value('scopes'), true));
         } finally {
             config(['database.default' => $original]);

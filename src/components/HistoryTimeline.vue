@@ -10,7 +10,18 @@ const visible = computed(() =>
     .filter(
       (event) =>
         props.developer ||
-        !['developer', 'estimate', 'price', 'developer_notes'].includes(event.type),
+        ([
+          'created',
+          'updated',
+          'comment',
+          'approved',
+          'status',
+          'attachment',
+          'section_moved',
+          'reordered',
+          'restored',
+        ].includes(event.type) &&
+          event.actorType !== 'agent'),
     )
     .reverse(),
 )

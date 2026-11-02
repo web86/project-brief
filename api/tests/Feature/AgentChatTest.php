@@ -98,7 +98,7 @@ class AgentChatTest extends TestCase
         $client = $project->clients()->first();
         $access = $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', 'client-test')]);
         $this->withSession(['client_project_id' => $project->id, 'project_client_id' => $client->id, 'client_access_token_id' => $access->id]);
-        $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertDontSee('PRIVATE-REPORT')->assertDontSee('PRIVATE-INSTRUCTION')->assertDontSee('LEGACY-PRIVATE-REPORT')->assertSee('LEGACY-PUBLIC-REPORT');
+        $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertDontSee('PRIVATE-REPORT')->assertDontSee('PRIVATE-INSTRUCTION')->assertDontSee('LEGACY-PRIVATE-REPORT')->assertDontSee('LEGACY-PUBLIC-REPORT');
     }
 
     public function test_reviewed_team_publication_creates_one_private_copy_without_a_client_message(): void

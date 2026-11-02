@@ -60,7 +60,7 @@ class AgentApiTest extends TestCase
         return ['Authorization' => 'Bearer '.$token['secret'], 'Idempotency-Key' => $key];
     }
 
-    public function test_historical_agent_results_remain_public_to_same_project_clients_including_links_and_downloads(): void
+    public function test_historical_agent_results_are_hidden_from_clients_including_links_and_downloads(): void
     {
         Storage::fake('local');
         [$project, , , $token, $task, $assignment] = $this->fixture();
@@ -69,7 +69,7 @@ class AgentApiTest extends TestCase
         $this->postJson($base.'/reports', ['assignmentId' => $assignment->uuid, 'state' => 'submitted', 'summary' => 'TECHNICAL-DETAIL-visible', 'resultUrl' => 'https://example.test/internal-result'], $this->headers($token))->assertCreated();
         $this->postJson($base.'/comments', ['assignmentId' => $assignment->uuid, 'text' => 'Agent public comment'], $this->headers($token, 'visible-comment'))->assertCreated();
         $file = $this->post($base.'/attachments', ['assignmentId' => $assignment->uuid, 'attachments' => [UploadedFile::fake()->createWithContent('result.txt', 'Technical file content')]], $this->headers($token, 'visible-file') + ['Accept' => 'application/json'])->assertCreated()->json('data.attachments.0.id');
-        // Simulate historical public records; the upgrade retains their stored audience.
+        // Legacy stored flags remain unchanged; current client policy excludes agent identity.
         DB::table('comments')->where('task_id', $task->id)->update(['team_only' => false]);
         Event::assertNotDispatched(ProjectNotificationRequested::class);
         $this->assertSame(0, DB::table('comments')->where('task_id', $task->id)->where('team_only', true)->count());
@@ -77,11 +77,11 @@ class AgentApiTest extends TestCase
         $client = $project->clients()->first();
         $access = $project->accessTokens()->create(['project_client_id' => $client->id, 'token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
         $this->withSession(['client_project_id' => $project->id, 'project_client_id' => $client->id, 'client_access_token_id' => $access->id]);
-        $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.comments.0.text', 'TECHNICAL-DETAIL-visible')->assertJsonPath('data.comments.0.agentReport.resultUrl', 'https://example.test/internal-result')->assertJsonPath('data.comments.1.text', 'Agent public comment');
+        $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonCount(0, 'data.comments');
         $this->assertArrayNotHasKey('agentAssignments', $response->json('data'));
         $this->assertArrayNotHasKey('developerNotes', $response->json('data'));
         $this->assertArrayNotHasKey('price', $response->json('data'));
-        $this->get('/api/client/attachments/'.$file.'/download')->assertOk();
+        $this->get('/api/client/attachments/'.$file.'/download')->assertNotFound();
         $foreign = Project::factory()->create();
         $otherClient = $foreign->clients()->first();
         $otherAccess = $foreign->accessTokens()->create(['project_client_id' => $otherClient->id, 'token_hash' => hash('sha256', bin2hex(random_bytes(32)))]);
@@ -90,13 +90,13 @@ class AgentApiTest extends TestCase
         $this->getJson('/api/client/attachments/'.$file.'/download')->assertNotFound();
     }
 
-    public function test_historical_agent_live_notification_preview_depends_on_existing_project_settings(): void
+    public function test_historical_agent_live_notification_preview_is_hidden_even_without_project_settings(): void
     {
         [$project, , , $token, $task, $assignment] = $this->fixture();
         $notifications = app(LiveNotifications::class);
         $watermark = $notifications->seed();
         $this->postJson('/api/v1/agent/tasks/'.$task->uuid.'/comments', ['assignmentId' => $assignment->uuid, 'text' => 'Technical preview visible without settings'], $this->headers($token))->assertCreated();
-        // Simulate historical public records; the upgrade retains their stored audience.
+        // Legacy stored flags remain unchanged; current client policy excludes agent identity.
         DB::table('comments')->where('task_id', $task->id)->update(['team_only' => false]);
         $client = $project->clients()->first();
         $client->forceFill(['notification_preferences' => ['push' => true]])->save();
@@ -107,8 +107,7 @@ class AgentApiTest extends TestCase
         $this->assertSame([], $notifications->changes($request, $watermark, null)['items']);
         ProjectNotificationSetting::where('project_id', $project->id)->delete();
         $items = $notifications->changes($request, $watermark, null)['items'];
-        $this->assertCount(1, $items);
-        $this->assertSame('Technical preview visible without settings', $items[0]['preview']);
+        $this->assertSame([], $items);
     }
 
     public function test_identity_permissions_minimal_data_and_function_boundaries(): void

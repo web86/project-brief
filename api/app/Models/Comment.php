@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ClientEventVisibility;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ class Comment extends Model
 
     protected static function booted(): void
     {
-        static::addGlobalScope('public_channel', fn ($query) => $query->where('comments.team_only', false));
+        static::addGlobalScope('public_channel', fn ($query) => ClientEventVisibility::comments($query));
     }
 
     protected $fillable = ['external_agent_id', 'team_only', 'submission_key', 'submission_fingerprint', 'project_id', 'project_client_id', 'task_id', 'author_type', 'author_user_id', 'text'];

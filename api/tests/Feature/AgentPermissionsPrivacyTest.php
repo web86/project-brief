@@ -231,7 +231,7 @@ class AgentPermissionsPrivacyTest extends TestCase
         $this->postJson('/api/admin/integrations/agents/'.$agent->uuid.'/tokens', ['scopes' => ['agent:tasks:report']])->assertCreated();
     }
 
-    public function test_new_agent_results_are_internal_but_history_stays_public_and_unmodified(): void
+    public function test_agent_results_and_legacy_agent_identity_are_private_without_rewriting_history(): void
     {
         [$project, $owner, $agent, $token, $task, $assignment] = $this->fixture();
         $legacy = Comment::create(['project_id' => $project->id, 'task_id' => $task->id, 'author_type' => 'agent', 'external_agent_id' => $agent->id, 'text' => 'Historical public agent comment', 'team_only' => false]);
@@ -254,11 +254,11 @@ class AgentPermissionsPrivacyTest extends TestCase
         $request->attributes->set('project_client', $client);
         $this->assertSame([], app(LiveNotifications::class)->changes($request, $seed, null)['items']);
         $this->client($project);
-        $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonCount(1, 'data.comments')->assertJsonPath('data.comments.0.text', 'Historical public agent comment');
+        $response = $this->getJson('/api/client/tasks/'.$task->uuid)->assertOk()->assertJsonCount(0, 'data.comments');
         foreach (['INTERNAL_SUMMARY', 'internal.txt', 'https://example.test/internal', 'agent_reports', 'agent_attachments'] as $secret) {
             $this->assertStringNotContainsString($secret, $response->getContent());
         }
-        $this->getJson('/api/client/project/'.$project->uuid.'/discussions?kind=tasks')->assertOk()->assertJsonCount(1, 'data');
+        $this->getJson('/api/client/project/'.$project->uuid.'/discussions?kind=tasks')->assertOk()->assertJsonCount(0, 'data');
         foreach (['download', 'preview', 'original'] as $mode) {
             $this->getJson('/api/client/attachments/'.$file.'/'.$mode)->assertNotFound();
         }

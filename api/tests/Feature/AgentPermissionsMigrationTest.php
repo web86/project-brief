@@ -58,7 +58,7 @@ class AgentPermissionsMigrationTest extends TestCase
                 $this->assertSame($before[$table], $after, $table);
             }
             $this->assertSame(AgentPermissions::DEFAULTS, AgentPermissions::normalize($agent->fresh()->permissions));
-            $this->assertFalse(Comment::firstOrFail()->team_only);
+            $this->assertFalse(Comment::withoutGlobalScope('public_channel')->firstOrFail()->team_only);
             $this->assertSame(['agent:tasks:read'], json_decode(DB::table('integration_tokens')->where('uuid', $token['id'])->value('scopes'), true));
         } finally {
             config(['database.default' => $original]);

@@ -129,6 +129,12 @@ class ProjectNotificationService
         }
         $preferences = $settings->delivery_mode === 'personal' ? ['email' => true, 'push' => true, 'telegram' => true] : $settings->preferences()[$event->event];
         $toAdmin = NotificationEvents::toTeam($event->event);
+        $history = $task?->history()->find($event->historyId);
+        if (! $toAdmin && (! in_array($event->actorType, ['admin', 'client'], true)
+            || ($comment && ($comment->team_only || $comment->external_agent_id || $comment->author_type === 'agent'))
+            || ($history && ! ClientEventVisibility::historyVisible($history)))) {
+            return;
+        }
         $recipients = $toAdmin ? ProjectAccess::recipients($project)->get() : $project->clients()->where('active', true)->whereHas('accessTokens', fn ($q) => $q->where('project_id', $project->id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())))->get();
         $dedup = $comment ? 'comment:'.$comment->id : (string) $event->historyId;
         $actorEmail = $event->actorType === 'admin' ? User::find($event->actorId)?->email : ProjectClient::find($event->actorId)?->email;

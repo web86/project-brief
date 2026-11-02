@@ -83,6 +83,7 @@ class FlexibleAccountSecurityTest extends TestCase
         } else {
             $this->getJson('/api/admin/me')->assertOk();
         }
+        $this->getJson('/api/security/status')->assertOk()->assertJsonPath('recommendationsPending', ! ($totp || $passkey));
         $this->travel(301)->seconds();
         $this->postJson('/api/security/confirm', ['current_password' => 'Flexible-password!'])->assertStatus($totp ? 422 : 200);
         if ($totp) {

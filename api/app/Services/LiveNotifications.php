@@ -38,12 +38,12 @@ class LiveNotifications
             ->leftJoin('users as u', 'u.id', '=', 'h.actor_user_id')->leftJoin('project_clients as pc', 'pc.id', '=', 'h.project_client_id')->whereNull('t.deleted_at'), $member)
             ->where('h.id', '>', $watermark['startHistory'] ?? $watermark['history'])
             ->where(fn ($query) => $query->where('h.id', '>', $watermark['history'])->orWhere('h.created_at', '>=', $overlap))->orderBy('h.id')->limit(51)
-            ->get(['h.id', 'h.event_type', 'h.actor_type', 'h.actor_user_id', 'h.project_client_id', 'h.old_value', 'h.new_value', 'p.id as project_id', 'p.uuid as project_uuid', 'p.title as project', 't.uuid as task_uuid', 't.title as task', DB::raw('COALESCE(u.name, pc.name) as author'), DB::raw('COALESCE(u.email, pc.email) as actor_email')]);
+            ->get(['h.id', 'h.task_id', 'h.event_type', 'h.meta', 'h.actor_type', 'h.actor_user_id', 'h.project_client_id', 'h.old_value', 'h.new_value', 'p.id as project_id', 'p.uuid as project_uuid', 'p.title as project', 't.uuid as task_uuid', 't.title as task', DB::raw('COALESCE(u.name, pc.name) as author'), DB::raw('COALESCE(u.email, pc.email) as actor_email')]);
         $comments = $this->scoped($request, DB::table('comments as c')->leftJoin('tasks as t', 't.id', '=', 'c.task_id')
             ->join('projects as p', 'p.id', '=', DB::raw('COALESCE(t.project_id, c.project_id)'))
             ->leftJoin('users as u', 'u.id', '=', 'c.author_user_id')->leftJoin('project_clients as pc', 'pc.id', '=', 'c.project_client_id')
             ->where(fn ($q) => $q->whereNull('c.task_id')->orWhereNull('t.deleted_at')), $member)
-            ->when(! TaskAccess::isAdmin($request), fn ($q) => $q->where('c.team_only', false))
+            ->when(! TaskAccess::isAdmin($request), fn ($q) => $q->where('c.team_only', false)->whereNull('c.external_agent_id')->whereIn('c.author_type', ['admin', 'client']))
             ->where('c.id', '>', $watermark['startComments'] ?? $watermark['comments'])
             ->where(fn ($query) => $query->where('c.id', '>', $watermark['comments'])->orWhere('c.created_at', '>=', $overlap))->orderBy('c.id')->limit(51)
             ->get(['c.id', 'c.uuid', 'c.team_only', 'c.author_type as actor_type', 'c.author_user_id as actor_user_id', 'c.project_client_id', 'p.id as project_id', 'p.uuid as project_uuid', 'p.title as project', 't.uuid as task_uuid', 't.title as task', DB::raw("CASE WHEN c.team_only = 1 THEN '' ELSE SUBSTR(c.text, 1, 220) END as preview"), DB::raw('COALESCE(u.name, pc.name) as author'), DB::raw('COALESCE(u.email, pc.email) as actor_email')]);
@@ -51,6 +51,9 @@ class LiveNotifications
         $items = [];
         foreach ([...$history, ...$comments] as $row) {
             $comment = property_exists($row, 'preview');
+            if (! TaskAccess::isAdmin($request) && ! $comment && ! ClientEventVisibility::historyVisible($row)) {
+                continue;
+            }
             $kind = $comment ? 'comment' : (in_array($row->event_type, ['status', 'approved'], true) ? 'status' : $row->event_type);
             $self = $row->actor_type === (TaskAccess::isAdmin($request) ? 'admin' : 'client') && ($row->actor_user_id ?? $row->project_client_id) === $recipient->id;
             if (! in_array($kind, ['created', 'status', 'comment'], true) || $self || ($row->actor_email && $recipient->email && strcasecmp($row->actor_email, $recipient->email) === 0)) {
@@ -64,7 +67,7 @@ class LiveNotifications
             $base = (TaskAccess::isAdmin($request) ? '/admin/projects/' : '/project/').$row->project_uuid;
             $url = $row->task_uuid ? $base.(TaskAccess::isAdmin($request) ? '/brief/task/' : '/task/').$row->task_uuid : $base.'/discussions';
             $items[] = ['id' => ($comment ? 'comment:' : 'history:').$row->id, 'kind' => $kind, 'project' => $this->text($row->project, 100), 'task' => $this->text($row->task ?? '', 100),
-                'author' => $this->text($row->author ?? '', 60), 'preview' => $comment ? $this->text($row->preview, 160) : '', 'old' => $row->old_value ?? null, 'status' => ($row->event_type ?? null) === 'approved' ? 'approved' : ($row->new_value ?? null),
+                'author' => $this->text($row->author ?? '', 60), 'preview' => $comment ? $this->text($row->preview, 160) : '', 'old' => TaskAccess::isAdmin($request) ? ($row->old_value ?? null) : ClientEventVisibility::publicValue($row->event_type ?? '', $row->old_value ?? null), 'status' => ($row->event_type ?? null) === 'approved' ? 'approved' : (TaskAccess::isAdmin($request) ? ($row->new_value ?? null) : ClientEventVisibility::publicValue($row->event_type ?? '', $row->new_value ?? null)),
                 'url' => $url.($comment ? ($team ? '#team-' : '#comment-').$row->uuid : '')];
         }
 
