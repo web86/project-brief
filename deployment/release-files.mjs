@@ -288,6 +288,11 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/app/Http/Controllers/AgentResultController.php',
     'private/project-brief-app/database/migrations/2026_10_31_065854_add_permissions_to_external_agents.php',
     'private/project-brief-app/database/migrations/2026_10_30_213603_add_external_agents.php',
+    'private/project-brief-app/database/migrations/2026_11_02_082151_create_plans_foundation.php',
+    'private/project-brief-app/database/seeders/PlansFoundationSeeder.php',
+    'private/project-brief-app/app/Console/Commands/SetPlanAuthority.php',
+    'private/project-brief-app/app/Http/Controllers/PlatformPlansController.php',
+    'private/project-brief-app/app/Services/Plans/PlanManagement.php',
     'release.json',
   ]
   for (const file of required) {

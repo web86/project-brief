@@ -136,6 +136,10 @@ try {
   ]) {
     await mkdir(path.join(application, directory), { recursive: true })
   }
+  await copyRelease(
+    path.join(root, 'api/database/seeders/PlansFoundationSeeder.php'),
+    path.join(application, 'database/seeders/PlansFoundationSeeder.php'),
+  )
   await copyRelease(path.join(root, 'dist'), path.join(staging, 'public'), { recursive: true })
   await copyRelease(path.join(root, 'deployment/public'), path.join(staging, 'public'), {
     recursive: true,
@@ -266,6 +270,7 @@ try {
     PHP_BIN: php,
   })
   run(process.execPath, ['tests/release-runtime.mjs', verification], root, { PHP_BIN: php })
+  run(process.execPath, ['tests/platform-plans.package.mjs', verification], root, { PHP_BIN: php })
   await validateRelease(verification, secrets)
   await rm(verification, { recursive: true, force: true })
   verification = undefined
