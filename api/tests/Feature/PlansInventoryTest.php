@@ -318,4 +318,24 @@ class PlansInventoryTest extends TestCase
         $this->assertSame(2, $usage['count']);
         $this->assertTrue($usage['reservation_refresh_required']);
     }
+
+    public function test_conflicting_contact_hint_and_email_alias_keep_new_link_isolated(): void
+    {
+        [$project] = $this->workspace();
+        $clients = [];
+        foreach ([1, 2] as $index) {
+            $email = 'contact-'.$index.'@example.test';
+            $contact = DB::table('workspace_clients')->insertGetId(['uuid' => (string) Str::uuid(), 'workspace_id' => $project->workspace_id, 'name' => 'Accounting hint', 'email' => $email, 'email_hash' => hash('sha256', $email), 'created_at' => now(), 'updated_at' => now()]);
+            $clients[] = ProjectClient::factory()->create(['project_id' => $project->id, 'email' => $email, 'workspace_client_id' => $contact]);
+        }
+        $this->backfill($project->workspace_id);
+        $third = ProjectClient::factory()->create(['project_id' => $project->id, 'email' => $clients[1]->email, 'workspace_client_id' => $clients[0]->workspace_client_id]);
+        app(LegacyInventory::class)->process($project->workspace_id, refresh: true);
+        $ids = [$clients[0]->fresh()->entitlement_identity_id, $clients[1]->fresh()->entitlement_identity_id, $third->fresh()->entitlement_identity_id];
+        $this->assertCount(3, array_unique($ids));
+        $usage = app(WorkspaceUsage::class)->measure($project->workspace_id, 'clients.max');
+        $this->assertSame(3, $usage['count']);
+        $this->assertSame('incomplete', $usage['state']);
+        $this->assertDatabaseHas('entitlement_client_observations', ['project_client_id' => $third->id, 'state' => 'needs_review']);
+    }
 }

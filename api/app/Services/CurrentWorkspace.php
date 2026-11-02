@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ class CurrentWorkspace
         if ($lock) {
             // Resolve without child locks, then recheck membership after taking the workspace mutex.
             $preview = $this->resolve($request);
-            IntegrationWrites::lockWorkspace($preview->workspace_id);
+            Workspace::whereKey($preview->workspace_id)->lockForUpdate()->firstOrFail();
             $query->lockForUpdate();
         }
         if ($request->session()->has(self::SESSION_KEY)) {

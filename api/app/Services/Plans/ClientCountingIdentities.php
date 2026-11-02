@@ -88,6 +88,20 @@ final class ClientCountingIdentities
         if ($facts['email'] !== '') {
             $aliases[] = ['email', 'normalized-email', $facts['email']];
         }
+        if (! $identity && ! $proof) {
+            $candidates = [];
+            foreach ($aliases as [$aliasKind, $issuer, $value]) {
+                $candidateAlias = $this->alias($workspaceId, $aliasKind, $issuer, $value);
+                if ($candidateAlias?->state === 'ambiguous') {
+                    $reasons[] = 'ambiguous_client_alias';
+                } elseif ($candidateAlias?->identity_id) {
+                    $candidates[$candidateAlias->identity_id] = true;
+                }
+            }
+            if (count($candidates) > 1) {
+                $reasons[] = 'ambiguous_client_alias';
+            }
+        }
         foreach ($aliases as [$aliasKind, $issuer, $value]) {
             if ($identity || $reasons) {
                 break;
