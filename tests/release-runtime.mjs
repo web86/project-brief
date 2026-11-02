@@ -52,6 +52,8 @@ try {
     assert.match(example, new RegExp(`^${key}=$`, 'm'))
   }
   const localEnvironment = example
+    .replace('APP_NAME=Dev2Done', 'APP_NAME=ProjectBrief')
+    .replace('MAIL_FROM_NAME=Dev2Done', 'MAIL_FROM_NAME=ProjectBrief')
     .replace('DB_CONNECTION=mysql', 'DB_CONNECTION=sqlite')
     .replace('DB_DATABASE=specchina_breaf_tz', `DB_DATABASE="${database}"`)
   await writeFile(path.join(application, '.env'), localEnvironment, { mode: 0o600 })
@@ -59,6 +61,14 @@ try {
   assert.match(command(['bin/first-install'], 'n\n'), /Installation complete/)
   const installedEnvironment = await readFile(path.join(application, '.env'), 'utf8')
   assert.match(installedEnvironment, /^APP_KEY=base64:.+/m)
+  assert.match(installedEnvironment, /^APP_NAME=ProjectBrief$/m)
+  const productIdentity = JSON.parse(
+    command([
+      '-r',
+      'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo json_encode([config("app.name"),config("mail.from.name")]);',
+    ]),
+  )
+  assert.deepEqual(productIdentity, ['Dev2Done', 'Dev2Done'])
   const administrator = command(
     ['bin/first-install'],
     'y\nRelease QA\nrelease@example.test\nRelease-only-long-password\n',
@@ -966,7 +976,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       assert.equal(data.schemaVersion, 1)
       assert.doesNotMatch(
         bytes.toString(),
-        /PRIVATE_RELEASE_NOTE|estimateHours|developerNotes|\"price\"/,
+        /PRIVATE_RELEASE_NOTE|estimateHours|developerNotes|"price"/,
       )
     } else {
       const file = path.join(fixtureRoot, 'runtime-client-export.docx')
@@ -1651,7 +1661,7 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.9.11',
+    '0.9.12',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /Новых migrations/)

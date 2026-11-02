@@ -36,8 +36,8 @@ await cp(
 await rm(path.join(output, 'sw.js'), { force: true })
 const webmanifest = JSON.parse(await readFile(path.join(output, 'manifest.webmanifest')))
 Object.assign(webmanifest, {
-  name: 'Project Brief · Static Demo',
-  short_name: 'Brief Demo',
+  name: 'Dev2Done · Static Demo',
+  short_name: 'D2D',
   start_url: '/demo',
 })
 await writeFile(
@@ -85,6 +85,8 @@ await writeFile(
   JSON.stringify(
     {
       type: 'project-brief-static-demo',
+      product: 'Dev2Done',
+      version: 2,
       schemaVersion: 1,
       commit,
       preview,
@@ -102,7 +104,7 @@ await writeFile(
 )
 await writeFile(
   path.join(output, 'README.txt'),
-  'Project Brief Static Demo\nUpload this directory to a separate static web root (demo.brief.web86.site). Never upload the production PHP package here. Apache requires mod_rewrite and AllowOverride for .htaccess; configure equivalent SPA fallback elsewhere. /api always returns 404. No backend or database is needed. Entry: /demo. Keep manifest/index uncached and retain older hashed assets during updates. See the project docs/demo/static/HOSTING.md for independent installation and rollback.\n',
+  'Dev2Done Static Demo\nUpload this directory to a separate static web root (demo.brief.web86.site). Never upload the production PHP package here. Apache requires mod_rewrite and AllowOverride for .htaccess; configure equivalent SPA fallback elsewhere. /api always returns 404. No backend or database is needed. Entry: /demo. Keep manifest/index uncached and retain older hashed assets during updates. See the project docs/demo/static/HOSTING.md for independent installation and rollback.\n',
 )
 async function list(directory, prefix = '') {
   const files = []
@@ -134,11 +136,7 @@ await writeFile(path.join(output, 'checksums.txt'), checksumText)
 await validateStaticDemo(output)
 if (!preview) {
   await mkdir('release', { recursive: true })
-  const archive = path.join(
-    root,
-    'release',
-    `project-brief-static-demo-v1-${commit.slice(0, 7)}.zip`,
-  )
+  const archive = path.join(root, 'release', `dev2done-static-demo-v2-${commit.slice(0, 7)}.zip`)
   const temporary = archive + '.partial'
   const extracted = await mkdtemp(path.join(tmpdir(), 'brief-static-package-'))
   try {

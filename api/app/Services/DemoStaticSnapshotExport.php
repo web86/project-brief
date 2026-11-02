@@ -288,7 +288,7 @@ class DemoStaticSnapshotExport
             ['heading', 'Harborline Studio Team Agreement'],
             ['paragraph', 'Version 2026-10-01 · Fictional demonstration agreement between Harborline Digital Studio and its team members.'],
             ['subheading', 'Professional collaboration'],
-            ['paragraph', 'We agree to communicate clearly, document decisions, respect agreed delivery milestones and raise risks early. Workspace access is granted only for assigned studio work.'],
+            ['paragraph', 'We coordinate delivery through Dev2Done and agree to communicate clearly, document decisions, respect agreed delivery milestones and raise risks early. Workspace access is granted only for assigned studio work.'],
             ['subheading', 'Confidentiality and client trust'],
             ['paragraph', 'Keep client materials and internal discussions within their intended audience. Share AI-assisted research only after a human review; publish client-facing decisions through the approved project channels.'],
             ['subheading', 'Security and responsible access'],

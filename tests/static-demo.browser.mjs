@@ -5,7 +5,7 @@ import { staticDemoServer } from '../deployment/static-demo-server.mjs'
 import { validateStaticDemo } from '../deployment/validate-static-demo.mjs'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(process.env.STATIC_DEMO_PACKAGE_ROOT || '.tools/static-demo-build')
-const output = path.resolve('artifacts/demo/static')
+const output = path.resolve(process.env.STATIC_DEMO_OUTPUT_DIRECTORY || 'artifacts/demo/static')
 await mkdir(output, { recursive: true })
 const { manifest, ...validated } = await validateStaticDemo(root)
 async function snapshot(role, endpoint) {
@@ -49,6 +49,9 @@ async function check(page, url, name, screenshot = true) {
   await page.goto(origin + url)
   await ready(page)
   assert.equal(new URL(page.url()).pathname, url, name)
+  assert.ok((await page.title()).includes('Dev2Done'), name + ': product title')
+  const visible = (await page.locator('body').innerText()).replace(/X-ProjectBrief-[A-Za-z-]+/g, '')
+  assert.ok(!/\bProject ?Brief\b/i.test(visible), name + ': old visible product name')
   assert.ok((await page.locator('main').innerText()).length > 30, name)
   assert.equal(
     await page.locator('main [role=alert]:visible').count(),
@@ -224,6 +227,7 @@ try {
   await client.goto(origin + '/demo/client')
   await client.waitForURL('**/project/' + selected.id)
   await ready(client)
+  assert.equal(await client.locator('.section-title').first().innerText(), '1. Core experience')
   for (const [url, name] of [
     [`/project/${selected.id}`, 'overview'],
     [`/project/${selected.id}/task/${task.id}`, 'task'],

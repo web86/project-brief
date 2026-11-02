@@ -119,7 +119,16 @@ export async function validateStaticDemo(directory) {
     }
   }
   assert.equal(taskIds.size, 150)
+  const clientSections = read(
+    'client',
+    '/api/client/project/' + manifest.clientProject + '/sections',
+  ).data
+  assert.equal(clientSections[0].name, 'Core experience')
+  assert.equal(clientSections[0].position, 1)
   const clientTasks = read('client', '/api/client/tasks').data
+  const coreTasks = clientTasks.filter((task) => task.sectionId === clientSections[0].id)
+  assert.equal(coreTasks.length, 6)
+  coreTasks.forEach((task) => assert.match(task.displayNumber, /^1\./))
   const ownTasks = read(
     'developer',
     '/api/admin/projects/' + manifest.clientProject + '/tasks',

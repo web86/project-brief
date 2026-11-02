@@ -13,7 +13,9 @@ const packageRoot = process.env.UX_PACKAGE_ROOT
 const phpBin = process.env.PHP_BIN || 'php'
 const publicRoot = path.join(scratch, 'domains/brief.web86.site')
 const app = path.join(scratch, packageRoot ? 'project-brief-app' : 'app'),
-  output = path.join(root, 'artifacts/milestone-10-0-phase-2/browser')
+  output =
+    process.env.UX_BROWSER_OUTPUT_DIRECTORY ||
+    path.join(root, 'artifacts/milestone-10-0-phase-2/browser')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 async function port() {
@@ -245,6 +247,14 @@ require __DIR__.'/../vendor/autoload.php';
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
       )
+      if (language === 'en' && theme === 'light') {
+        await page.locator('.platform-collapse').click()
+        await page.locator('.platform-compact-brand .brand-mark svg').waitFor()
+        const compact = await page.locator('.platform-compact-brand').boundingBox()
+        assert.ok(compact.width <= 41)
+        await capture(page, 'dev2done-collapsed-sidebar.png')
+        await page.locator('.platform-collapse').click()
+      }
       await page.goto(origin + '/platform/plans/new/versions/new')
       await page.locator('.plans-editor input[maxlength="64"]').waitFor()
       assert.equal(

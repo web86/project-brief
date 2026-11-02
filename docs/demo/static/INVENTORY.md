@@ -20,3 +20,5 @@ The current reviewed fixture provides 314 developer and 26 client read paths gro
 The existing product forms remain the same components; local field previews never persist changes. Profile/security/agreement actions are disabled; other attempted writes show the view-only message. UI language and theme are local visitor preferences. Client has no invented account security or administration pages.
 
 Synthetic statuses for integration previews, security devices and agreement acceptance are illustrations of existing supported fields. They do not represent active integrations or real enrollment. Existing production functionality is exercised separately through its original Laravel transport.
+
+Dev2Done edition v2 retains schema v1 and the same role contracts. Northstar client section ordering now starts with Core experience (six tasks, `1.x`), followed by Discovery & design and Delivery & quality. Harborline remains the fictional studio while the surrounding platform, demo signature, marks and accent are Dev2Done.

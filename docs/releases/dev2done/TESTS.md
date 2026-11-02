@@ -1,0 +1,12 @@
+# Rebranding verification
+
+Production and Static Demo are independently packaged, extracted and checked. Exact final archive SHA/source commits/results are recorded in ARTIFACTS.md.
+
+- PHP 8.4.26 / MariaDB 11.8.9: full backend regression 1109 tests / 16267 assertions passed. After the requested client section reorder, 27 focused demo/privacy/security-policy tests passed with 304 assertions, including Core experience first and `1.x` task numbering.
+- Frontend tests include the existing suite plus Dev2Done SVG identity, action/link/focus contrast, unchanged installed-app identity and compatibility of portable API documentation. Normal Vite production build and committed SVG/PNG/ICO checksum verification pass.
+- Ordinary security browser harness: 23 scenarios passed, including signed virtual UV Passkeys, TOTP/recovery, MFA, step-up, existing client session and Firefox engine compatibility (mock authenticator for Firefox).
+- Platform/plans browser harness: RU/EN × light/dark/system, desktop/mobile; shared sidebar/history, plan revisions/publication/unsaved edits; logo in collapsed rail/mobile header; widths down to 375px and no overflow/JS errors.
+- Static browser harness: both roles, all ten projects/150 tasks and existing settings/profile/security/agreement/export interfaces, Team Chat/agent conversation/integrations, search/filters, direct URLs/reload/history, languages/themes/mobile. Every page title uses Dev2Done and visible text contains no old product name (stable API headers are excluded from prose checks). Client section Core experience is first, contains six tasks and uses `1.x`. No HTTP API requests, writes, external connections or JS errors.
+- JSON review compared every changed public field against Static Demo v1: only logo/color/derived asset metadata, explicit Dev2Done agreement text and Northstar section ordering/display numbers changed. Schema v1/read paths, UUIDs, task content/counts, people, credentials and client privacy projections remain intact. A reviewed new manifest fingerprint is pinned; schemas are not broadened automatically.
+
+Screenshots of chooser, profile, client/mobile/Core experience, security and platform/plans were visually inspected. Evidence is local under `artifacts/rebrand-dev2done/`, outside both ZIPs. Physical devices, hardware Touch ID, real Safari/WebKit, hosting Apache settings and Jino deployment are not verified. No production access, deployment or push was performed.

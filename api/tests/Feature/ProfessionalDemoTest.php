@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Services\DemoDatasetAudit;
 use App\Services\DemoEnvironment;
 use App\Services\DemoStaticSnapshotExport;
+use App\Services\ProjectStructure;
 use Database\Seeders\ProfessionalDemoSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,9 @@ class ProfessionalDemoTest extends TestCase
         $this->getJson('/api/admin/me')->assertOk()->assertJsonPath('user.platformAdmin', false)->assertJsonPath('user.membershipRole', 'owner');
         $this->getJson('/api/admin/projects')->assertOk()->assertJsonCount(10, 'data');
         $project = Project::where('title', 'Northstar Commerce')->firstOrFail();
+        $this->assertSame('Core experience', $project->briefSections()->first()->name);
         $task = $project->tasks()->orderBy('id')->skip(2)->first();
+        $this->assertStringStartsWith('1.', ProjectStructure::number($task));
         $this->getJson('/api/admin/tasks/'.$task->uuid)->assertOk()->assertJsonPath('data.hasAgentHistory', true)->assertJsonPath('data.agentAssignments.0.agent.hasCredentials', true);
         $this->getJson('/api/admin/integrations')->assertOk()->assertJsonPath('tokens.0.synthetic', true);
         $this->assertSame(4, DB::table('integration_tokens')->where('expires_at', '<', now())->count());

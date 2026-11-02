@@ -1,3 +1,4 @@
+import { productMarkdown, productOpenApi } from './product-presentation.mjs'
 import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile, access } from 'node:fs/promises'
@@ -5,6 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   checksums,
+  entries,
   demoOnlyRuntimePath,
   environmentSecrets,
   normalizePermissions,
@@ -162,7 +164,7 @@ try {
     path.join(staging, 'deployment/rollback-public.htaccess'),
   )
   await copyRelease(
-    path.join(root, 'docs/releases/ux-polish/PRODUCTION.md'),
+    path.join(root, 'docs/releases/dev2done/PRODUCTION.md'),
     path.join(staging, 'PRODUCTION.md'),
   )
   await mkdir(path.join(staging, 'agent-api/examples'), { recursive: true })
@@ -226,9 +228,19 @@ try {
       .replaceAll('(docs/project-trash/PRODUCTION.md)', '(PRODUCTION.md)')
       .replaceAll('(docs/milestone-6-2/PRODUCTION.md)', '(PRODUCTION.md)'),
   )
+  for (const file of await entries(path.join(staging, 'agent-api'))) {
+    const target = path.join(staging, 'agent-api', file.relative)
+    if (file.relative.endsWith('.md'))
+      await writeFile(target, productMarkdown(await readFile(target, 'utf8')))
+    if (file.relative.endsWith('openapi.json'))
+      await writeFile(
+        target,
+        JSON.stringify(productOpenApi(JSON.parse(await readFile(target, 'utf8'))), null, 2) + '\n',
+      )
+  }
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.9.11', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    `${JSON.stringify({ version: '0.9.12', product: 'Dev2Done', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }
@@ -257,7 +269,7 @@ try {
   const secrets = await knownLocalSecrets()
   const fileCount = await validateRelease(staging, secrets)
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
-  const archive = path.join(releaseRoot, `project-brief-v0.9.11-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(releaseRoot, `dev2done-v0.9.12-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
   // Test the actual ZIP in a fresh directory, never an existing installation.

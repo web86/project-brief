@@ -1,3 +1,5 @@
+> Dev2Done v0.9.12 — rebranding only, before Phase 3. Update/rollback without new migrations, required env keys or plan reinitialization: [current runbook](docs/releases/dev2done/PRODUCTION.md). Existing private runtime path remains `project-brief-app`.
+
 # v0.9.8 — agent permissions and privacy
 
 For installed v0.9.7 use [update and safe rollback](docs/milestone-9-6-2/PRODUCTION.md). New agent results are internal; historical visibility is preserved. A runtime-only downgrade with active agents is unsafe because old versions ignore permission ceilings and create public output.
@@ -6,7 +8,7 @@ For installed v0.9.7 use [update and safe rollback](docs/milestone-9-6-2/PRODUCT
 
 Актуальные обновление и безопасный rollback: [Milestone 9.6](docs/milestone-9-6/PRODUCTION.md). Откат требует совместимого runtime либо согласованной пары БД/storage/runtime; идентичности агентов и приватный чат должны сохраняться.
 
-> Milestone 9.0 / Project Brief 0.9.0 — Platform Admin & Usage Monitoring.
+> Milestone 9.0 / Dev2Done 0.9.0 — Platform Admin & Usage Monitoring.
 
 Текущий release 0.9.3 / Milestone 9.3: [deployment и rollback](docs/milestone-9-3/PRODUCTION.md).
 
@@ -22,23 +24,23 @@ For installed v0.9.7 use [update and safe rollback](docs/milestone-9-6-2/PRODUCT
 >
 > Rollback: вернуть runtime/public предыдущего 0.8.4, сохранить `.env`, APP_KEY, storage и additive schema; выполнить optimize:clear/cache. Не запускать migrate:rollback, не удалять audit, grants и metrics. Старый runtime игнорирует новые поля/таблицы. Полные инструкции и QA evidence находятся в репозитории: [Milestone 9.0](docs/milestone-9-0/PRODUCTION.md).
 
-> Milestone 8.4 / Project Brief 0.8.4: [UX, live notifications, обновление и rollback](docs/milestone-8-4/PRODUCTION.md).
+> Milestone 8.4 / Dev2Done 0.8.4: [UX, live notifications, обновление и rollback](docs/milestone-8-4/PRODUCTION.md).
 
-> Milestone 8.2 / Project Brief 0.8.3: [Trusted Handoff — обновление и безопасный откат](docs/milestone-8-2/PRODUCTION.md).
+> Milestone 8.2 / Dev2Done 0.8.3: [Trusted Handoff — обновление и безопасный откат](docs/milestone-8-2/PRODUCTION.md).
 
-> Milestone 8.1 / Project Brief 0.8.2: [Project Requests — обновление и откат](docs/milestone-8-1/PRODUCTION.md).
+> Milestone 8.1 / Dev2Done 0.8.2: [Project Requests — обновление и откат](docs/milestone-8-1/PRODUCTION.md).
 
-> Project Brief 0.8.1: [Client Entry UX — обновление и откат](docs/client-entry-0-8-1/PRODUCTION.md).
+> Dev2Done 0.8.1: [Client Entry UX — обновление и откат](docs/client-entry-0-8-1/PRODUCTION.md).
 
-> Project Brief 0.8.0: [Integration Foundation — обновление и откат](docs/milestone-8-0/PRODUCTION.md).
+> Dev2Done 0.8.0: [Integration Foundation — обновление и откат](docs/milestone-8-0/PRODUCTION.md).
 
-> Project Brief 0.7.8: [Live Sync, UI polish, обновление и откат](docs/live-sync-ui/PRODUCTION.md).
+> Dev2Done 0.7.8: [Live Sync, UI polish, обновление и откат](docs/live-sync-ui/PRODUCTION.md).
 
 > Milestone 7.4 (0.7.4): [приглашения, отзывы, миграция, обновление и откат](docs/milestone-7-4/PRODUCTION.md).
 
 > Milestone 7.2.1 (0.7.3): до обновления прочитайте [Passkey step-up, обновление и откат](docs/milestone-7-2-1/PRODUCTION.md). Владельцу обязателен TOTP и сохранённые recovery codes; Passkey доброволен. Сохраняйте HTTPS, origin/RP ID, APP_KEY и существующие факторы.
 
-# ProjectBrief на Jino
+# Dev2Done на Jino
 
 Домен: **https://brief.web86.site**. Публичная папка: **`~/domains/brief.web86.site`**.
 База уже создана: **`specchina_breaf_tz`**. На хостинге нужны PHP 8.4, его расширения и MySQL/MariaDB.
@@ -234,7 +236,7 @@ MAIL_USERNAME=
 MAIL_PASSWORD=
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=
-MAIL_FROM_NAME=ProjectBrief
+MAIL_FROM_NAME=Dev2Done
 NOTIFICATION_ADMIN_LOCALE=ru
 ```
 

@@ -8298,5 +8298,6 @@
       "/api/session": "client_cb769483d364"
     }
   },
-  "x-reviewedManifestSha256": "f09cacdaf090c0e5e3cb1b62914d49bae7918a9fbcbc93678be68d4521111cf1"
+  "x-reviewedManifestSha256": "8f42d433b5f9f467877ee36d89a24b02a538afa2da8ac28cb83698cc4b9ae42c",
+  "x-brandEdition": "Dev2Done v2 — Core experience first"
 }

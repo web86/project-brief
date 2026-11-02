@@ -1,23 +1,25 @@
-# Планировщик ТЗ / Project Brief
+> Current product: **Dev2Done** (compact label **D2D**). Rebranding release v0.9.12 precedes Milestone 10.0 Phase 3. Production/static installation and compatibility notes: [Dev2Done rebrand](docs/releases/dev2done/README.md). Internal `project-brief` paths, API identifiers and historical archives remain stable.
 
-Milestone 9.6.2 / Project Brief 0.9.8: [Agent Permissions, Privacy & UX](docs/milestone-9-6-2/RELEASE.md).
+# Планировщик ТЗ / Dev2Done
 
-Previous Milestone 9.5 / Project Brief 0.9.5: [Agreements, team management, invitations and private team chat](docs/milestone-9-5/README.md).
+Milestone 9.6.2 / Dev2Done 0.9.8: [Agent Permissions, Privacy & UX](docs/milestone-9-6-2/RELEASE.md).
 
-Previous Milestone 9.4 / Project Brief 0.9.4: [Global branding, mobile swipe navigation and client task statuses](docs/milestone-9-4/README.md).
+Previous Milestone 9.5 / Dev2Done 0.9.5: [Agreements, team management, invitations and private team chat](docs/milestone-9-5/README.md).
 
-База Milestone 9.2 / Project Brief 0.9.2: [Administrators & SSO UX + Passkey Reliability](docs/milestone-9-2/README.md).
+Previous Milestone 9.4 / Dev2Done 0.9.4: [Global branding, mobile swipe navigation and client task statuses](docs/milestone-9-4/README.md).
 
-База Milestone 8.5 / Project Brief 0.9.1: [Centralized Administrators & SSO UX](docs/milestone-8-5/README.md).
+База Milestone 9.2 / Dev2Done 0.9.2: [Administrators & SSO UX + Passkey Reliability](docs/milestone-9-2/README.md).
 
-База Milestone 9.0 / Project Brief 0.9.0: [Platform Admin & Usage Monitoring](docs/milestone-9-0/README.md).
-Milestone 8.4 / Project Brief 0.8.4: [UX Polish & Live Notifications](docs/milestone-8-4/README.md).
+База Milestone 8.5 / Dev2Done 0.9.1: [Centralized Administrators & SSO UX](docs/milestone-8-5/README.md).
 
-Milestone 8.2 / Project Brief 0.8.3: [Minimal Client SSO — Trusted Handoff](docs/milestone-8-2/README.md).
+База Milestone 9.0 / Dev2Done 0.9.0: [Platform Admin & Usage Monitoring](docs/milestone-9-0/README.md).
+Milestone 8.4 / Dev2Done 0.8.4: [UX Polish & Live Notifications](docs/milestone-8-4/README.md).
 
-Milestone 8.1 / Project Brief 0.8.2: [Заявки и External Approval API](docs/milestone-8-1/README.md).
+Milestone 8.2 / Dev2Done 0.8.3: [Minimal Client SSO — Trusted Handoff](docs/milestone-8-2/README.md).
 
-Project Brief 0.8.1: [Client Entry UX — вход клиента, письма и режимы приглашения](docs/client-entry-0-8-1/README.md).
+Milestone 8.1 / Dev2Done 0.8.2: [Заявки и External Approval API](docs/milestone-8-1/README.md).
+
+Dev2Done 0.8.1: [Client Entry UX — вход клиента, письма и режимы приглашения](docs/client-entry-0-8-1/README.md).
 
 Milestone 8.0 / 0.8.0: [Integration Foundation — API, миграция, PHP-пример и проверки](docs/milestone-8-0/README.md).
 
@@ -237,7 +239,7 @@ Feature tests используют отдельную SQLite `:memory:` и fake 
 
 Password reset/2FA, команды и роли, платежи, result acceptance и realtime пока не реализованы. Backend обслуживает существующий developer workflow; отдельного Laravel frontend/CRM нет. AI-помощник описан ниже; предложения разделения не создают задачи автоматически.
 
-## Installed ProjectBrief app and long-lived sessions
+## Installed Dev2Done app and long-lived sessions
 
 The PWA manifest launches `/app` in standalone mode with scope `/`. One uncached
 `GET /api/session` decides the current server persona: admin → `/admin`, valid
@@ -247,7 +249,7 @@ false guest state. `/` in production also enters this launcher; local demo route
 retain their existing behavior. `/api/health` remains a session-free liveness check.
 
 Clients still authenticate only through their developer's personal `/access/{token}`
-URL. Open that URL, enter the project, then install ProjectBrief from the browser's
+URL. Open that URL, enter the project, then install Dev2Done from the browser's
 installation/home-screen control. Future launches open the client's project when
 the Laravel session is valid. If the installed browser profile loses its session,
 open the personal link in that profile again. Client passwords and email magic links
@@ -264,7 +266,7 @@ these checks. Apply the recommendation to the deployed `.env` and refresh Larave
 configuration cache during the normal deployment; existing environment overrides
 are respected. No database migration is needed for this milestone.
 
-After an authenticated persona mounts, ProjectBrief registers its push-only worker.
+After an authenticated persona mounts, Dev2Done registers its push-only worker.
 With granted notification permission it obtains/restores a subscription and posts
 it to the existing persona API automatically. The backend's ownership check still
 rejects another account's endpoint; automatic enrollment never unsubscribes it to

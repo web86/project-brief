@@ -1,6 +1,6 @@
 # Professional local demo
 
-This is a separate synthetic installation of the real Project Brief UI. It does not connect to Jino, read either repository `.env`, reuse an application key, or import existing accounts/data. Public demo routes are disabled by default. No commercial enforcement or real workspace access rules change.
+This is a separate synthetic installation of the real Dev2Done UI. It does not connect to Jino, read either repository `.env`, reuse an application key, or import existing accounts/data. Public demo routes are disabled by default. No commercial enforcement or real workspace access rules change.
 
 ## Start on this Mac
 

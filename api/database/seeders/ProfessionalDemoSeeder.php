@@ -94,7 +94,7 @@ class ProfessionalDemoSeeder extends Seeder
             $projects[] = $project;
             $sections = [];
             foreach (['Discovery & design', 'Core experience', 'Delivery & quality'] as $j => $title) {
-                $section = $project->briefSections()->create(['name' => $title, 'position' => $j + 1]);
+                $section = $project->briefSections()->create(['name' => $title, 'position' => $i === 0 ? [2, 1, 3][$j] : $j + 1]);
                 $section->forceFill(['uuid' => self::uuid('section/'.$i.'/'.$j), 'created_at' => $start, 'updated_at' => $start])->save();
                 $sections[] = $section;
             }
@@ -178,29 +178,20 @@ class ProfessionalDemoSeeder extends Seeder
         return $stages[$project][$task % count($stages[$project])];
     }
 
-    private function branding(): array
+    public function branding(): array
     {
         $assets = [];
         foreach (['logo', 'favicon'] as $kind) {
-            $token = substr(hash('sha256', 'harborline/'.$kind), 0, 48);
-            $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#145e69"/><path d="M16 44V20h7v9h18v-9h7v24h-7v-9H23v9z" fill="#e7f4ef"/></svg>';
+            $token = substr(hash('sha256', 'harborline/dev2done-v2/'.$kind), 0, 48);
+            $svg = file_get_contents(resource_path('dev2done-mark.svg'));
+            $png = file_get_contents(resource_path('dev2done-mark.png'));
             $path = 'demo/branding/'.$kind;
             Storage::disk('local')->put($path.'.svg', $svg);
-            $image = imagecreatetruecolor(64, 64);
-            $white = imagecolorallocate($image, 247, 251, 250);
-            $ink = imagecolorallocate($image, 20, 94, 105);
-            imagefill($image, 0, 0, $white);
-            imagefilledrectangle($image, 0, 0, 63, 63, $ink);
-            imagestring($image, 5, 25, 23, 'H', $white);
-            ob_start();
-            imagepng($image);
-            $png = ob_get_clean();
-            imagedestroy($image);
             Storage::disk('local')->put($path.'.png', $png);
             $assets[$kind] = ['path' => $path.'.png', 'svgPath' => $path.'.svg', 'token' => $token, 'extension' => 'png', 'mime' => 'image/png', 'bytes' => strlen($png), 'browserBytes' => strlen($svg), 'originalBytes' => strlen($svg)];
         }
 
-        return ['visual' => ['companyName' => 'Harborline Digital Studio', 'primaryColor' => '#145e69'], 'contact' => ['email' => 'studio@harborline.test', 'website' => 'https://harborline.test', 'extra' => 'Independent design and engineering for thoughtful digital experiences.'], 'business' => ['legalName' => 'Harborline Digital Studio — fictional demo company', 'note' => 'Synthetic demonstration. No legal or payment details.'], 'assets' => $assets, 'email' => ['enabled' => true, 'logo' => true, 'companyName' => true, 'contact' => true, 'accent' => true], 'footer' => ['support' => false, 'website' => false]];
+        return ['visual' => ['companyName' => 'Harborline Digital Studio', 'primaryColor' => '#5b4bd6'], 'contact' => ['email' => 'studio@harborline.test', 'website' => 'https://harborline.test', 'extra' => 'Independent design and engineering for thoughtful digital experiences.'], 'business' => ['legalName' => 'Harborline Digital Studio — fictional demo company', 'note' => 'Synthetic demonstration. No legal or payment details.'], 'assets' => $assets, 'email' => ['enabled' => true, 'logo' => true, 'companyName' => true, 'contact' => true, 'accent' => true], 'footer' => ['support' => false, 'website' => false]];
     }
 
     private function attachment(Task $task, string $project, int $index): void

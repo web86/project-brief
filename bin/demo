@@ -92,7 +92,7 @@ GRANT ALL PRIVILEGES ON projectbrief_m10_upgrade_qa.* TO 'demo_tester'@'%';
     index = app / 'public' / 'index.html'
     index.write_text(index.read_text().replace('<head>', '<head>\n<meta name="projectbrief-demo" content="enabled">'))
     private(app / 'demo-installation.json', json.dumps({'database': 'projectbrief_demo', 'installationId': data['installationId']}))
-    values = {'APP_NAME': 'ProjectBrief Demo', 'APP_ENV': 'local', 'APP_DEBUG': 'false', 'APP_KEY': data['appKey'], 'APP_URL': 'http://127.0.0.1:18080', 'FRONTEND_URL': 'http://127.0.0.1:18080', 'DB_CONNECTION': 'mysql', 'DB_HOST': '127.0.0.1', 'DB_PORT': '3306', 'DB_DATABASE': 'projectbrief_demo', 'DB_USERNAME': 'demo_writer', 'DB_PASSWORD': data['writerPassword'], 'DB_URL': '', 'DEMO_ENABLED': 'true', 'DEMO_READ_ONLY': 'false', 'DEMO_INSTALLATION_ID': data['installationId'], 'DEMO_ADMIN_PASSWORD': data['password'], 'DEMO_OWNER_TOTP_SECRET': data['totpSecret'], 'SESSION_DRIVER': 'file', 'SESSION_COOKIE': 'projectbrief_local_qa', 'SESSION_SECURE_COOKIE': 'false', 'SESSION_DOMAIN': '', 'CACHE_STORE': 'file', 'MAIL_MAILER': 'array', 'QUEUE_CONNECTION': 'null', 'LOG_CHANNEL': 'single', 'AI_ENABLED': 'false', 'BCRYPT_ROUNDS': '10'}
+    values = {'APP_NAME': 'Dev2Done Demo', 'APP_ENV': 'local', 'APP_DEBUG': 'false', 'APP_KEY': data['appKey'], 'APP_URL': 'http://127.0.0.1:18080', 'FRONTEND_URL': 'http://127.0.0.1:18080', 'DB_CONNECTION': 'mysql', 'DB_HOST': '127.0.0.1', 'DB_PORT': '3306', 'DB_DATABASE': 'projectbrief_demo', 'DB_USERNAME': 'demo_writer', 'DB_PASSWORD': data['writerPassword'], 'DB_URL': '', 'DEMO_ENABLED': 'true', 'DEMO_READ_ONLY': 'false', 'DEMO_INSTALLATION_ID': data['installationId'], 'DEMO_ADMIN_PASSWORD': data['password'], 'DEMO_OWNER_TOTP_SECRET': data['totpSecret'], 'SESSION_DRIVER': 'file', 'SESSION_COOKIE': 'projectbrief_local_qa', 'SESSION_SECURE_COOKIE': 'false', 'SESSION_DOMAIN': '', 'CACHE_STORE': 'file', 'MAIL_MAILER': 'array', 'QUEUE_CONNECTION': 'null', 'LOG_CHANNEL': 'single', 'AI_ENABLED': 'false', 'BCRYPT_ROUNDS': '10'}
     private(app / '.env', '\n'.join(k + '=' + ('"' + v + '"') for k, v in values.items()) + '\n')
     private(STATE / 'reader.env', '\n'.join(['DEMO_READ_ONLY=true', 'DB_USERNAME=demo_reader', 'DB_PASSWORD=' + data['readerPassword'], 'SESSION_COOKIE=projectbrief_demo_view', 'DEMO_ADMIN_PASSWORD=', 'DEMO_OWNER_TOTP_SECRET=']) + '\n')
     private(STATE / 'tester.env', '\n'.join(['APP_ENV=testing', 'DEMO_ENABLED=false', 'DB_CONNECTION=mysql', 'DB_HOST=127.0.0.1', 'DB_DATABASE=projectbrief_agent_ux_full_qa', 'DB_USERNAME=demo_tester', 'DB_PASSWORD=' + data['testPassword'], 'DB_URL=']) + '\n')
@@ -161,8 +161,8 @@ def main():
     if action == 'build-image':
         docker('build', '-t', IMAGE, '-f', str(ROOT / 'docs/demo/Dockerfile'), str(ROOT / 'docs/demo'))
         return
-    if action not in ['up', 'reset', 'sync', 'audit', 'test', 'export']:
-        raise RuntimeError('Usage: bin/demo [up|reset|sync|audit|test|export|down|build-image]')
+    if action not in ['up', 'reset', 'sync', 'audit', 'test', 'export', 'rebrand']:
+        raise RuntimeError('Usage: bin/demo [up|reset|sync|audit|test|export|rebrand|down|build-image]')
     if not (BUILD / 'index.html').is_file() or not (ROOT / 'api/vendor/autoload.php').is_file():
         raise RuntimeError('Install locked dependencies and run npm run demo:build first. See docs/demo/README.md.')
     prepare()
@@ -178,6 +178,8 @@ def main():
             for name in [WEB, QA]:
                 remove(name)
             php('artisan', 'demo:reset', '--no-interaction')
+        if action == 'rebrand':
+            php('artisan', 'demo:rebrand', '--no-interaction')
         php('artisan', 'demo:audit', '--no-interaction', reader=True)
         start_web()
 
