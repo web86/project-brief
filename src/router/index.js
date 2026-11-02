@@ -29,10 +29,14 @@ export function createProjectRouter({
   const router = createRouter({
     history,
     routes: [
-      {
-        path: '/demo/:role(developer|client)?',
-        component: () => import('../views/DemoEntryView.vue'),
-      },
+      ...(import.meta.env?.VITE_LOCAL_DEMO === 'true'
+        ? [
+            {
+              path: '/demo/:role(developer|client)?',
+              component: () => import('../views/DemoEntryView.vue'),
+            },
+          ]
+        : []),
       {
         path: '/platform',
         component: () => import('../views/PlatformView.vue'),

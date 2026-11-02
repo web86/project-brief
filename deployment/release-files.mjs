@@ -94,6 +94,16 @@ export function forbiddenPath(relative) {
   )
 }
 
+/** Optional local demo modules never ship in the real application runtime. */
+export function demoOnlyRuntimePath(relative) {
+  const normalized = relative.replace(/^private\/project-brief-app\//, 'api/')
+  return (
+    /^api\/app\/.*(?:Demo|StaticSnapshot)[^/]*\.php$/.test(normalized) ||
+    /^api\/(?:config|routes)\/demo[^/]*\.php$/.test(normalized) ||
+    /^api\/database\/(?:seeders|factories)\/(?!PlansFoundationSeeder\.php$)/.test(normalized)
+  )
+}
+
 // Only installation/rollback instructions and runtime files belong in the upload ZIP.
 // Keep verification evidence in the repository, even when a new milestone adds it.
 export function forbiddenProductionPath(relative) {
@@ -111,6 +121,7 @@ export function forbiddenProductionPath(relative) {
     relative === 'deployment/telegram-bridge.mjs'
   return (
     !permitted ||
+    demoOnlyRuntimePath(relative) ||
     forbiddenPath(relative) ||
     parts.some((part) =>
       /^(?:guides|integrations|artifacts|screenshots|reports|fixtures|milestone(?:s|[-_].*)?)$/i.test(
@@ -339,6 +350,17 @@ export async function validateRelease(root, localSecrets = []) {
     if (containsPrivateKey(content)) {
       throw new Error(`Private key detected in: ${file.relative}`)
     }
+  }
+  if (files.some(({ relative }) => /^public\/assets\/DemoEntryView-/.test(relative)))
+    throw new Error('Local demo frontend entry in production')
+  for (const file of files.filter(
+    ({ relative, directory }) =>
+      !directory && relative.startsWith('public/') && /\.(?:js|json|html)$/.test(relative),
+  )) {
+    if (
+      (await readFile(path.join(root, file.relative), 'utf8')).includes('Harborline Digital Studio')
+    )
+      throw new Error('Synthetic demo content in production: ' + file.relative)
   }
   const env = await readFile(
     path.join(root, 'private/project-brief-app/.env.production.example'),

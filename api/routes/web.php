@@ -17,7 +17,6 @@ use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\ClientProjectLoginController;
 use App\Http\Controllers\ClientSsoController;
 use App\Http\Controllers\CommentController;
-use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DeveloperInvitationController;
 use App\Http\Controllers\EntryBrandingController;
 use App\Http\Controllers\IntegrationController;
@@ -389,5 +388,8 @@ Route::middleware('admin')->prefix('/api/admin/tasks/{task}')->controller(AgentC
 
 Route::middleware('admin')->match(['GET', 'PATCH'], '/api/admin/projects/{project}/agent-instructions', [AgentCollaborationController::class, 'projectInstructions']);
 
-Route::get('/api/demo/status', [DemoController::class, 'status']);
-Route::get('/api/demo/enter/{role}', [DemoController::class, 'enter'])->whereIn('role', ['developer', 'client']);
+if (is_file(__DIR__.'/demo.php')) {
+    require __DIR__.'/demo.php';
+} else {
+    Route::any('/demo/{path?}', fn () => abort(404))->where('path', '.*');
+}

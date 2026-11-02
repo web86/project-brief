@@ -14,6 +14,12 @@ import {
 
 test('production package rejects historical guides and verification artifacts at any depth', () => {
   for (const file of [
+    'private/project-brief-app/app/Providers/DemoServiceProvider.php',
+    'private/project-brief-app/app/Http/Middleware/DemoIdentity.php',
+    'private/project-brief-app/app/Services/DemoEnvironment.php',
+    'private/project-brief-app/routes/demo.php',
+    'private/project-brief-app/config/demo.php',
+    'private/project-brief-app/database/seeders/ProfessionalDemoSeeder.php',
     'GUIDES/milestone-6-2/README.md',
     'INTEGRATIONS/openapi.json',
     'docs/milestone-6-0/sample-ru.docx',

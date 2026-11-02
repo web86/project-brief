@@ -1651,10 +1651,18 @@ echo json_encode(['ok'=>true]);
   )
   assert.equal(
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
-    '0.9.10',
+    '0.9.11',
   )
   assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
-  assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /migrate --force/)
+  assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /Новых migrations/)
+  for (const demo of [
+    '/demo',
+    '/demo/developer',
+    '/demo/client',
+    '/api/demo/status',
+    '/api/demo/enter/developer',
+  ])
+    assert.equal((await request(demo)).status, 404)
   assert.match(await readFile(path.join(packageRoot, 'DEPLOY-JINO.md'), 'utf8'), /first-install/)
 
   command(['artisan', 'down'])
@@ -1717,7 +1725,6 @@ echo json_encode(['ok'=>true]);
       await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
       await page.getByLabel('Recovery code', { exact: true }).fill('Release-browser-login')
       await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
-      await page.getByRole('button', { name: 'Continue to workspace', exact: true }).click()
       await page.waitForURL(publicOrigin + '/admin')
       await page.goto(publicOrigin + '/admin/account/security')
       await page.getByLabel('Device name', { exact: true }).fill('Packaged virtual authenticator')

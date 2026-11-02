@@ -35,15 +35,19 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trimStrings(except: ['draft.texts.*.*.content.*.text']);
-        $middleware->prepend([DemoReadOnly::class, MeasureApiUsage::class, SecurityResponseHeaders::class, ThrottleBootstrap::class]);
+        $middleware->prepend([MeasureApiUsage::class, SecurityResponseHeaders::class, ThrottleBootstrap::class]);
         $middleware->prependToPriorityList(ThrottleRequests::class, EnsureClientProjectAccess::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);
         $middleware->prependToPriorityList(EnsureAdmin::class, EnsureAccountSecurity::class);
         $middleware->prependToPriorityList(EnsureAccountSecurity::class, EnsureAccountSession::class);
-        $middleware->appendToPriorityList(StartSession::class, DemoIdentity::class);
         $middleware->prependToPriorityList(EnsureAccountSecurity::class, SetRequestLocale::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureProjectPermission::class);
-        $middleware->web(append: [DemoIdentity::class, EnsureAccountSession::class, SetRequestLocale::class, EnsureAccountSecurity::class]);
+        $middleware->web(append: [EnsureAccountSession::class, SetRequestLocale::class, EnsureAccountSecurity::class]);
+        if (class_exists(DemoReadOnly::class)) {
+            $middleware->prepend(DemoReadOnly::class);
+            $middleware->web(append: [DemoIdentity::class]);
+            $middleware->appendToPriorityList(StartSession::class, DemoIdentity::class);
+        }
         $middleware->alias(['admin' => EnsureAdmin::class, 'client' => EnsureClientProjectAccess::class, 'project.permission' => EnsureProjectPermission::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

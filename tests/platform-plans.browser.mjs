@@ -9,7 +9,10 @@ import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-platform-plans-'))
-const app = path.join(scratch, 'app'),
+const packageRoot = process.env.UX_PACKAGE_ROOT
+const phpBin = process.env.PHP_BIN || 'php'
+const publicRoot = path.join(scratch, 'domains/brief.web86.site')
+const app = path.join(scratch, packageRoot ? 'project-brief-app' : 'app'),
   output = path.join(root, 'artifacts/milestone-10-0-phase-2/browser')
 await mkdir(app)
 await mkdir(output, { recursive: true })
@@ -22,7 +25,7 @@ async function port() {
 }
 const backendPort = await port(),
   webPort = await port(),
-  origin = `http://127.0.0.1:${webPort}`
+  origin = `http://127.0.0.1:${packageRoot ? backendPort : webPort}`
 const env = {
   ...process.env,
   APP_ENV: 'testing',
@@ -45,7 +48,7 @@ const env = {
   PHP_INI_SCAN_DIR: `:${root}/api/dev-php`,
 }
 function php(args) {
-  const result = spawnSync('php', args, { cwd: app, env, encoding: 'utf8' })
+  const result = spawnSync(phpBin, args, { cwd: app, env, encoding: 'utf8' })
   assert.equal(result.status, 0, result.stdout + result.stderr)
   return result.stdout
 }
@@ -80,24 +83,32 @@ async function login(context, fixture, owner = false) {
   assert.equal(challenge.status(), 200, await challenge.text())
 }
 try {
-  for (const item of [
-    'app',
-    'config',
-    'lang',
-    'resources',
-    'routes',
-    'database',
-    'bootstrap',
-    'public',
-    'artisan',
-    'composer.json',
-    'composer.lock',
-  ])
-    await cp(path.join(root, 'api', item), path.join(app, item), {
+  if (packageRoot) {
+    await cp(path.join(packageRoot, 'private/project-brief-app'), app, { recursive: true })
+    await cp(path.join(packageRoot, 'public'), publicRoot, { recursive: true })
+    await cp(path.join(root, 'api/database/factories'), path.join(app, 'database/factories'), {
       recursive: true,
-      filter: (f) => !/(?:\.sqlite[^/]*|\/cache\/[^/]+)$/.test(f),
     })
-  await cp(path.join(root, 'api/vendor'), path.join(app, 'vendor'), { recursive: true })
+  } else {
+    for (const item of [
+      'app',
+      'config',
+      'lang',
+      'resources',
+      'routes',
+      'database',
+      'bootstrap',
+      'public',
+      'artisan',
+      'composer.json',
+      'composer.lock',
+    ])
+      await cp(path.join(root, 'api', item), path.join(app, item), {
+        recursive: true,
+        filter: (f) => !/(?:\.sqlite[^/]*|\/cache\/[^/]+)$/.test(f),
+      })
+    await cp(path.join(root, 'api/vendor'), path.join(app, 'vendor'), { recursive: true })
+  }
   await mkdir(path.join(app, 'tests'))
   await cp(
     path.join(root, 'api/tests/platform-plans-fixture.php'),
@@ -114,30 +125,59 @@ try {
   await writeFile(path.join(app, '.env'), '')
   await writeFile(env.DB_DATABASE, '')
   php(['artisan', 'migrate', '--force', '--no-interaction'])
+  if (packageRoot) {
+    const loader = String.raw`<?php
+spl_autoload_register(function ($class) { foreach (['Database\\Factories\\' => __DIR__.'/../database/factories/', 'Faker\\' => SOURCE_FAKER] as $prefix => $dir) { if (str_starts_with($class, $prefix)) { $path=$dir.str_replace('\\','/',substr($class,strlen($prefix))).'.php'; if (is_file($path)) { require_once $path; } } } });
+require __DIR__.'/../vendor/autoload.php';
+`.replace('SOURCE_FAKER', JSON.stringify(path.join(root, 'api/vendor/fakerphp/faker/src/Faker/')))
+    await writeFile(path.join(app, 'tests/qa-autoload.php'), loader)
+    const fixturePath = path.join(app, 'tests/platform-plans-fixture.php')
+    const { readFile } = await import('node:fs/promises')
+    await writeFile(
+      fixturePath,
+      (await readFile(fixturePath, 'utf8')).replace(
+        "require __DIR__.'/../vendor/autoload.php';",
+        "require __DIR__.'/qa-autoload.php';",
+      ),
+    )
+  }
   const fixture = JSON.parse(php(['tests/platform-plans-fixture.php']))
-  backend = spawn(
-    'php',
-    ['artisan', 'serve', '--host=127.0.0.1', `--port=${backendPort}`, '--no-reload'],
-    { cwd: app, env, stdio: 'ignore' },
-  )
-  vite = await createServer({
-    root,
-    mode: 'test',
-    define: {
-      'import.meta.env.VITE_DATA_SOURCE': JSON.stringify('api'),
-      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(''),
-    },
-    server: {
-      host: '127.0.0.1',
-      port: webPort,
-      strictPort: true,
-      proxy: {
-        '/api': `http://127.0.0.1:${backendPort}`,
-        '/access': `http://127.0.0.1:${backendPort}`,
+  if (packageRoot) {
+    const routerFile = path.join(scratch, 'server.php')
+    await writeFile(
+      routerFile,
+      `<?php $public=__DIR__.'/domains/brief.web86.site'; $uri=urldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)??'/'); if($uri!=='/' && is_file($public.$uri)) { return false; } require $public.'/index.php';`,
+    )
+    backend = spawn(phpBin, ['-S', `127.0.0.1:${backendPort}`, '-t', publicRoot, routerFile], {
+      cwd: app,
+      env,
+      stdio: 'ignore',
+    })
+  } else {
+    backend = spawn(
+      phpBin,
+      ['artisan', 'serve', '--host=127.0.0.1', `--port=${backendPort}`, '--no-reload'],
+      { cwd: app, env, stdio: 'ignore' },
+    )
+    vite = await createServer({
+      root,
+      mode: 'test',
+      define: {
+        'import.meta.env.VITE_DATA_SOURCE': JSON.stringify('api'),
+        'import.meta.env.VITE_API_BASE_URL': JSON.stringify(''),
       },
-    },
-  })
-  await vite.listen()
+      server: {
+        host: '127.0.0.1',
+        port: webPort,
+        strictPort: true,
+        proxy: {
+          '/api': `http://127.0.0.1:${backendPort}`,
+          '/access': `http://127.0.0.1:${backendPort}`,
+        },
+      },
+    })
+    await vite.listen()
+  }
   for (let i = 0; i < 100; i++) {
     try {
       if ((await fetch(`http://127.0.0.1:${backendPort}/api/health`)).ok) break

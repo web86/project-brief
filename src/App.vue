@@ -274,7 +274,7 @@ watch(
     class="workspace-appearance"
   >
     <div v-if="demo.readOnly" class="demo-view-indicator" role="status">
-      <a href="/demo">Demo · View only</a><span>Harborline Digital Studio</span>
+      <a href="/demo">Demo · View only</a><span>{{ appearance.brand.value?.companyName }}</span>
     </div>
     <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
     <PlatformShell v-if="route.meta.platform"><RouterView /></PlatformShell>

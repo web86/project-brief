@@ -9,12 +9,15 @@ export default defineConfig(({ mode }) => {
   return {
     envDir: demoBuild ? false : undefined,
     envPrefix: demoBuild ? 'PROJECTBRIEF_UNUSED_ENV_PREFIX_' : undefined,
-    define: demoBuild
-      ? {
-          'import.meta.env.VITE_API_BASE_URL': JSON.stringify(''),
-          'import.meta.env.VITE_DATA_SOURCE': JSON.stringify('api'),
-        }
-      : undefined,
+    define: {
+      'import.meta.env.VITE_LOCAL_DEMO': JSON.stringify(demoBuild ? 'true' : 'false'),
+      ...(demoBuild
+        ? {
+            'import.meta.env.VITE_API_BASE_URL': JSON.stringify(''),
+            'import.meta.env.VITE_DATA_SOURCE': JSON.stringify('api'),
+          }
+        : {}),
+    },
     plugins: [vue(), localeBootstrap(), pdfAssets()],
     build: { sourcemap: false, ...(demoBuild ? { outDir: '.tools/demo-build' } : {}) },
     worker: { format: 'es' },
