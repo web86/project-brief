@@ -6,7 +6,7 @@ return [
     'project' => 'Проект',
     'website' => 'Сайт',
     'generated' => 'Сформировано',
-    'footer' => 'Сформировано в ProjectBrief',
+    'footer' => 'Сформировано в Dev2Done',
     'description' => 'Описание',
     'expectedResult' => 'Ожидаемый результат',
     'priority' => 'Приоритет',

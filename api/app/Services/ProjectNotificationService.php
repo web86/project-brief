@@ -80,7 +80,7 @@ class ProjectNotificationService
                 $locale = SupportedLocales::resolve($user->preferred_locale);
                 $payload = NotificationPayload::test($locale, rtrim(config('app.url'), '/').'/admin/requests?request='.$row->uuid);
                 $heading = trans('notifications.project_request_heading', [], $locale);
-                $payload = array_replace($payload, ['title' => $heading, 'heading' => $heading, 'subject' => '[ProjectBrief] '.$heading,
+                $payload = array_replace($payload, ['title' => $heading, 'heading' => $heading, 'subject' => '[Dev2Done] '.$heading,
                     'body' => trans('notifications.project_request_message', [], $locale), 'explanation' => trans('notifications.project_request_message', [], $locale),
                     'project' => $row->workspace->name, 'open' => trans('notifications.open_request', [], $locale), 'event' => 'project_request.created',
                     'workspace_id' => $row->workspace_id, 'tag' => 'projectbrief-request-'.$row->uuid]);

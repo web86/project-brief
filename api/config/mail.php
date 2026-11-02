@@ -112,7 +112,7 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+        'name' => in_array(env('MAIL_FROM_NAME', env('APP_NAME')), ['ProjectBrief', 'Project Brief', 'projectbrief'], true) ? 'Dev2Done' : env('MAIL_FROM_NAME', env('APP_NAME', 'Dev2Done')),
     ],
 
 ];

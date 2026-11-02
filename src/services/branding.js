@@ -20,7 +20,15 @@ export const brandingFields = {
     extra: 1000,
   },
 }
-export const brandPresets = ['#2454a5', '#17695d', '#7354a3', '#a23c65', '#915314', '#384655']
+export const brandPresets = [
+  '#5b4bd6',
+  '#2454a5',
+  '#17695d',
+  '#7354a3',
+  '#a23c65',
+  '#915314',
+  '#384655',
+]
 const rgb = (value) => value.match(/[a-f0-9]{2}/gi).map((v) => parseInt(v, 16))
 export const luminance = (color) =>
   rgb(color)

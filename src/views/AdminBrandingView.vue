@@ -428,8 +428,8 @@ const changed = (section) =>
                 alt=""
               /><strong>{{
                 store.draft.email.enabled && store.draft.email.companyName
-                  ? store.draft.visual.companyName || 'ProjectBrief'
-                  : 'ProjectBrief'
+                  ? store.draft.visual.companyName || 'Dev2Done'
+                  : 'Dev2Done'
               }}</strong>
             </div>
             <h3>{{ t('branding.previewAction') }}</h3>

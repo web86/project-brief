@@ -18,11 +18,11 @@ defineProps({
     :data-brand-theme="theme"
     :style="{ '--brand-size': typeof size === 'number' ? `${size}px` : size }"
     role="img"
-    aria-label="projectbrief"
+    aria-label="Dev2Done"
   >
     <span class="brand-mark" aria-hidden="true" v-html="mark" />
     <span v-if="!compact" class="brand-wordmark" aria-hidden="true"
-      >project<span class="brand-light">brief</span></span
+      >Dev<span class="brand-light">2Done</span></span
     >
   </span>
 </template>

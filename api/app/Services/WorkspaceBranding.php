@@ -78,7 +78,7 @@ class WorkspaceBranding
         if (! $flags['enabled']) {
             return null;
         }
-        $color = $flags['accent'] && preg_match('/^#[a-f0-9]{6}$/iD', $settings['visual']['primaryColor']) ? $settings['visual']['primaryColor'] : '#246c43';
+        $color = $flags['accent'] && preg_match('/^#[a-f0-9]{6}$/iD', $settings['visual']['primaryColor']) ? $settings['visual']['primaryColor'] : '#5b4bd6';
         $luminance = function (string $hex): float {
             $rgb = array_map(fn ($v) => hexdec($v) / 255, str_split(substr($hex, 1), 2));
             $rgb = array_map(fn ($v) => $v <= 0.04045 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4, $rgb);
@@ -136,7 +136,7 @@ class WorkspaceBranding
     private function documentAccent(string $color): string
     {
         if (! preg_match('/^#[a-f0-9]{6}$/iD', $color)) {
-            return '#344054';
+            return '#5b4bd6';
         }
         $rgb = array_map(fn ($value) => hexdec($value), str_split(substr($color, 1), 2));
         do {

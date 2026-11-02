@@ -251,7 +251,7 @@ watch(
 watch(
   () => [route.fullPath, locale.value],
   () => {
-    document.title = `${route.meta.title || t('ui.yourProject')} — Project Brief`
+    document.title = `${route.meta.title || t('ui.yourProject')} — Dev2Done`
     const description = document.querySelector?.('meta[name="description"]')
     if (description) description.content = t('bootstrap.description')
   },
@@ -274,7 +274,8 @@ watch(
     class="workspace-appearance"
   >
     <div v-if="demo.readOnly" class="demo-view-indicator" role="status">
-      <a href="/demo">Demo · View only</a><span>{{ appearance.brand.value?.companyName }}</span>
+      <span class="demo-product-name">Dev2Done</span><span class="demo-product-short">D2D</span
+      ><a href="/demo">Demo · View only</a><span>{{ appearance.brand.value?.companyName }}</span>
     </div>
     <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
     <PlatformShell v-if="route.meta.platform"><RouterView /></PlatformShell>
@@ -386,6 +387,20 @@ watch(
   }
   .demo-view-indicator span {
     display: none;
+  }
+}
+</style>
+
+<style>
+.demo-product-short {
+  display: none;
+}
+@media (max-width: 600px) {
+  .demo-view-indicator .demo-product-name {
+    display: none;
+  }
+  .demo-view-indicator .demo-product-short {
+    display: inline;
   }
 }
 </style>

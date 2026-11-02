@@ -6,7 +6,7 @@ return [
     'project' => '项目',
     'website' => '网站',
     'generated' => '生成日期',
-    'footer' => '由 ProjectBrief 生成',
+    'footer' => '由 Dev2Done 生成',
     'description' => '描述',
     'expectedResult' => '预期结果',
     'priority' => '优先级',

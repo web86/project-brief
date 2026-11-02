@@ -32,9 +32,9 @@ const year = new Date().getFullYear()
     <span
       >© {{ year }}
       <a v-if="company" :href="company" rel="noopener noreferrer">{{
-        current.companyName || 'Project Brief'
+        current.companyName || 'Dev2Done'
       }}</a
-      ><template v-else>{{ current.companyName || 'Project Brief' }}</template></span
+      ><template v-else>{{ current.companyName || 'Dev2Done' }}</template></span
     >
     <nav v-if="agreement || support" :aria-label="t('agreement.footer')">
       <RouterLink v-if="agreement" :to="{ path: agreement, query: { lang: locale } }">{{

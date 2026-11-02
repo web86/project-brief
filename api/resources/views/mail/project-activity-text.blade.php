@@ -1,4 +1,4 @@
-{{ ($payload['branding']['name'] ?? '') ?: 'ProjectBrief' }}
+{{ ($payload['branding']['name'] ?? '') ?: 'Dev2Done' }}
 {!! $payload['heading'] !!}
 
 {!! $payload['explanation'] !!}

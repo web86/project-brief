@@ -106,7 +106,7 @@ test('footer uses only workspace public fields, safe URLs and no empty or fictio
   assert.ok(!html.includes('PRIVATE ADDRESS'))
   assert.ok(!html.includes('Powered by'))
   const defaults = await render(Footer, {})
-  assert.ok(defaults.includes('Project Brief'))
+  assert.ok(defaults.includes('Dev2Done'))
   assert.ok(!defaults.includes('<nav'))
 })
 test('agreement status is compact, localized in four languages and contains acceptance evidence only when present', async () => {

@@ -1,0 +1,15 @@
+{
+  "brand": "Dev2Done",
+  "masterSha256": "7852b618c79b088842e222b1631b1a07d02833f23c9f88cacbf81c3f35d89dac",
+  "renderer": "Chromium SVG canvas; source geometry/gradients preserved",
+  "files": {
+    "api/public/favicon.ico": "0748659cc353d6411df0b7068740a165b51ce4e9c275746c8d9e951fe49c5310",
+    "api/resources/dev2done-mark.png": "97601a70bed45d1810b783f2ccd3e938f07dcb36b8a248a7e6f7345c9bda7b46",
+    "public/apple-touch-icon.png": "32bf344105f7025919e0b71a37f55a05de1b847090901f24047de968996bbdcb",
+    "public/favicon.ico": "0748659cc353d6411df0b7068740a165b51ce4e9c275746c8d9e951fe49c5310",
+    "public/icon-192.png": "44d25f11af24c3de0a1d5c6654a197e4baf738e00eb925f660f7c1f5b0f035cc",
+    "public/icon-512.png": "a85902fbfce796a8cf7dc6be8a6ebb4901e98bdac0a5bf3f817aa6353ed3cde0",
+    "public/icon-maskable-192.png": "bd50fe82b4015a2af5c3e07058ba41ac11b3a426255acd235d71abd965fc5f71",
+    "public/icon-maskable-512.png": "08bbe1bb06f8c51bd6580c7b58cc3dde68bf80ac1cc40c923192ef0aa9151178"
+  }
+}

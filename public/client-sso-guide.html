@@ -2,7 +2,7 @@
 <html lang="en">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Project Brief — Client SSO integration</title>
+  <title>Dev2Done — Client SSO integration</title>
   <style>
     body {
       font:
@@ -25,7 +25,7 @@
       font-size: 0.9em;
     }
     a {
-      color: #17695d;
+      color: #5b4bd6;
     }
     li {
       margin: 8px 0;
@@ -46,7 +46,7 @@
   <main>
     <h1>Connect an external client area</h1>
     <p>
-      Trusted sign-in lets a signed-in customer open their existing Project Brief projects from your
+      Trusted sign-in lets a signed-in customer open their existing Dev2Done projects from your
       website. It requires server-side integration. Keep the API key on your server.
     </p>
     <ol>
@@ -74,7 +74,7 @@
       </li>
     </ol>
     <h2>Server API</h2>
-    <p>Send an authenticated server-to-server request to your Project Brief origin:</p>
+    <p>Send an authenticated server-to-server request to your Dev2Done origin:</p>
     <pre><code>POST /api/v1/client-sso/handoffs
 Authorization: Bearer YOUR_SERVER_API_KEY
 Content-Type: application/json
@@ -94,7 +94,7 @@ Content-Type: application/json
       A successful response includes <code>data.code</code>, <code>data.postUrl</code> and
       <code>data.expiresAt</code>. The code is single use and expires after 60 seconds. Send it
       immediately from the external client area using an HTTPS form POST to the fixed
-      <code>/client-sso/enter</code> URL on your Project Brief origin. Use a hidden form field named
+      <code>/client-sso/enter</code> URL on your Dev2Done origin. Use a hidden form field named
       <code>code</code>. Set <code>Referrer-Policy: origin</code> on the transfer page; the browser
       must send the exact configured Origin.
     </p>

@@ -6,7 +6,7 @@ return [
     'project' => 'Project',
     'website' => 'Website',
     'generated' => 'Generated',
-    'footer' => 'Generated in ProjectBrief',
+    'footer' => 'Generated in Dev2Done',
     'description' => 'Description',
     'expectedResult' => 'Expected result',
     'priority' => 'Priority',

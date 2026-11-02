@@ -6,7 +6,7 @@ return [
     'project' => 'Proje',
     'website' => 'Web sitesi',
     'generated' => 'Oluşturulma tarihi',
-    'footer' => 'ProjectBrief ile oluşturuldu',
+    'footer' => 'Dev2Done ile oluşturuldu',
     'description' => 'Açıklama',
     'expectedResult' => 'Beklenen sonuç',
     'priority' => 'Öncelik',

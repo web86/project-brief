@@ -151,7 +151,7 @@ export default {
     savePermissionsFirst: 'Save agent permissions before issuing a key.',
     connection: 'Connection · API keys',
     connectionHint:
-      'An API key lets an external program call Project Brief as this executor. The key itself does not start an AI agent.',
+      'An API key lets an external program call Dev2Done as this executor. The key itself does not start an AI agent.',
     saveBeforeKey:
       'Save the agent first. You can then create an API key to connect your external executor.',
     validTokenCount: 'Valid tokens: {count}',
@@ -210,7 +210,7 @@ export default {
     apiRequests: 'API requests',
     howTo: 'How to connect?',
     guideDocs:
-      'Run your external executor outside Project Brief with an API key. Project Brief grants access and receives results; it does not run the executor.',
+      'Run your external executor outside Dev2Done with an API key. Dev2Done grants access and receives results; it does not run the executor.',
     addExecutor: 'Add executor',
     executor: 'External executor',
     assignAction: 'Assign',
@@ -223,7 +223,7 @@ export default {
       ai: 'Uses AI to perform tasks. Examples: Codex, GigaChat, Yandex AI Studio or your own agent.',
       automation: 'Runs a defined scenario. Examples: n8n, cron or your own script.',
       service:
-        'Connects Project Brief to another system. Examples: CI/CD, testing or an internal platform.',
+        'Connects Dev2Done to another system. Examples: CI/CD, testing or an internal platform.',
     },
     credentialState: { issued: 'Unexpired token issued', missing: 'No unexpired tokens' },
     connect: {
@@ -257,7 +257,7 @@ export default {
     projectsCount: '{count} projects',
     requests: '{success} successful · {failed} failed requests',
     credentials: 'API credentials',
-    once: 'Copy the secret now. It is shown only once. Store it securely outside Project Brief.',
+    once: 'Copy the secret now. It is shown only once. Store it securely outside Dev2Done.',
     copyManually: 'Select and copy the secret manually.',
     scopes: 'Allowed operations',
     issueToken: 'Issue / rotate token',
@@ -472,7 +472,7 @@ export default {
     automatic: 'Connected automatically ({count})',
     manual: 'Added manually ({count})',
     manualHint:
-      'Use manual connection if the project already exists in Project Brief, but the client needs to open it through this external client area.',
+      'Use manual connection if the project already exists in Dev2Done, but the client needs to open it through this external client area.',
     guide: 'How to connect a client area',
     step1: 'Create a source.',
     step2: 'Set the HTTPS origin of the external client area.',
@@ -682,7 +682,7 @@ export default {
     showAddress: 'Show address',
     showContact: 'Show contacts',
     showBusiness: 'Show company and bank details',
-    showPlatform: 'Show ProjectBrief attribution',
+    showPlatform: 'Show Dev2Done attribution',
     exportHint:
       'Applied to PDF and DOCX. Bank details are hidden by default; include them only when appropriate for the document recipient.',
     emailEnabled: 'Brand project emails',
@@ -878,7 +878,7 @@ export default {
     loading: 'Loading…',
     error: 'Could not open the app. Check your connection and try again.',
     retry: 'Try again',
-    title: 'Project Brief — ideas for your website',
+    title: 'Dev2Done — ideas for your website',
     description:
       'Describe what you want to change on your website. Ideas, discussions and approvals in one place.',
   },
@@ -1530,7 +1530,7 @@ export default {
     addClient: '+ Add client',
     addSection: '+ Add section',
     newProject: '+ New project',
-    projectBriefOpenTheProject: 'Project Brief — open the project',
+    projectBriefOpenTheProject: 'Dev2Done — open the project',
     kb: '{arg0} KB',
     mb: '{arg0} MB',
     addedAComment: '{arg0} added a comment',

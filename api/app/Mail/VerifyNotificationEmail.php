@@ -15,7 +15,7 @@ class VerifyNotificationEmail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: trans('notifications.verify_heading', [], $this->language).' — Project Brief');
+        return new Envelope(subject: trans('notifications.verify_heading', [], $this->language).' — Dev2Done');
     }
 
     public function content(): Content

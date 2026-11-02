@@ -15,7 +15,7 @@ class AccountActionMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->heading.' — Project Brief');
+        return new Envelope(subject: $this->heading.' — Dev2Done');
     }
 
     public function content(): Content

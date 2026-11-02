@@ -29,7 +29,7 @@ export function compactGroup(value, maximum = 650) {
 
 export function documentDefinition(document) {
   const brand = document.branding || {},
-    accent = brand.color || '#344054'
+    accent = brand.color || '#5b4bd6'
   let bodyId = 0
   const text = (value, options = {}) => ({
     text: textRuns(value),
@@ -282,8 +282,8 @@ export function documentDefinition(document) {
     pageMargins: [48.2, 48.2, 48.2, 55],
     info: {
       title: document.title,
-      author: brand.name || (brand.platform === false ? document.project.name : 'ProjectBrief'),
-      creator: brand.platform === false ? document.title : 'ProjectBrief browser PDF',
+      author: brand.name || (brand.platform === false ? document.project.name : 'Dev2Done'),
+      creator: brand.platform === false ? document.title : 'Dev2Done browser PDF',
     },
     defaultStyle: { font: 'DejaVu', fontSize: 9.25, color: '#20242b', lineHeight: 1.23 },
     styles: {

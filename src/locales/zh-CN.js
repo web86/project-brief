@@ -134,8 +134,7 @@ export default {
       '代理权限决定最大访问范围。新增权限需要具有相应范围的令牌；现有令牌不会自动扩权或轮换。',
     savePermissionsFirst: '签发密钥前请保存代理权限。',
     connection: '连接 · API 密钥',
-    connectionHint:
-      'API 密钥允许外部程序以此执行器身份调用 Project Brief。密钥本身不会启动 AI 代理。',
+    connectionHint: 'API 密钥允许外部程序以此执行器身份调用 Dev2Done。密钥本身不会启动 AI 代理。',
     saveBeforeKey: '请先保存代理，然后创建 API 密钥连接外部执行器。',
     validTokenCount: '有效令牌：{count}',
     tokenExpiry: '到期时间',
@@ -191,7 +190,7 @@ export default {
     apiRequests: 'API 请求',
     howTo: '如何连接？',
     guideDocs:
-      '使用 API 密钥在 Project Brief 外运行执行器。Project Brief 提供访问权限并接收结果，不会运行执行器。',
+      '使用 API 密钥在 Dev2Done 外运行执行器。Dev2Done 提供访问权限并接收结果，不会运行执行器。',
     addExecutor: '添加执行器',
     executor: '外部执行器',
     assignAction: '分配',
@@ -202,7 +201,7 @@ export default {
     kindHint: {
       ai: '使用 AI 执行任务。例如：Codex、GigaChat、Yandex AI Studio 或自建代理。',
       automation: '运行预定义流程。例如：n8n、cron 或自建脚本。',
-      service: '将 Project Brief 连接到其他系统。例如：CI/CD、测试或内部平台。',
+      service: '将 Dev2Done 连接到其他系统。例如：CI/CD、测试或内部平台。',
     },
     credentialState: { issued: '已签发未过期令牌', missing: '没有未过期令牌' },
     connect: {
@@ -236,7 +235,7 @@ export default {
     projectsCount: '{count} 个项目',
     requests: '{success} 次成功 · {failed} 次失败请求',
     credentials: 'API 凭据',
-    once: '请立即复制密钥。密钥仅显示一次。请在 Project Brief 之外安全保存。',
+    once: '请立即复制密钥。密钥仅显示一次。请在 Dev2Done 之外安全保存。',
     copyManually: '请选中密钥并手动复制。',
     scopes: '允许的操作',
     issueToken: '签发 / 轮换令牌',
@@ -440,7 +439,7 @@ export default {
     automatic: '自动连接（{count}）',
     manual: '手动添加（{count}）',
     manualHint:
-      '如果项目已存在于 Project Brief 中，而客户需要通过此外部客户中心打开它，请使用手动连接。',
+      '如果项目已存在于 Dev2Done 中，而客户需要通过此外部客户中心打开它，请使用手动连接。',
     guide: '如何连接客户中心',
     step1: '创建来源。',
     step2: '填写外部客户中心的 HTTPS Origin。',
@@ -643,7 +642,7 @@ export default {
     showAddress: '显示地址',
     showContact: '显示联系信息',
     showBusiness: '显示公司及银行信息',
-    showPlatform: '显示ProjectBrief名称与链接',
+    showPlatform: '显示Dev2Done名称与链接',
     exportHint: '适用于PDF和DOCX。银行信息默认隐藏，请仅向合适的收件人显示。',
     emailEnabled: '启用项目邮件品牌',
     emailAccent: '使用品牌强调色',
@@ -819,7 +818,7 @@ export default {
     loading: '正在加载…',
     error: '无法打开应用。请检查网络连接后重试。',
     retry: '重试',
-    title: 'Project Brief — 汇集网站改进创意',
+    title: 'Dev2Done — 汇集网站改进创意',
     description: '描述您希望对网站做出的改进。在同一处收集创意、讨论方案并确认需求。',
   },
   provisioning: {
@@ -1428,7 +1427,7 @@ export default {
     addClient: '+ 添加客户',
     addSection: '+ 添加分区',
     newProject: '+ 新建项目',
-    projectBriefOpenTheProject: 'Project Brief — 打开项目',
+    projectBriefOpenTheProject: 'Dev2Done — 打开项目',
     kb: '{arg0} KB',
     mb: '{arg0} MB',
     addedAComment: '{arg0} 添加了评论',

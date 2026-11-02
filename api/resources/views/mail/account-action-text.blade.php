@@ -8,7 +8,7 @@
 {{ $actionUrl }}
 @endif
 
-{{ ($branding['name'] ?? '') ?: 'Project Brief' }}
+{{ ($branding['name'] ?? '') ?: 'Dev2Done' }}
 
 @if(!empty($branding['contact']))
 {{ implode(' · ', $branding['contact']) }}

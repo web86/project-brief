@@ -129,7 +129,7 @@ class ProjectExportTest extends TestCase
                 ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
             $this->assertMatchesRegularExpression('/attachment; filename=[a-z0-9-]+-specification-\d{4}-\d{2}-\d{2}\.docx/', $response->headers->get('Content-Disposition'));
             $xml = $this->xml($response->streamedContent());
-            foreach ([$title, 'Первая задача', 'Каталог товаров', 'ProjectBrief', '&lt;img', '&amp;'] as $expected) {
+            foreach ([$title, 'Первая задача', 'Каталог товаров', 'Dev2Done', '&lt;img', '&amp;'] as $expected) {
                 $this->assertStringContainsString($expected, $xml);
             }
             foreach (['SECRET_DEVELOPER_NOTES', '987.25', '23.5', '<img src=', 'token_hash', 'workspace_id'] as $secret) {

@@ -143,7 +143,7 @@ class MultilingualTest extends TestCase
             $this->postJson('/api/admin/password/forgot', ['email' => $user->email])->assertOk();
             Mail::assertSent(AccountActionMail::class, function ($mail) use ($locale): bool {
                 $this->assertSame($locale, $mail->language);
-                $this->assertSame(trans('account.reset_heading', [], $locale).' — Project Brief', $mail->envelope()->subject);
+                $this->assertSame(trans('account.reset_heading', [], $locale).' — Dev2Done', $mail->envelope()->subject);
                 $mail->assertSeeInHtml(trans('account.reset_message', [], $locale));
                 $mail->assertSeeInText(trans('account.reset_message', [], $locale));
 

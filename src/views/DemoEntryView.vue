@@ -28,7 +28,7 @@ onMounted(() => {
 <template>
   <section class="demo-entry">
     <template v-if="demo.readOnly">
-      <span class="demo-eyebrow">PROJECT BRIEF · INTERACTIVE DEMO</span>
+      <span class="demo-eyebrow">Dev2Done · INTERACTIVE DEMO</span>
       <h1>A studio. Ten projects.<br />Every detail in view.</h1>
       <p>
         Explore Harborline Digital Studio, a fictional team bringing thoughtful digital experiences

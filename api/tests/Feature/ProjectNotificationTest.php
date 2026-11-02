@@ -38,7 +38,7 @@ class ProjectNotificationTest extends TestCase
         ];
         $heading = $headings[$locale][$event];
         $this->assertSame($locale, $mail->payload['locale']);
-        $this->assertSame('[ProjectBrief] '.$heading.' — '.NotificationPayload::excerpt($project, 80), $mail->envelope()->subject);
+        $this->assertSame('[Dev2Done] '.$heading.' — '.NotificationPayload::excerpt($project, 80), $mail->envelope()->subject);
         $this->assertSame($heading, $mail->payload['heading']);
         $this->assertSame($message, $mail->payload['message']);
         $this->assertNotEmpty($mail->payload['number']);

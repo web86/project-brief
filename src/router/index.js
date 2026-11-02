@@ -41,7 +41,7 @@ export function createProjectRouter({
       {
         path: '/platform',
         component: () => import('../views/PlatformView.vue'),
-        meta: { platform: true, title: 'ProjectBrief Platform' },
+        meta: { platform: true, title: 'Dev2Done Platform' },
       },
       ...[
         ['/platform/plans', 'catalog'],

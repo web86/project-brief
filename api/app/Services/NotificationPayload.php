@@ -75,7 +75,7 @@ class NotificationPayload
         return ['title' => self::excerpt($eventText.' · '.$project->title, 120), 'body' => self::excerpt($body, self::PUSH_LIMIT),
             'url' => $url, 'tag' => 'projectbrief-'.$eventId, 'event' => $event, 'project_uuid' => $project->uuid, 'task_uuid' => $task->uuid,
             'project' => $project->title, 'task_title' => $task->title, 'number' => $number, 'actor' => $actor, 'locale' => $locale,
-            'heading' => $eventText, 'subject' => '[ProjectBrief] '.$eventText.' — '.self::excerpt($project->title, 80),
+            'heading' => $eventText, 'subject' => '[Dev2Done] '.$eventText.' — '.self::excerpt($project->title, 80),
             'explanation' => trans('notifications.explanations.'.$event, ['name' => $actor, 'project' => $project->title], $locale),
             'next' => trans('notifications.next.'.$event, [], $locale),
             'message' => $message, 'message_label' => trans($event === 'client.task_status_changed' ? 'notifications.status_change' : ($event === 'client.task_created' ? 'notifications.description' : 'notifications.comment'), [], $locale),
@@ -91,7 +91,7 @@ class NotificationPayload
         $heading = trans('notifications.discussion_heading', [], $locale);
 
         return array_replace($payload, ['title' => self::excerpt($heading.' · '.$project->title, 120), 'heading' => $heading,
-            'subject' => '[ProjectBrief] '.$heading.' — '.self::excerpt($project->title, 80), 'project' => $project->title,
+            'subject' => '[Dev2Done] '.$heading.' — '.self::excerpt($project->title, 80), 'project' => $project->title,
             'actor' => $actor, 'event' => $event, 'tag' => 'projectbrief-comment-'.$comment->id,
             'project_uuid' => $project->uuid, 'body' => self::excerpt($actor.': '.self::commentText($comment, $locale), self::PUSH_LIMIT),
             'message' => self::excerpt(self::commentText($comment, $locale), self::COMMENT_LIMIT), 'message_label' => trans('notifications.comment', [], $locale),
@@ -105,7 +105,7 @@ class NotificationPayload
         $body = trans('notifications.team_explanation', [], $locale);
         $payload = self::test($locale, rtrim(config('app.url'), '/').'/admin/projects/'.$project->uuid.'/discussions#team-'.$comment->uuid);
 
-        return array_replace($payload, ['title' => $heading, 'heading' => $heading, 'subject' => '[ProjectBrief] '.$heading,
+        return array_replace($payload, ['title' => $heading, 'heading' => $heading, 'subject' => '[Dev2Done] '.$heading,
             'body' => $body, 'explanation' => $body, 'project' => $project->title, 'project_uuid' => $project->uuid,
             'event' => 'team.message_created', 'tag' => 'projectbrief-team-'.$comment->id]);
     }
@@ -118,8 +118,8 @@ class NotificationPayload
     public static function test(string $locale, string $url): array
     {
         return ['title' => trans('notifications.test_title', [], $locale), 'body' => trans('notifications.test_body', [], $locale), 'url' => $url, 'tag' => 'projectbrief-test', 'event' => 'test',
-            'project' => 'ProjectBrief', 'task_title' => '', 'number' => '', 'actor' => '', 'locale' => $locale, 'heading' => trans('notifications.test_title', [], $locale),
-            'subject' => '[ProjectBrief] '.trans('notifications.test_title', [], $locale), 'explanation' => trans('notifications.test_body', [], $locale),
+            'project' => 'Dev2Done', 'task_title' => '', 'number' => '', 'actor' => '', 'locale' => $locale, 'heading' => trans('notifications.test_title', [], $locale),
+            'subject' => '[Dev2Done] '.trans('notifications.test_title', [], $locale), 'explanation' => trans('notifications.test_body', [], $locale),
             'next' => '', 'message' => null, 'message_label' => '', 'project_label' => trans('notifications.project', [], $locale), 'task_label' => trans('notifications.task', [], $locale),
             'open' => trans('notifications.open_project', [], $locale), 'access' => trans('notifications.access', [], $locale)];
     }

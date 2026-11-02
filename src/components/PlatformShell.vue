@@ -6,6 +6,7 @@ import { t } from '../i18n/index.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import PlatformNavigation from './PlatformNavigation.vue'
 import AppIcon from './AppIcon.vue'
+import BrandLogo from './BrandLogo.vue'
 const route = useRoute(),
   dialog = ref(null),
   trigger = ref(null),
@@ -36,7 +37,9 @@ onBeforeUnmount(() => drawer.close(false))
       >
         <AppIcon name="menu" />
       </button>
-      <strong>{{ t('platform.title') }}</strong>
+      <BrandLogo compact :size="24" /><strong class="platform-mobile-title">{{
+        t('platform.title')
+      }}</strong>
     </header>
     <aside class="platform-desktop-sidebar">
       <button
@@ -47,6 +50,13 @@ onBeforeUnmount(() => drawer.close(false))
       >
         {{ collapsed ? '»' : '«' }}
       </button>
+      <RouterLink
+        v-if="collapsed"
+        to="/platform"
+        class="platform-compact-brand"
+        aria-label="Dev2Done"
+        ><BrandLogo compact :size="22"
+      /></RouterLink>
       <PlatformNavigation v-show="!collapsed" :can-manage-plans="canManagePlans" />
     </aside>
     <dialog
@@ -157,5 +167,18 @@ onBeforeUnmount(() => drawer.close(false))
   .platform-main .platform-page {
     padding: 20px 16px;
   }
+}
+</style>
+
+<style>
+.platform-compact-brand {
+  display: flex;
+  justify-content: center;
+  padding-block: 12px;
+}
+.platform-mobile-title {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.3;
 }
 </style>

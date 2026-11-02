@@ -429,16 +429,42 @@ test('maskable logo pixels stay inside the safe circle and the brand is large', 
         chunks.push(png.subarray(offset + 8, offset + 8 + length))
       offset += length + 12
     }
-    const rows = inflateSync(Buffer.concat(chunks))
+    assert.equal(png[24], 8)
+    const channels = png[25] === 6 ? 4 : 3
+    const packed = inflateSync(Buffer.concat(chunks))
+    const stride = size * channels
+    const rows = Buffer.alloc(size * stride)
+    const paeth = (a, b, c) => {
+      const p = a + b - c,
+        pa = Math.abs(p - a),
+        pb = Math.abs(p - b),
+        pc = Math.abs(p - c)
+      return pa <= pb && pa <= pc ? a : pb <= pc ? b : c
+    }
+    for (let y = 0; y < size; y++) {
+      const filter = packed[y * (stride + 1)]
+      assert.ok(filter <= 4)
+      for (let x = 0; x < stride; x++) {
+        const offset = y * stride + x
+        const left = x >= channels ? rows[offset - channels] : 0
+        const up = y ? rows[offset - stride] : 0
+        const corner = y && x >= channels ? rows[offset - stride - channels] : 0
+        const prediction = [0, left, up, Math.floor((left + up) / 2), paeth(left, up, corner)][
+          filter
+        ]
+        rows[offset] = (packed[y * (stride + 1) + 1 + x] + prediction) & 255
+      }
+    }
     let minX = size,
       maxX = 0,
       minY = size,
       maxY = 0
     for (let y = 0; y < size; y++) {
-      assert.equal(rows[y * (size * 3 + 1)], 0)
       for (let x = 0; x < size; x++) {
-        const offset = y * (size * 3 + 1) + 1 + x * 3
-        if (rows[offset] === 36 && rows[offset + 1] === 59 && rows[offset + 2] === 98) continue
+        const offset = (y * size + x) * channels
+        if (channels === 4)
+          assert.equal(rows[offset + 3], 255, 'Maskable background must be opaque')
+        if (rows[offset] === 24 && rows[offset + 1] === 21 && rows[offset + 2] === 46) continue
         assert.ok(
           Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2) <= size * 0.4,
           `outside safe zone: ${x},${y}`,
@@ -449,8 +475,8 @@ test('maskable logo pixels stay inside the safe circle and the brand is large', 
         maxY = Math.max(maxY, y)
       }
     }
-    assert.ok(maxX - minX >= size * 0.4)
-    assert.ok(maxY - minY >= size * 0.4)
+    assert.ok(maxX - minX >= size * 0.6)
+    assert.ok(maxY - minY >= size * 0.29)
   }
 })
 

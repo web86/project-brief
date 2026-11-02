@@ -95,7 +95,7 @@ class DocxProjectExporter
         $meta->addText($document['labels']['generated'].': '.$document['generated']['date'], ['size' => 8.5, 'color' => '525866']);
         foreach ($document['sections'] as $index => $group) {
             $heading = $section->addTextRun($index > 0 && $document['presentation']['pageBreakBySection'] ? 'SectionStart' : 'Heading1');
-            $heading->addText($group['number'].'. ', ['bold' => true, 'size' => 12.5, 'color' => ltrim($brand['color'] ?? '#344054', '#')]);
+            $heading->addText($group['number'].'. ', ['bold' => true, 'size' => 12.5, 'color' => ltrim($brand['color'] ?? '#5b4bd6', '#')]);
             $heading->addText($group['name'], ['bold' => true, 'size' => 12.5, 'color' => '000000']);
             foreach ($group['tasks'] as $taskIndex => $task) {
                 $paragraphs = [];

@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => in_array(env('APP_NAME'), ['ProjectBrief', 'Project Brief', 'projectbrief'], true) ? 'Dev2Done' : env('APP_NAME', 'Dev2Done'),
 
     /*
     |--------------------------------------------------------------------------

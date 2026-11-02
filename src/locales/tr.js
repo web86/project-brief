@@ -151,7 +151,7 @@ export default {
     savePermissionsFirst: 'Anahtar vermeden önce ajan izinlerini kaydedin.',
     connection: 'Bağlantı · API anahtarları',
     connectionHint:
-      'API anahtarı, harici bir programın bu yürütücü adına Project Brief çağrısı yapmasını sağlar. Anahtarın kendisi AI ajanı başlatmaz.',
+      'API anahtarı, harici bir programın bu yürütücü adına Dev2Done çağrısı yapmasını sağlar. Anahtarın kendisi AI ajanı başlatmaz.',
     saveBeforeKey:
       'Önce ajanı kaydedin. Ardından harici yürütücüyü bağlamak için API anahtarı oluşturabilirsiniz.',
     validTokenCount: 'Geçerli belirteçler: {count}',
@@ -212,7 +212,7 @@ export default {
     apiRequests: 'API istekleri',
     howTo: 'Nasıl bağlanır?',
     guideDocs:
-      'Harici yürütücüyü Project Brief dışında bir API anahtarıyla çalıştırın. Project Brief erişim sağlar ve sonuçları alır; yürütücüyü çalıştırmaz.',
+      'Harici yürütücüyü Dev2Done dışında bir API anahtarıyla çalıştırın. Dev2Done erişim sağlar ve sonuçları alır; yürütücüyü çalıştırmaz.',
     addExecutor: 'Yürütücü ekle',
     executor: 'Harici yürütücü',
     assignAction: 'Ata',
@@ -225,7 +225,7 @@ export default {
       ai: 'Görevleri gerçekleştirmek için AI kullanır. Örnekler: Codex, GigaChat, Yandex AI Studio veya kendi ajanınız.',
       automation: 'Tanımlı bir senaryoyu çalıştırır. Örnekler: n8n, cron veya kendi betiğiniz.',
       service:
-        'Project Brief uygulamasını başka bir sisteme bağlar. Örnekler: CI/CD, test veya dahili platform.',
+        'Dev2Done uygulamasını başka bir sisteme bağlar. Örnekler: CI/CD, test veya dahili platform.',
     },
     credentialState: {
       issued: 'Süresi dolmamış belirteç verildi',
@@ -262,7 +262,7 @@ export default {
     projectsCount: '{count} proje',
     requests: '{success} başarılı · {failed} başarısız istek',
     credentials: 'API kimlik bilgileri',
-    once: 'Gizli anahtarı şimdi kopyalayın. Yalnızca bir kez gösterilir. Project Brief dışında güvenle saklayın.',
+    once: 'Gizli anahtarı şimdi kopyalayın. Yalnızca bir kez gösterilir. Dev2Done dışında güvenle saklayın.',
     copyManually: 'Gizli anahtarı seçip elle kopyalayın.',
     scopes: 'İzin verilen işlemler',
     issueToken: 'Token oluştur / yenile',
@@ -478,7 +478,7 @@ export default {
     automatic: 'Otomatik bağlananlar ({count})',
     manual: 'Elle eklenenler ({count})',
     manualHint:
-      'Proje Project Brief içinde zaten varsa ve müşterinin bu harici alan üzerinden açması gerekiyorsa elle bağlamayı kullanın.',
+      'Proje Dev2Done içinde zaten varsa ve müşterinin bu harici alan üzerinden açması gerekiyorsa elle bağlamayı kullanın.',
     guide: 'Müşteri alanı nasıl bağlanır',
     step1: 'Bir kaynak oluşturun.',
     step2: 'Harici müşteri alanının HTTPS origin adresini belirtin.',
@@ -688,7 +688,7 @@ export default {
     showAddress: 'Adresi göster',
     showContact: 'İletişim bilgilerini göster',
     showBusiness: 'Şirket ve banka bilgilerini göster',
-    showPlatform: 'ProjectBrief adını ve bağlantısını göster',
+    showPlatform: 'Dev2Done adını ve bağlantısını göster',
     exportHint:
       'PDF ve DOCX için geçerlidir. Banka bilgileri varsayılan olarak gizlidir; yalnızca uygun alıcılar için ekleyin.',
     emailEnabled: 'Proje e-postalarını markala',
@@ -885,7 +885,7 @@ export default {
     loading: 'Yükleniyor…',
     error: 'Uygulama açılamadı. Bağlantınızı kontrol edip yeniden deneyin.',
     retry: 'Yeniden dene',
-    title: 'Project Brief — web siteniz için fikirler',
+    title: 'Dev2Done — web siteniz için fikirler',
     description:
       'Web sitenizde neleri değiştirmek istediğinizi anlatın. Fikirler, tartışmalar ve onaylar tek yerde.',
   },
@@ -1540,7 +1540,7 @@ export default {
     addClient: '+ Müşteri ekle',
     addSection: '+ Bölüm ekle',
     newProject: '+ Yeni proje',
-    projectBriefOpenTheProject: 'Project Brief — projeyi aç',
+    projectBriefOpenTheProject: 'Dev2Done — projeyi aç',
     kb: '{arg0} KB',
     mb: '{arg0} MB',
     addedAComment: '{arg0} bir yorum ekledi',
