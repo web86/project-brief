@@ -1680,6 +1680,8 @@ echo json_encode(['ok'=>true]);
     await verifyPackagedExports(origin, fixture.project, process.env.RELEASE_BROWSER_QA_DIRECTORY)
   }
   if (process.env.RELEASE_SECURITY_BROWSER_QA_DIRECTORY) {
+    // Independent browser scenarios must not inherit the export login rate-limit budget.
+    command(['artisan', 'cache:clear'])
     // Test the compiled application and production vendor, never source/Vite imports.
     const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
     const output = path.resolve(process.env.RELEASE_SECURITY_BROWSER_QA_DIRECTORY)
@@ -1721,7 +1723,12 @@ echo json_encode(['ok'=>true]);
       await page.goto(publicOrigin + '/admin/login')
       await page.locator('#admin-email').fill('release@example.test')
       await page.locator('#admin-password').fill('Release-only-long-password')
+      const loginResponse = page.waitForResponse(
+        (response) =>
+          response.url().endsWith('/api/admin/login') && response.request().method() === 'POST',
+      )
       await page.locator('form button[type=submit]').click()
+      assert.equal((await loginResponse).status(), 200, 'Packaged browser login failed')
       await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
       await page.getByLabel('Recovery code', { exact: true }).fill('Release-browser-login')
       await page.getByRole('button', { name: 'Confirm identity', exact: true }).click()
