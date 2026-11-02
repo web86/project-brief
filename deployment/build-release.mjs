@@ -100,7 +100,7 @@ try {
     [...composerPrefix, 'install', '--prefer-dist', '--no-interaction'],
     path.join(root, 'api'),
   )
-  run(php, ['-d', 'memory_limit=512M', 'artisan', 'test'], path.join(root, 'api'), {
+  run(php, ['-d', 'memory_limit=512M', 'vendor/bin/phpunit'], path.join(root, 'api'), {
     APP_KEY: `base64:${randomBytes(32).toString('base64')}`,
   })
   await mkdir(releaseRoot, { recursive: true })
