@@ -1,3 +1,4 @@
+import { demo } from '../services/demo.js'
 import { stepUp, isSensitiveMutation } from '../services/stepUp.js'
 import { t, locale } from '../i18n/index.js'
 export class ApiError extends Error {
@@ -115,6 +116,8 @@ export function createApiClient({
       onSecurityRequired,
     } = {},
   ) {
+    if (demo.readOnly && !['GET', 'HEAD'].includes(method.toUpperCase()))
+      throw new ApiError(403, 'Demo · View only. Changes are unavailable.', {}, 'demo_view_only')
     externalSignal?.throwIfAborted()
     // Snapshot before confirmation so edits during a native prompt cannot alter the saved intent.
     if (body && !(body instanceof FormData)) body = JSON.parse(JSON.stringify(body))

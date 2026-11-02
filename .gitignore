@@ -91,3 +91,6 @@ Desktop.ini
 /artifacts/**/*.jpg
 /artifacts/**/*.jpeg
 /artifacts/**/*.webp
+
+# Isolated professional demo screenshots and generated walkthrough reports
+/artifacts/demo/

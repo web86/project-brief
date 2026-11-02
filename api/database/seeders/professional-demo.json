@@ -1,0 +1,972 @@
+[
+  {
+    "name": "Northstar Commerce",
+    "description": "A calmer path from discovery to checkout for a fictional outdoor retailer.",
+    "goal": "Reduce checkout friction and make product discovery effortless on mobile.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Navigation built around outdoor activities",
+        "description": "Replace product-led navigation with Hiking, Camping and Trail Running collections. Keep each collection reachable within two taps.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The agreed navigation built around outdoor activities journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Navigation built around outdoor activities is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Product detail size and fit guide",
+        "description": "Present product dimensions beside a concise fit guide; announce size availability and selection errors to assistive technology.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The agreed product detail size and fit guide journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Product detail size and fit guide is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Guest checkout and delivery options",
+        "description": "Build a three-step guest checkout with address validation, transparent shipping costs and a persistent order summary.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Guest checkout and delivery options is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Saved basket across devices",
+        "description": "Restore basket contents after a return visit; resolve unavailable items before checkout without discarding valid selections.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The agreed saved basket across devices journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Saved basket across devices is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Product search and useful empty states",
+        "description": "Support common product synonyms, keyboard navigation and clear recovery when no products match.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Product search and useful empty states is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Order confirmation and next steps",
+        "description": "Show a stable order reference, delivery estimate and support options without exposing payment details.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The agreed order confirmation and next steps journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Order confirmation and next steps is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Northstar Commerce. Reduce checkout friction and make product discovery effortless on mobile.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Northstar Commerce handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Northstar Commerce scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Lumen Health",
+    "description": "An accessible digital front door for a fictional community care network.",
+    "goal": "Help visitors find the right service and request an appointment with confidence.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Service finder by care need",
+        "description": "Create a plain-language directory of care services with filters for location and appointment format.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Service finder by care need is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Appointment request flow",
+        "description": "Collect only the minimum scheduling information; use synthetic examples and never ask for clinical history in the public form.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Appointment request flow is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Clinician profiles and availability",
+        "description": "Design profile cards with specialty, languages and a clear next step; reserve space for content approval.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• The agreed clinician profiles and availability journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Clinician profiles and availability is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Patient resource library",
+        "description": "Group preparation guides and appointment information by visit type with accessible download links.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• The agreed patient resource library journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Patient resource library is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Location directory and accessible directions",
+        "description": "Present fictional locations as editorial cards without live maps or real addresses.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Location directory and accessible directions is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Consent and privacy content review",
+        "description": "Provide readable privacy content and explicit consent for optional analytics before the relevant script is loaded.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• The agreed consent and privacy content review journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Consent and privacy content review is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Lumen Health. Help visitors find the right service and request an appointment with confidence.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Lumen Health handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Lumen Health scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Atlas Property Group",
+    "description": "A refined property discovery portal for a fictional residential developer.",
+    "goal": "Make complex property inventory understandable and streamline viewing enquiries.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Property listing filters",
+        "description": "Combine price band, bedrooms and availability without losing filters on back navigation.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Property listing filters is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Editorial property detail pages",
+        "description": "Pair a large gallery with floor-plan details, practical specifications and a visible enquiry action.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• The agreed editorial property detail pages journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Editorial property detail pages is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Saved property comparison",
+        "description": "Compare up to three properties with matching specifications and a mobile-friendly summary.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• The agreed saved property comparison journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Saved property comparison is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Viewing enquiry form",
+        "description": "Offer preferred dates and contact preferences with inline validation and a clear confirmation state.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Viewing enquiry form is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Development collection pages",
+        "description": "Tell the story of each fictional development using amenities, plans and availability summaries.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• The agreed development collection pages journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Development collection pages is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Inventory synchronisation contract",
+        "description": "Define an idempotent import contract with stable external references and safe handling of withdrawn listings.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Inventory synchronisation contract is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Atlas Property Group. Make complex property inventory understandable and streamline viewing enquiries.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Atlas Property Group handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Atlas Property Group scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Willow & Co.",
+    "description": "A considered brand website for a fictional independent interiors atelier.",
+    "goal": "Translate the studio’s materials-first approach into a fast and expressive website.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Art direction and editorial grid",
+        "description": "Create a warm editorial layout with generous image framing and a readable rhythm across breakpoints.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The agreed art direction and editorial grid journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Art direction and editorial grid is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Collection stories",
+        "description": "Build reusable story sections for materials, craftsmanship and collection context.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The agreed collection stories journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Collection stories is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Project gallery and lightbox",
+        "description": "Support keyboard-controlled image browsing, useful alt text and predictable focus return.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The agreed project gallery and lightbox journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Project gallery and lightbox is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Trade enquiry workflow",
+        "description": "Separate trade enquiries from general contact while retaining a concise and welcoming form.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Trade enquiry workflow is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Journal and author templates",
+        "description": "Publish articles with consistent typographic hierarchy, related stories and clean canonical links.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The agreed journal and author templates journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Journal and author templates is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Brand launch handover",
+        "description": "Prepare an editor guide, component inventory and a signed-off launch checklist for the client team.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Brand launch handover is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Willow & Co.. Translate the studio’s materials-first approach into a fast and expressive website.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Willow & Co. handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Willow & Co. scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Summit Learning",
+    "description": "A learner-focused platform for a fictional professional training company.",
+    "goal": "Help learners choose a pathway and understand their next learning milestone.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Course catalogue and pathways",
+        "description": "Group courses by skill level and pathway with transparent prerequisites and course length.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Course catalogue and pathways is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Course detail and curriculum",
+        "description": "Show module outcomes, instructor context and assessment expectations in a scannable layout.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• The agreed course detail and curriculum journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Course detail and curriculum is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Learner dashboard milestones",
+        "description": "Summarise learning progress without using colour as the only signal for completion.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• The agreed learner dashboard milestones journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Learner dashboard milestones is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Enrollment and seat allocation",
+        "description": "Document individual and team enrollment flows with clear capacity and confirmation states.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Enrollment and seat allocation is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Accessible lesson navigation",
+        "description": "Maintain reading position and keyboard access between lesson chapters.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Accessible lesson navigation is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Completion certificate preview",
+        "description": "Create a printable sample certificate using fictional learner details and no verification claims.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• The agreed completion certificate preview journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Completion certificate preview is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Summit Learning. Help learners choose a pathway and understand their next learning milestone.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Summit Learning handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Summit Learning scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Aster Travel",
+    "description": "A travel planning and booking concept for a fictional small-group tour company.",
+    "goal": "Make trip planning feel inspiring while keeping dates, availability and costs clear.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Destination discovery pages",
+        "description": "Combine itinerary themes with seasonality guidance and concise editorial introductions.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• The agreed destination discovery pages journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Destination discovery pages is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Departure calendar and availability",
+        "description": "Show fictional departure dates and seat counts with a list alternative to the calendar.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• The agreed departure calendar and availability journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Departure calendar and availability is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Itinerary day-by-day experience",
+        "description": "Build collapsible day summaries with accessible headings and a useful mobile reading order.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• The agreed itinerary day-by-day experience journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Itinerary day-by-day experience is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Booking traveller details",
+        "description": "Validate traveller details locally and present a clear review step before submission.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Booking traveller details is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Booking price breakdown",
+        "description": "Separate base price, optional extras and cancellation terms without hidden charges.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Booking price breakdown is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Travel advisor enquiry routing",
+        "description": "Capture destination interest and trip timing with a concise confirmation and expected response window.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Travel advisor enquiry routing is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Aster Travel. Make trip planning feel inspiring while keeping dates, availability and costs clear.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Aster Travel handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Aster Travel scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Oakridge Legal",
+    "description": "A trustworthy website for a fictional advisory law practice.",
+    "goal": "Help prospective clients understand services and choose an appropriate first conversation.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Practice area information architecture",
+        "description": "Organise services by client need with clear boundaries and links to related practice areas.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The agreed practice area information architecture journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Practice area information architecture is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Partner profile and expertise",
+        "description": "Create readable biographies with representative experience and editorially approved credentials.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The agreed partner profile and expertise journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Partner profile and expertise is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Confidential enquiry form",
+        "description": "Collect only contact details and a short general enquiry; explain that the form does not establish an engagement.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Confidential enquiry form is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Insights and legal updates",
+        "description": "Provide an accessible article template with publication date and topic filters.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The agreed insights and legal updates journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Insights and legal updates is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Engagement process explainer",
+        "description": "Show the stages from first conversation to a written scope without promising outcomes.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The agreed engagement process explainer journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Engagement process explainer is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Editorial compliance sign-off",
+        "description": "Record client review of public content, disclaimers and privacy notices before launch.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Editorial compliance sign-off is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Oakridge Legal. Help prospective clients understand services and choose an appropriate first conversation.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Oakridge Legal handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Oakridge Legal scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Mosaic Foods",
+    "description": "A multi-location web experience for a fictional neighbourhood dining group.",
+    "goal": "Help guests choose a restaurant, explore menus and plan a visit quickly.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Restaurant directory",
+        "description": "Present each fictional restaurant with cuisine, opening pattern and an editorial location summary.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Restaurant directory is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Menu content model",
+        "description": "Support seasonal menus, dietary notes and structured prices in an accessible HTML layout.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• The agreed menu content model journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Menu content model is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Table booking handoff",
+        "description": "Design a clear reservation handoff with visible venue and date context using a test-only destination.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Table booking handoff is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Group dining enquiries",
+        "description": "Capture party size, preferred date and dietary questions with clear validation and confirmation.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "Group dining enquiries is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Seasonal campaign landing page",
+        "description": "Combine featured dishes, story content and venue availability in a reusable campaign template.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• The agreed seasonal campaign landing page journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Seasonal campaign landing page is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Menu migration and editorial QA",
+        "description": "Reconcile supplied menu content, detect missing dietary notes and document owner approval.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Menu migration and editorial QA is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Mosaic Foods. Help guests choose a restaurant, explore menus and plan a visit quickly.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Mosaic Foods handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Mosaic Foods scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Vertex Analytics",
+    "description": "A clear and purposeful dashboard for a fictional B2B analytics platform.",
+    "goal": "Turn a dense set of operational metrics into a useful daily decision-making workspace.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Dashboard metric hierarchy",
+        "description": "Prioritise activation, retention and usage with definitions and comparison periods.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The agreed dashboard metric hierarchy journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Dashboard metric hierarchy is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Accessible chart summaries",
+        "description": "Pair visual charts with concise text summaries and an accessible data table.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Accessible chart summaries is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Workspace and date filters",
+        "description": "Preserve filter selections across dashboard tabs and make the active reporting scope visible.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Workspace and date filters is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Role-aware report navigation",
+        "description": "Document viewer and analyst permissions with useful denied-access states.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The agreed role-aware report navigation journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Role-aware report navigation is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Export job progress states",
+        "description": "Design queued, ready and expired report states using synthetic files only.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The agreed export job progress states journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Export job progress states is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "API error and stale-data treatment",
+        "description": "Show when data was last refreshed and offer safe recovery after a failed request.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The agreed api error and stale-data treatment journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "API error and stale-data treatment is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Vertex Analytics. Turn a dense set of operational metrics into a useful daily decision-making workspace.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Vertex Analytics handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Vertex Analytics scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  },
+  {
+    "name": "Evolve Fitness",
+    "description": "A membership website for a fictional independent fitness collective.",
+    "goal": "Make class discovery, membership choices and the first booking easy to understand.",
+    "tasks": [
+      {
+        "title": "Discovery brief and success measures",
+        "description": "Confirm the primary audience, key journeys and measurable outcomes with the client. Record scope boundaries and the content owner.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The agreed discovery brief and success measures journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Discovery brief and success measures is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Responsive design system",
+        "description": "Define typography, spacing, buttons, form controls and layout behaviour at 375, 768, 1024 and 1440 pixels. Include hover, focus, loading and validation states.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The agreed responsive design system journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Responsive design system is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Class timetable and level filters",
+        "description": "Create a responsive weekly schedule with a readable agenda view on small screens.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• Results match the selected criteria and the active scope is visible.\n• Back navigation preserves the current filters; clearing them restores the complete list.\n• An empty result offers a clear recovery action and is announced accessibly.",
+        "expectedResult": "Class timetable and level filters is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Membership comparison",
+        "description": "Compare included sessions and renewal terms in plain language with no hidden conditions.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The agreed membership comparison journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Membership comparison is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Instructor profiles",
+        "description": "Present coaching approach, specialisms and class links in a consistent profile template.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The agreed instructor profiles journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Instructor profiles is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "First-class booking journey",
+        "description": "Guide new members through class choice and a clear pre-booking review step.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• Required fields, invalid input and service errors have specific recovery messages.\n• The review step shows the selected options and prevents accidental duplicate submission.\n• The confirmation explains the next step without exposing sensitive information.",
+        "expectedResult": "First-class booking journey is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Member welcome sequence",
+        "description": "Prepare useful onboarding content covering what to bring, arrival timing and class etiquette.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The agreed member welcome sequence journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Member welcome sequence is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Launch and training handover",
+        "description": "Record the final acceptance review, editor training and documented support responsibilities.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Launch and training handover is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Content inventory and CMS migration",
+        "description": "Map legacy pages to the new content model, identify owners and prepare redirects. Trial the migration with representative editorial content before the final import.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• Every source item maps to a valid destination or an approved exclusion.\n• A representative migration preserves headings, links and media descriptions.\n• The client editor reviews the sample content and the rollback notes are complete.",
+        "expectedResult": "Content inventory and CMS migration is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Technical SEO and structured content",
+        "description": "Review heading structure, canonical URLs, metadata, sitemap entries and redirects. Validate structured content using synthetic organisation details.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• Each migrated route has an approved canonical URL and redirect mapping.\n• Metadata and structured content validate against the agreed content model.\n• The sitemap excludes private pages and no duplicate indexable routes remain.",
+        "expectedResult": "Technical SEO and structured content is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Keyboard and screen reader review",
+        "description": "Check navigation order, focus visibility, accessible names, error announcements and reduced-motion preferences. Log reproducible findings with expected behaviour.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• Every interactive element has an accessible name and a visible focus state.\n• The agreed journeys work using only the keyboard and announce validation errors.\n• Findings include reproduction steps, severity and evidence of the completed recheck.",
+        "expectedResult": "Keyboard and screen reader review is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Analytics and consent event map",
+        "description": "Define a minimal event taxonomy for the primary journeys. Document consent requirements and exclude personal information from event payloads.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• Optional events remain disabled until consent is granted.\n• Payloads match the event map and contain no contact details or other personal data.\n• Repeated navigation does not duplicate conversion events; withdrawal stops collection.",
+        "expectedResult": "Analytics and consent event map is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Performance budget and image delivery",
+        "description": "Set budgets for critical assets, resize editorial images and defer nonessential modules. Record a repeatable mobile test and the remaining bottlenecks.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• Representative pages meet the agreed image and critical-asset budgets.\n• Mobile test conditions, results and remaining bottlenecks are documented.\n• Deferred content does not cause unexpected layout shifts or break navigation.",
+        "expectedResult": "Performance budget and image delivery is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with design before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Cross-browser acceptance pass",
+        "description": "Review the approved journeys in desktop and mobile browsers. Check form errors, empty states, orientation changes and navigation history.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The agreed cross-browser acceptance pass journey matches the approved design and content.\n• Desktop and mobile layouts remain readable with visible keyboard focus and useful empty states.\n• The project lead records the review outcome and resolves the documented edge cases before handover.",
+        "expectedResult": "Cross-browser acceptance pass is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with engineering before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      },
+      {
+        "title": "Release checklist and client walkthrough",
+        "description": "Confirm content sign-off, rollback notes, monitoring ownership and a guided client acceptance session. Capture open items with named owners.\n\nProject context: Evolve Fitness. Make class discovery, membership choices and the first booking easy to understand.\n\nAcceptance criteria:\n• The acceptance checklist links to approved work and names each remaining owner.\n• Client training covers the routine editing and support workflow.\n• Launch, verification and rollback steps are documented and reviewed together.",
+        "expectedResult": "Release checklist and client walkthrough is implemented, reviewed and documented for the Evolve Fitness handover.",
+        "developerNotes": "Coordinate with QA before the next review. Keep the change within the agreed Evolve Fitness scope; attach verification notes and flag content dependencies."
+      }
+    ]
+  }
+]

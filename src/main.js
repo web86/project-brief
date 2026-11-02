@@ -1,3 +1,4 @@
+import { initializeDemo, blockDemoExternalLink } from './services/demo.js'
 import { createApp, nextTick } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
@@ -11,6 +12,8 @@ theme.initialize()
 if (import.meta.hot) import.meta.hot.dispose(theme.dispose)
 
 async function start() {
+  await initializeDemo().catch(() => {})
+  document.addEventListener('click', blockDemoExternalLink, true)
   const app = createApp(App).use(createPinia()).use(i18n).use(router)
   await router.isReady()
   app.mount('#app')

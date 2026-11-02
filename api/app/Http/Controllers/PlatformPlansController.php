@@ -42,7 +42,10 @@ class PlatformPlansController extends Controller
         $sort = ['code' => 'code', 'status' => 'status', 'newest' => 'created_at', 'order' => 'sort_order'][$filters['sort'] ?? 'order'];
         $paginator = $query->orderBy($sort, $sort === 'created_at' ? 'desc' : 'asc')->orderBy('id')->paginate($filters['perPage'] ?? 25);
 
-        return response()->json(['data' => $paginator->getCollection()->map(fn ($p) => $this->planResource($p)), 'meta' => ['page' => $paginator->currentPage(), 'lastPage' => $paginator->lastPage(), 'total' => $paginator->total()]]);
+        $versionIds = $paginator->getCollection()->flatMap(fn ($plan) => $plan->versions->pluck('id'));
+        $limits = DB::table('plan_entitlement_values')->whereIn('plan_version_id', $versionIds)->whereIn('entitlement_key', ['projects.active.max', 'clients.max', 'agents.active.max'])->get()->groupBy('plan_version_id')->map(fn ($rows) => $rows->mapWithKeys(fn ($row) => [$row->entitlement_key => json_decode($row->value_json, true, flags: JSON_THROW_ON_ERROR)])->all())->all();
+
+        return response()->json(['data' => $paginator->getCollection()->map(fn ($p) => $this->planResource($p, $limits)), 'meta' => ['page' => $paginator->currentPage(), 'lastPage' => $paginator->lastPage(), 'total' => $paginator->total()]]);
     }
 
     public function store(Request $request, PlanCatalog $catalog, PlanInput $input): JsonResponse
@@ -246,8 +249,8 @@ class PlatformPlansController extends Controller
         return ['id' => $row->uuid, 'state' => $row->state, 'contentHash' => $row->target_hash, 'revision' => (string) $row->target_revision, 'expiresAt' => $row->expires_at, 'summary' => json_decode($row->summary_json, true, 16, JSON_THROW_ON_ERROR)];
     }
 
-    private function planResource(Plan $plan): array
+    private function planResource(Plan $plan, array $limits = []): array
     {
-        return ['id' => $plan->uuid, 'code' => $plan->code, 'status' => $plan->status, 'visibility' => $plan->visibility, 'revision' => (string) $plan->revision, 'sortOrder' => $plan->sort_order, 'hasDraft' => $plan->has_draft ?? $plan->versions->contains('state', 'draft'), 'versions' => $plan->versions->map(fn ($v) => ['id' => $v->uuid, 'number' => $v->number, 'state' => $v->state, 'revision' => (string) $v->revision, 'translations' => $v->translations_json, 'price' => $v->price_json, 'current' => $plan->published_version_id === $v->id])];
+        return ['id' => $plan->uuid, 'code' => $plan->code, 'status' => $plan->status, 'visibility' => $plan->visibility, 'revision' => (string) $plan->revision, 'sortOrder' => $plan->sort_order, 'hasDraft' => $plan->has_draft ?? $plan->versions->contains('state', 'draft'), 'versions' => $plan->versions->map(fn ($v) => ['id' => $v->uuid, 'number' => $v->number, 'state' => $v->state, 'revision' => (string) $v->revision, 'translations' => $v->translations_json, 'price' => $v->price_json, 'developerSeats' => $v->developer_seats_json, 'limits' => $limits[$v->id] ?? [], 'current' => $plan->published_version_id === $v->id])];
     }
 }

@@ -1,5 +1,15 @@
 export const planMessages = {
   en: {
+    moreActions: 'More actions',
+    groups: {
+      projects: 'Projects & team',
+      clients: 'Clients',
+      agents: 'AI agents',
+      integrations: 'API & integrations',
+      branding: 'Branding',
+      storage: 'Storage',
+      additional: 'Additional features',
+    },
     yes: 'Yes',
     no: 'No',
     actionNames: {
@@ -219,6 +229,16 @@ export const planMessages = {
     },
   },
   ru: {
+    moreActions: 'Другие действия',
+    groups: {
+      projects: 'Проекты и команда',
+      clients: 'Клиенты',
+      agents: 'AI-агенты',
+      integrations: 'API и интеграции',
+      branding: 'Брендинг',
+      storage: 'Хранилище',
+      additional: 'Дополнительные возможности',
+    },
     yes: 'Да',
     no: 'Нет',
     actionNames: {

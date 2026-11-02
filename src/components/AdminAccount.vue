@@ -1,4 +1,5 @@
 <script setup>
+import { demo } from '../services/demo.js'
 import { t } from '../i18n/index.js'
 import AppIcon from './AppIcon.vue'
 import UserAvatar from './UserAvatar.vue'
@@ -7,7 +8,10 @@ defineEmits(['logout', 'navigate'])
 </script>
 <template>
   <footer class="task-account">
-    <RouterLink to="/admin/account" class="account-profile-link" @click="$emit('navigate')"
+    <RouterLink
+      :to="demo.readOnly ? '/demo' : '/admin/account'"
+      class="account-profile-link"
+      @click="$emit('navigate')"
       ><UserAvatar :user="user" />
       <div class="task-account-details">
         <strong>{{ user.name }}</strong

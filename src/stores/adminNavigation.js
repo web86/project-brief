@@ -1,3 +1,4 @@
+import { demo } from '../services/demo.js'
 import { useProjectRequestsStore } from './projectRequests.js'
 import { usePersonalNotificationsStore } from './personalNotifications.js'
 import { useTaskWorkspaceStore } from './taskWorkspace.js'
@@ -157,6 +158,7 @@ export const useAdminNavigationStore = defineStore('adminNavigation', () => {
     }
   }
   async function markRead(id, request = api.request) {
+    if (demo.readOnly) return Promise.resolve(false)
     const current = revision
     try {
       const result = await request(`/api/admin/projects/${id}/activity/read`, { method: 'POST' })

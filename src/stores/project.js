@@ -1,3 +1,4 @@
+import { demo } from '../services/demo.js'
 import { canChangeClientStatus } from '../utils/clientTaskStatus.js'
 import { useClientDiscussionsStore } from './discussions.js'
 import { toast } from '../services/toast.js'
@@ -835,7 +836,7 @@ export const useProjectStore = defineStore('project', () => {
   async function selectLocale(value) {
     if (!SUPPORTED_LOCALES.includes(value)) return false
     setManualLocale(value)
-    if (API_MODE && (admin.value || currentClient.value)) {
+    if (API_MODE && !demo.readOnly && (admin.value || currentClient.value)) {
       try {
         const person = admin.value || currentClient.value
         const id = person.email || person.id

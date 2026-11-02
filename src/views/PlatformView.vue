@@ -1,19 +1,17 @@
 <script setup>
 import { ref, onBeforeUnmount, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import LoadingButton from '../components/LoadingButton.vue'
-const router = useRouter()
+const router = useRouter(),
+  route = useRoute()
 const usageWorkspace = ref('')
-const canManagePlans = ref(false)
-api
-  .request('/api/platform/plan-access')
-  .then((result) => {
-    canManagePlans.value = result.canManage
-  })
-  .catch(() => {})
-const tab = ref('overview'),
+const tab = ref(
+    ['overview', 'workspaces', 'usage', 'audit'].includes(route.query.section)
+      ? route.query.section
+      : 'overview',
+  ),
   period = ref('24h'),
   search = ref(''),
   page = ref(1)
@@ -88,15 +86,12 @@ async function inspect(workspace) {
 }
 function workspaceUsage(id) {
   usageWorkspace.value = String(id)
-  tab.value = 'usage'
-  page.value = 1
-  load()
+  router.push({ path: '/platform', query: { section: 'usage' } })
 }
-async function logout() {
-  await api.request('/api/admin/logout', { method: 'POST' })
-  api.resetCsrf()
-  await router.replace('/admin/login')
-}
+watch(
+  () => route.query.section,
+  (section) => select(tabs.includes(section) ? section : 'overview'),
+)
 watch(period, () => {
   page.value = 1
   load()
@@ -115,23 +110,7 @@ load()
         <h1>{{ t('platform.title') }}</h1>
         <p>{{ t('platform.intro') }}</p>
       </div>
-      <button class="text-button" @click="logout">{{ t('platform.signOut') }}</button>
     </div>
-    <nav class="platform-tabs" :aria-label="t('platform.title')">
-      <button
-        v-for="item in tabs"
-        :key="item"
-        class="button"
-        :class="tab === item ? 'primary' : 'secondary'"
-        :aria-current="tab === item ? 'page' : undefined"
-        @click="select(item)"
-      >
-        {{ t('platform.' + item) }}
-      </button>
-    </nav>
-    <RouterLink v-if="canManagePlans" class="button secondary" to="/platform/plans">{{
-      t('planManagement.title')
-    }}</RouterLink>
     <div class="surface platform-controls">
       <label for="platform-period">{{ t('platform.period') }}</label
       ><select id="platform-period" v-model="period">

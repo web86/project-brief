@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+"""Isolated local demo lifecycle. Never reads the repository's .env files."""
+import base64
+import json
+import os
+from pathlib import Path
+import secrets
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+
+ROOT = Path(__file__).resolve().parents[1]
+STATE = ROOT / '.tools' / 'demo-runtime'
+BUILD = ROOT / '.tools' / 'demo-build'
+DB = 'projectbrief-professional-demo-db'
+WEB = 'projectbrief-professional-demo-web'
+QA = 'projectbrief-professional-demo-qa'
+PROXY = 'projectbrief-professional-demo-gateway'
+NETWORK = 'projectbrief-professional-demo-isolated'
+IMAGE = os.environ.get('DEMO_PHP_IMAGE', 'projectbrief-phase2-php84-gd:local')
+LABEL = 'projectbrief.professional-demo=v1'
+
+
+def run(args, **kwargs):
+    return subprocess.run(args, check=True, **kwargs)
+
+
+def docker(*args, **kwargs):
+    return run(['docker', *args], **kwargs)
+
+
+def remove(name):
+    result = subprocess.run(['docker', 'inspect', '--format', '{{index .Config.Labels "projectbrief.professional-demo"}}', name], capture_output=True, text=True)
+    if result.returncode == 0:
+        if result.stdout.strip() != 'v1':
+            raise RuntimeError('Refusing to change an unlabelled container: ' + name)
+        docker('rm', '-f', name, stdout=subprocess.DEVNULL)
+
+
+def private(path, value):
+    path.write_text(value)
+    path.chmod(0o600)
+
+
+def prepare():
+    STATE.mkdir(parents=True, exist_ok=True)
+    STATE.chmod(0o700)
+    config = STATE / 'access.private.json'
+    if config.exists():
+        data = json.loads(config.read_text())
+    else:
+        data = {name: secrets.token_hex(24) for name in ['rootPassword', 'writerPassword', 'readerPassword', 'testPassword', 'password', 'installationId']}
+        data['appKey'] = 'base64:' + base64.b64encode(secrets.token_bytes(32)).decode()
+        data['totpSecret'] = base64.b32encode(secrets.token_bytes(20)).decode()
+        private(config, json.dumps(data, indent=2))
+    private(STATE / 'db.env', f'MARIADB_ROOT_PASSWORD={data["rootPassword"]}\n')
+    sql = f"""CREATE DATABASE IF NOT EXISTS projectbrief_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'demo_writer'@'%' IDENTIFIED BY '{data['writerPassword']}';
+GRANT ALL PRIVILEGES ON projectbrief_demo.* TO 'demo_writer'@'%';
+CREATE USER IF NOT EXISTS 'demo_reader'@'%' IDENTIFIED BY '{data['readerPassword']}';
+GRANT SELECT ON projectbrief_demo.* TO 'demo_reader'@'%';
+CREATE DATABASE IF NOT EXISTS projectbrief_agent_ux_full_qa CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'demo_tester'@'%' IDENTIFIED BY '{data['testPassword']}';
+GRANT ALL PRIVILEGES ON projectbrief_agent_ux_full_qa.* TO 'demo_tester'@'%';
+CREATE DATABASE IF NOT EXISTS projectbrief_m10_upgrade_qa CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON projectbrief_m10_upgrade_qa.* TO 'demo_tester'@'%';
+"""
+    private(STATE / 'init.sql', sql)
+    app = STATE / 'api'
+    app.mkdir(exist_ok=True)
+    for folder in ['app', 'config', 'database', 'lang', 'resources', 'routes']:
+        shutil.copytree(ROOT / 'api' / folder, app / folder, dirs_exist_ok=True)
+    for name in ['artisan', 'composer.json', 'composer.lock', 'phpunit.xml']:
+        shutil.copy2(ROOT / 'api' / name, app / name)
+    (app / 'bootstrap' / 'cache').mkdir(parents=True, exist_ok=True)
+    for name in ['app.php', 'providers.php']:
+        shutil.copy2(ROOT / 'api' / 'bootstrap' / name, app / 'bootstrap' / name)
+    for folder in ['storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views', 'storage/app/private', 'storage/logs', 'public']:
+        (app / folder).mkdir(parents=True, exist_ok=True)
+    vendor = app / 'vendor'
+    if not vendor.is_symlink():
+        vendor.symlink_to('/source/api/vendor', target_is_directory=True)
+    shutil.copytree(ROOT / 'api' / 'public', app / 'public', dirs_exist_ok=True, ignore=shutil.ignore_patterns('storage', 'hot', 'index.html'))
+    shutil.copytree(BUILD, app / 'public', dirs_exist_ok=True)
+    index = app / 'public' / 'index.html'
+    index.write_text(index.read_text().replace('<head>', '<head>\n<meta name="projectbrief-demo" content="enabled">'))
+    private(app / 'demo-installation.json', json.dumps({'database': 'projectbrief_demo', 'installationId': data['installationId']}))
+    values = {'APP_NAME': 'ProjectBrief Demo', 'APP_ENV': 'local', 'APP_DEBUG': 'false', 'APP_KEY': data['appKey'], 'APP_URL': 'http://127.0.0.1:18080', 'FRONTEND_URL': 'http://127.0.0.1:18080', 'DB_CONNECTION': 'mysql', 'DB_HOST': '127.0.0.1', 'DB_PORT': '3306', 'DB_DATABASE': 'projectbrief_demo', 'DB_USERNAME': 'demo_writer', 'DB_PASSWORD': data['writerPassword'], 'DB_URL': '', 'DEMO_ENABLED': 'true', 'DEMO_READ_ONLY': 'false', 'DEMO_INSTALLATION_ID': data['installationId'], 'DEMO_ADMIN_PASSWORD': data['password'], 'DEMO_OWNER_TOTP_SECRET': data['totpSecret'], 'SESSION_DRIVER': 'file', 'SESSION_COOKIE': 'projectbrief_local_qa', 'SESSION_SECURE_COOKIE': 'false', 'SESSION_DOMAIN': '', 'CACHE_STORE': 'file', 'MAIL_MAILER': 'array', 'QUEUE_CONNECTION': 'null', 'LOG_CHANNEL': 'single', 'AI_ENABLED': 'false', 'BCRYPT_ROUNDS': '10'}
+    private(app / '.env', '\n'.join(k + '=' + ('"' + v + '"') for k, v in values.items()) + '\n')
+    private(STATE / 'reader.env', '\n'.join(['DEMO_READ_ONLY=true', 'DB_USERNAME=demo_reader', 'DB_PASSWORD=' + data['readerPassword'], 'SESSION_COOKIE=projectbrief_demo_view', 'DEMO_ADMIN_PASSWORD=', 'DEMO_OWNER_TOTP_SECRET=']) + '\n')
+    private(STATE / 'tester.env', '\n'.join(['APP_ENV=testing', 'DEMO_ENABLED=false', 'DB_CONNECTION=mysql', 'DB_HOST=127.0.0.1', 'DB_DATABASE=projectbrief_agent_ux_full_qa', 'DB_USERNAME=demo_tester', 'DB_PASSWORD=' + data['testPassword'], 'DB_URL=']) + '\n')
+    return data
+
+
+def php(*args, reader=False):
+    options = ['run', '--rm', '--network', 'container:' + DB, '-v', str(ROOT) + ':/source:ro', '-v', str(STATE) + ':/demo-runtime', '-w', '/demo-runtime/api']
+    if reader:
+        options += ['--env-file', str(STATE / 'reader.env')]
+    docker(*options, IMAGE, 'php', *args)
+
+
+def start_db():
+    if subprocess.run(['docker', 'network', 'inspect', NETWORK], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
+        docker('network', 'create', '--internal', '--subnet', os.environ.get('DEMO_DOCKER_SUBNET', '172.30.241.0/24'), '--label', LABEL, NETWORK, stdout=subprocess.DEVNULL)
+    existing = subprocess.run(['docker', 'inspect', '--format', '{{.State.Running}}', DB], capture_output=True, text=True)
+    if existing.returncode:
+        docker('run', '-d', '--name', DB, '--label', LABEL, '--network', NETWORK, '--env-file', str(STATE / 'db.env'), '-v', 'projectbrief-professional-demo-data:/var/lib/mysql', '-v', str(STATE / 'init.sql') + ':/docker-entrypoint-initdb.d/demo.sql:ro', '-p', '127.0.0.1:18080:8000', '-p', '127.0.0.1:18081:8001', 'mariadb:11.8.9', '--innodb-flush-log-at-trx-commit=2', '--sync-binlog=0', stdout=subprocess.DEVNULL)
+    elif subprocess.check_output(['docker', 'inspect', '--format', '{{index .Config.Labels "projectbrief.professional-demo"}}', DB], text=True).strip() != 'v1':
+        raise RuntimeError('Refusing to reuse an unlabelled database container')
+    elif existing.stdout.strip() != 'true':
+        docker('start', DB, stdout=subprocess.DEVNULL)
+    for _ in range(60):
+        if subprocess.run(['docker', 'exec', DB, 'healthcheck.sh', '--connect', '--innodb_initialized'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            return
+        time.sleep(1)
+    raise RuntimeError('Demo MariaDB did not become ready')
+
+
+def start_web():
+    for name, port, reader in [(WEB, '8000', True), (QA, '8001', False)]:
+        remove(name)
+        options = ['run', '-d', '--name', name, '--label', LABEL, '--network', 'container:' + DB, '-v', str(ROOT) + ':/source:ro', '-v', str(STATE) + ':/demo-runtime', '-w', '/demo-runtime/api/public']
+        if reader:
+            options += ['--env-file', str(STATE / 'reader.env')]
+        else:
+            options += ['-e', 'APP_URL=http://127.0.0.1:18081', '-e', 'FRONTEND_URL=http://127.0.0.1:18081']
+        docker(*options, IMAGE, 'php', '-S', '0.0.0.0:' + port, '/source/api/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php', stdout=subprocess.DEVNULL)
+    remove(PROXY)
+    address = subprocess.check_output(['docker', 'inspect', '--format', '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}', DB], text=True).strip()
+    configuration = 'events {}\nhttp { server { listen 8000; client_max_body_size 20m; location / { proxy_set_header Host $http_host; proxy_pass http://' + address + ':8000; } } server { listen 8001; client_max_body_size 20m; location / { proxy_set_header Host $http_host; proxy_pass http://' + address + ':8001; } } }\n'
+    (STATE / 'nginx.conf').write_text(configuration)
+    docker('run', '-d', '--name', PROXY, '--label', LABEL, '--network', 'bridge', '-p', '127.0.0.1:18080:8000', '-p', '127.0.0.1:18081:8001', '-v', str(STATE / 'nginx.conf') + ':/etc/nginx/nginx.conf:ro', 'nginx:1.28-alpine', stdout=subprocess.DEVNULL)
+    docker('network', 'connect', NETWORK, PROXY)
+    for _ in range(30):
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:18080/api/demo/status', timeout=2) as response:
+                if json.load(response)['readOnly']:
+                    print('Verified view-only demo: http://127.0.0.1:18080/demo')
+                    print('Local full QA: http://127.0.0.1:18081/admin/login')
+                    print('Private credentials: ' + str(STATE / 'api/storage/demo-access.private.json'))
+                    return
+        except Exception:
+            time.sleep(1)
+    raise RuntimeError('Demo HTTP health check failed; inspect only labelled demo container logs')
+
+
+def main():
+    action = sys.argv[1] if len(sys.argv) > 1 else 'up'
+    if action == 'down':
+        for name in [PROXY, WEB, QA, DB]:
+            remove(name)
+        print('Demo containers stopped. Isolated dataset volume retained.')
+        return
+    if action == 'build-image':
+        docker('build', '-t', IMAGE, '-f', str(ROOT / 'docs/demo/Dockerfile'), str(ROOT / 'docs/demo'))
+        return
+    if action not in ['up', 'reset', 'sync', 'audit', 'test']:
+        raise RuntimeError('Usage: bin/demo [up|reset|sync|audit|test|down|build-image]')
+    if not (BUILD / 'index.html').is_file() or not (ROOT / 'api/vendor/autoload.php').is_file():
+        raise RuntimeError('Install locked dependencies and run npm run demo:build first. See docs/demo/README.md.')
+    prepare()
+    start_db()
+    if action == 'test':
+        docker('run', '--rm', '--network', 'container:' + DB, '--env-file', str(STATE / 'tester.env'), '-v', str(ROOT) + ':/workspace:ro', IMAGE, 'sh', '/workspace/tests/plans-foundation.php84.sh', *sys.argv[2:])
+    elif action == 'audit':
+        php('artisan', 'demo:audit', '--no-interaction', reader=True)
+    else:
+        if action == 'reset' or not (STATE / 'api/storage/demo-access.private.json').exists():
+            for name in [WEB, QA]:
+                remove(name)
+            php('artisan', 'demo:reset', '--no-interaction')
+        php('artisan', 'demo:audit', '--no-interaction', reader=True)
+        start_web()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (RuntimeError, subprocess.CalledProcessError) as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(1)

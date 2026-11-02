@@ -1,4 +1,6 @@
 <script setup>
+import { demo } from './services/demo.js'
+import PlatformShell from './components/PlatformShell.vue'
 import AppFooter from './components/AppFooter.vue'
 import SecurityStepUpDialog from './components/SecurityStepUpDialog.vue'
 import BrandLogo from './components/PortalBrandLogo.vue'
@@ -198,6 +200,10 @@ onBeforeUnmount(() => {
   liveNotices.clear()
 })
 async function logout() {
+  if (demo.readOnly) {
+    window.location.assign('/demo')
+    return
+  }
   if (!confirmDeveloperLeave(store)) return
   try {
     await api.request('/api/admin/logout', { method: 'POST' })
@@ -267,8 +273,12 @@ watch(
     :style="appearance.tokens.value"
     class="workspace-appearance"
   >
+    <div v-if="demo.readOnly" class="demo-view-indicator" role="status">
+      <a href="/demo">Demo · View only</a><span>Harborline Digital Studio</span>
+    </div>
     <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
-    <RouterView v-if="route.meta.adminShell" />
+    <PlatformShell v-if="route.meta.platform"><RouterView /></PlatformShell>
+    <RouterView v-else-if="route.meta.adminShell" />
     <div
       v-else
       class="app-shell"
@@ -347,3 +357,35 @@ watch(
   <SecurityStepUpDialog />
   <ToastViewport />
 </template>
+
+<style>
+.demo-view-indicator {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  background: var(--surface);
+  color: var(--text-subtle);
+  box-shadow: 0 3px 16px var(--popover-shadow);
+  font-size: 11px;
+}
+.demo-view-indicator a {
+  color: var(--action);
+  font-weight: 650;
+}
+@media (max-width: 600px) {
+  .demo-view-indicator {
+    right: 10px;
+    bottom: 10px;
+  }
+  .demo-view-indicator span {
+    display: none;
+  }
+}
+</style>

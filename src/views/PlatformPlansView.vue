@@ -15,6 +15,7 @@ const route = useRoute(),
   router = useRouter()
 const l = (key) => t('planManagement.' + key)
 const clone = (data) => JSON.parse(JSON.stringify(data))
+const translationLanguage = ref('en')
 const mode = computed(() => route.meta.planSection || 'catalog')
 const busy = ref(false),
   error = ref(''),
@@ -102,6 +103,18 @@ async function run(operation) {
 function name(row) {
   return row?.translations?.[locale.value]?.name || row?.translations?.en?.name || row?.code || ''
 }
+function priceLabel(row) {
+  const price = row?.price
+  if (price?.amount_minor == null || !price.currency) return l('unconfigured')
+  return new Intl.NumberFormat(locale.value, {
+    style: 'currency',
+    currency: price.currency,
+    maximumFractionDigits: price.scale ?? 2,
+  }).format(price.amount_minor / 10 ** (price.scale ?? 2))
+}
+function limitLabel(value) {
+  return value?.kind === 'unlimited' ? l('unlimited') : (value?.value ?? value ?? '—')
+}
 function versionLabel(row) {
   if (!row) return '—'
   return `${name(row)} · ${row.code} · v${row.number}`
@@ -126,6 +139,7 @@ async function publishedMore() {
   versionsMeta.value = result.meta
 }
 async function load(page = 1) {
+  translationLanguage.value = 'en'
   const current = ++generation
   controller?.abort()
   controller = new AbortController()
@@ -434,20 +448,6 @@ onBeforeUnmount(() => {
       </div>
       <RouterLink class="text-button" to="/platform">{{ l('diagnostics') }}</RouterLink>
     </header>
-    <nav class="platform-tabs" :aria-label="l('title')">
-      <RouterLink
-        v-for="[key, path] in [
-          ['catalog', '/platform/plans'],
-          ['policies', '/platform/plans/policies'],
-          ['rules', '/platform/plans/transitions'],
-        ]"
-        :key="key"
-        class="button"
-        :class="mode === key || (mode === 'editor' && key === 'catalog') ? 'primary' : 'secondary'"
-        :to="path"
-        >{{ l(key) }}</RouterLink
-      >
-    </nav>
     <p v-if="error" class="plans-error surface" role="alert" tabindex="-1">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <p v-if="busy" role="status">{{ t('flow.busy') }}</p>
@@ -503,47 +503,59 @@ onBeforeUnmount(() => {
           <p>
             <code>{{ row.code }}</code> · {{ l('states.' + row.visibility) }}
           </p>
-          <p>
-            {{ l('price') }}: {{ row.versions[0]?.price?.amount_minor ?? l('unconfigured') }}
-            {{ row.versions[0]?.price?.currency || '' }}
-          </p>
+          <p>{{ l('price') }}: {{ priceLabel(row.versions[0]) }}</p>
+          <dl class="plans-key-limits">
+            <div>
+              <dt>{{ l('seats') }}</dt>
+              <dd>{{ limitLabel(row.versions[0]?.developerSeats?.included) }}</dd>
+            </div>
+            <div v-for="[key, value] in Object.entries(row.versions[0]?.limits || {})" :key="key">
+              <dt>{{ l('featureNames.' + key) }}</dt>
+              <dd>{{ limitLabel(value) }}</dd>
+            </div>
+          </dl>
           <p>{{ l('version') }}: {{ row.versions.find((v) => v.current)?.number ?? '—' }}</p>
           <div class="plans-actions">
             <button
               v-for="v in row.versions.filter((v) => v.state === 'draft' || v.current)"
               :key="v.id"
-              class="button secondary"
+              class="button primary"
               :disabled="busy"
               @click="navigate(`/platform/plans/${row.id}/versions/${v.id}`)"
             >
-              {{ l('edit') }} v{{ v.number }} · {{ l('states.' + v.state) }}</button
-            ><button
-              v-if="row.status === 'published' && !row.versions.some((v) => v.state === 'draft')"
-              class="button secondary"
-              :disabled="busy"
-              @click="newDraft(row)"
-            >
-              {{ l('newDraft') }}</button
-            ><button class="text-button" :disabled="busy" @click="archive(row)">
-              {{ l(row.status === 'archived' ? 'unarchive' : 'archive') }}
+              {{ l('edit') }} v{{ v.number }} · {{ l('states.' + v.state) }}
             </button>
+            <details class="plans-more-actions">
+              <summary>{{ l('moreActions') }}</summary>
+              <button
+                v-if="row.status === 'published' && !row.versions.some((v) => v.state === 'draft')"
+                class="button secondary"
+                :disabled="busy"
+                @click="newDraft(row)"
+              >
+                {{ l('newDraft') }}</button
+              ><button class="text-button" :disabled="busy" @click="archive(row)">
+                {{ l(row.status === 'archived' ? 'unarchive' : 'archive') }}
+              </button>
+            </details>
           </div>
         </article>
       </div>
     </template>
     <template v-if="mode === 'editor' && config">
       <form class="surface plans-editor" @submit.prevent="savePlan">
-        <p role="status">
-          {{
-            dirty
-              ? l('unsaved')
-              : version?.state === 'published'
-                ? l('readOnly')
-                : version
-                  ? l('saved')
-                  : l('states.draft')
-          }}
-        </p>
+        <div class="plans-language-tabs" role="group" :aria-label="l('translations')">
+          <button
+            v-for="lang in ['ru', 'en', 'tr', 'zh-CN']"
+            :key="lang"
+            type="button"
+            class="button secondary"
+            :aria-pressed="translationLanguage === lang"
+            @click="translationLanguage = lang"
+          >
+            {{ lang.toUpperCase() }}
+          </button>
+        </div>
         <fieldset :disabled="readOnly || busy">
           <legend>{{ l('basics') }}</legend>
           <label
@@ -578,11 +590,17 @@ onBeforeUnmount(() => {
           <section>
             <h2>{{ l('translations') }}</h2>
             <div class="plans-feature-grid">
-              <div v-for="lang in ['ru', 'en', 'tr', 'zh-CN']" :key="lang">
+              <div
+                v-for="lang in ['ru', 'en', 'tr', 'zh-CN']"
+                v-show="translationLanguage === lang"
+                :key="lang"
+                class="plans-translation-panel"
+              >
                 <h3>{{ lang }}</h3>
                 <label
                   >{{ l('name') }} ({{ lang }})<input
                     v-model="config.translations[lang].name"
+                    @invalid="translationLanguage = lang"
                     maxlength="160"
                     required /></label
                 ><label
@@ -667,7 +685,16 @@ onBeforeUnmount(() => {
             <PlanEntitlements :definitions="definitions" :configuration="config" />
           </section>
         </fieldset>
-        <div class="plans-actions">
+        <div class="plans-actions plans-save-bar">
+          <span role="status">{{
+            dirty
+              ? l('unsaved')
+              : readOnly
+                ? l('readOnly')
+                : version
+                  ? l('saved')
+                  : l('states.draft')
+          }}</span>
           <LoadingButton type="submit" v-if="!readOnly" class="button primary" :busy="busy">{{
             l('save')
           }}</LoadingButton
@@ -1196,5 +1223,120 @@ onBeforeUnmount(() => {
   .plans-actions {
     align-items: stretch;
   }
+}
+</style>
+
+<style scoped>
+.plans-editor {
+  gap: 0.75rem;
+  padding: 1rem;
+}
+.plans-editor section {
+  margin-top: 1rem;
+}
+.plans-editor fieldset {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+}
+.plans-editor fieldset > section {
+  grid-column: 1 / -1;
+}
+.plans-page fieldset > label {
+  margin-block: 0.25rem;
+}
+.plans-feature-grid {
+  gap: 0.65rem;
+  margin-block: 0.6rem;
+}
+.plans-feature {
+  padding: 0.75rem;
+}
+.plans-feature h3 {
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+.plans-feature small {
+  font-size: 0.7rem;
+  color: var(--text-subtle);
+}
+.plans-language-tabs,
+.plans-translation-panel {
+  grid-column: 1 / -1;
+}
+.plans-language-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.plans-language-tabs [aria-pressed='true'] {
+  border-color: var(--action);
+  color: var(--action);
+}
+.plans-save-bar {
+  position: sticky;
+  bottom: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  z-index: 2;
+  box-shadow: 0 4px 18px var(--popover-shadow);
+}
+.plans-save-bar > span {
+  margin-right: auto;
+  font-size: 0.8rem;
+}
+.plans-card {
+  padding: 1rem;
+}
+.plans-card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+.plans-card p {
+  margin: 0.4rem 0;
+}
+.plans-card code {
+  color: var(--text-subtle);
+  font-size: 0.8rem;
+}
+@media (max-width: 700px) {
+  .plans-editor fieldset {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<style scoped>
+.plans-key-limits {
+  display: flex;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.plans-key-limits div {
+  display: grid;
+  gap: 3px;
+}
+.plans-key-limits dt {
+  font-size: 11px;
+  color: var(--text-subtle);
+}
+.plans-key-limits dd {
+  margin: 0;
+  font-weight: 650;
+  font-size: 13px;
+}
+.plans-more-actions {
+  margin-left: auto;
+  font-size: 12px;
+}
+.plans-more-actions summary {
+  cursor: pointer;
+  padding: 8px;
+}
+.plans-more-actions button {
+  margin: 4px;
 }
 </style>

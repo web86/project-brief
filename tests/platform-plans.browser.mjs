@@ -168,6 +168,12 @@ try {
   const deniedPage = await guest.newPage()
   await deniedPage.goto(origin + '/platform/plans')
   await deniedPage.waitForURL('**/admin/unavailable?reason=permission')
+  await deniedPage.goto(origin + '/platform')
+  await deniedPage.locator('.platform-desktop-sidebar').waitFor()
+  assert.equal(
+    await deniedPage.locator('.platform-desktop-sidebar a[href^="/platform/plans"]').count(),
+    0,
+  )
   await guest.close()
   let created
   for (const language of ['en', 'ru'])
@@ -207,8 +213,10 @@ try {
       if (language === 'en' && theme === 'light') {
         const form = page.locator('form.plans-editor').first()
         await form.locator('input[maxlength="64"]').fill('browser-fourth')
-        for (const lang of ['ru', 'en', 'tr', 'zh-CN'])
+        for (const lang of ['ru', 'en', 'tr', 'zh-CN']) {
+          await form.getByRole('button', { name: lang.toUpperCase(), exact: true }).click()
           await form.getByLabel(`Name (${lang})`, { exact: true }).fill('Browser Fourth')
+        }
         await form.getByRole('button', { name: 'Save draft', exact: true }).click()
         await page.waitForURL(/\/platform\/plans\/[a-f0-9-]+\/versions\/[a-f0-9-]+$/)
         created = page.url().slice(origin.length)
@@ -236,6 +244,7 @@ try {
           .getByLabel('Name (en)', { exact: true })
           .fill('Unsaved browser revision')
         page.once('dialog', (dialog) => dialog.dismiss())
+        php(['artisan', 'cache:clear', '--no-interaction'])
         await page.getByRole('link', { name: 'Global policies', exact: true }).click()
         assert.equal(page.url().includes('/versions/'), true)
         const url = new URL(page.url())
@@ -373,6 +382,47 @@ try {
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
       )
+      if (language === 'en' && theme === 'light') {
+        php(['artisan', 'cache:clear', '--no-interaction'])
+        await page.goto(origin + '/platform?section=overview')
+        for (const section of ['workspaces', 'usage', 'audit', 'overview']) {
+          await page
+            .locator(`.platform-desktop-sidebar a[href="/platform?section=${section}"]`)
+            .click()
+          await page.waitForURL('**/platform?section=' + section)
+          await page
+            .locator('.platform-page .loading-button[aria-busy="true"]')
+            .waitFor({ state: 'hidden' })
+          assert.equal(
+            await page.locator('.platform-desktop-sidebar nav [aria-current="page"]').count(),
+            1,
+          )
+        }
+        await page.goBack()
+        assert.equal(new URL(page.url()).searchParams.get('section'), 'audit')
+        await page.goto(origin + '/platform/plans')
+        await page.locator('.plans-card').first().waitFor()
+        for (const width of [1440, 1280, 1024, 390, 375]) {
+          await page.setViewportSize({ width, height: 900 })
+          await capture(page, `sidebar-catalog-${width}.png`)
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          )
+          if (width < 500) {
+            await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click()
+            assert.equal(
+              await page.locator('.platform-drawer').evaluate((dialog) => dialog.open),
+              true,
+            )
+            await page.keyboard.press('Escape')
+            assert.equal(
+              await page.locator('.platform-drawer').evaluate((dialog) => dialog.open),
+              false,
+            )
+          }
+        }
+      }
       results.push({ language, theme, mobile })
       await context.close()
       php(['artisan', 'cache:clear', '--no-interaction'])

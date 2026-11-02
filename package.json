@@ -20,7 +20,11 @@
     "build:public-preview": "vite build --config preview/milestone-4-3/vite.config.js",
     "test:public-preview": "node preview/milestone-4-3/verify.mjs",
     "test:multilingual": "node tests/multilingual.browser.mjs",
-    "test:export": "node tests/export.browser.mjs"
+    "test:export": "node tests/export.browser.mjs",
+    "demo:build": "PROJECTBRIEF_DEMO_BUILD=1 vite build",
+    "demo:up": "bin/demo up",
+    "demo:reset": "bin/demo reset",
+    "test:demo": "node tests/demo.browser.mjs"
   },
   "dependencies": {
     "@laravel/passkeys": "0.4.0",

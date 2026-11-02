@@ -1,4 +1,5 @@
 <script setup>
+import { demo } from '../services/demo.js'
 import { ref, computed, watch, useId } from 'vue'
 import { useRoute } from 'vue-router'
 import { settingsMenu } from '../services/adminMenu.js'
@@ -14,6 +15,13 @@ const route = useRoute(),
 const items = computed(() =>
   settingsMenu.filter(
     (item) =>
+      (!demo.readOnly ||
+        ![
+          '/admin/account',
+          '/admin/account/security',
+          '/admin/settings/agreement',
+          '/platform',
+        ].includes(item.to)) &&
       (!item.platform || nav.user?.platformAdmin) &&
       (!item.owner || (nav.workspace && nav.user?.membershipRole === 'owner')),
   ),

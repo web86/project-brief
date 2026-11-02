@@ -1,4 +1,5 @@
 <script setup>
+import { demo } from '../services/demo.js'
 import AppFooter from '../components/AppFooter.vue'
 import BrandLogo from '../components/PortalBrandLogo.vue'
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
@@ -135,6 +136,10 @@ async function retry() {
   }
 }
 async function logout() {
+  if (demo.readOnly) {
+    window.location.assign('/demo')
+    return
+  }
   if (
     loggingOut.value ||
     !confirmDeveloperLeave(store) ||

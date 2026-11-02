@@ -1,3 +1,4 @@
+import { demo } from '../services/demo.js'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api, commentBody } from '../api/client.js'
@@ -61,6 +62,7 @@ export const useTeamChatStore = defineStore('team-chat', () => {
     return true
   }
   async function read() {
+    if (demo.readOnly) return Promise.resolve(false)
     const through = messages.value.at(-1)?.sequence,
       current = revision
     if (!through || !unread.value) return

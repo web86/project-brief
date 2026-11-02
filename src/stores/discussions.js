@@ -1,3 +1,4 @@
+import { demo } from '../services/demo.js'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api, commentBody } from '../api/client.js'
@@ -232,6 +233,7 @@ function createDiscussionsStore(name, persona) {
       return true
     }
     function mark(id, ids, all = false, kind = null) {
+      if (demo.readOnly) return Promise.resolve(false)
       const currentIdentity = identity
       const operation = readQueue
         .catch(() => {})

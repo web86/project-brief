@@ -1,4 +1,5 @@
 <script setup>
+import ViewportHelp from './ViewportHelp.vue'
 import BrandLogo from './PortalBrandLogo.vue'
 import PersonalSettingsNav from './PersonalSettingsNav.vue'
 import { canCreateProjects } from '../services/projectPermissions.js'
@@ -42,15 +43,13 @@ async function select(event) {
     >
       <BrandLogo />
     </RouterLink>
-    <label class="sidebar-workspace">
+    <div class="sidebar-workspace">
       <span class="sidebar-workspace-label">
         {{ t('nav.workspace') }}
-        <span class="workspace-help" tabindex="0" role="img" :aria-label="t('nav.workspaceHint')">
-          <AppIcon name="info" :size="14" />
-          <span class="workspace-tooltip" aria-hidden="true">{{ t('nav.workspaceHint') }}</span>
-        </span>
+        <ViewportHelp :text="t('nav.workspaceHint')" />
       </span>
       <select
+        :aria-label="t('nav.workspace')"
         :value="nav.workspace?.id || ''"
         :disabled="nav.loading || nav.switching || !nav.ready"
         @change="select"
@@ -62,7 +61,7 @@ async function select(event) {
           {{ workspace.name }}
         </option>
       </select>
-    </label>
+    </div>
     <RouterLink
       to="/admin/projects/new"
       v-if="nav.workspace && canCreateProjects(nav.user)"

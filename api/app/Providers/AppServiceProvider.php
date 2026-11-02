@@ -13,11 +13,16 @@ use App\Models\Task;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Observers\LiveSyncObserver;
+use App\Services\DemoEnvironment;
 use App\Services\LiveSync;
 use App\Services\StoreAccountPasskey;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Fortify;
@@ -35,6 +40,19 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if (DemoEnvironment::enabled()) {
+            DemoEnvironment::assertIsolated();
+            config(['mail.default' => 'array', 'platform.metrics_enabled' => false, 'queue.default' => 'null']);
+            Http::preventStrayRequests();
+            Queue::before(fn () => throw new \RuntimeException('Jobs are disabled in demo.'));
+            Event::listen(CommandStarting::class, function ($event): void {
+                if (! in_array($event->command, ['demo:reset', 'demo:audit', 'migrate:fresh', 'migrate', 'migrate:status', 'db:wipe', 'db:seed', 'serve', 'list', 'help', 'route:list', 'test'], true)) {
+                    throw new \RuntimeException('This command is unavailable in demo.');
+                }
+            });
+
+        }
+
         foreach ([Project::class, Task::class, Comment::class, Attachment::class, ProjectSection::class, ProjectFeedback::class, ProjectRead::class, Workspace::class, WorkspaceMember::class, ProjectMember::class] as $model) {
             $model::observe(LiveSyncObserver::class);
         }

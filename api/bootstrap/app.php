@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\DemoIdentity;
+use App\Http\Middleware\DemoReadOnly;
 use App\Http\Middleware\EnsureAccountSecurity;
 use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
@@ -19,6 +21,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -32,14 +35,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trimStrings(except: ['draft.texts.*.*.content.*.text']);
-        $middleware->prepend([MeasureApiUsage::class, SecurityResponseHeaders::class, ThrottleBootstrap::class]);
+        $middleware->prepend([DemoReadOnly::class, MeasureApiUsage::class, SecurityResponseHeaders::class, ThrottleBootstrap::class]);
         $middleware->prependToPriorityList(ThrottleRequests::class, EnsureClientProjectAccess::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdmin::class);
         $middleware->prependToPriorityList(EnsureAdmin::class, EnsureAccountSecurity::class);
         $middleware->prependToPriorityList(EnsureAccountSecurity::class, EnsureAccountSession::class);
+        $middleware->appendToPriorityList(StartSession::class, DemoIdentity::class);
         $middleware->prependToPriorityList(EnsureAccountSecurity::class, SetRequestLocale::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureProjectPermission::class);
-        $middleware->web(append: [EnsureAccountSession::class, SetRequestLocale::class, EnsureAccountSecurity::class]);
+        $middleware->web(append: [DemoIdentity::class, EnsureAccountSession::class, SetRequestLocale::class, EnsureAccountSecurity::class]);
         $middleware->alias(['admin' => EnsureAdmin::class, 'client' => EnsureClientProjectAccess::class, 'project.permission' => EnsureProjectPermission::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

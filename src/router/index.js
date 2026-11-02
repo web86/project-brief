@@ -30,6 +30,10 @@ export function createProjectRouter({
     history,
     routes: [
       {
+        path: '/demo/:role(developer|client)?',
+        component: () => import('../views/DemoEntryView.vue'),
+      },
+      {
         path: '/platform',
         component: () => import('../views/PlatformView.vue'),
         meta: { platform: true, title: 'ProjectBrief Platform' },

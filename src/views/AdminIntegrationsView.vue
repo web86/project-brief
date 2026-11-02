@@ -596,6 +596,9 @@ async function confirmAction(key, path, method = 'POST') {
                 <p class="small muted">
                   {{ t('integrations.created') }}: {{ date(token.createdAt) }} ·
                   {{ t('integrations.expires') }}: {{ date(token.expiresAt) }}
+                  <code v-if="token.demoMaskedCredential" class="demo-masked-credential">{{
+                    token.demoMaskedCredential
+                  }}</code>
                 </p>
                 <p class="small muted">
                   {{ t('integrations.lastUsed') }}: {{ date(token.lastUsedAt) }} ·
