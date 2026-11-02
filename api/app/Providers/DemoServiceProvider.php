@@ -20,7 +20,7 @@ class DemoServiceProvider extends ServiceProvider
             Http::preventStrayRequests();
             Queue::before(fn () => throw new \RuntimeException('Jobs are disabled in demo.'));
             Event::listen(CommandStarting::class, function ($event): void {
-                if (! in_array($event->command, ['demo:reset', 'demo:audit', 'migrate:fresh', 'migrate', 'migrate:status', 'db:wipe', 'db:seed', 'serve', 'list', 'help', 'route:list', 'test'], true)) {
+                if (! in_array($event->command, ['demo:reset', 'demo:audit', 'demo:export-static', 'migrate:fresh', 'migrate', 'migrate:status', 'db:wipe', 'db:seed', 'serve', 'list', 'help', 'route:list', 'test'], true)) {
                     throw new \RuntimeException('This command is unavailable in demo.');
                 }
             });

@@ -79,6 +79,11 @@ GRANT ALL PRIVILEGES ON projectbrief_m10_upgrade_qa.* TO 'demo_tester'@'%';
         shutil.copy2(ROOT / 'api' / 'bootstrap' / name, app / 'bootstrap' / name)
     for folder in ['storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views', 'storage/app/private', 'storage/logs', 'public']:
         (app / folder).mkdir(parents=True, exist_ok=True)
+    avatar = ROOT / 'docs/demo/static/assets/morgan-ellis.png'
+    if avatar.is_file():
+        avatar_target = app / 'storage/app/private/demo/avatar/morgan-ellis.png'
+        avatar_target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(avatar, avatar_target)
     vendor = app / 'vendor'
     if not vendor.is_symlink():
         vendor.symlink_to('/source/api/vendor', target_is_directory=True)
@@ -156,14 +161,16 @@ def main():
     if action == 'build-image':
         docker('build', '-t', IMAGE, '-f', str(ROOT / 'docs/demo/Dockerfile'), str(ROOT / 'docs/demo'))
         return
-    if action not in ['up', 'reset', 'sync', 'audit', 'test']:
-        raise RuntimeError('Usage: bin/demo [up|reset|sync|audit|test|down|build-image]')
+    if action not in ['up', 'reset', 'sync', 'audit', 'test', 'export']:
+        raise RuntimeError('Usage: bin/demo [up|reset|sync|audit|test|export|down|build-image]')
     if not (BUILD / 'index.html').is_file() or not (ROOT / 'api/vendor/autoload.php').is_file():
         raise RuntimeError('Install locked dependencies and run npm run demo:build first. See docs/demo/README.md.')
     prepare()
     start_db()
     if action == 'test':
         docker('run', '--rm', '--network', 'container:' + DB, '--env-file', str(STATE / 'tester.env'), '-v', str(ROOT) + ':/workspace:ro', IMAGE, 'sh', '/workspace/tests/plans-foundation.php84.sh', *sys.argv[2:])
+    elif action == 'export':
+        php('artisan', 'demo:export-static', '--no-interaction', reader=True)
     elif action == 'audit':
         php('artisan', 'demo:audit', '--no-interaction', reader=True)
     else:

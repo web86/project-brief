@@ -1,0 +1,13 @@
+# Schema and publication boundary
+
+`contracts-v1.schema.json` is a pinned JSON Schema 2020-12 document with 52 `$defs` and an `x-contracts` annotation mapping normalized existing GET routes to their role-specific schema. Each object uses `additionalProperties: false`; required fields/types/UUID formats are checked. Empty unreviewed lists remain `maxItems: 0` until explicitly reviewed. The repository evaluator implements only the subset actually used by these pinned schemas (type, object properties/required/additionalProperties, arrays/items/maxItems, anyOf, enum and UUID format). It is not a general-purpose JSON Schema library.
+
+The pinned `x-reviewedManifestSha256` also fingerprints the entire reviewed public projection (all route/content hashes, assets and counts), so changes to existing field values require review as well. Two independent exports produced identical manifest bytes.
+
+Export never regenerates or widens schemas. A changed API contract fails the build. The initial contract shapes were reviewed against the existing resources/controllers and independent privacy guards. To deliberately change the dataset or contract, review the synthetic records, update the expected content hash in `DemoStaticSnapshotExport` and reviewed manifest fingerprint, explicitly review/edit the affected schema definitions, and repeat all validations/browser QA. Never replace a failing schema with an automatically inferred permissive schema.
+
+`manifest.json` is schema version 1 and contains the reviewed dataset content hash, fixture counts, workspace/client-project UUIDs, role-specific route descriptors and asset checksums. Descriptors use `snapshots/<role>-<sha256>.json`, optionally selecting an individual task from a project snapshot. Every snapshot and asset is hashed and checked. The adapter never fetches an API endpoint; unknown URLs fail locally. Every unsafe HTTP method fails with `demo_read_only` before any HTTP or security preflight.
+
+The validator additionally checks all ten projects, 150 unique task UUIDs, project/section relationships, task/history dates, expected client scope, allowed client history types/actors, public authors, forbidden private fields/credential material, reserved `.test` contacts and all referenced static assets. Output is allowlisted from the current manifest, so obsolete export files are not packaged.
+
+Hash names prevent mixed editions: upload the new hashed resources first, then atomically replace manifest/index as one edition. Keep prior hashed files for existing tabs; no service worker or custom persistent snapshot cache is used. A page keeps its fetched manifest edition for its lifetime and lazily uses only the hashes listed by that edition.

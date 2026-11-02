@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Project;
 use App\Services\DemoDatasetAudit;
 use App\Services\DemoEnvironment;
+use App\Services\DemoStaticSnapshotExport;
 use Database\Seeders\ProfessionalDemoSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,22 @@ use Tests\TestCase;
 class ProfessionalDemoTest extends TestCase
 {
     use LazilyRefreshDatabase;
+
+    public function test_static_export_fails_closed_outside_an_enabled_isolated_demo(): void
+    {
+        config(['demo.enabled' => false]);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('explicitly enabled isolated');
+        app(DemoStaticSnapshotExport::class)->run();
+    }
+
+    public function test_static_export_rejects_test_fixture_or_writer_connections(): void
+    {
+        config(['demo.test_fixture' => true, 'demo.enabled' => true, 'demo.read_only' => false]);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('SELECT-only demo_reader');
+        app(DemoStaticSnapshotExport::class)->run();
+    }
 
     private function demo(): void
     {
