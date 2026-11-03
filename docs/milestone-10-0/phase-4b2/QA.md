@@ -58,3 +58,11 @@
 - Upgrade из извлечённого v0.9.16 в извлечённый v0.9.17 под PHP 8.4.26/MariaDB 11.8.9 применил ровно две миграции из manifest. Повторный `migrate` без изменений. Опубликованных версий и Trial-периодов после upgrade было ноль.
 - Chromium на финальном извлечённом ZIP с PHP 8.5.10/MariaDB 11.8.9 прошёл семь сценариев без page errors. Lifecycle включал ограничения Basic, остановку origin при выключенном cron, восстановление отдельной БД из дампа, сравнение SHA-256 cycles и epochs, manual paid, selective restore и explicit rearm. Старый API replay, Agent run, SSO handoff и Webhook retry отклонены. Независимая delivery отменена до транспортного вызова.
 - Репетиция проводилась на локальном loopback с синтетическими данными и перехваченным исходящим HTTP. Реальная доставка почты и подтверждение canary на Jino относятся к отдельному операторскому допуску.
+
+## One-Time Canary Registration v0.9.18
+
+- Runtime commit `6c413a981b17c284739acd333fe6e6904a29b117`. PHP 8.4.26/MariaDB 11.8.9 прошли 20 целевых тестов и 429 утверждений, включая существующие независимые onboarding workers. InnoDB deadlocks — 0. Покрыты primary и fresh MFA, TTL, несовпадение email, погашение и повтор, audit, email verification и pending claim без периода.
+- На исходниках и извлечённом ZIP прошли по 20 Chromium-сценариев. Новый сценарий использовал закрытый обычный `/register`, выданное приглашение, отказ после погашения и существующий onboarding до готовности владельца. Для письма использован локальный перехват доставки.
+- Каноническая сборка прошла 453 frontend-теста, Vite build и 1181 PHP-тест на PHP 8.5.10/SQLite с шестью MariaDB-only пропусками. Проверены 9028 файлов архива, внутренние checksums, CRC и runtime smoke tests.
+- Upgrade из v0.9.17 в v0.9.18 на PHP 8.4.26/MariaDB 11.8.9 применил только `2026_11_03_215440_create_canary_registration_invites`. Повторный migrate без изменений. После обновления приглашений, опубликованных версий и Trial-периодов было ноль.
+- `dev2done-v0.9.18-6c413a9.zip`, 39 837 800 байт. SHA-256 `f238fe1127070192ed3538a0ca2c07e7717efa359f53e7fbe7cced4e050f526e`. Операторские действия описаны в [JINO.md](JINO.md) и [CANARY.md](CANARY.md).
