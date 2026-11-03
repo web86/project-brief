@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\AuthOnboarding;
+use App\Services\IntegrationTokens;
 use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\PlanCatalog;
@@ -69,13 +70,14 @@ class SubscriptionLifecycleTest extends TestCase
         Project::factory()->count(100)->create(['workspace_id' => $workspace->id, 'status' => 'active']);
         $boundary = $facts['grace_ends_at'] ?? $facts['service_ends_at'];
 
+        $token = app(IntegrationTokens::class)->create($workspace->id, ['name' => 'Boundary test', 'scopes' => ['projects:read']]);
         $this->travelTo($facts['service_ends_at']->subMicrosecond());
-        $lifecycle->catchUp($workspace->id);
+        $this->withToken($token['secret'])->getJson('/api/v1/projects')->assertOk();
         $this->assertSame($kind, $subscription->fresh()->materialized_phase);
         $this->assertDatabaseCount('workspace_suspension_cycles', 0);
 
         $this->travelTo($boundary);
-        $lifecycle->catchUp($workspace->id);
+        $this->withToken($token['secret'])->getJson('/api/v1/projects')->assertForbidden();
         $this->travelTo($boundary->addMicrosecond());
         $lifecycle->catchUp($workspace->id);
         $subscription->refresh();
