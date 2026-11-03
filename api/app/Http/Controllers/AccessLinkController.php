@@ -63,8 +63,8 @@ class AccessLinkController extends Controller
             app(ExecutionBarrier::class)->catchUp($workspaceId);
             $reason = DB::transaction(function () use ($access, $workspaceId): ?string {
                 IntegrationWrites::lockWorkspace($workspaceId);
-                $access->refresh();
-                if ($access->revoked_at) {
+                $access = ProjectAccessToken::with('project', 'projectClient')->find($access->id);
+                if (! $access || $access->revoked_at) {
                     return 'invalid';
                 }
                 if ($access->expires_at && ! $access->expires_at->isFuture()) {
