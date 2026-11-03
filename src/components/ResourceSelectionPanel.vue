@@ -23,7 +23,14 @@ const options = ref(null),
   busy = ref(false),
   reviews = ref([]),
   confirmation = ref(''),
-  reason = ref('operator_verified')
+  reason = ref('operator_verified'),
+  confirmed = ref(false),
+  serviceDays = ref(30),
+  paidReason = ref('')
+const approval = computed(() => frozen.value?.availableAction || null)
+const rearmGroups = computed(() => options.value?.rearmGroups || [])
+const featureNames = { agent: 'AI Agent API', api: 'External API', sso: 'SSO', webhook: 'Webhooks' }
+let approvalIntent = null
 let epoch = 0,
   intent = null,
   targetEpoch = 0,
@@ -49,6 +56,8 @@ async function load() {
   notice.value = ''
   options.value = null
   intent = null
+  approvalIntent = null
+  confirmed.value = false
   try {
     const r = await api.request(prefix.value)
     if (epoch !== current) return
@@ -65,11 +74,13 @@ async function load() {
 function changed() {
   frozen.value = null
   intent = null
+  confirmed.value = false
   selection.value.clients = selection.value.clients.filter((id) =>
     clients.value.some((c) => c.id === id),
   )
 }
 async function freeze() {
+  confirmed.value = false
   const current = epoch
   const target = targetEpoch
   const url = prefix.value
@@ -109,13 +120,58 @@ async function verify() {
   try {
     await api.request(prefix.value + '/previews/' + frozen.value.id)
     if (current !== epoch || target !== targetEpoch) return
-    notice.value = l('verified')
+    notice.value = l(approval.value ? 'approvalVerified' : 'verified')
   } catch (e) {
     if (current !== epoch || target !== targetEpoch) return
     error.value = e.status === 409 ? l('expired') : formatApiError(e)
     frozen.value = null
   } finally {
     if (current === epoch) busy.value = false
+  }
+}
+async function apply(action) {
+  if (!confirmed.value || busy.value) return
+  const current = epoch
+  const preview = frozen.value
+  const isRearm = action === 'rearm'
+  const url = prefix.value + (isRearm ? '/rearm' : '/previews/' + preview.id + '/' + action)
+  const revision = isRearm ? options.value.subscriptionRevision : preview.subscriptionRevision
+  const body = isRearm
+    ? { groups: rearmGroups.value }
+    : action === 'approve-paid'
+      ? { serviceDays: serviceDays.value, reason: paidReason.value }
+      : {}
+  const fingerprint = JSON.stringify([url, revision, body])
+  if (approvalIntent?.fingerprint !== fingerprint)
+    approvalIntent = { fingerprint, key: crypto.randomUUID() }
+  busy.value = true
+  error.value = ''
+  notice.value = ''
+  try {
+    const result = await api.request(url, {
+      method: 'POST',
+      body,
+      headers: {
+        'Idempotency-Key': approvalIntent.key,
+        'If-Match': '"revision:' + revision + '"',
+      },
+    })
+    if (epoch !== current) return
+    await load()
+    if (epoch === current + 1)
+      notice.value =
+        result.data?.state === 'scheduled'
+          ? t('preparation.approvalScheduled', { at: result.data.effectiveAt })
+          : l('approvalSaved')
+  } catch (cause) {
+    if (epoch !== current) return
+    error.value = cause.status === 409 ? l('expired') : formatApiError(cause)
+    if (cause.status === 409) {
+      frozen.value = null
+      confirmed.value = false
+    }
+  } finally {
+    if (epoch === current) busy.value = false
   }
 }
 async function reviewList() {
@@ -168,6 +224,7 @@ watch(
   () => props.targetId,
   () => {
     targetEpoch++
+    confirmed.value = false
     frozen.value = null
     intent = null
   },
@@ -279,6 +336,30 @@ watch(
         l('verify')
       }}</LoadingButton>
     </div>
+    <form
+      v-if="approval || rearmGroups.length"
+      class="surface admin-form"
+      @submit.prevent="apply(approval || 'rearm')"
+    >
+      <h3>{{ l('actions.' + (approval || 'rearm')) }}</h3>
+      <p v-if="!approval">{{ rearmGroups.map((group) => featureNames[group]).join(' · ') }}</p>
+      <template v-if="approval === 'approve-paid'">
+        <label
+          >{{ l('serviceDays')
+          }}<input v-model.number="serviceDays" type="number" min="1" max="36600" required
+        /></label>
+        <label
+          >{{ l('reason')
+          }}<input v-model="paidReason" pattern="[a-z][a-z0-9_]{0,59}" maxlength="60" required
+        /></label>
+      </template>
+      <label class="resource-option"
+        ><input v-model="confirmed" type="checkbox" />{{ l('approveConfirmation') }}</label
+      >
+      <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="!confirmed">
+        {{ l('actions.' + (approval || 'rearm')) }}
+      </LoadingButton>
+    </form>
     <details @toggle="$event.target.open && reviewList()">
       <summary>{{ l('review') }}</summary>
       <p>{{ l('reviewNotice') }}</p>

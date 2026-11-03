@@ -1,5 +1,16 @@
 export const preparationMessages = {
   en: {
+    actions: {
+      'apply-basic': 'Apply Basic selection',
+      'restore-paid': 'Restore paid participation',
+      'approve-paid': 'Approve paid service',
+      rearm: 'Rearm integrations',
+    },
+    serviceDays: 'Service days',
+    approveConfirmation: 'I confirm this change. Fresh security confirmation may be required.',
+    approvalSaved: 'Change applied.',
+    approvalScheduled: 'Renewal scheduled for {at} (UTC).',
+    approvalVerified: 'Snapshot verified. Review and confirm the change.',
     reasons: {
       selection_capacity_exceeded: 'Select fewer resources to fit the target limits.',
       subscription_missing_or_incomplete: 'The current subscription needs review.',
@@ -56,6 +67,18 @@ export const preparationMessages = {
     reviewSaved: 'Accounting reviewed; recalculate usage and previews.',
   },
   ru: {
+    actions: {
+      'apply-basic': 'Применить выбор Basic',
+      'restore-paid': 'Восстановить участие',
+      'approve-paid': 'Подтвердить платный период',
+      rearm: 'Повторно включить интеграции',
+    },
+    serviceDays: 'Дней обслуживания',
+    approveConfirmation:
+      'Подтверждаю изменение. Может потребоваться повторная проверка безопасности.',
+    approvalSaved: 'Изменение применено.',
+    approvalScheduled: 'Продление запланировано на {at} (UTC).',
+    approvalVerified: 'Снимок проверен. Проверьте и подтвердите изменение.',
     reasons: {
       selection_capacity_exceeded: 'Выберите меньше ресурсов в пределах целевого тарифа.',
       subscription_missing_or_incomplete: 'Текущая подписка требует проверки.',
@@ -112,6 +135,17 @@ export const preparationMessages = {
     reviewSaved: 'Учёт проверен; пересчитайте показатели и оценки.',
   },
   tr: {
+    actions: {
+      'apply-basic': 'Basic seçimini uygula',
+      'restore-paid': 'Ücretli katılımı geri yükle',
+      'approve-paid': 'Ücretli dönemi onayla',
+      rearm: 'Entegrasyonları yeniden etkinleştir',
+    },
+    serviceDays: 'Hizmet günü',
+    approveConfirmation: 'Değişikliği onaylıyorum. Güvenlik doğrulaması gerekebilir.',
+    approvalSaved: 'Değişiklik uygulandı.',
+    approvalScheduled: 'Yenileme {at} (UTC) için planlandı.',
+    approvalVerified: 'Önizleme doğrulandı. Değişikliği inceleyip onaylayın.',
     reasons: {
       selection_capacity_exceeded: 'Hedef limitlere uymak için daha az kaynak seçin.',
       subscription_missing_or_incomplete: 'Mevcut abonelik incelenmeli.',
@@ -167,6 +201,17 @@ export const preparationMessages = {
     reviewSaved: 'Sayım incelendi. Kullanımı ve önizlemeleri yeniden hesaplayın.',
   },
   'zh-CN': {
+    actions: {
+      'apply-basic': '应用 Basic 选择',
+      'restore-paid': '恢复付费资源参与',
+      'approve-paid': '批准付费服务',
+      rearm: '重新启用集成',
+    },
+    serviceDays: '服务天数',
+    approveConfirmation: '我确认此变更。系统可能要求再次验证身份。',
+    approvalSaved: '已应用变更。',
+    approvalScheduled: '续期计划于 {at}（UTC）生效。',
+    approvalVerified: '快照已验证。请检查并确认变更。',
     reasons: {
       selection_capacity_exceeded: '请选择更少的资源以符合目标套餐的限额。',
       subscription_missing_or_incomplete: '当前订阅需要审核。',

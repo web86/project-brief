@@ -1,18 +1,52 @@
 <?php
 
+use App\Models\Plans\PlatformPolicyVersion;
 use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\User;
+use App\Services\AuthOnboarding;
+use App\Services\Plans\ClientCountingIdentities;
+use App\Services\Plans\SubscriptionLifecycle;
+use Carbon\CarbonImmutable;
 use Database\Seeders\PlansFoundationSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Laravel\Fortify\Fortify;
+use PragmaRX\Google2FA\Google2FA;
 
 require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 if (! app()->environment('testing') || ! str_contains((string) config('database.connections.sqlite.database'), 'brief-platform-plans-')) {
     throw new RuntimeException('Disposable plan-management browser fixture only.');
+}
+if (($argv[1] ?? null) === 'lifecycle') {
+    $policy = PlatformPolicyVersion::where('state', 'published')->latest('id')->firstOrFail();
+    DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
+    config(['onboarding.subject_retention_days' => 365]);
+    CarbonImmutable::setTestNow(CarbonImmutable::now('UTC')->subDays(8));
+    try {
+        $owner = User::factory()->create(['email' => 'lifecycle-owner@example.test', 'password' => 'Plans-QA-only!84']);
+        app(AuthOnboarding::class)->pending($owner);
+        $workspace = app(AuthOnboarding::class)->prepare($owner);
+        $owner->forceFill([
+            'two_factor_secret' => Fortify::currentEncrypter()->encrypt(app(Google2FA::class)->generateSecretKey()),
+            'two_factor_confirmed_at' => CarbonImmutable::now('UTC'),
+            'two_factor_recovery_codes' => Fortify::currentEncrypter()->encrypt(json_encode(['test-recovery-code', 'lifecycle-step-up'])),
+            'recovery_codes_acknowledged_at' => CarbonImmutable::now('UTC'),
+        ])->save();
+        app(SubscriptionLifecycle::class)->startVerifiedTrial($workspace->id, $owner->id);
+        foreach (['First', 'Second'] as $name) {
+            Project::factory()->create(['workspace_id' => $workspace->id, 'title' => $name.' synthetic lifecycle project', 'client_email' => strtolower($name).'@example.test']);
+        }
+        DB::transaction(fn () => app(ClientCountingIdentities::class)->reconcile($workspace->id, 0, (int) DB::table('project_clients')->max('id')));
+    } finally {
+        CarbonImmutable::setTestNow();
+    }
+    $versions = DB::table('plan_versions')->whereIn('id', [$policy->trial_version_id, $policy->fallback_version_id])->pluck('uuid', 'id');
+    echo json_encode(['owner' => $owner->email, 'password' => 'Plans-QA-only!84', 'workspace' => $workspace->uuid, 'basic' => $versions[$policy->fallback_version_id], 'paid' => $versions[$policy->trial_version_id]]);
+
+    return;
 }
 $primary = User::factory()->owner()->create(['email' => 'primary@example.test', 'password' => 'Plans-QA-only!84', 'platform_admin' => true]);
 $other = User::factory()->owner()->create(['email' => 'diagnostics@example.test', 'password' => 'Plans-QA-only!84', 'platform_admin' => true]);

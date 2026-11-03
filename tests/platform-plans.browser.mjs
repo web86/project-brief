@@ -594,6 +594,71 @@ require __DIR__.'/../vendor/autoload.php';
       await context.close()
       php(['artisan', 'cache:clear', '--no-interaction'])
     }
+  const lifecycle = JSON.parse(php(['tests/platform-plans-fixture.php', 'lifecycle']))
+  const ownerContext = await browser.newContext()
+  const operatorContext = await browser.newContext()
+  await login(ownerContext, lifecycle, true)
+  await login(operatorContext, fixture)
+  const ownerPage = await ownerContext.newPage()
+  const operatorPage = await operatorContext.newPage()
+  for (const page of [ownerPage, operatorPage])
+    page.on('pageerror', (error) => errors.push(String(error)))
+  const openOwnerPanel = async (version) => {
+    php(['artisan', 'cache:clear', '--no-interaction'])
+    await ownerPage.goto(origin + '/admin/settings/subscription')
+    const picker = ownerPage.locator('.owner-resource-preview select')
+    await picker.locator(`option[value="${version}"]`).waitFor({ state: 'attached' })
+    await picker.selectOption(version)
+    const panel = ownerPage.locator('.resource-selection')
+    await panel.locator('fieldset').first().waitFor()
+    return panel
+  }
+  const freezeSelection = async (panel) => {
+    await panel.getByRole('button', { name: 'Freeze preview', exact: true }).click()
+    await panel.locator('.frozen-summary').waitFor()
+  }
+  const apply = async (panel, title, expectedPath) => {
+    const form = panel
+      .locator('form')
+      .filter({ has: panel.page().getByRole('heading', { name: title, exact: true }) })
+    await form.getByRole('checkbox').check()
+    const response = panel
+      .page()
+      .waitForResponse(
+        (item) => new URL(item.url()).pathname.endsWith(expectedPath) && item.status() !== 423,
+      )
+    await form.getByRole('button', { name: title, exact: true }).click()
+    const result = await response
+    assert.equal(result.status(), 200, await result.text())
+    await panel.getByText('Change applied.', { exact: true }).waitFor()
+  }
+  let ownerPanel = await openOwnerPanel(lifecycle.basic)
+  await ownerPanel.getByText('Free', { exact: true }).waitFor()
+  await ownerPanel.getByLabel('Second synthetic lifecycle project').uncheck()
+  await freezeSelection(ownerPanel)
+  await apply(ownerPanel, 'Apply Basic selection', '/apply-basic')
+  await capture(ownerPage, 'lifecycle-basic.png')
+  await operatorPage.goto(
+    origin + '/platform/plans/inventory/' + lifecycle.workspace + '?versionId=' + lifecycle.paid,
+  )
+  await operatorPage.locator('.selection-toggle > summary').click()
+  const operatorPanel = operatorPage.locator('.resource-selection')
+  await operatorPanel.locator('fieldset').first().waitFor()
+  await freezeSelection(operatorPanel)
+  await operatorPanel.getByLabel('Review reason code').first().fill('synthetic_browser_approval')
+  await apply(operatorPanel, 'Approve paid service', '/approve-paid')
+  ownerPanel = await openOwnerPanel(lifecycle.paid)
+  await freezeSelection(ownerPanel)
+  await apply(ownerPanel, 'Restore paid participation', '/restore-paid')
+  php(['artisan', 'cache:clear', '--no-interaction'])
+  await apply(ownerPanel, 'Rearm integrations', '/rearm')
+  await capture(ownerPage, 'lifecycle-rearmed.png')
+  await ownerContext.close()
+  await operatorContext.close()
+  results.push({
+    scenario:
+      'verified Trial expiry, Basic apply, platform paid approval, owner restore and explicit rearm',
+  })
   assert.deepEqual(errors, [])
   console.log(JSON.stringify({ passed: results.length, scenarios: results, errors }))
 } finally {
