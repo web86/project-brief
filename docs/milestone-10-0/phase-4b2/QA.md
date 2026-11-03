@@ -53,4 +53,8 @@
 
 ## Финальный production ZIP
 
-Проверки извлечённого архива ещё не зафиксированы. Условия выпуска включают SHA-256 и manifest, runtime smoke tests, Browser E2E полного цикла и подтверждение сохранения cycles и epochs при forward fix.
+- `dev2done-v0.9.17-99cf55b.zip`, 39 833 976 байт, manifest commit `99cf55b3afdb0dd909b8f53e9af33f45784d1ae2`. SHA-256 `644321bb6219403c6d7885827aaded5a3e24b9fbdd53750d71a7ea57824db657`. Проверены ZIP CRC, внутренний `checksums.txt`, внешний sidecar, отсутствие development vendor и локальных секретов.
+- Каноническая сборка проверила 9026 файлов и все встроенные smoke tests после извлечения, включая runtime, WebAuthn, plans, onboarding и UX/privacy. На build host PHP 8.5.10 / SQLite прошли 1179 из 1185 тестов, шесть MariaDB-only сценариев пропущены в этом прогоне и пройдены в отдельном PHP 8.4/MariaDB regression выше.
+- Upgrade из извлечённого v0.9.16 в извлечённый v0.9.17 под PHP 8.4.26/MariaDB 11.8.9 применил ровно две миграции из manifest. Повторный `migrate` без изменений. Опубликованных версий и Trial-периодов после upgrade было ноль.
+- Chromium на финальном извлечённом ZIP с PHP 8.5.10/MariaDB 11.8.9 прошёл семь сценариев без page errors. Lifecycle включал ограничения Basic, остановку origin при выключенном cron, восстановление отдельной БД из дампа, сравнение SHA-256 cycles и epochs, manual paid, selective restore и explicit rearm. Старый API replay, Agent run, SSO handoff и Webhook retry отклонены. Независимая delivery отменена до транспортного вызова.
+- Репетиция проводилась на локальном loopback с синтетическими данными и перехваченным исходящим HTTP. Реальная доставка почты и подтверждение canary на Jino относятся к отдельному операторскому допуску.
