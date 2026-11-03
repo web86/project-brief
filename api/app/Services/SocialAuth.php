@@ -138,6 +138,10 @@ final class SocialAuth
             if ($user->email_verified_at) {
                 app(TrialEligibility::class)->rememberVerifiedSubjects($user);
             }
+            if ($attempt->intent === 'login') {
+                $eligible = $user->platform_admin || $user->workspaceMembers()->active()->exists() || DB::table('account_onboardings')->where('user_id', $user->id)->where('state', '<>', 'invited_developer')->exists() || ($invitation && DeveloperInvitations::emailsMatch($user->email, $invitation->email));
+                abort_unless($eligible, 403, 'social_account_unavailable');
+            }
             app(AuthOnboarding::class)->audit($user, $attempt->intent === 'link' ? 'social.linked' : 'social.authenticated', ['provider' => $facts['provider']]);
             DB::table('social_auth_attempts')->where('state_hash', $attempt->state_hash)->update(['state' => 'completed', 'facts_cipher' => null, 'invitation_cipher' => null, 'verifier_cipher' => '']);
 
@@ -149,8 +153,6 @@ final class SocialAuth
 
             return ['path' => $this->connectionsPath($request).'?connected='.$facts['provider'], 'state' => 'linked'];
         }
-        $eligible = $user->platform_admin || $user->workspaceMembers()->active()->exists() || DB::table('account_onboardings')->where('user_id', $user->id)->where('state', '<>', 'invited_developer')->exists() || ($invitation && DeveloperInvitations::emailsMatch($user->email, $invitation->email));
-        abort_unless($eligible, 403, 'social_account_unavailable');
         $context = $request->session()->get('invitation_context');
         $state = app(AccountSecurity::class)->passwordLogin($request, $user);
         if ($context) {

@@ -257,6 +257,8 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     .filter({ has: ownerPage.locator('#totp-confirm') })
     .locator('button[type=submit]')
     .click()
+  await ownerPage.locator('.security-codes code').first().waitFor()
+  const recoveryCode = await ownerPage.locator('.security-codes code').first().innerText()
   await ownerPage
     .getByRole('button', { name: 'I have saved my recovery codes', exact: true })
     .click()
@@ -275,6 +277,7 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
       'email signup → owned proof → real MFA enrollment → pending activation; no workspace access',
     passed: true,
   })
+  php(['artisan', 'cache:clear', '--no-interaction'])
   let cancelLink = true
   await ownerContext.route('https://github.com/login/oauth/authorize**', async (route) => {
     const authorize = new URL(route.request().url())

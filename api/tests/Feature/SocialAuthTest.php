@@ -261,6 +261,23 @@ class SocialAuthTest extends TestCase
         $this->getJson('/api/admin/projects')->assertOk()->assertJsonCount(1, 'data');
     }
 
+    public function test_mismatching_social_invitation_rolls_back_new_account_and_identity(): void
+    {
+        $project = Project::factory()->create();
+        $owner = $this->ownerFor($project);
+        $invitation = DeveloperInvitation::create(['workspace_id' => $project->workspace_id, 'invited_by' => $owner->id, 'email' => 'different-invitee@example.test', 'project_ids' => [$project->id], 'locale' => 'en', 'token_hash' => hash('sha256', 'synthetic-mismatched-invitation'), 'expires_at' => now()->addDay(), 'sent_at' => now()]);
+        $this->withSession(['invitation_context' => ['id' => $invitation->id, 'hash' => $invitation->token_hash]]);
+        $a = $this->start('github');
+        $this->github();
+        $this->get('/auth/github/callback?state='.$a['state'].'&code=synthetic-code')->assertRedirectContains('authError=social_account_unavailable');
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('user_external_identities', 0);
+        $this->assertDatabaseCount('account_onboardings', 0);
+        $this->assertDatabaseCount('owner_trial_claims', 0);
+        $this->assertNull($invitation->fresh()->accepted_at);
+    }
+
     public function test_provider_timeout_and_cross_session_state_fail_without_authentication_or_token_persistence(): void
     {
         $attempt = $this->start('github');

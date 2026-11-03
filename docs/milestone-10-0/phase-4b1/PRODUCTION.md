@@ -2,6 +2,8 @@
 
 Prepared runbook only. No Jino connection, deployment, production migration, push, merge, policy publication or Trial activation was performed. Upgrade from v0.9.14 adds one **additive migration**, `2026_11_03_081230_add_account_onboarding`.
 
+No operator backfill, authority reassignment, policy publication or subscription conversion is required for an installed v0.9.14 upgrade.
+
 ## Update under maintenance
 
 1. Verify ZIP SHA-256, release.json source commit/version/UTC/PHP target and checksums.txt against ARTIFACTS.md. Back up a consistent database/private uploads and matching public/private code/vendor. Preserve installed `.env`, APP_KEY, storage, sessions, paths and permissions. Private application stays outside web root. No test/demo credentials may be installed.
