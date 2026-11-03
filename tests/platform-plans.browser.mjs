@@ -547,10 +547,18 @@ require __DIR__.'/../vendor/autoload.php';
       }
       await page.reload()
       await page.locator('.inventory-table tbody tr').first().waitFor()
+      await page
+        .locator(`.inventory-controls select option[value="${basic}"]`)
+        .waitFor({ state: 'attached' })
       assert.equal(await page.locator('.inventory-controls select').inputValue(), basic)
       assert.equal((await call(context, '/api/platform/workspace-inventory')).status(), 200)
       if (language === 'en' && theme === 'light') {
         await page.goto(origin + '/admin/settings/resource-preview')
+        await page
+          .locator('.breadcrumbs [aria-current="page"]')
+          .getByText('Plan and subscription')
+          .waitFor()
+        await page.goto(origin + '/admin/settings/subscription')
         await page
           .locator('.owner-resource-preview select option')
           .filter({ hasText: /Basic · v1/ })
@@ -559,6 +567,11 @@ require __DIR__.'/../vendor/autoload.php';
         const ownerPanel = page.locator('.resource-selection')
         await ownerPanel.locator('fieldset').first().waitFor()
         assert.ok((await ownerPanel.innerText()).includes('Private fixture title'))
+        assert.match(
+          await ownerPanel.locator('.subscription-overview').innerText(),
+          /Compatibility · Observe/,
+        )
+        assert.equal(await ownerPanel.locator('.subscription-overview time').count(), 0)
         await ownerPanel.getByRole('button', { name: 'Freeze preview', exact: true }).click()
         await ownerPanel.locator('.frozen-summary').waitFor()
         await ownerPanel

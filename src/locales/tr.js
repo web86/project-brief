@@ -4,7 +4,7 @@ import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
   onboarding: onboardingMessages['tr'],
-  preparation: preparationMessages.en,
+  preparation: preparationMessages['tr'],
   inventory: inventoryMessages.en,
   planManagement: planMessages.en,
   release910: {
