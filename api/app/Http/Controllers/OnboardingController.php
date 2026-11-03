@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\AccountSecurity;
 use App\Services\AuthOnboarding;
+use App\Services\CanaryRegistration;
 use App\Services\DeveloperInvitations;
 use App\Services\RegistrationReadiness;
 use App\Services\SupportedLocales;
@@ -19,13 +20,24 @@ class OnboardingController extends Controller
         return response()->json(app(RegistrationReadiness::class)->publicState())->header('Cache-Control', 'no-store');
     }
 
+    public function canaryReadiness(Request $request, CanaryRegistration $canary): JsonResponse
+    {
+        $data = $request->validate(['invitation_token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/D']]);
+
+        return response()->json(['registrationEnabled' => ! $request->user()
+            && ! $request->session()->has('invitation_context') && $canary->available($data['invitation_token'])])
+            ->header('Cache-Control', 'no-store');
+    }
+
     public function register(Request $request, AuthOnboarding $onboarding): JsonResponse
     {
-        abort_unless(app(RegistrationReadiness::class)->registrationEnabled(), 403, 'registration_disabled');
+        abort_unless($request->has('invitation_token') || app(RegistrationReadiness::class)->registrationEnabled(), 403, 'registration_disabled');
         abort_if($request->user() || $request->session()->has('invitation_context'), 409, 'onboarding_use_existing_flow');
-        abort_if(array_diff(array_keys($request->all()), ['email', 'password', 'password_confirmation', 'locale']), 422);
-        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'password' => ['required', 'string', 'min:12', 'max:1024', 'confirmed'], 'locale' => ['sometimes', Rule::in(SupportedLocales::codes())]]);
-        $onboarding->register($data);
+        abort_if(array_diff(array_keys($request->all()), ['email', 'password', 'password_confirmation', 'locale', 'invitation_token']), 422);
+        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'password' => ['required', 'string', 'min:12', 'max:1024', 'confirmed'], 'locale' => ['sometimes', Rule::in(SupportedLocales::codes())], 'invitation_token' => ['sometimes', 'required', 'string', 'regex:/^[a-f0-9]{64}$/D']]);
+        $token = $data['invitation_token'] ?? null;
+        unset($data['invitation_token']);
+        $onboarding->register($data, $token);
 
         return response()->json(['status' => 'verification_requested'], 202)->header('Cache-Control', 'no-store');
     }

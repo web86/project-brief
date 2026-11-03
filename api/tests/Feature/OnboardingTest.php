@@ -42,6 +42,67 @@ class OnboardingTest extends TestCase
         return [User::where('email', 'owner@example.test')->firstOrFail(), $fragment['token']];
     }
 
+    public function test_canary_link_is_email_bound_single_use_and_does_not_activate_a_trial(): void
+    {
+        config(['app.env' => 'production', 'onboarding.registration_enabled' => false, 'onboarding.trial_activation_requested' => false]);
+        $primary = User::factory()->owner()->create(['platform_admin' => true]);
+        $secondary = User::factory()->owner()->create(['platform_admin' => true]);
+        DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $primary->id, 'revision' => 1]);
+        $endpoint = '/api/platform/registration-canary/invite';
+        $headers = ['Idempotency-Key' => 'synthetic-canary-invitation'];
+        $input = ['email' => 'Owner@Example.test'];
+
+        $this->postJson($endpoint, $input, $headers)->assertUnauthorized();
+        $this->actingAs($secondary)->postJson($endpoint, $input, $headers)->assertForbidden();
+        $this->actingAs($primary);
+        $this->travel(301)->seconds();
+        $this->postJson($endpoint, $input, $headers)->assertStatus(423);
+        $this->actingAs($primary);
+        $url = $this->postJson($endpoint, $input, $headers)->assertCreated()->assertHeader('Referrer-Policy', 'no-referrer')->json('data.url');
+        $this->postJson($endpoint, $input, $headers)->assertConflict();
+        parse_str(parse_url($url, PHP_URL_FRAGMENT), $fragment);
+        $token = $fragment['invite'];
+        $this->assertDatabaseHas('canary_registration_invites', ['token_hash' => hash('sha256', $token), 'consumed_at' => null]);
+        $this->assertDatabaseHas('plan_events', ['action' => 'canary.registration.issue', 'actor_user_id' => $primary->id]);
+        $this->assertStringNotContainsString($token, DB::table('plan_events')->where('action', 'canary.registration.issue')->value('result_json'));
+        $this->postJson('/api/admin/logout')->assertSuccessful();
+
+        $this->getJson('/api/onboarding/readiness')->assertOk()->assertJsonPath('registrationEnabled', false);
+        $this->postJson('/api/onboarding/register', $this->registration())->assertForbidden();
+        $invite = ['invitation_token' => $token];
+        $this->postJson('/api/onboarding/canary-readiness', $invite)->assertOk()->assertExactJson(['registrationEnabled' => true]);
+        $this->postJson('/api/onboarding/register', $this->registration('wrong@example.test') + $invite)->assertForbidden();
+        $this->postJson('/api/onboarding/register', $this->registration('OWNER@example.test') + $invite)->assertAccepted();
+        $this->postJson('/api/onboarding/register', $this->registration() + $invite)->assertForbidden();
+        $this->postJson('/api/onboarding/canary-readiness', $invite)->assertOk()->assertExactJson(['registrationEnabled' => false]);
+        $this->assertDatabaseHas('plan_events', ['action' => 'registration.canary_consumed']);
+        $this->assertDatabaseCount('owner_trial_claims', 0);
+
+        $mail = Mail::sent(AccountActionMail::class)->last();
+        parse_str(parse_url($mail->actionUrl, PHP_URL_FRAGMENT), $proof);
+        $this->postJson('/api/admin/login', ['email' => 'owner@example.test', 'password' => self::PASSWORD])->assertOk();
+        $this->postJson('/api/onboarding/email', ['email' => 'wrong@example.test', 'current_password' => self::PASSWORD])->assertForbidden();
+        $this->postJson('/api/onboarding/verify', ['token' => $proof['token']])->assertOk();
+        $this->assertDatabaseHas('owner_trial_claims', ['state' => 'pending', 'period_id' => null]);
+        $this->assertDatabaseCount('subscription_periods', 0);
+        $this->getJson('/api/onboarding/state')->assertOk()->assertJsonPath('step', 'authenticator')->assertJsonPath('trialActivationEnabled', false);
+    }
+
+    public function test_expired_canary_link_cannot_register(): void
+    {
+        config(['onboarding.registration_enabled' => false]);
+        $primary = User::factory()->owner()->create(['platform_admin' => true]);
+        DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $primary->id, 'revision' => 1]);
+        $url = $this->actingAs($primary)->postJson('/api/platform/registration-canary/invite', ['email' => 'owner@example.test'], ['Idempotency-Key' => 'expiring-canary'])->assertCreated()->json('data.url');
+        $this->postJson('/api/admin/logout')->assertSuccessful();
+        parse_str(parse_url($url, PHP_URL_FRAGMENT), $fragment);
+        $this->travel(30)->minutes();
+        $invite = ['invitation_token' => $fragment['invite']];
+        $this->postJson('/api/onboarding/canary-readiness', $invite)->assertOk()->assertJsonPath('registrationEnabled', false);
+        $this->postJson('/api/onboarding/register', $this->registration() + $invite)->assertForbidden();
+        $this->assertDatabaseMissing('users', ['email' => 'owner@example.test']);
+    }
+
     public function test_registration_is_generic_normalized_and_does_not_authenticate_or_provision(): void
     {
         $one = $this->postJson('/api/onboarding/register', $this->registration('Owner@Example.test'))->assertStatus(202)->json();

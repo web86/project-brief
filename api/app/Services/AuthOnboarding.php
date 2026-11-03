@@ -13,19 +13,25 @@ use Illuminate\Support\Str;
 
 final class AuthOnboarding
 {
-    public function register(array $data): void
+    public function register(array $data, #[\SensitiveParameter] ?string $token = null): void
     {
-        abort_unless(app(RegistrationReadiness::class)->registrationEnabled(), 403, 'registration_disabled');
+        abort_unless($token !== null || app(RegistrationReadiness::class)->registrationEnabled(), 403, 'registration_disabled');
         $email = DeveloperInvitations::normalizeEmail($data['email']);
         $password = Hash::make($data['password']);
         try {
-            $user = DB::transaction(function () use ($data, $email, $password): ?User {
+            $user = DB::transaction(function () use ($data, $email, $password, $token): ?User {
+                $canary = app(CanaryRegistration::class);
+                $invite = $token === null ? null : $canary->lock($token, $email);
                 if (User::whereRaw('LOWER(TRIM(email)) = ?', [$email])->exists()) {
                     return null;
                 }
                 $user = User::create(['name' => 'Dev2Done', 'email' => $email, 'password' => $password, 'preferred_locale' => SupportedLocales::storage($data['locale'] ?? 'en')]);
                 $this->pending($user);
                 $this->audit($user, 'registration.created');
+                if ($invite) {
+                    $canary->consume($invite, $user);
+                    $this->audit($user, 'registration.canary_consumed', ['inviteId' => $invite->uuid]);
+                }
 
                 return $user;
             }, 3);
@@ -107,6 +113,7 @@ final class AuthOnboarding
             abort_unless($row && ! $user->email_verified_at && ! $row->workspace_id, 403);
             abort_if($user->password_login_enabled && (! is_string($password) || ! Hash::check($password, $user->password)), 422, 'onboarding_request_invalid');
             $email = DeveloperInvitations::normalizeEmail($email);
+            abort_if($email !== $user->email && DB::table('canary_registration_invites')->where('consumed_user_id', $user->id)->exists(), 403);
             abort_if(User::whereRaw('LOWER(TRIM(email)) = ?', [$email])->where('id', '<>', $user->id)->exists(), 422, 'onboarding_request_invalid');
             $user->forceFill(['email' => $email, ...app(AccountProfile::class)->clearEmail()])->save();
             DB::table('account_onboardings')->where('user_id', $user->id)->update(['verification_hash' => null, 'consumed_hash' => null, 'sent_at' => null, 'expires_at' => null, 'email_hash' => null, 'revision' => DB::raw('revision + 1'), 'updated_at' => now('UTC')]);

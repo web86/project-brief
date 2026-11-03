@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, nextTick, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { demo, STATIC_DEMO } from '../services/demo.js'
@@ -17,19 +17,36 @@ const readiness = ref(null),
   busy = ref(false),
   error = ref(''),
   fields = ref({})
+const invitationToken = computed(() => new URLSearchParams(route.hash.slice(1)).get('invite'))
+const providerEmail = computed(() => !invitationToken.value && route.query.providerEmail === '1')
 let current = true
-onMounted(async () => {
-  if (demo.readOnly || STATIC_DEMO) {
-    readiness.value = { registrationEnabled: false }
-    return
-  }
-  try {
-    const value = await api.request('/api/onboarding/readiness')
-    if (current) readiness.value = value
-  } catch (cause) {
-    if (current) error.value = onboardingError(cause)
-  }
-})
+watch(
+  invitationToken,
+  async (token, previous, onCleanup) => {
+    let active = true
+    onCleanup(() => {
+      active = false
+    })
+    readiness.value = null
+    error.value = ''
+    if (demo.readOnly || STATIC_DEMO) {
+      readiness.value = { registrationEnabled: false }
+      return
+    }
+    try {
+      const value = token
+        ? await api.request('/api/onboarding/canary-readiness', {
+            method: 'POST',
+            body: { invitation_token: token },
+          })
+        : await api.request('/api/onboarding/readiness')
+      if (active) readiness.value = value
+    } catch (cause) {
+      if (active) error.value = onboardingError(cause)
+    }
+  },
+  { immediate: true },
+)
 onBeforeUnmount(() => {
   current = false
   password.value = ''
@@ -40,7 +57,7 @@ async function submit(event) {
   const issues = {}
   if (!email.value.trim() || event.target.elements.email.validity.typeMismatch)
     issues.email = 'emailInvalid'
-  if (route.query.providerEmail !== '1') {
+  if (!providerEmail.value) {
     if (password.value.length < 12) issues.password = 'passwordHint'
     if (!confirmation.value || confirmation.value !== password.value)
       issues.confirmation = 'passwordMismatch'
@@ -54,7 +71,7 @@ async function submit(event) {
   }
   busy.value = true
   try {
-    if (route.query.providerEmail === '1') {
+    if (providerEmail.value) {
       const result = await api.request('/api/auth/provider-email', {
         method: 'POST',
         body: { email: email.value.trim() },
@@ -71,6 +88,7 @@ async function submit(event) {
           password: password.value,
           password_confirmation: confirmation.value,
           locale: locale.value,
+          ...(invitationToken.value ? { invitation_token: invitationToken.value } : {}),
         },
       })
       pendingRegistrationEmail.value = email.value.trim()
@@ -116,7 +134,7 @@ async function submit(event) {
       {{ t('onboarding.noTrialYet') }}
     </p>
     <form v-else-if="readiness" class="registration-form" novalidate @submit.prevent="submit">
-      <p v-if="route.query.providerEmail === '1'">{{ t('onboarding.providerEmailHint') }}</p>
+      <p v-if="providerEmail">{{ t('onboarding.providerEmailHint') }}</p>
       <div class="registration-field">
         <label for="registration-email">{{ t('common.email') }}</label>
         <input
@@ -140,7 +158,7 @@ async function submit(event) {
           >{{ fields.email ? t('onboarding.' + fields.email) : '\u00a0' }}</small
         >
       </div>
-      <template v-if="route.query.providerEmail !== '1'">
+      <template v-if="!providerEmail">
         <div class="registration-field">
           <label for="registration-password">{{ t('onboarding.password') }}</label>
           <input
@@ -188,9 +206,9 @@ async function submit(event) {
       </template>
 
       <LoadingButton type="submit" class="button primary" :busy="busy">{{
-        t('onboarding.' + (route.query.providerEmail === '1' ? 'continue' : 'signUp'))
+        t('onboarding.' + (providerEmail ? 'continue' : 'signUp'))
       }}</LoadingButton>
-      <SocialSignIn v-if="route.query.providerEmail !== '1'" :readiness="readiness" />
+      <SocialSignIn v-if="!providerEmail && !invitationToken" :readiness="readiness" />
       <p class="registration-trial muted">{{ t('onboarding.trial') }}</p>
     </form>
     <p v-if="error && !readiness" role="alert" class="field-error">{{ error }}</p>

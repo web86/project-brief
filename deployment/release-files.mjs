@@ -279,6 +279,7 @@ export async function validateRelease(root, localSecrets = []) {
     'PRODUCTION.md',
     'CANARY.md',
     'ROLLBACK.md',
+    'private/project-brief-app/database/migrations/2026_11_03_215440_create_canary_registration_invites.php',
     'private/project-brief-app/database/migrations/2026_11_03_151351_add_execution_receipt_to_client_sso_handoffs.php',
     'private/project-brief-app/database/migrations/2026_11_03_170505_add_restore_cycle_to_entitlement_capacity_reservations.php',
     'private/project-brief-app/config/localization.php',

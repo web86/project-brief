@@ -132,6 +132,7 @@ foreach (['platform', 'admin'] as $persona) {
 
 Route::prefix('/api/onboarding')->controller(OnboardingController::class)->group(function (): void {
     Route::get('/readiness', 'readiness');
+    Route::post('/canary-readiness', 'canaryReadiness')->middleware('throttle:onboarding-canary');
     Route::get('/state', 'state');
     Route::post('/register', 'register')->middleware('throttle:onboarding-register');
     Route::post('/resend', 'resend')->middleware('throttle:onboarding-mail');
@@ -145,7 +146,7 @@ Route::post('/api/auth/{provider}/link', [SocialAuthController::class, 'start'])
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware('throttle:social-auth')->block();
 Route::delete('/api/auth/{provider}', [SocialAuthController::class, 'disconnect'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware(['auth', 'throttle:account-security'])->block();
 Route::post('/api/platform/registration-canary/{operation}', [RegistrationDiagnosticsController::class, 'canary'])
-    ->whereIn('operation', ['approve', 'admit', 'stop'])->middleware([EnsurePlatformAdmin::class, 'throttle:platform']);
+    ->whereIn('operation', ['approve', 'admit', 'stop', 'invite'])->middleware([EnsurePlatformAdmin::class, 'throttle:platform']);
 Route::get('/api/platform/registration-diagnostics', RegistrationDiagnosticsController::class)->middleware([EnsurePlatformAdmin::class, EnsurePlanAuthority::class, 'throttle:platform']);
 
 Route::get('/', SpaController::class);

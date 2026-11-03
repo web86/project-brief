@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsurePlanAuthority;
 use App\Services\AccountSecurity;
+use App\Services\CanaryRegistration;
 use App\Services\Plans\CommercialCanary;
 use App\Services\Plans\PlanInput;
 use App\Services\ProjectNotificationService;
@@ -34,6 +35,13 @@ class RegistrationDiagnosticsController extends Controller
             $security = app(AccountSecurity::class);
             abort_unless($actor->email_verified_at && $security->enrolled($actor) && $security->strong($request, $actor) && ! $actor->security_recovery_expires_at, 403);
             $security->requireFresh($request);
+            if ($operation === 'invite') {
+                PlanInput::only($request->all(), ['email']);
+                $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254']]);
+                $invite = app(CanaryRegistration::class)->issue($actor, $data['email'], PlanInput::key($request));
+
+                return response()->json(['data' => $invite], 201)->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer');
+            }
             $revision = PlanInput::revision($request);
             $key = PlanInput::key($request);
             $data = match ($operation) {

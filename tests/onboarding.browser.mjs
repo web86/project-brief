@@ -60,7 +60,9 @@ const env = {
   SESSION_DOMAIN: '',
   SESSION_SECURE_COOKIE: 'false',
   CACHE_STORE: 'file',
-  MAIL_MAILER: 'array',
+  MAIL_MAILER: 'smtp',
+  MAIL_HOST: 'example.test',
+  MAIL_FROM_ADDRESS: 'sender@example.test',
   LOG_CHANNEL: 'null',
   BCRYPT_ROUNDS: '4',
   AI_ENABLED: 'false',
@@ -334,6 +336,21 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
   }
   browser = await chromium.launch({ headless: true })
   const password = 'Browser-registration-only!2026'
+  await writeFile(env.QA_STATE_FILE, JSON.stringify({ registrationEnabled: false }))
+  const issuer = await createContext()
+  await login(issuer, fixture)
+  const csrf = (await (await issuer.request.get(origin + '/api/csrf')).json()).token
+  const issued = await issuer.request.post(origin + '/api/platform/registration-canary/invite', {
+    headers: {
+      Accept: 'application/json',
+      'X-CSRF-TOKEN': csrf,
+      'Idempotency-Key': 'browser-canary-registration',
+    },
+    data: { email: 'browser-owner@example.test' },
+  })
+  assert.equal(issued.status(), 201)
+  const invitation = (await issued.json()).data.url
+  await issuer.close()
   const ownerContext = await createContext()
   const ownerPage = await ownerContext.newPage()
   ownerPage.on('pageerror', (e) => errors.push(String(e)))
@@ -348,6 +365,9 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
   })
   await ownerContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
   await ownerPage.goto(origin + '/register')
+  await ownerPage.locator('.registration-closed').waitFor()
+  await ownerPage.goto(invitation)
+  assert.equal(await ownerPage.locator('.social-sign-in button').count(), 0)
   await ownerPage.locator('.registration-form button[type=submit]').click()
   await ownerPage.locator('#registration-email[aria-invalid=true]').waitFor()
   await ownerPage.locator('.registration-form input[type=email]').fill('browser-owner@example.test')
@@ -355,6 +375,12 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
   await ownerPage.locator('.registration-form input[type=password]').nth(1).fill(password)
   await ownerPage.locator('.registration-form button[type=submit]').click()
   await ownerPage.waitForURL('**/admin/verify-email')
+  const retryContext = await createContext()
+  const retryPage = await retryContext.newPage()
+  await retryPage.goto(invitation)
+  await retryPage.locator('.registration-closed').waitFor()
+  await retryContext.close()
+  await writeFile(env.QA_STATE_FILE, JSON.stringify({ registrationEnabled: true }))
   await capture(ownerPage, 'en-email-pending.png')
   const mail = JSON.parse(await readFile(env.QA_MAIL_FILE, 'utf8'))
   assert.equal(mail.email, 'browser-owner@example.test')
