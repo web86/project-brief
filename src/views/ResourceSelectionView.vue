@@ -24,8 +24,7 @@ onMounted(loadVersions)
 </script>
 <template>
   <main class="owner-resource-preview">
-    <h1>{{ t('preparation.title') }}</h1>
-    <p>{{ t('preparation.intro') }}</p>
+    <h1>{{ t('account.subscription') }}</h1>
     <p v-if="error" role="alert">{{ error }}</p>
     <label
       >{{ t('preparation.target')

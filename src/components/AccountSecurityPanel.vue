@@ -248,81 +248,137 @@ function finish() {
         :class="{ 'onboarding-security-grid': props.onboarding }"
       >
         <section
-          v-if="!mandatoryFlow || !state.totp"
-          class="surface admin-form authentication-section"
+          v-if="!mandatoryFlow || !state.totp || !state.recoverySaved"
+          class="surface admin-form two-factor-section"
         >
-          <h2>
-            <AppIcon name="shield" :size="22" />{{ t('security.authenticator') }}
-            <span class="small muted">{{
-              t(state.owner || state.platformAdmin ? 'security.required' : 'security.optional')
-            }}</span>
+          <h2 v-if="!props.onboarding">
+            <AppIcon name="shield" :size="22" />{{ t('security.twoFactor') }}
           </h2>
-          <p>{{ t(state.totp ? 'security.totpActive' : 'security.totpHelp') }}</p>
-          <SecurityError v-if="errorContext === 'totp'" :error="error" />
-          <button v-if="!setup" class="button secondary" :disabled="busy" @click="startTotp">
-            {{ t(state.totp ? 'security.rotateTotp' : 'security.setupTotp') }}
-          </button>
-          <form v-if="setup" class="admin-form" @submit.prevent="confirmTotp">
-            <img
-              class="security-qr"
-              :src="'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(setup.svg)"
-              :alt="t('security.qrAlt')"
-            />
-            <p class="small muted">{{ t('security.secretHelp') }}</p>
-            <label for="totp-uri">{{ t('security.setupUri') }}</label>
-            <textarea id="totp-uri" :value="setup.uri" readonly rows="3" />
-            <div class="field">
-              <label for="totp-confirm">{{ t('security.code') }}</label
-              ><input
-                id="totp-confirm"
-                v-model="code"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                maxlength="6"
-                pattern="[0-9]{6}"
-                required
-              />
-            </div>
-            <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
-              t('security.confirm')
-            }}</LoadingButton>
-            <button class="text-button" type="button" @click="setup = null">
-              {{ t('account.cancel') }}
+          <div v-if="!mandatoryFlow || !state.totp" class="admin-form authentication-section">
+            <component :is="props.onboarding ? 'h2' : 'h3'">
+              <AppIcon name="shield" :size="22" />{{ t('security.authenticator') }}
+              <span class="small muted">{{
+                t(state.owner || state.platformAdmin ? 'security.required' : 'security.optional')
+              }}</span>
+            </component>
+            <p>
+              {{
+                t(
+                  state.totp
+                    ? 'security.totpActive'
+                    : props.onboarding
+                      ? 'security.totpHelp'
+                      : 'security.totpSettingsHelp',
+                )
+              }}
+            </p>
+            <SecurityError v-if="errorContext === 'totp'" :error="error" />
+            <button v-if="!setup" class="button secondary" :disabled="busy" @click="startTotp">
+              {{ t(state.totp ? 'security.rotateTotp' : 'security.setupTotp') }}
             </button>
-          </form>
-          <p v-if="STATIC_DEMO && state.recoverySaved" class="small" role="status">
-            {{ t('security.recoverySaved') }}
-          </p>
-          <template v-if="state.totp">
-            <template v-if="!(state.owner || state.platformAdmin)">
-              <button
-                class="text-button danger"
-                :disabled="busy"
-                @click="disablingTotp = !disablingTotp"
-              >
-                {{ t('security.disableTotp') }}
-              </button>
-              <form v-if="disablingTotp" class="admin-form" @submit.prevent="disableTotp">
-                <p>{{ t('security.alternativeRequired') }}</p>
-                <label for="disable-totp-password">{{ t('account.currentPassword') }}</label>
-                <input
-                  id="disable-totp-password"
-                  v-model="alternativePassword"
-                  type="password"
-                  autocomplete="current-password"
-                  maxlength="1024"
+            <form v-if="setup" class="admin-form" @submit.prevent="confirmTotp">
+              <img
+                class="security-qr"
+                :src="'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(setup.svg)"
+                :alt="t('security.qrAlt')"
+              />
+              <p class="small muted">{{ t('security.secretHelp') }}</p>
+              <label for="totp-uri">{{ t('security.setupUri') }}</label>
+              <textarea id="totp-uri" :value="setup.uri" readonly rows="3" />
+              <div class="field">
+                <label for="totp-confirm">{{ t('security.code') }}</label
+                ><input
+                  id="totp-confirm"
+                  v-model="code"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  maxlength="6"
+                  pattern="[0-9]{6}"
                   required
                 />
-                <LoadingButton
-                  class="button secondary"
-                  type="submit"
-                  :busy="busy"
+              </div>
+              <LoadingButton type="submit" class="button primary" :busy="busy" :disabled="busy">{{
+                t('security.confirm')
+              }}</LoadingButton>
+              <button class="text-button" type="button" @click="setup = null">
+                {{ t('account.cancel') }}
+              </button>
+            </form>
+            <p v-if="STATIC_DEMO && state.recoverySaved" class="small" role="status">
+              {{ t('security.recoverySaved') }}
+            </p>
+            <template v-if="state.totp">
+              <template v-if="!(state.owner || state.platformAdmin)">
+                <button
+                  class="text-button danger"
                   :disabled="busy"
-                  >{{ t('security.disableTotp') }}</LoadingButton
+                  @click="disablingTotp = !disablingTotp"
                 >
-              </form>
+                  {{ t('security.disableTotp') }}
+                </button>
+                <form v-if="disablingTotp" class="admin-form" @submit.prevent="disableTotp">
+                  <p>{{ t('security.alternativeRequired') }}</p>
+                  <label for="disable-totp-password">{{ t('account.currentPassword') }}</label>
+                  <input
+                    id="disable-totp-password"
+                    v-model="alternativePassword"
+                    type="password"
+                    autocomplete="current-password"
+                    maxlength="1024"
+                    required
+                  />
+                  <LoadingButton
+                    class="button secondary"
+                    type="submit"
+                    :busy="busy"
+                    :disabled="busy"
+                    >{{ t('security.disableTotp') }}</LoadingButton
+                  >
+                </form>
+              </template>
             </template>
-          </template>
+          </div>
+          <div
+            v-if="state.totp && (!mandatoryFlow || !state.recoverySaved)"
+            class="admin-form recovery-section"
+          >
+            <component :is="props.onboarding ? 'h2' : 'h3'">
+              <AppIcon name="life-buoy" :size="22" />{{ t('security.recoveryCodes') }}
+            </component>
+            <p>{{ t(mandatoryFlow ? 'onboarding.saveCodesHint' : 'security.recoveryHelp') }}</p>
+            <SecurityError v-if="errorContext === 'recovery'" :error="error" />
+            <p v-if="STATIC_DEMO && state.recoverySaved" class="small" role="status">
+              {{ t('security.recoverySaved') }}
+            </p>
+            <div v-if="!STATIC_DEMO && (!codes.length || !mandatoryFlow)" class="security-actions">
+              <button class="button secondary" :disabled="busy" @click="recovery()">
+                {{ t('security.showCodes') }}
+              </button>
+              <button
+                v-if="!mandatoryFlow"
+                class="text-button"
+                :disabled="busy"
+                @click="recovery(true)"
+              >
+                {{ t('security.regenerateCodes') }}
+              </button>
+            </div>
+            <template v-if="codes.length">
+              <ul class="security-codes">
+                <li v-for="item in codes" :key="item">
+                  <code>{{ item }}</code>
+                </li>
+              </ul>
+              <button
+                v-if="!state.recoverySaved"
+                class="button primary"
+                :disabled="busy"
+                @click="acknowledge"
+              >
+                {{ t('security.savedCodes') }}
+              </button>
+            </template>
+          </div>
         </section>
         <section v-if="!mandatoryFlow" class="surface admin-form passkeys-section">
           <h2>
@@ -424,45 +480,6 @@ function finish() {
           </p>
         </section>
         <SocialConnections v-if="!props.onboarding && state.signedIn" />
-        <section
-          v-if="state.totp && (!mandatoryFlow || !state.recoverySaved)"
-          class="surface admin-form recovery-section"
-        >
-          <h2><AppIcon name="life-buoy" :size="22" />{{ t('security.recoveryCodes') }}</h2>
-          <p>{{ t(mandatoryFlow ? 'onboarding.saveCodesHint' : 'security.recoveryHelp') }}</p>
-          <SecurityError v-if="errorContext === 'recovery'" :error="error" />
-          <p v-if="STATIC_DEMO && state.recoverySaved" class="small" role="status">
-            {{ t('security.recoverySaved') }}
-          </p>
-          <div v-if="!STATIC_DEMO && (!codes.length || !mandatoryFlow)" class="security-actions">
-            <button class="button secondary" :disabled="busy" @click="recovery()">
-              {{ t('security.showCodes') }}
-            </button>
-            <button
-              v-if="!mandatoryFlow"
-              class="text-button"
-              :disabled="busy"
-              @click="recovery(true)"
-            >
-              {{ t('security.regenerateCodes') }}
-            </button>
-          </div>
-          <template v-if="codes.length">
-            <ul class="security-codes">
-              <li v-for="item in codes" :key="item">
-                <code>{{ item }}</code>
-              </li>
-            </ul>
-            <button
-              v-if="!state.recoverySaved"
-              class="button primary"
-              :disabled="busy"
-              @click="acknowledge"
-            >
-              {{ t('security.savedCodes') }}
-            </button>
-          </template>
-        </section>
         <button
           v-if="props.onboarding && state.state === 'authenticated'"
           class="button secondary onboarding-continue"

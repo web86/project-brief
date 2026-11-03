@@ -17,8 +17,8 @@ export const accountMenu = [
 export const settingsMenu = [
   ...accountMenu,
   {
-    to: '/admin/settings/resource-preview',
-    label: 'preparation.title',
+    to: '/admin/settings/subscription',
+    label: 'account.subscription',
     icon: 'grid',
     owner: true,
     hideInDemo: true,

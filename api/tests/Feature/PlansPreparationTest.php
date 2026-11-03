@@ -113,11 +113,26 @@ class PlansPreparationTest extends TestCase
     public function test_sensitive_http_boundary_no_mutation_routes_and_metadata_only_platform_options(): void
     {
         [$p, $owner] = $this->setupWorkspace();
-        $this->actingAs($owner)->getJson('/api/admin/resource-selection')->assertOk()->assertJsonPath('data.previewOnly', true);
-        $this->getJson('/api/platform/workspaces/'.$p->workspace->uuid.'/resource-selection')->assertOk()->assertDontSee($p->title);
+        $client = ProjectClient::where('project_id', $p->id)->firstOrFail();
+        $agent = ExternalAgent::factory()->create(['workspace_id' => $p->workspace_id, 'name' => 'Owner preview agent']);
+        $this->actingAs($owner)->getJson('/api/admin/resource-selection')
+            ->assertOk()
+            ->assertJsonPath('data.previewOnly', true)
+            ->assertJsonPath('data.subscription.phase', 'compatibility')
+            ->assertJsonPath('data.subscription.endsAt', null)
+            ->assertJsonPath('data.resources.clients.0.label', $client->name)
+            ->assertJsonPath('data.resources.agents.0.label', $agent->name);
+        $this->getJson('/api/platform/workspaces/'.$p->workspace->uuid.'/resource-selection')
+            ->assertOk()
+            ->assertDontSee($p->title)
+            ->assertDontSee($client->name)
+            ->assertDontSee($agent->name)
+            ->assertJsonMissingPath('data.subscription');
         $other = User::factory()->owner()->create(['platform_admin' => true]);
         $this->actingAs($other)->getJson('/api/platform/workspaces/'.$p->workspace->uuid.'/resource-selection')->assertForbidden();
         $this->postJson('/api/admin/resource-selection/apply')->assertNotFound();
+        $developer = User::factory()->memberOf($p->workspace)->create();
+        $this->actingAs($developer)->getJson('/api/admin/resource-selection')->assertForbidden();
     }
 
     public function test_accounting_split_is_revision_bound_idempotent_and_never_changes_access(): void

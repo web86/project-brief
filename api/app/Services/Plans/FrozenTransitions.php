@@ -2,6 +2,7 @@
 
 namespace App\Services\Plans;
 
+use App\Models\Plans\PlanVersion;
 use App\Models\User;
 use App\Services\IntegrationWrites;
 use Carbon\CarbonImmutable;
@@ -32,8 +33,30 @@ final class FrozenTransitions
             $this->authorize($actor, $workspaceId, $platform);
             $snapshot = $this->allocation->capture($workspaceId);
 
-            return ['workspaceId' => $snapshot['workspaceId'], 'subscriptionRevision' => $snapshot['subscriptionRevision'], 'resources' => $this->selections->options($snapshot, ! $platform), 'usage' => $snapshot['usage'], 'resourceFingerprint' => $snapshot['hash'], 'previewOnly' => true, 'executorAvailable' => false];
+            $subscription = $platform ? null : $this->subscriptionSummary($snapshot);
+
+            return ['workspaceId' => $snapshot['workspaceId'], 'subscriptionRevision' => $snapshot['subscriptionRevision'], 'resources' => $this->selections->options($snapshot, ! $platform), 'usage' => $snapshot['usage'], 'resourceFingerprint' => $snapshot['hash'], 'previewOnly' => true, 'executorAvailable' => false, ...($platform ? [] : ['subscription' => $subscription])];
         }, 3);
+    }
+
+    private function subscriptionSummary(array $snapshot): ?array
+    {
+        $pinned = $snapshot['pinned'];
+        if ($pinned['state'] !== 'available') {
+            return null;
+        }
+
+        $period = $snapshot['rows']['subscription_periods']->firstWhere('id', $pinned['period_id']);
+        $version = PlanVersion::findOrFail($pinned['version_id']);
+        $end = $pinned['phase'] === 'grace' ? $period->grace_ends_at : $period->service_ends_at;
+
+        return [
+            'translations' => $version->translations_json,
+            'phase' => $pinned['phase'],
+            'startsAt' => CarbonImmutable::parse($period->starts_at, 'UTC')->toISOString(),
+            'endsAt' => $end === null ? null : CarbonImmutable::parse($end, 'UTC')->toISOString(),
+            'limits' => array_intersect_key($pinned['values'], array_flip(['projects.active.max', 'developers.max', 'clients.max', 'agents.active.max'])),
+        ];
     }
 
     public function create(User $actor, int $workspaceId, bool $platform, string $version, array $selection, int $expectedRevision, string $key): array

@@ -23,15 +23,20 @@ final class ResourceSelections
         $invites = $invites->filter(fn ($i) => ($validity[$i->id] ?? null) === true && $holds->get($i->id)?->state !== 'suspended');
         $names = $owner ? DB::table('projects')->whereIn('id', $projects->pluck('id'))->pluck('title', 'id') : collect();
         $humans = $owner ? DB::table('users')->whereIn('id', $members->pluck('user_id'))->pluck('name', 'id') : collect();
+        $clientNames = $owner ? DB::table('project_clients')->whereIn('id', $clients->pluck('id'))->pluck('name', 'id') : collect();
+        $agentNames = $owner ? DB::table('external_agents')->whereIn('id', $agents->pluck('id'))->pluck('name', 'id') : collect();
+        $projectIds = $projects->pluck('uuid', 'id');
 
         return ['projects' => $projects->map(fn ($p) => ['id' => $p->uuid, 'label' => $names->get($p->id, $p->uuid)])->values()->all(),
             'developers' => $members->map(fn ($m) => ['id' => (string) $m->id, 'owner' => $m->role === 'owner', 'label' => $humans->get($m->user_id, (string) $m->id)])->values()->all(),
-            'clients' => $clients->groupBy('entitlement_identity_id')->map(function ($links, $id) use ($identities, $projects): array {
+            'clients' => $clients->groupBy('entitlement_identity_id')->map(function ($links, $id) use ($identities, $projectIds, $clientNames): array {
                 $identity = $identities->get($id);
 
-                return ['id' => $identity?->uuid, 'state' => $identity ? 'mapped' : 'needs_review', 'projectIds' => $links->map(fn ($c) => $projects->firstWhere('id', $c->project_id)->uuid)->unique()->values()->all()];
+                $label = $links->map(fn ($client) => $clientNames->get($client->id))->filter()->unique()->implode(', ');
+
+                return ['id' => $identity?->uuid, ...($label !== '' ? ['label' => $label] : []), 'state' => $identity ? 'mapped' : 'needs_review', 'projectIds' => $links->map(fn ($c) => $projectIds->get($c->project_id))->unique()->values()->all()];
             })->values()->all(),
-            'agents' => $agents->map(fn ($a) => ['id' => $a->uuid])->values()->all(),
+            'agents' => $agents->map(fn ($a) => ['id' => $a->uuid, ...($agentNames->has($a->id) ? ['label' => $agentNames->get($a->id)] : [])])->values()->all(),
             'invitations' => $invites->map(fn ($i) => ['id' => $i->uuid, 'expiresAt' => $i->expires_at])->values()->all()];
     }
 

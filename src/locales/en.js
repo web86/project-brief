@@ -826,6 +826,8 @@ export default {
     passkeyFailed: 'Passkey verification did not finish. Try again or use your password.',
     enrollmentHelp:
       'Owners must confirm an authenticator and save recovery codes. Passkeys are optional. You can return to setup later.',
+    twoFactor: 'Two-factor authentication',
+    totpSettingsHelp: 'Scan the QR code with an authenticator, then enter its six-digit code.',
     authenticator: 'Authenticator',
     totpActive: 'Authenticator is active. Add a replacement before retiring the old authenticator.',
     totpHelp: 'Step 1: scan the QR code with an authenticator, then enter its six digit code.',
@@ -836,7 +838,7 @@ export default {
     setupUri: 'Manual setup URI',
     recoveryCodes: 'Recovery codes',
     recoveryHelp:
-      'Step 2: save these codes somewhere safe. Each code works once. Generating new codes invalidates the previous set.',
+      'Save these codes somewhere safe. Each code works once. Generating new codes invalidates the previous set.',
     showCodes: 'Show recovery codes',
     regenerateCodes: 'Generate new codes',
     savedCodes: 'I have saved my recovery codes',
@@ -1101,6 +1103,14 @@ export default {
     signInAndAccept: 'Sign in and accept',
   },
   account: {
+    subscriptionPhase: {
+      compatibility: 'Compatibility · Observe',
+      free: 'Free',
+      trial: 'Trial',
+      paid: 'Paid period',
+      grace: 'Grace period',
+    },
+    subscription: 'Plan and subscription',
     lostAuthenticator: 'No access to the app? Use a recovery code',
     passwordCheck: 'Check the new password and confirmation. Choose a different password.',
     title: 'My account',

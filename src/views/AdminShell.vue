@@ -244,7 +244,7 @@ async function logout() {
             v-if="!route.path.includes('/task/') && route.path !== '/admin/unavailable'"
           />
           <Breadcrumbs />
-          <RouterView />
+          <slot><RouterView /></slot>
         </template>
         <LoadingOverlay v-else active />
       </main>

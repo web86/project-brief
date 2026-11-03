@@ -422,6 +422,7 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
   await ownerPage.waitForURL('**/admin/account/security')
   await ownerPage.locator('.social-connections').waitFor()
   assert.equal(await ownerPage.locator('.social-connection-row').count(), 3)
+  assert.equal(await ownerPage.locator('.admin-shell').count(), 0)
   await capture(ownerPage, 'en-ready-connections.png')
   results.push({
     scenario:
@@ -772,6 +773,10 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
   await legacyPage.goto(origin + '/admin/account/security')
   await legacyPage.locator('.passkeys-section').waitFor()
   assert.equal(await legacyPage.locator('.security-back').count(), 0)
+  await legacyPage.locator('.admin-shell .breadcrumbs').waitFor()
+  await legacyPage.locator('.two-factor-section .recovery-section').waitFor()
+  await legacyPage.reload()
+  await legacyPage.locator('.admin-shell .account-tabs').waitFor()
   await capture(legacyPage, 'compatibility-owner-security.png')
   await legacyContext.close()
   results.push({

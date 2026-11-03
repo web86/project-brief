@@ -64,6 +64,6 @@ final class WorkspaceAllocation
         $fingerprints['pinned'] = PlanConfiguration::hash($pinned);
         $fingerprints['usage'] = PlanConfiguration::hash(array_map(fn ($m) => array_intersect_key($m, array_flip(['state', 'count', 'reason_codes', 'identity_fingerprint'])), $usage));
 
-        return ['workspaceInternalId' => $workspaceId, 'pinnedState' => $pinned['state'], 'pinnedReason' => $pinned['reason'], 'workspaceId' => $workspace->uuid, 'rows' => $rows, 'fingerprints' => $fingerprints, 'hash' => PlanConfiguration::hash($fingerprints), 'usage' => $usage, 'subscriptionRevision' => (string) ($rows['workspace_subscriptions']->first()?->revision ?? 0)];
+        return ['workspaceInternalId' => $workspaceId, 'pinnedState' => $pinned['state'], 'pinnedReason' => $pinned['reason'], 'pinned' => $pinned, 'workspaceId' => $workspace->uuid, 'rows' => $rows, 'fingerprints' => $fingerprints, 'hash' => PlanConfiguration::hash($fingerprints), 'usage' => $usage, 'subscriptionRevision' => (string) ($rows['workspace_subscriptions']->first()?->revision ?? 0)];
     }
 }

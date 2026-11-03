@@ -1,31 +1,21 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { api } from '../api/client.js'
-import { t, formatApiError } from '../i18n/index.js'
+import { useRoute } from 'vue-router'
+import { t } from '../i18n/index.js'
 import AdminAccountView from './AdminAccountView.vue'
+import AdminShell from './AdminShell.vue'
 import AppIcon from '../components/AppIcon.vue'
-const status = ref(null),
-  error = ref('')
-onMounted(async () => {
-  try {
-    status.value = await api.request('/api/security/status')
-  } catch (cause) {
-    error.value = formatApiError(cause)
-  }
-})
+const route = useRoute()
 </script>
 <template>
-  <section class="personal-security-page">
-    <RouterLink v-if="status?.onboardingNext" class="security-back" to="/admin/onboarding"
+  <section v-if="route.meta.preparedOwner" class="personal-security-page">
+    <RouterLink class="security-back" to="/admin/onboarding"
       ><AppIcon name="arrow-left" :size="18" />{{ t('onboarding.accountStatus') }}</RouterLink
     >
-    <p v-if="error" role="alert">{{ error }}</p>
-    <AdminAccountView
-      v-if="status?.signedIn"
-      standalone-security
-      :prepared-owner="!!status.onboardingNext"
-    />
+    <AdminAccountView standalone-security prepared-owner />
   </section>
+  <AdminShell v-else>
+    <AdminAccountView />
+  </AdminShell>
 </template>
 <style scoped>
 .personal-security-page {

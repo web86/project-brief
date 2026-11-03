@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed, onBeforeUnmount } from 'vue'
 import { api } from '../api/client.js'
-import { t, i18n, formatApiError } from '../i18n/index.js'
+import { t, i18n, locale, formatApiError } from '../i18n/index.js'
 import LoadingButton from './LoadingButton.vue'
 const props = defineProps({ workspaceId: String, platform: Boolean, targetId: String })
 const l = (k) => t('preparation.' + k)
@@ -175,6 +175,31 @@ watch(
 </script>
 <template>
   <section class="resource-selection" :aria-busy="busy">
+    <section v-if="!props.platform && options" class="subscription-overview">
+      <template v-if="options.subscription">
+        <h2>
+          {{
+            options.subscription.translations[locale]?.name ||
+            options.subscription.translations.en.name
+          }}
+        </h2>
+        <p>{{ t('account.subscriptionPhase.' + options.subscription.phase) }}</p>
+        <p v-if="options.subscription.endsAt">
+          {{ l('expires') }} ·
+          <time :datetime="options.subscription.endsAt">{{ options.subscription.endsAt }}</time>
+        </p>
+        <dl>
+          <div v-for="(limit, key) in options.subscription.limits" :key="key">
+            <dt>{{ t('inventory.resources.' + key) }}</dt>
+            <dd>
+              {{ options.usage[key]?.state === 'ready' ? options.usage[key].count : '—' }} /
+              {{ limit.kind === 'unlimited' ? l('unlimited') : limit.value }}
+            </dd>
+          </div>
+        </dl>
+      </template>
+      <p v-else>{{ l('reasons.subscription_missing_or_incomplete') }}</p>
+    </section>
     <h2>{{ l('title') }}</h2>
     <p>{{ l('intro') }}</p>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -195,7 +220,13 @@ watch(
             @change="changed"
           /><span
             >{{ row.label && row.label !== row.id ? row.label : short(row.id)
-            }}<small v-if="row.owner">{{ l('owner') }}</small
+            }}<small
+              v-if="
+                row.label && row.label !== row.id && ['clients', 'agents'].includes(group) && row.id
+              "
+            >
+              {{ row.id }} </small
+            ><small v-if="row.owner">{{ l('owner') }}</small
             ><small v-if="row.expiresAt">{{ row.expiresAt }} UTC</small></span
           ></label
         >

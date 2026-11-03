@@ -769,6 +769,8 @@ export default {
     confirm: '验证身份',
     passkeyFailed: 'Passkey 验证未完成。请重试或使用密码。',
     enrollmentHelp: '所有者必须确认验证器并保存恢复码。Passkey 为可选项，您可以稍后返回设置。',
+    twoFactor: '双重身份验证',
+    totpSettingsHelp: '使用验证器扫描二维码，然后输入六位代码。',
     authenticator: '身份验证器',
     totpActive: '验证器已启用。停用旧验证器之前，请先设置新的验证器。',
     totpHelp: '第 1 步：使用验证器扫描二维码，然后输入六位代码。',
@@ -778,8 +780,7 @@ export default {
     secretHelp: '请保密这些信息，也不要将其发送给客服。',
     setupUri: '手动设置 URI',
     recoveryCodes: '恢复代码',
-    recoveryHelp:
-      '第 2 步：将代码保存在安全的地方。每个代码只能使用一次。生成新代码会使旧代码失效。',
+    recoveryHelp: '将代码保存在安全的地方。每个代码只能使用一次。生成新代码会使旧代码失效。',
     showCodes: '显示恢复代码',
     regenerateCodes: '生成新代码',
     savedCodes: '我已保存恢复代码',
@@ -1024,6 +1025,14 @@ export default {
     signInAndAccept: '登录并接受',
   },
   account: {
+    subscriptionPhase: {
+      compatibility: '兼容模式 · 观察',
+      free: '免费套餐',
+      trial: '试用期',
+      paid: '付费周期',
+      grace: '宽限期',
+    },
+    subscription: '套餐和订阅',
     lostAuthenticator:
       '\u65e0\u6cd5\u4f7f\u7528\u9a8c\u8bc1\u5668\uff1f\u4f7f\u7528\u6062\u590d\u4ee3\u7801',
     passwordCheck:

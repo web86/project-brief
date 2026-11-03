@@ -20,7 +20,13 @@ const items = computed(() => {
       { label: t('account.title'), to: '/admin/account' },
       {
         label: t(
-          route.path === '/admin/settings/branding' ? 'branding.title' : 'nav.notifications',
+          route.path === '/admin/settings/branding'
+            ? 'branding.title'
+            : ['/admin/settings/subscription', '/admin/settings/resource-preview'].includes(
+                  route.path,
+                )
+              ? 'account.subscription'
+              : 'nav.notifications',
         ),
       },
     ]

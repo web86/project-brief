@@ -833,6 +833,8 @@ export default {
     passkeyFailed: 'Passkey doğrulaması tamamlanmadı. Tekrar deneyin veya parolanızı kullanın.',
     enrollmentHelp:
       'Sahipler bir doğrulayıcıyı onaylamalı ve kurtarma kodlarını kaydetmelidir. Passkey isteğe bağlıdır. Kuruluma daha sonra dönebilirsiniz.',
+    twoFactor: 'İki faktörlü kimlik doğrulama',
+    totpSettingsHelp: 'QR kodunu doğrulayıcı ile tarayın ve altı haneli kodu girin.',
     authenticator: 'Doğrulayıcı',
     totpActive: 'Doğrulayıcı etkin. Eskisini kaldırmadan önce yenisini kurun.',
     totpHelp: '1. adım: QR kodunu doğrulayıcı ile tarayın ve altı haneli kodu girin.',
@@ -843,7 +845,7 @@ export default {
     setupUri: 'Elle kurulum URI adresi',
     recoveryCodes: 'Kurtarma kodları',
     recoveryHelp:
-      '2. adım: kodları güvenli bir yerde saklayın. Her kod bir kez çalışır. Yeni kodlar eskilerini geçersiz kılar.',
+      'Kodları güvenli bir yerde saklayın. Her kod bir kez çalışır. Yeni kodlar eskilerini geçersiz kılar.',
     showCodes: 'Kurtarma kodlarını göster',
     regenerateCodes: 'Yeni kodlar oluştur',
     savedCodes: 'Kurtarma kodlarımı kaydettim',
@@ -1108,6 +1110,14 @@ export default {
     signInAndAccept: 'Giriş yap ve kabul et',
   },
   account: {
+    subscriptionPhase: {
+      compatibility: 'Uyumluluk · Gözlem',
+      free: 'Ücretsiz',
+      trial: 'Deneme süresi',
+      paid: 'Ücretli dönem',
+      grace: 'Ek süre',
+    },
+    subscription: 'Plan ve abonelik',
     lostAuthenticator: 'Uygulamaya eri\u015femiyor musunuz? Kurtarma kodu kullan\u0131n',
     passwordCheck:
       'Yeni parolay\u0131 ve onay\u0131n\u0131 kontrol edin. Farkl\u0131 bir parola se\u00e7in.',

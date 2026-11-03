@@ -124,6 +124,7 @@ export function createProjectRouter({
         component: () => import('../views/AccountSecuritySettingsView.vue'),
         meta: {
           accountSecurity: true,
+          personalSettings: true,
           get title() {
             return t('onboarding.security')
           },
@@ -234,13 +235,14 @@ export function createProjectRouter({
             },
           },
           {
-            path: 'settings/resource-preview',
+            path: 'settings/subscription',
+            alias: 'settings/resource-preview',
             component: () => import('../views/ResourceSelectionView.vue'),
             meta: {
               ownerOnly: true,
               personalSettings: true,
               get title() {
-                return t('preparation.title')
+                return t('account.subscription')
               },
             },
           },
@@ -530,12 +532,17 @@ export function createProjectRouter({
       if (!session.authenticated) return '/admin/login'
       if (!session.agreementRequired) return (await appDestination(request)) || '/app'
     }
-    if (apiMode && to.meta.accountSecurity) {
-      const status = await request('/api/security/status')
-      if (['pending_2fa', 'enrollment_required'].includes(status.state)) return '/admin/security'
-      if (!status.signedIn) return '/admin/login'
-      if (status.onboardingNext && status.onboardingNext !== '/admin/onboarding')
-        return status.onboardingNext
+    if (to.meta.accountSecurity) {
+      if (apiMode) {
+        const status = await request('/api/security/status')
+        if (current !== revision) return false
+        if (['pending_2fa', 'enrollment_required'].includes(status.state)) return '/admin/security'
+        if (!status.signedIn) return '/admin/login'
+        if (status.onboardingNext && status.onboardingNext !== '/admin/onboarding')
+          return status.onboardingNext
+        to.meta.preparedOwner = !!status.onboardingNext
+      }
+      to.meta.adminShell = !to.meta.preparedOwner
     }
     if (apiMode && to.path === '/admin/security') {
       const status = await request('/api/security/status')
@@ -579,7 +586,7 @@ export function createProjectRouter({
       return true
     }
     if (['/', '/task/new'].includes(to.path) || to.name === 'task') return '/app'
-    if (to.meta.requiresAdmin) {
+    if (to.meta.requiresAdmin || (to.meta.accountSecurity && to.meta.adminShell)) {
       const store = useProjectStore(),
         nav = useAdminNavigationStore(),
         management = useProjectManagementStore()
