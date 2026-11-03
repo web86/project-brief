@@ -14,7 +14,7 @@ class EnsureOnboarding
     {
         $user = $request->user();
         $row = $user ? DB::table('account_onboardings')->where('user_id', $user->id)->first() : null;
-        if (! $row || $row->state === 'invited_developer') {
+        if (! $row || in_array($row->state, ['invited_developer', 'commercial_active'], true)) {
             return $next($request);
         }
         $safe = $request->is('api/onboarding/*', 'api/security/status', 'api/auth/*', 'auth/*', 'api/session', 'api/csrf', 'api/health', 'api/entry/branding', 'api/admin/login', 'api/admin/logout', 'api/admin/password/*', 'api/invitations/resolve', 'api/invitations/accept');

@@ -28,7 +28,9 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Fortify;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 class SubscriptionLifecycleTest extends TestCase
@@ -61,6 +63,11 @@ class SubscriptionLifecycleTest extends TestCase
             $owner = User::factory()->create();
             app(AuthOnboarding::class)->pending($owner);
             $workspace = app(AuthOnboarding::class)->prepare($owner);
+            $owner->forceFill([
+                'two_factor_secret' => Fortify::currentEncrypter()->encrypt(app(Google2FA::class)->generateSecretKey()),
+                'two_factor_confirmed_at' => now(),
+                'recovery_codes_acknowledged_at' => now(),
+            ])->save();
             $this->assertDatabaseCount('subscription_periods', 0);
             $period = $lifecycle->startVerifiedTrial($workspace->id, $owner->id);
             $this->assertSame($period->id, $lifecycle->startVerifiedTrial($workspace->id, $owner->id)->id);
@@ -132,7 +139,7 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => 1, 'execution_feature_group' => 'agent']));
         $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => 2, 'execution_feature_group' => 'agent']));
 
-        if ($kind === 'paid') {
+        if ($kind === 'trial') {
             $project = $projects->first();
             DB::transaction(fn () => app(ClientCountingIdentities::class)->reconcile($workspace->id, 0, (int) DB::table('project_clients')->max('id')));
             $client = $project->clients()->firstOrFail();

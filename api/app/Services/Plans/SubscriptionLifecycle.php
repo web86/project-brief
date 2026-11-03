@@ -6,8 +6,11 @@ use App\Models\Plans\PlanVersion;
 use App\Models\Plans\PlatformPolicyVersion;
 use App\Models\Plans\SubscriptionPeriod;
 use App\Models\Plans\WorkspaceSubscription;
+use App\Models\User;
+use App\Models\WorkspaceMember;
 use App\Services\IntegrationWrites;
 use App\Services\TrialEligibility;
+use App\Services\WorkspaceAgreements;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -31,11 +34,14 @@ final class SubscriptionLifecycle
                 return SubscriptionPeriod::where('workspace_id', $workspaceId)->where('kind', 'trial')->findOrFail($claim->period_id);
             }
 
-            abort_unless(DB::table('workspace_members')->where('workspace_id', $workspaceId)
-                ->where('user_id', $ownerId)->where('status', 'active')->where('role', 'owner')->exists(), 403);
-            abort_unless(DB::table('account_onboardings')->where('workspace_id', $workspaceId)
-                ->where('user_id', $ownerId)->where('state', 'workspace_prepared')->whereNotNull('verified_at')->exists()
-                && DB::table('users')->where('id', $ownerId)->whereNotNull('email_verified_at')->exists(), 403);
+            $member = WorkspaceMember::where('workspace_id', $workspaceId)->where('user_id', $ownerId)
+                ->where('status', 'active')->where('role', 'owner')->first();
+            $owner = User::findOrFail($ownerId);
+            abort_unless($member && $owner->email_verified_at && $owner->hasEnabledTwoFactorAuthentication()
+                && $owner->recovery_codes_acknowledged_at && ! app(WorkspaceAgreements::class)->required($member), 403);
+            $onboarding = DB::table('account_onboardings')->where('workspace_id', $workspaceId)
+                ->where('user_id', $ownerId)->where('state', 'workspace_prepared')->whereNotNull('verified_at');
+            abort_unless($onboarding->exists(), 403);
             abort_if(WorkspaceSubscription::where('workspace_id', $workspaceId)->exists(), 409, 'subscription_already_exists');
 
             $proposal = app(TrialEligibility::class)->proposedTrial($claim);
@@ -66,6 +72,7 @@ final class SubscriptionLifecycle
                 'starts_at' => $facts['starts_at']->format('Y-m-d H:i:s.u'),
                 'ends_at' => $facts['service_ends_at']->format('Y-m-d H:i:s.u'),
             ]);
+            abort_unless($onboarding->update(['state' => 'commercial_active', 'revision' => DB::raw('revision + 1'), 'updated_at' => now('UTC')]) === 1, 409);
             $this->advance($subscription, 'trial', $period, $facts['starts_at'], $facts['service_ends_at']);
 
             return $period;

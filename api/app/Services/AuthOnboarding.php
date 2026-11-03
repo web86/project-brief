@@ -119,7 +119,7 @@ final class AuthOnboarding
     {
         $user = $request->user()?->fresh();
         $row = $user ? DB::table('account_onboardings')->where('user_id', $user->id)->first() : null;
-        if (! $row || $row->state === 'invited_developer') {
+        if (! $row || in_array($row->state, ['invited_developer', 'commercial_active'], true)) {
             return ['onboarding' => false, 'state' => $user ? 'existing_account' : 'guest'];
         }
         $security = app(AccountSecurity::class)->state($request);
