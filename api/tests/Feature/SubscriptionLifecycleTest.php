@@ -15,6 +15,7 @@ use App\Models\Workspace;
 use App\Services\AgentAccess;
 use App\Services\AgentRuns;
 use App\Services\AuthOnboarding;
+use App\Services\ClientSso;
 use App\Services\DeveloperInvitations;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
@@ -137,6 +138,14 @@ class SubscriptionLifecycleTest extends TestCase
         $agentPath = '/api/v1/agent/tasks/'.$task->uuid.'/runs/'.$run->uuid;
         $agentHeaders = ['Authorization' => 'Bearer '.$shared['secret'], 'X-ProjectBrief-Agent-ID' => $agent->uuid];
         $this->getJson($agentPath, $agentHeaders)->assertOk();
+        $origin = 'https://studio.example.test';
+        $source = DB::table('integration_sources')->insertGetId(['uuid' => (string) Str::uuid(), 'workspace_id' => $workspace->id, 'name' => 'Synthetic SSO', 'sso_enabled' => true, 'sso_origin' => $origin]);
+        DB::table('integration_source_projects')->insert(['workspace_id' => $workspace->id, 'integration_source_id' => $source, 'project_id' => $first->id]);
+        $ssoToken = app(IntegrationTokens::class)->create($workspace->id, ['name' => 'SSO integration', 'scopes' => ['clients:sso'], 'sourceId' => $source]);
+        $ssoPath = '/api/v1/client-sso/handoffs';
+        $ssoHeaders = ['Authorization' => 'Bearer '.$ssoToken['secret']];
+        $ssoPayload = ['projectId' => $first->uuid, 'externalUserId' => 'synthetic-sso-id', 'email' => 'client-0@example.test', 'emailVerified' => true];
+        $oldCode = $this->postJson($ssoPath, $ssoPayload, $ssoHeaders)->assertCreated()->json('data.code');
         $this->assertSame($kind, $subscription->fresh()->materialized_phase);
         $this->assertDatabaseCount('workspace_suspension_cycles', 0);
 
@@ -235,6 +244,12 @@ class SubscriptionLifecycleTest extends TestCase
             $rearmHeaders = ['If-Match' => '"revision:'.$rearmRevision.'"', 'Idempotency-Key' => 'explicit-rearm'];
             $this->postJson('/api/admin/resource-selection/rearm', ['groups' => ['agent', 'api', 'sso', 'webhook']], $rearmHeaders)->assertOk();
             $this->assertTrue($barrier->allows($workspace->id, 'webhook'));
+            $sso = app(ClientSso::class);
+            $oldHandoff = $sso->handoff($oldCode);
+            $this->assertTrue(CarbonImmutable::parse($oldHandoff->expires_at, 'UTC')->isFuture());
+            $this->assertFalse($sso->acceptsOrigin($oldHandoff, $origin));
+            $freshCode = $this->postJson($ssoPath, $ssoPayload, $ssoHeaders)->assertCreated()->json('data.code');
+            $this->assertTrue($sso->acceptsOrigin($sso->handoff($freshCode), $origin));
             $this->withToken($token['secret'])->getJson('/api/v1/projects')->assertOk()->assertJsonCount(2, 'data');
             $this->getJson('/api/v1/projects/'.$projects[2]->uuid)->assertNotFound();
             $this->postJson($taskPath, $taskPayload, $taskHeaders)->assertConflict()->assertHeaderMissing('Idempotency-Replayed');

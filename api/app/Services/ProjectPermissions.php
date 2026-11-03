@@ -73,6 +73,7 @@ class ProjectPermissions
             throw new HttpResponseException(response()->json(['code' => 'project_permission_denied', 'message' => 'Ask the workspace owner for access.'], 403));
         }
         if (! $request->isMethodSafe() && ! $request->isMethod('DELETE')
+            && ! $request->is('api/admin/tasks/*/agent-runs/*/cancel')
             && in_array($permission, ['manage_structure', 'manage_project_settings', 'manage_project_notifications'], true)) {
             app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
         }

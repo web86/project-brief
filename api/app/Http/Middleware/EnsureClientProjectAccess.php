@@ -27,10 +27,7 @@ class EnsureClientProjectAccess
         if (DB::transactionLevel() === 0) {
             app(ExecutionBarrier::class)->catchUp($workspaceId);
         }
-        $activity = app(EffectiveParticipation::class);
-        $participation = DB::table('project_clients')->where('id', $access->project_client_id)->where('project_id', $access->project_id)->where('active', true);
-        if (! $activity->projects($workspaceId)->where('projects.id', $access->project_id)->exists()
-            || ! $activity->excludeHeld($participation, $workspaceId, 'project_client', 'project_clients.id')->exists()) {
+        if (! app(EffectiveParticipation::class)->clientAvailable($workspaceId, $access->project_id, $access->project_client_id)) {
             return null;
         }
 

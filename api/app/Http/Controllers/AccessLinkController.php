@@ -8,6 +8,9 @@ use App\Models\ProjectClient;
 use App\Models\Workspace;
 use App\Services\AccountSecurity;
 use App\Services\ClientInvitations;
+use App\Services\IntegrationWrites;
+use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\ProjectPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -54,9 +57,26 @@ class AccessLinkController extends Controller
     public function enter(Request $request, #[\SensitiveParameter] string $token): RedirectResponse
     {
         $access = preg_match('/^[a-f0-9]{64}$/D', $token) ? ProjectAccessToken::with('project', 'projectClient')->where('token_hash', hash('sha256', $token))->first() : null;
-        $reason = ! $access || $access->revoked_at ? 'invalid' : (($access->expires_at && ! $access->expires_at->isFuture()) ? 'expired' : ($access->project?->status !== 'active' ? 'unavailable' : null));
-        if (! $reason && ! $access->isUsable()) {
-            $reason = 'unavailable';
+        $workspaceId = $access?->project?->workspace_id;
+        $reason = 'invalid';
+        if ($workspaceId !== null) {
+            app(ExecutionBarrier::class)->catchUp($workspaceId);
+            $reason = DB::transaction(function () use ($access, $workspaceId): ?string {
+                IntegrationWrites::lockWorkspace($workspaceId);
+                $access->refresh();
+                if ($access->revoked_at) {
+                    return 'invalid';
+                }
+                if ($access->expires_at && ! $access->expires_at->isFuture()) {
+                    return 'expired';
+                }
+                if (! $access->isUsable() || ! app(EffectiveParticipation::class)->clientAvailable($workspaceId, $access->project_id, $access->project_client_id)) {
+                    return 'unavailable';
+                }
+                $access->update(['last_used_at' => now()]);
+
+                return null;
+            }, 3);
         }
         $url = rtrim(config('projectbrief.frontend_url'), '/');
         if ($reason) {
@@ -66,7 +86,6 @@ class AccessLinkController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         $request->session()->put(['client_project_id' => $access->project_id, 'project_client_id' => $access->project_client_id, 'client_access_token_id' => $access->id]);
-        $access->update(['last_used_at' => now()]);
 
         return redirect($url.'/project/'.$access->project->uuid)->header('Referrer-Policy', 'no-referrer')->header('Cache-Control', 'no-store');
     }
