@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Closure;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 class WebhookProcessor
@@ -52,7 +54,13 @@ class WebhookProcessor
             return true;
         }
 
-        $prepared = DB::transaction(function () use ($delivery, $owner): bool|array {
+        $barrier = app(ExecutionBarrier::class);
+        $workspaceId = DB::table('webhook_endpoints')->where('id', $delivery->webhook_endpoint_id)->value('workspace_id');
+        if ($workspaceId !== null) {
+            $barrier->catchUp($workspaceId);
+        }
+
+        $prepared = DB::transaction(function () use ($delivery, $owner, $barrier): bool|array {
             $recipient = DB::table('webhook_endpoints')->find($delivery->webhook_endpoint_id);
             if ($recipient) {
                 IntegrationWrites::lockWorkspace($recipient->workspace_id);
@@ -72,6 +80,11 @@ class WebhookProcessor
                 return true;
             }
             $event = DB::table('webhook_events')->find($delivery->webhook_event_id);
+            if (! $barrier->allows($endpoint->workspace_id, 'webhook', $delivery) || ! $barrier->allows($endpoint->workspace_id, 'webhook', $event)) {
+                DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => 'cancelled', 'error_code' => 'subscription_execution_blocked', 'updated_at' => now()]);
+
+                return true;
+            }
             $payload = json_decode($event->body, true, 512, JSON_THROW_ON_ERROR);
             if ($event->workspace_id !== $endpoint->workspace_id || ! app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null)) {
                 DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => 'cancelled', 'error_code' => 'project_filtered', 'updated_at' => now()]);
@@ -105,6 +118,7 @@ class WebhookProcessor
             }
             $timestamp = (string) now()->timestamp;
             $signature = hash_hmac('sha256', $timestamp.'.'.$event->body, Crypt::decryptString($endpoint->secret));
+            $barrier->require($endpoint->workspace_id, 'webhook', $delivery);
             $response = Http::withOptions(['allow_redirects' => false, 'verify' => true, 'decode_content' => false, 'proxy' => '', 'curl' => [CURLOPT_RESOLVE => [$target['host'].':443:'.(str_contains($target['ip'], ':') ? '['.$target['ip'].']' : $target['ip'])]], 'on_headers' => function ($response): void {
                 if ((int) $response->getHeaderLine('Content-Length') > 16384) {
                     throw new \RuntimeException('response_too_large');
@@ -117,6 +131,8 @@ class WebhookProcessor
             $httpStatus = $response->status();
             $retry = $httpStatus === 429 || $httpStatus >= 500;
             $code = $response->successful() ? null : ($retry ? 'remote_transient' : 'remote_rejected');
+        } catch (HttpException $error) {
+            $code = $error->getMessage();
         } catch (ValidationException) {
             $code = 'unsafe_destination';
         } catch (Throwable) {
@@ -124,7 +140,7 @@ class WebhookProcessor
             $retry = true;
         }
 
-        return DB::transaction(function () use ($delivery, $owner, $endpoint, $payload, $attempt, $started, $httpStatus, $code, $retry): bool|array {
+        return DB::transaction(function () use ($delivery, $owner, $endpoint, $payload, $attempt, $started, $httpStatus, $code, $retry, $barrier): bool|array {
             IntegrationWrites::lockWorkspace($endpoint->workspace_id);
             $lease = DB::table('integration_locks')->where('name', 'webhooks')->lockForUpdate()->first();
             if (! $lease || $lease->owner !== $owner) {
@@ -139,6 +155,10 @@ class WebhookProcessor
                 return true;
             }
             $status = $code === null ? 'succeeded' : ($retry && $attempt < self::MAX_ATTEMPTS ? 'pending' : 'failed');
+            if (! $barrier->allows($endpoint->workspace_id, 'webhook', $currentDelivery)) {
+                $status = 'cancelled';
+                $code = 'subscription_execution_blocked';
+            }
             if (! $currentEndpoint || ! $currentEndpoint->enabled || $currentEndpoint->secret_version !== $endpoint->secret_version) {
                 $status = 'cancelled';
                 $code = 'endpoint_changed';

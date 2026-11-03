@@ -11,6 +11,7 @@ use App\Services\AgentPermissions;
 use App\Services\AgentRuns;
 use App\Services\AttachmentStorage;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\ExecutionBarrier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -103,6 +104,7 @@ class AgentApiController extends Controller
                     abort_if($run && $run->key_hash !== hash('sha256', 'initial-'.$row->uuid), 409, 'runId is required for follow-up executions.');
                 }
                 abort_if($run && $operation === 'reports' && $run->state === 'running' && $data['state'] === 'pending', 409);
+                app(ExecutionBarrier::class)->require($row->workspace_id, 'agent', $run);
                 $comment = Comment::create(['project_id' => $row->task->project_id, 'task_id' => $row->task_id, 'external_agent_id' => $row->external_agent_id,
                     'author_type' => 'agent', 'team_only' => true, 'text' => trim($data['summary'] ?? $data['text'] ?? '')]);
                 if ($operation === 'attachments') {

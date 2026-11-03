@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\TaskAgentAssignment;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,17 +17,25 @@ class AgentRuns
     public static function request(Request $request, TaskAgentAssignment $assignment, string $instruction, string $key, bool $emit = true, ?string $fingerprint = null): object
     {
         app(ShadowGuard::class)->observe($assignment->workspace_id, 'agent.run', []);
+        $barrier = app(ExecutionBarrier::class);
+        $epoch = $barrier->require($assignment->workspace_id, 'agent');
         $keyHash = hash('sha256', $key);
         $inputHash = $fingerprint ?? hash('sha256', $instruction);
         $previous = DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->where('key_hash', $keyHash)->first();
         if ($previous) {
+            $barrier->require($assignment->workspace_id, 'agent', $previous);
             abort_unless(hash_equals($previous->request_hash, $inputHash), 409, 'Run request key already used.');
 
             return $previous;
         }
+        if ($epoch !== null) {
+            DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->whereIn('state', self::ACTIVE)
+                ->where(fn ($query) => $query->whereNull('execution_epoch')->orWhere('execution_epoch', '<>', $epoch))
+                ->update(['state' => 'cancelled', 'error_code' => 'subscription_execution_stale', 'completed_at' => now(), 'updated_at' => now()]);
+        }
         abort_if(DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->whereIn('state', self::ACTIVE)->exists(), 409, 'An execution is already active.');
         $task = $assignment->task->fresh();
-        $allHistory = self::conversation($assignment);
+        $allHistory = self::conversation($assignment, agentApi: true);
         $history = array_slice($allHistory, -20);
         while (array_sum(array_map(fn ($message) => mb_strlen($message['text']), $history)) > 40000) {
             array_shift($history);
@@ -36,7 +45,7 @@ class AgentRuns
         $json = json_encode($context, JSON_THROW_ON_ERROR);
         $id = DB::table('agent_runs')->insertGetId(['uuid' => (string) Str::uuid(), 'task_agent_assignment_id' => $assignment->id, 'initiated_by' => $request->user()?->id,
             'instruction' => $instruction, 'context' => $json, 'context_version' => hash('sha256', $json), 'key_hash' => $keyHash, 'request_hash' => $inputHash,
-            'state' => 'queued', 'created_at' => now(), 'updated_at' => now()]);
+            'state' => 'queued', 'created_at' => now(), 'updated_at' => now()] + $barrier->receipt('agent', $epoch));
         if ($instruction !== '') {
             DB::table('agent_messages')->insert(['uuid' => (string) Str::uuid(), 'agent_run_id' => $id, 'user_id' => $request->user()?->id, 'text' => $instruction, 'created_at' => now()]);
         }
@@ -86,10 +95,16 @@ class AgentRuns
             ...($context ? ['context' => json_decode($run->context, true, flags: JSON_THROW_ON_ERROR)] : [])];
     }
 
-    public static function conversation(TaskAgentAssignment $assignment, ?string $before = null): array
+    public static function conversation(TaskAgentAssignment $assignment, ?string $before = null, bool $agentApi = false): array
     {
         $query = DB::table('agent_messages')->join('agent_runs', 'agent_runs.id', '=', 'agent_messages.agent_run_id')
             ->leftJoin('comments', 'comments.id', '=', 'agent_messages.comment_id')->where('agent_runs.task_agent_assignment_id', $assignment->id);
+        if ($agentApi) {
+            $epoch = app(ExecutionBarrier::class)->require($assignment->workspace_id, 'agent');
+            if ($epoch !== null) {
+                $query->where('agent_runs.execution_feature_group', 'agent')->where('agent_runs.execution_epoch', $epoch);
+            }
+        }
         if ($before !== null) {
             $id = (clone $query)->where('agent_messages.uuid', $before)->value('agent_messages.id');
             abort_unless($id, 404);

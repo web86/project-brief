@@ -6,8 +6,10 @@ use App\Models\Comment;
 use App\Models\Project;
 use App\Models\ProjectRequest;
 use App\Models\Task;
+use App\Services\Plans\ExecutionBarrier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class WebhookEvents
 {
@@ -94,14 +96,26 @@ class WebhookEvents
             if ($endpoints->isEmpty()) {
                 return null;
             }
+            $barrier = app(ExecutionBarrier::class);
+            try {
+                // Enqueue can run inside existing writers. Only the processor makes a current, locked send decision.
+                $epoch = $barrier->require($workspaceId, 'webhook', lockReads: false);
+            } catch (HttpException $error) {
+                if ($error->getStatusCode() !== 403) {
+                    throw $error;
+                }
+
+                return null;
+            }
+            $receipt = $barrier->receipt('webhook', $epoch);
             $uuid = (string) Str::uuid();
             $body = json_encode(['version' => 1, 'id' => $uuid, 'type' => $type, 'occurredAt' => now()->toISOString(), ...$payload], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
             if (strlen($body) > 131072) {
                 throw new \LogicException('Webhook event exceeds 128 KiB.');
             }
-            $event = DB::table('webhook_events')->insertGetId(['uuid' => $uuid, 'workspace_id' => $workspaceId, 'type' => $type, 'body' => $body, 'created_at' => now()]);
+            $event = DB::table('webhook_events')->insertGetId(['uuid' => $uuid, 'workspace_id' => $workspaceId, 'type' => $type, 'body' => $body, 'created_at' => now()] + $receipt);
             foreach ($endpoints as $endpoint) {
-                DB::table('webhook_deliveries')->insert(['uuid' => (string) Str::uuid(), 'webhook_endpoint_id' => $endpoint->id, 'webhook_event_id' => $event, 'secret_version' => $endpoint->secret_version, 'status' => 'pending', 'attempts' => 0, 'available_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+                DB::table('webhook_deliveries')->insert(['uuid' => (string) Str::uuid(), 'webhook_endpoint_id' => $endpoint->id, 'webhook_event_id' => $event, 'secret_version' => $endpoint->secret_version, 'status' => 'pending', 'attempts' => 0, 'available_at' => now(), 'created_at' => now(), 'updated_at' => now()] + $receipt);
             }
 
             return $uuid;

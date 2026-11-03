@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Services\AgentAudit;
 use App\Services\AgentCredentials;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\ExecutionBarrier;
 use Closure;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
@@ -33,9 +34,12 @@ class AuthenticateIntegration
             return $this->limited($workspaceKey);
         }
         RateLimiter::hit($workspaceKey, 60);
+        $barrier = app(ExecutionBarrier::class);
+        $barrier->catchUp($token->workspace_id);
         if (AgentCredentials::isAgent($token)) {
             return $this->agent($request, $next, $token);
         }
+        $barrier->require($token->workspace_id, $request->is('api/v1/client-sso/handoffs') ? 'sso' : 'api');
 
         DB::table('integration_tokens')->where('id', $token->id)->update(['last_used_at' => now()]);
 
@@ -57,6 +61,7 @@ class AuthenticateIntegration
             try {
                 abort_unless($request->is('api/v1/agent/*'), 403);
                 AgentCredentials::identity($request, $current);
+                app(ExecutionBarrier::class)->require($current->workspace_id, 'agent');
                 $key = 'agent-token:'.$token->id;
                 if (RateLimiter::tooManyAttempts($key, 60)) {
                     $response = $this->limited($key);

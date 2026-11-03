@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,6 +15,8 @@ class IntegrationTokens
     {
         return DB::transaction(function () use ($workspaceId, $data): array {
             IntegrationWrites::lockWorkspace($workspaceId);
+            $group = ($data['shared'] ?? false) || ($data['agentId'] ?? null) ? 'agent' : (($data['scopes'] ?? []) === ['clients:sso'] ? 'sso' : 'api');
+            app(ExecutionBarrier::class)->require($workspaceId, $group);
             app(ShadowGuard::class)->observe($workspaceId, ($data['shared'] ?? false) || ($data['agentId'] ?? null) ? 'agent.key' : (($data['scopes'] ?? []) === ['clients:sso'] ? 'sso.use' : 'api.key'));
             $secret = 'pb_'.bin2hex(random_bytes(32));
             $uuid = (string) Str::uuid();

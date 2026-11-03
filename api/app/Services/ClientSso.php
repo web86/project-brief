@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectAccessToken;
 use App\Models\ProjectClient;
 use App\Models\User;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -27,7 +28,10 @@ class ClientSso
 
     public function issue(object $authenticated, array $input): array
     {
-        return DB::transaction(function () use ($authenticated, $input): array {
+        $barrier = app(ExecutionBarrier::class);
+        $barrier->catchUp($authenticated->workspace_id);
+
+        return DB::transaction(function () use ($authenticated, $input, $barrier): array {
             IntegrationWrites::lockWorkspace($authenticated->workspace_id);
             $token = $this->trustedToken($authenticated->id, $authenticated->workspace_id);
             abort_unless($token, 401);
@@ -39,6 +43,7 @@ class ClientSso
             abort_if($this->staff($email), 403);
             $clients = $project->clients()->where('active', true)->whereRaw('LOWER(TRIM(email)) = ?', [$email])->lockForUpdate()->get();
             abort_unless($clients->count() === 1, 403);
+            $epoch = $barrier->require($token->workspace_id, 'sso');
             app(ShadowGuard::class)->observe($token->workspace_id, 'sso.use', []);
             $externalHash = hash('sha256', $input['externalUserId']);
             $emailHash = hash('sha256', $email);
@@ -56,7 +61,7 @@ class ClientSso
             $code = bin2hex(random_bytes(32));
             $expires = now()->addSeconds(60);
             DB::table('client_sso_handoffs')->insert(['code_hash' => hash('sha256', $code), 'workspace_id' => $token->workspace_id, 'integration_source_id' => $source->id,
-                'integration_token_id' => $token->id, 'client_sso_binding_id' => $binding->id, 'project_id' => $project->id, 'project_client_id' => $clients->first()->id, 'expires_at' => $expires, 'created_at' => now()]);
+                'integration_token_id' => $token->id, 'client_sso_binding_id' => $binding->id, 'project_id' => $project->id, 'project_client_id' => $clients->first()->id, 'expires_at' => $expires, 'created_at' => now()] + $barrier->receipt('sso', $epoch));
 
             return ['code' => $code, 'postUrl' => rtrim(config('projectbrief.frontend_url'), '/').'/client-sso/enter', 'expiresAt' => $expires->toISOString()];
         }, 3);
@@ -126,7 +131,10 @@ class ClientSso
             return null;
         }
 
-        return DB::transaction(function () use ($request, $known): ?array {
+        $barrier = app(ExecutionBarrier::class);
+        $barrier->catchUp($known->workspace_id);
+
+        return DB::transaction(function () use ($request, $known, $barrier): ?array {
             IntegrationWrites::lockWorkspace($known->workspace_id);
             app(ShadowGuard::class)->observe($known->workspace_id, 'sso.use', []);
             $row = DB::table('client_sso_handoffs')->where('id', $known->id)->lockForUpdate()->first();
@@ -139,6 +147,9 @@ class ClientSso
             $existing = app(EnsureClientProjectAccess::class)->resolve($request);
             if ($existing && ($existing->project->workspace_id !== $row->workspace_id || DeveloperInvitations::normalizeEmail((string) $existing->projectClient->email) !== DeveloperInvitations::normalizeEmail($client->email) ||
                 ($existing->projectClient->workspace_client_id && $client->workspace_client_id && $existing->projectClient->workspace_client_id !== $client->workspace_client_id))) {
+                return null;
+            }
+            if (! $barrier->allows($row->workspace_id, 'sso', $row)) {
                 return null;
             }
             if (! DB::table('client_sso_handoffs')->where('id', $row->id)->whereNull('consumed_at')->whereNull('revoked_at')->update(['consumed_at' => now()])) {
@@ -157,6 +168,13 @@ class ClientSso
 
         $usable = $row && $row->consumed_at && ! $row->revoked_at && $row->project_id === $access->project_id && $row->project_client_id === $access->project_client_id && $this->eligible($row) !== null;
         if ($usable) {
+            $barrier = app(ExecutionBarrier::class);
+            if (DB::transactionLevel() === 0) {
+                $barrier->catchUp($row->workspace_id);
+            }
+            if (! $barrier->allows($row->workspace_id, 'sso', $row)) {
+                return false;
+            }
             app(ShadowGuard::class)->observe($row->workspace_id, 'sso.use');
         }
 

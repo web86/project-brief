@@ -10,7 +10,7 @@ class AgentChat
 {
     public static function messages(TaskAgentAssignment $assignment, ?string $before = null, bool $files = true, bool $agentApi = false): array
     {
-        $messages = AgentRuns::conversation($assignment, $before);
+        $messages = AgentRuns::conversation($assignment, $before, $agentApi);
         $comments = Comment::withoutGlobalScope('public_channel')->where('task_id', $assignment->task_id)->where('project_id', $assignment->task->project_id)->where('team_only', true)->whereIn('uuid', array_column($messages, 'commentId'))->with(['attachments' => fn ($q) => $q->withoutGlobalScope('public_channel'), 'agentReport'])->get()->keyBy('uuid');
 
         return array_map(function (array $message) use ($comments, $assignment, $files, $agentApi): array {

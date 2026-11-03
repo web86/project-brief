@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\Workspace;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,9 +59,13 @@ class IntegrationWrites
                 $assignment = AgentAccess::assignment($request, (string) $request->route('task'));
                 abort_unless(hash_equals($assignment->uuid, (string) $request->input('assignmentId')), 409);
             }
+            $group = AgentCredentials::isAgent($current) ? 'agent' : ($required === 'clients:sso' ? 'sso' : 'api');
+            $barrier = app(ExecutionBarrier::class);
+            $epoch = $barrier->require($token->workspace_id, $group);
             app(ShadowGuard::class)->observe($token->workspace_id, AgentCredentials::isAgent($current) ? 'agent.write' : 'api.write');
             $previous = DB::table('integration_requests')->where('workspace_id', $token->workspace_id)->where('key_hash', $keyHash)->first();
             if ($previous) {
+                $barrier->require($token->workspace_id, $group, $previous);
                 abort_unless(hash_equals($previous->body_hash, $bodyHash), 409, 'Idempotency key was already used with another body.');
                 $response = json_decode($previous->response, true, 512, JSON_THROW_ON_ERROR);
                 $projectUuid = $response['data']['projectId'] ?? $response['data']['id'] ?? null;
@@ -71,7 +76,7 @@ class IntegrationWrites
                 return response()->json($response, $previous->status)->header('Idempotency-Replayed', 'true');
             }
             [$body, $status] = $create();
-            DB::table('integration_requests')->insert(['workspace_id' => $token->workspace_id, 'key_hash' => $keyHash, 'body_hash' => $bodyHash, 'response' => json_encode($body, JSON_THROW_ON_ERROR), 'status' => $status, 'created_at' => now()]);
+            DB::table('integration_requests')->insert(['workspace_id' => $token->workspace_id, 'key_hash' => $keyHash, 'body_hash' => $bodyHash, 'response' => json_encode($body, JSON_THROW_ON_ERROR), 'status' => $status, 'created_at' => now()] + $barrier->receipt($group, $epoch));
 
             return response()->json($body, $status);
         }, 3);
