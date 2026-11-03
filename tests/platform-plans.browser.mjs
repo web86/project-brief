@@ -553,6 +553,7 @@ require __DIR__.'/../vendor/autoload.php';
       assert.equal(await page.locator('.inventory-controls select').inputValue(), basic)
       assert.equal((await call(context, '/api/platform/workspace-inventory')).status(), 200)
       if (language === 'en' && theme === 'light') {
+        php(['artisan', 'cache:clear', '--no-interaction'])
         await page.goto(origin + '/admin/settings/resource-preview')
         await page
           .locator('.breadcrumbs [aria-current="page"]')
@@ -574,9 +575,16 @@ require __DIR__.'/../vendor/autoload.php';
         assert.equal(await ownerPanel.locator('.subscription-overview time').count(), 0)
         await ownerPanel.getByRole('button', { name: 'Freeze preview', exact: true }).click()
         await ownerPanel.locator('.frozen-summary').waitFor()
+        const verifiedResponse = page.waitForResponse((response) =>
+          /\/api\/admin\/resource-selection\/previews\/[^/]+$/.test(
+            new URL(response.url()).pathname,
+          ),
+        )
         await ownerPanel
           .getByRole('button', { name: 'Recheck frozen preview', exact: true })
           .click()
+        const verified = await verifiedResponse
+        assert.equal(verified.status(), 200, await verified.text())
         await ownerPanel.locator('[role=status]').waitFor()
         assert.equal(await ownerPanel.locator('[role=alert]').count(), 0)
         await capture(page, 'owner-resource-selection.png')
