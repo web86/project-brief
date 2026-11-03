@@ -107,13 +107,16 @@ async function setPassword() {
       {{ t('onboarding.securityRequired') }}
     </p>
     <div v-for="row in state?.connections || []" :key="row.provider" class="social-connection-row">
-      <span
-        ><strong>{{ t('onboarding.' + row.provider) }}</strong
-        ><small
-          >{{ t('onboarding.' + (row.connected ? 'connected' : 'disconnected'))
-          }}<span v-if="!row.configured"> · {{ t('onboarding.unavailable') }}</span></small
-        ></span
-      >
+      <div class="social-provider">
+        <ProviderIcon :name="row.provider" />
+        <span>
+          <strong>{{ t('onboarding.' + row.provider) }}</strong
+          ><small
+            >{{ t('onboarding.' + (row.connected ? 'connected' : 'disconnected'))
+            }}<span v-if="!row.configured"> · {{ t('onboarding.unavailable') }}</span></small
+          >
+        </span>
+      </div>
       <LoadingButton
         class="button secondary"
         :busy="busy"
@@ -174,6 +177,14 @@ async function setPassword() {
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
+}
+.social-provider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.social-provider > svg {
+  flex: none;
 }
 small {
   display: block;

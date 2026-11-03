@@ -492,6 +492,24 @@ function finish() {
   </section>
 </template>
 <style scoped>
+.two-factor-section > .admin-form {
+  padding: 0;
+  gap: 12px;
+}
+.two-factor-section h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.two-factor-section > .authentication-section > button {
+  justify-self: start;
+}
+.two-factor-section > .authentication-section + .recovery-section {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
 .onboarding-security-grid {
   display: grid;
   grid-template-columns: 1fr;
