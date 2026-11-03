@@ -98,14 +98,21 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertNotNull(app(WebhookEvents::class)->enqueue($workspace->id, 'webhook.test', [], $endpoint));
         DB::table('webhook_deliveries')->update(['attempts' => 1]);
 
-        $token = app(IntegrationTokens::class)->create($workspace->id, ['name' => 'Boundary test', 'scopes' => ['projects:read']]);
+        $token = app(IntegrationTokens::class)->create($workspace->id, ['name' => 'Boundary test', 'scopes' => ['projects:read', 'tasks:write']]);
         $this->travelTo($facts['service_ends_at']->subMicrosecond());
         $this->withToken($token['secret'])->getJson('/api/v1/projects')->assertOk();
+        $taskPath = '/api/v1/projects/'.$projects->first()->uuid.'/tasks';
+        $taskPayload = ['title' => 'Preserved task', 'location' => 'Общее', 'description' => 'Synthetic fixture', 'priority' => 'normal'];
+        $taskHeaders = ['Idempotency-Key' => 'same-task-request'];
+        $this->postJson($taskPath, $taskPayload, $taskHeaders)->assertCreated();
+        $this->postJson($taskPath, $taskPayload, $taskHeaders)->assertCreated()->assertHeader('Idempotency-Replayed', 'true');
         $this->assertSame($kind, $subscription->fresh()->materialized_phase);
         $this->assertDatabaseCount('workspace_suspension_cycles', 0);
 
         $this->travelTo($boundary);
         $this->withToken($token['secret'])->getJson('/api/v1/projects')->assertForbidden();
+        $this->postJson($taskPath, $taskPayload, $taskHeaders)->assertForbidden()->assertHeaderMissing('Idempotency-Replayed');
+        $this->assertSame(1, $projects->first()->tasks()->count());
         $this->travelTo($boundary->addMicrosecond());
         $lifecycle->catchUp($workspace->id);
         $subscription->refresh();
