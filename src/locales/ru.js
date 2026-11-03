@@ -1,6 +1,8 @@
+import { preparationMessages } from './preparation.js'
 import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  preparation: preparationMessages.ru,
   inventory: inventoryMessages.ru,
   planManagement: planMessages.ru,
   release910: {

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\ProjectClient;
+use App\Services\Plans\ShadowGuard;
 
 class ClientInvitations
 {
@@ -11,6 +12,7 @@ class ClientInvitations
     public function issue(Project $project, ProjectClient $client, mixed $expiresAt = null, bool $revokeExisting = true): array
     {
         abort_unless($client->active && $client->project_id === $project->id && $project->status === 'active', 422);
+        app(ShadowGuard::class)->observe($project->workspace_id, 'client.access', []);
         $plaintext = bin2hex(random_bytes(32));
         if ($revokeExisting) {
             $client->accessTokens()->whereNull('revoked_at')->update(['revoked_at' => now()]);

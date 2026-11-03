@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\Plans\InvitationOccupancy;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,7 @@ class DeveloperInvitations
         return DB::transaction(function () use ($invitation): string {
             IntegrationWrites::lockWorkspace($invitation->workspace_id);
             $invitation->refresh();
+            app(ShadowGuard::class)->observe($invitation->workspace_id, 'developer.invite', []);
             $token = bin2hex(random_bytes(32));
             $invitation->forceFill(['token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7), 'revoked_at' => null, 'sent_at' => null])->save();
             app(InvitationOccupancy::class)->observe($invitation->id);
@@ -133,6 +135,7 @@ class DeveloperInvitations
             if ($invitation->sent_at) {
                 $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
             }
+            app(ShadowGuard::class)->observe($invitation->workspace_id, 'developer.accept', []);
             $member = WorkspaceMember::firstOrCreate(['workspace_id' => $invitation->workspace_id, 'user_id' => $user->id], ['role' => 'admin', 'status' => 'active', 'joined_at' => now(), 'display_name' => $invitation->name]);
             if ($member->wasRecentlyCreated) {
                 app(WorkspaceAgreements::class)->enroll($member);

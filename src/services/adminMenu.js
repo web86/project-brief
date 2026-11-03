@@ -16,6 +16,13 @@ export const accountMenu = [
 
 export const settingsMenu = [
   ...accountMenu,
+  {
+    to: '/admin/settings/resource-preview',
+    label: 'preparation.title',
+    icon: 'grid',
+    owner: true,
+    hideInDemo: true,
+  },
   { to: '/platform', label: 'platform.title', icon: 'shield', platform: true },
   {
     to: '/admin/settings/integrations',

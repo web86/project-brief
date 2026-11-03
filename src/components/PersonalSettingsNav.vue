@@ -23,6 +23,7 @@ const items = computed(() =>
           '/admin/settings/agreement',
           '/platform',
         ].includes(item.to)) &&
+      (!item.hideInDemo || !demo.readOnly) &&
       (!item.platform || nav.user?.platformAdmin) &&
       (!item.owner || (nav.workspace && nav.user?.membershipRole === 'owner')),
   ),

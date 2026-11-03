@@ -16,6 +16,7 @@ use App\Services\AgentRuns;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectAccess;
 use App\Services\ProjectPermissions;
 use App\Services\TaskAccess;
@@ -75,6 +76,7 @@ class AgentController extends Controller
             $projects = Project::where('workspace_id', $workspace)->whereIn('uuid', $data['projectIds'])->get();
             abort_unless($projects->count() === count($data['projectIds']), 422);
             $previousProjects = DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->pluck('project_id')->all();
+            app(ShadowGuard::class)->observe($workspace, 'agent.change', ['agents.active.max' => $data['active'] && (! $agent->exists || ! $agent->active) ? 1 : 0]);
             $agent->fill(['instructions' => array_key_exists('instructions', $data) ? $data['instructions'] : $agent->instructions, 'name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $uuid ? $agent->kind : 'agent', 'active' => $data['active'], 'permissions' => array_key_exists('permissions', $data) ? AgentPermissions::normalize(array_replace(AgentPermissions::normalize($agent->permissions), $data['permissions'])) : $agent->permissions])->save();
             foreach (Project::withTrashed()->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->whereNotIn('project_id', $projects->modelKeys())->select('project_id'))->get() as $project) {
                 AgentAssignments::removeProject($request, $agent, $project);
@@ -83,6 +85,7 @@ class AgentController extends Controller
             foreach ($projects as $project) {
                 DB::table('agent_project_grants')->insert(['external_agent_id' => $agent->id, 'workspace_id' => $workspace, 'project_id' => $project->id]);
                 if (! in_array($project->id, $previousProjects, true)) {
+                    app(ShadowGuard::class)->observe($project->workspace_id, 'agent.assign');
                     ProjectMember::firstOrCreate(['project_id' => $project->id, 'external_agent_id' => $agent->id], ['workspace_id' => $workspace, 'permissions' => []]);
                 }
             }
@@ -149,6 +152,7 @@ class AgentController extends Controller
             $agent = $this->row($workspace, $uuid);
             abort_unless($agent->active, 422);
             abort_if(array_diff($data['scopes'], AgentAccess::SCOPES), 422);
+            app(ShadowGuard::class)->observe($workspace, 'agent.key');
             if ($data['replace'] ?? false) {
                 DB::table('integration_tokens')->where('external_agent_id', $agent->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
             }
@@ -189,6 +193,7 @@ class AgentController extends Controller
                 AgentAssignments::removeProject($request, $agent, $project);
             } else {
                 abort_unless($agent->active && DB::table('agent_project_grants')->where('workspace_id', $project->workspace_id)->where('external_agent_id', $agent->id)->where('project_id', $project->id)->exists(), 422);
+                app(ShadowGuard::class)->observe($project->workspace_id, 'agent.assign');
                 ProjectMember::firstOrCreate(['project_id' => $project->id, 'external_agent_id' => $agent->id], ['workspace_id' => $project->workspace_id, 'permissions' => []]);
             }
             app(AccountSecurity::class)->audit($request->user(), 'agent_project_assignment:'.$agent->id);
@@ -215,6 +220,7 @@ class AgentController extends Controller
             } else {
                 abort_unless($project->status === 'active' && $agent->active && ProjectMember::where('project_id', $project->id)->where('external_agent_id', $agent->id)->where('workspace_id', $project->workspace_id)->exists()
                     && DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->where('project_id', $project->id)->where('workspace_id', $project->workspace_id)->exists(), 422);
+                app(ShadowGuard::class)->observe($project->workspace_id, 'agent.assign');
                 if ($data['replace'] ?? false) {
                     foreach (TaskAgentAssignment::where('task_id', $model->id)->where('external_agent_id', '!=', $agent->id)->whereNull('revoked_at')->get() as $previous) {
                         AgentAssignments::revoke($request, $previous);

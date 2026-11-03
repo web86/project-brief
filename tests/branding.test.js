@@ -74,8 +74,8 @@ test('brand tokens preserve contrast on light/dark surfaces even for white, yell
       assert.ok(contrast(tokens['--link'], dark ? '#1e252e' : '#ffffff') >= 4.5, `${color}/${dark}`)
       assert.equal(tokens['--success'], undefined)
     }
-  assert.deepEqual(brandTokens('url(https://unsafe.test)'), {})
-  assert.deepEqual(brandTokens(''), {})
+  assert.equal(brandTokens('url(https://unsafe.test)')['--action'], '#5b4bd6')
+  assert.equal(brandTokens('')['--action'], '#5b4bd6')
 })
 test('one atomic save includes all dirty sections and preserves edits made in flight', async () => {
   const store = brandingStore()
@@ -375,4 +375,16 @@ test('public and required agreement headers use their verified document workspac
   setDocumentBranding(null, false)
   assert.equal(appearance({ path: '/document', meta: { publicDocument: true } }, admin, {}), null)
   setDocumentBranding(null)
+})
+
+test('Dev2Done fallback and custom colors have distinct hover, readable focus and selected tokens', () => {
+  for (const dark of [false, true]) {
+    for (const color of ['', '#17695d', '#ffff00']) {
+      const tokens = brandTokens(color, dark)
+      assert.equal(tokens['--action'], color || '#5b4bd6')
+      assert.notEqual(tokens['--action-hover'], tokens['--action'])
+      assert.ok(contrast(tokens['--action-hover'], tokens['--on-action']) >= 4.5)
+      assert.ok(contrast(tokens['--nav-selected-text'], tokens['--nav-selected-bg']) >= 4.5)
+    }
+  }
 })

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\ProjectSection;
 use App\Models\Task;
+use App\Models\Workspace;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +15,9 @@ class ProjectStructure
 {
     public static function lock(Project $project): void
     {
-        Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+        Workspace::whereKey($project->workspace_id)->lockForUpdate()->firstOrFail();
+        $current = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+        app(ShadowGuard::class)->observe($project->workspace_id, 'project.write', []);
     }
 
     public static function section(Project $project, string $uuid): ProjectSection

@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -14,6 +15,9 @@ class IntegrationReadAccess
     public static function scope(Request $request, string $scope): void
     {
         abort_unless(self::hasScope($request, $scope), 403, 'Required scope: '.$scope);
+        if (! str_starts_with($scope, 'agent:')) {
+            app(ShadowGuard::class)->observe($request->attributes->get('integration_token')->workspace_id, $scope === 'clients:sso' ? 'sso.use' : 'api.read');
+        }
     }
 
     public static function hasScope(Request $request, string $scope): bool

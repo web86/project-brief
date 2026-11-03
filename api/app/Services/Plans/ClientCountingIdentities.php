@@ -15,13 +15,13 @@ final class ClientCountingIdentities
     }
 
     /** Only persisted, consumed source-bound handoffs are evidence; contacts remain accounting hints. */
-    public function inputs(int $workspaceId, Collection $clients): array
+    public function inputs(int $workspaceId, Collection $clients, bool $current = false): array
     {
-        $contacts = DB::table('workspace_clients')->where('workspace_id', $workspaceId)->whereIn('id', $clients->pluck('workspace_client_id')->filter())->get(['id', 'uuid'])->keyBy('id');
+        $contacts = DB::table('workspace_clients')->where('workspace_id', $workspaceId)->whereIn('id', $clients->pluck('workspace_client_id')->filter())->when($current, fn ($q) => $q->lockForUpdate())->get(['id', 'uuid'])->keyBy('id');
         $proofs = DB::table('client_sso_handoffs as h')->join('client_sso_bindings as b', function ($join): void {
             $join->on('b.id', '=', 'h.client_sso_binding_id')->on('b.workspace_id', '=', 'h.workspace_id')->on('b.integration_source_id', '=', 'h.integration_source_id');
         })->where('h.workspace_id', $workspaceId)->whereIn('h.project_client_id', $clients->pluck('id'))->whereNotNull('h.consumed_at')->whereNull('h.revoked_at')
-            ->select(['h.project_client_id', 'h.project_id', 'b.integration_source_id', 'b.external_hash', 'b.email_hash'])->distinct()->get()->groupBy('project_client_id');
+            ->select(['h.project_client_id', 'h.project_id', 'b.integration_source_id', 'b.external_hash', 'b.email_hash'])->distinct()->when($current, fn ($q) => $q->lockForUpdate())->get()->groupBy('project_client_id');
         $result = [];
         foreach ($clients as $c) {
             $email = DeveloperInvitations::normalizeEmail($c->email ?? '');
@@ -70,6 +70,9 @@ final class ClientCountingIdentities
         if ($c->entitlement_identity_id && ! $identity) {
             DB::table('entitlement_client_observations')->updateOrInsert(['project_client_id' => $c->id], ['workspace_id' => $workspaceId, 'identity_id' => null, 'input_hash' => $facts['hash'], 'state' => 'needs_review', 'reason_codes' => '["foreign_accounting_mapping"]', 'revision' => ($observation?->revision ?? 0) + 1, 'observed_at' => now('UTC')]);
 
+            return false;
+        }
+        if ($identity && $observation && (int) $observation->identity_id === (int) $identity->id && $observation->input_hash === $facts['hash'] && $observation->state === 'ready' && in_array('accounting_review_confirmed', json_decode($observation->reason_codes, true), true)) {
             return false;
         }
         if ($identity && (! $observation || (int) $observation->identity_id !== (int) $identity->id || $observation->input_hash !== $facts['hash'])) {

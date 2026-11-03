@@ -102,7 +102,7 @@ final class WorkspaceImpact
     /** Coverage is persisted metadata; live accounting and overages are explicitly bounded to this page. */
     public function inventory(int $after = 0, int $limit = 25, ?string $targetUuid = null): array
     {
-        $rows = DB::table('workspaces')->where('id', '>', $after)->orderBy('id')->limit($limit)->get(['id', 'uuid']);
+        $rows = DB::table('workspaces')->where('id', '>', $after)->orderBy('id')->limit($limit)->get(['id', 'uuid', 'name']);
         $data = [];
         $overages = [];
         foreach ($rows as $row) {
@@ -112,12 +112,12 @@ final class WorkspaceImpact
                     $overages[$decision['key']] = ($overages[$decision['key']] ?? 0) + 1;
                 }
             }
-            $data[] = ['workspaceId' => $row->uuid, 'accountingState' => $report['accountingState'], 'inventory' => $report['inventory'], 'subscription' => $report['subscription'], 'reasonCodes' => $report['reasonCodes'], 'asOf' => $report['asOf']];
+            $data[] = ['workspaceId' => $row->uuid, 'workspaceName' => $row->name, 'counts' => collect($report['usage'])->only(['projects.active.max', 'developers.max', 'clients.max', 'agents.active.max'])->map(fn ($m) => $m['state'] === 'ready' ? $m['count'] : null)->all(), 'accountingState' => $report['accountingState'], 'inventory' => $report['inventory'], 'subscription' => $report['subscription'], 'reasonCodes' => $report['reasonCodes'], 'asOf' => $report['asOf']];
         }
         $total = DB::table('workspaces')->count();
         $coverage = DB::table('plan_inventory_items')->select('state')->selectRaw('COUNT(*) as count')->groupBy('state')->pluck('count', 'state')->all();
         $initialized = DB::table('workspace_subscriptions')->count();
 
-        return ['data' => $data, 'coverage' => ['total' => $total, 'uninitialized' => $total - $initialized, 'compatibilityObserve' => DB::table('workspace_subscriptions as s')->join('subscription_periods as p', 'p.id', '=', 's.current_period_id')->where('s.enforcement_mode', 'observe')->where('p.kind', 'compatibility')->count(), 'checkpointStates' => $coverage, 'provenance' => 'stored_inventory_checkpoints'], 'pageSummary' => ['scope' => 'current_page', 'ready' => collect($data)->where('accountingState', 'ready')->count(), 'needsReview' => collect($data)->where('accountingState', 'needs_review')->count(), 'incompleteAccounting' => collect($data)->where('accountingState', 'incomplete')->count(), 'potentialOverages' => $overages], 'meta' => ['nextAfter' => (string) ($rows->last()?->id ?? $after), 'hasMore' => DB::table('workspaces')->where('id', '>', $rows->last()?->id ?? $after)->exists(), 'limit' => $limit]];
+        return ['data' => $data, 'coverage' => ['total' => $total, 'uninitialized' => $total - $initialized, 'compatibilityObserve' => DB::table('workspace_subscriptions as s')->join('subscription_periods as p', 'p.id', '=', 's.current_period_id')->where('s.enforcement_mode', 'observe')->where('p.kind', 'compatibility')->count(), 'checkpointStates' => $coverage, 'ready' => (int) ($coverage['processed'] ?? 0), 'needsReview' => (int) ($coverage['needs_review'] ?? 0), 'incomplete' => max(0, $total - (int) ($coverage['processed'] ?? 0) - (int) ($coverage['needs_review'] ?? 0)), 'provenance' => 'stored_inventory_checkpoints'], 'pageSummary' => ['scope' => 'current_page', 'ready' => collect($data)->where('accountingState', 'ready')->count(), 'needsReview' => collect($data)->where('accountingState', 'needs_review')->count(), 'incompleteAccounting' => collect($data)->where('accountingState', 'incomplete')->count(), 'potentialOverages' => $overages], 'meta' => ['nextAfter' => (string) ($rows->last()?->id ?? $after), 'hasMore' => DB::table('workspaces')->where('id', '>', $rows->last()?->id ?? $after)->exists(), 'limit' => $limit]];
     }
 }

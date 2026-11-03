@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\ProjectRequest;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -14,6 +15,7 @@ class ProjectProvisioning
     /** IntegrationWrites holds the workspace lock and transaction. */
     public function create(object $token, array $input): array
     {
+        app(ShadowGuard::class)->observe($token->workspace_id, 'source.provision');
         $externalHash = hash('sha256', $input['externalId']);
         $bodyHash = IntegrationWrites::fingerprint($input);
         $existing = DB::table('project_provisionings')->where('workspace_id', $token->workspace_id)->where('external_hash', $externalHash)
@@ -45,6 +47,7 @@ class ProjectProvisioning
 
     private function createNew(int $workspaceId, int $tokenId, array $input, string $externalHash): array
     {
+        app(ShadowGuard::class)->observe($workspaceId, 'source.provision');
         $identity = app(ClientIdentities::class)->resolve($workspaceId, $input['client']);
         $project = app(ProjectCreation::class)->create($workspaceId, [
             'title' => $input['project']['name'], 'description' => $input['project']['description'], 'language' => $input['project']['language'],

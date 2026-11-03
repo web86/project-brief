@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use App\Models\DeveloperInvitation;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -16,6 +17,7 @@ class ProjectLifecycle
     /** The caller holds the workspace and project locks inside a transaction. */
     public function trash(Project $project): void
     {
+        app(ShadowGuard::class)->observe($project->workspace_id, 'project.reduce');
         $this->lockEndpoints($project);
         $project->forceFill(['status_before_trash' => $project->status, 'status' => 'inactive'])->save();
         $project->delete();
@@ -25,6 +27,7 @@ class ProjectLifecycle
 
     public function restore(Project $project): void
     {
+        app(ShadowGuard::class)->observe($project->workspace_id, 'project.restore', ['projects.active.max' => $project->status_before_trash === 'active' ? 1 : 0, 'clients.max' => null]);
         $project->forceFill(['status' => $project->status_before_trash ?? 'inactive', 'status_before_trash' => null]);
         $project->restore();
     }

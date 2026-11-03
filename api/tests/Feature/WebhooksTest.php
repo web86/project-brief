@@ -290,4 +290,18 @@ class WebhooksTest extends TestCase
         $this->assertDatabaseHas('webhook_deliveries', ['status' => 'failed', 'error_code' => 'unsafe_destination']);
         Http::assertNothingSent();
     }
+
+    public function test_transport_has_no_additional_workspace_transaction(): void
+    {
+        [$project] = $this->fixture();
+        $this->queue($project);
+        $baseline = DB::transactionLevel();
+        Http::fake(function () use ($baseline) {
+            $this->assertSame($baseline, DB::transactionLevel());
+
+            return Http::response('', 200);
+        });
+        $this->assertSame(1, app(WebhookProcessor::class)->process());
+        $this->assertDatabaseHas('webhook_deliveries', ['status' => 'succeeded']);
+    }
 }

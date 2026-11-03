@@ -25,7 +25,7 @@ const catalog = ref([]),
   meta = ref({ page: 1, lastPage: 1 }),
   history = ref([]),
   historyMeta = ref({ page: 1, lastPage: 1 })
-const filters = ref({ q: '', status: '', visibility: '', sort: 'order' })
+const filters = ref({ q: '', status: '', visibility: '', sort: 'order', showSystem: false })
 const config = ref(null),
   code = ref(''),
   version = ref(null),
@@ -105,7 +105,7 @@ function name(row) {
 }
 function priceLabel(row) {
   const price = row?.price
-  if (price?.amount_minor == null || !price.currency) return l('unconfigured')
+  if (price?.amount_minor == null || !price.currency) return t('preparation.price')
   return new Intl.NumberFormat(locale.value, {
     style: 'currency',
     currency: price.currency,
@@ -113,7 +113,7 @@ function priceLabel(row) {
   }).format(price.amount_minor / 10 ** (price.scale ?? 2))
 }
 function limitLabel(value) {
-  return value?.kind === 'unlimited' ? l('unlimited') : (value?.value ?? value ?? '—')
+  return value?.kind === 'unlimited' ? t('preparation.unlimited') : (value?.value ?? value ?? '—')
 }
 function versionLabel(row) {
   if (!row) return '—'
@@ -176,7 +176,11 @@ async function load(page = 1) {
         meta.value = detail.meta
       }
     } else if (mode.value === 'catalog') {
-      const query = new URLSearchParams({ ...filters.value, page: String(page) })
+      const query = new URLSearchParams({
+        ...filters.value,
+        showSystem: filters.value.showSystem ? '1' : '0',
+        page: String(page),
+      })
       const result = await get(`/api/platform/plans?${query}`)
       if (current !== generation) return
       catalog.value = result.data
@@ -453,6 +457,11 @@ onBeforeUnmount(() => {
     <p v-if="busy" role="status">{{ t('flow.busy') }}</p>
     <template v-if="mode === 'catalog'">
       <form class="surface plans-controls" @submit.prevent="load()">
+        <label class="plans-system-check"
+          ><input v-model="filters.showSystem" type="checkbox" />{{
+            t('preparation.showSystem')
+          }}</label
+        >
         <label>{{ l('search') }}<input v-model="filters.q" type="search" maxlength="100" /></label
         ><label
           >{{ l('status')
@@ -503,7 +512,10 @@ onBeforeUnmount(() => {
           <p>
             <code>{{ row.code }}</code> · {{ l('states.' + row.visibility) }}
           </p>
-          <p>{{ l('price') }}: {{ priceLabel(row.versions[0]) }}</p>
+          <p v-if="row.versions[0]?.accessClass === 'compatibility'" class="inventory-notice">
+            {{ t('preparation.system') }}
+          </p>
+          <p v-else>{{ l('price') }}: {{ priceLabel(row.versions[0]) }}</p>
           <dl class="plans-key-limits">
             <div>
               <dt>{{ l('seats') }}</dt>
@@ -514,6 +526,11 @@ onBeforeUnmount(() => {
               <dd>{{ limitLabel(value) }}</dd>
             </div>
           </dl>
+          <p
+            v-if="Object.values(row.versions[0]?.limits || {}).some((v) => v?.kind === 'unlimited')"
+          >
+            <small>{{ t('preparation.technical') }}</small>
+          </p>
           <p>{{ l('version') }}: {{ row.versions.find((v) => v.current)?.number ?? '—' }}</p>
           <div class="plans-actions">
             <button
@@ -1131,7 +1148,7 @@ onBeforeUnmount(() => {
 .plans-card,
 .plans-editor,
 .plans-feature {
-  padding: 1.25rem;
+  padding: 1rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1224,6 +1241,18 @@ onBeforeUnmount(() => {
     align-items: stretch;
   }
 }
+.plans-catalog {
+  align-items: start;
+}
+.plans-system-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plans-system-check input {
+  width: 18px;
+  height: 18px;
+}
 </style>
 
 <style scoped>
@@ -1306,6 +1335,18 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 }
+.plans-catalog {
+  align-items: start;
+}
+.plans-system-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plans-system-check input {
+  width: 18px;
+  height: 18px;
+}
 </style>
 
 <style scoped>
@@ -1338,5 +1379,17 @@ onBeforeUnmount(() => {
 }
 .plans-more-actions button {
   margin: 4px;
+}
+.plans-catalog {
+  align-items: start;
+}
+.plans-system-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plans-system-check input {
+  width: 18px;
+  height: 18px;
 }
 </style>

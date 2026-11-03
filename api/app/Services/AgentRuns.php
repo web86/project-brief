@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\TaskAgentAssignment;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,6 +15,7 @@ class AgentRuns
     /** Caller holds the workspace lock and transaction. */
     public static function request(Request $request, TaskAgentAssignment $assignment, string $instruction, string $key, bool $emit = true, ?string $fingerprint = null): object
     {
+        app(ShadowGuard::class)->observe($assignment->workspace_id, 'agent.run', []);
         $keyHash = hash('sha256', $key);
         $inputHash = $fingerprint ?? hash('sha256', $instruction);
         $previous = DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->where('key_hash', $keyHash)->first();
@@ -66,6 +68,7 @@ class AgentRuns
 
     public static function cancel(TaskAgentAssignment $assignment, string $reason = 'agent_run_cancelled'): void
     {
+        app(ShadowGuard::class)->observe($assignment->workspace_id, 'safe.reduce');
         $ids = DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->whereIn('state', self::ACTIVE)->pluck('uuid')->all();
         DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->whereIn('state', self::ACTIVE)
             ->update(['state' => 'cancelled', 'completed_at' => now(), 'updated_at' => now()]);

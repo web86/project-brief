@@ -85,6 +85,23 @@ verify($impact['usage']['projects.active.max']['count'] === 2);
 verify(collect($impact['decisions'])->firstWhere('key','projects.active.max')['state'] === 'would_deny');
 verify(! $impact['policy']['executionGuardsEnabled'] && $impact['policy']['effectiveMode'] === 'observe');
 verify($before === json_encode(Illuminate\Support\Facades\DB::table('workspace_subscriptions')->get()));
+$transitions = app(App\Services\Plans\FrozenTransitions::class);
+$options = $transitions->options($user, $workspace->id, false);
+$selection = array_map(fn($rows)=>array_column($rows,'id'),$options['resources']);
+$frozen = $transitions->create($user,$workspace->id,false,$published->uuid,$selection,1,'package-freeze');
+verify($frozen['previewOnly'] && ! $frozen['executorAvailable'] && ! $frozen['executionContract']['executable']);
+verify($transitions->read($user,$workspace->id,false,$frozen['id'])['verified']);
+verify($transitions->create($user,$workspace->id,false,$published->uuid,$selection,1,'package-freeze')['id'] === $frozen['id']);
+verify(Illuminate\Support\Facades\DB::table('workspace_suspension_cycles')->count() === 0);
+verify(Illuminate\Support\Facades\DB::table('workspace_execution_epochs')->count() === 0);
+$review = app(App\Services\Plans\AccountingReview::class);
+$reviewRow = $review->listing($workspace->id)[0];
+$receipt = $review->review($user,$workspace->id,false,$reviewRow['clientId'],'confirm',(int)$reviewRow['revision'],$reviewRow['inputHash'],'package_verified','package-review');
+verify(! $receipt['authenticationChanged']);
+$stale = false;
+try { $transitions->read($user,$workspace->id,false,$frozen['id']); }
+catch (Symfony\Component\HttpKernel\Exception\HttpException $e) { $stale = $e->getStatusCode() === 409; }
+verify($stale);
 echo json_encode(['passed'=>true,'draftSeed'=>'idempotent','publication'=>'immutable','automaticSubscriptions'=>0,'operatorCompatibilitySubscriptions'=>1,'trialClaims'=>0,'shadowImpact'=>true,'productionVendor'=>true],JSON_THROW_ON_ERROR);
 `
   const inherited = Object.fromEntries(

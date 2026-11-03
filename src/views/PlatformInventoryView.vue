@@ -1,10 +1,12 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, locale, formatApiError } from '../i18n/index.js'
+import ResourceSelectionPanel from '../components/ResourceSelectionPanel.vue'
 import LoadingButton from '../components/LoadingButton.vue'
-const route = useRoute()
+const route = useRoute(),
+  router = useRouter()
 const l = (key) => t('inventory.' + key)
 const state = (value) => l('states.' + value)
 const resource = (key) => l('resources.' + key)
@@ -15,7 +17,7 @@ const busy = ref(false),
   versions = ref([]),
   versionPage = ref(0),
   moreVersions = ref(false),
-  target = ref(''),
+  target = ref(typeof route.query.versionId === 'string' ? route.query.versionId : ''),
   cursors = ref([0])
 const unavailableMetrics = computed(() =>
   !data.value
@@ -28,6 +30,19 @@ const unavailableMetrics = computed(() =>
           .filter(([, m]) => m.state === 'unavailable' && m.reason !== 'not_a_capacity_metric')
           .map(([key, m]) => ({ key, reasons: m.reason_codes })),
 )
+const capacityKeys = ['projects.active.max', 'developers.max', 'clients.max', 'agents.active.max']
+const featureDecisions = computed(() =>
+  (data.value?.decisions || []).filter(
+    (d) => !capacityKeys.includes(d.key) && d.measurementState !== 'unavailable',
+  ),
+)
+const selectionOpen = ref(false)
+const shortId = (id) => (id ? id.slice(0, 8) + '…' + id.slice(-4) : '—')
+async function copyId(id) {
+  try {
+    await navigator.clipboard.writeText(id)
+  } catch {}
+}
 let revision = 0
 const limitText = (value) =>
   value === null || value === undefined
@@ -83,19 +98,24 @@ function previous() {
   load()
 }
 watch(
-  () => route.params.workspaceId,
+  () => [route.params.workspaceId, route.query.versionId],
   () => {
-    target.value = ''
+    target.value = typeof route.query.versionId === 'string' ? route.query.versionId : ''
     cursors.value = [0]
     load()
   },
   { immediate: true },
 )
+function targetChanged() {
+  router.replace({ query: { ...route.query, versionId: target.value || undefined } })
+}
 loadVersions()
 </script>
 <template>
   <section class="platform-page inventory-page" :aria-busy="busy">
-    <RouterLink v-if="route.params.workspaceId" to="/platform/plans/inventory"
+    <RouterLink
+      v-if="route.params.workspaceId"
+      :to="{ path: '/platform/plans/inventory', query: target ? { versionId: target } : {} }"
       >← {{ l('back') }}</RouterLink
     >
     <h1>{{ route.params.workspaceId ? l('impact') : l('title') }}</h1>
@@ -103,7 +123,7 @@ loadVersions()
     <div class="inventory-controls">
       <label
         >{{ l('target')
-        }}<select v-model="target" @change="load">
+        }}<select v-model="target" @change="targetChanged">
           <option value="">{{ l('choose') }}</option>
           <option v-for="v in versions" :key="v.id" :value="v.id">
             {{ v.translations[locale]?.name || v.translations.en.name }} · v{{ v.number }}
@@ -123,7 +143,9 @@ loadVersions()
         <div
           v-for="[key, value] in [
             ['total', data.coverage.total],
-            ['uninitialized', data.coverage.uninitialized],
+            ['states.ready', data.coverage.ready],
+            ['states.needs_review', data.coverage.needsReview],
+            ['states.incomplete', data.coverage.incomplete],
             ['compatibility', data.coverage.compatibilityObserve],
           ]"
           :key="key"
@@ -132,38 +154,18 @@ loadVersions()
           ><strong>{{ value }}</strong>
         </div>
       </div>
-      <h2>{{ l('coverage') }}</h2>
-      <p>
-        <span
-          v-for="(count, key) in data.coverage.checkpointStates"
-          :key="key"
-          class="inventory-chip"
-          >{{ state(key) }}: {{ count }}</span
-        >
-      </p>
-      <h2>{{ l('livePage') }}</h2>
-      <p>
-        <span
-          v-for="[key, value] in [
-            ['ready', data.pageSummary.ready],
-            ['needs_review', data.pageSummary.needsReview],
-            ['incomplete', data.pageSummary.incompleteAccounting],
-          ]"
-          :key="key"
-          class="inventory-chip"
-          >{{ state(key) }}: {{ value }}</span
-        >
-      </p>
-      <ul v-if="Object.keys(data.pageSummary.potentialOverages).length">
-        <li v-for="(count, key) in data.pageSummary.potentialOverages" :key="key">
-          {{ resource(key) }}: {{ count }} · {{ state('would_deny') }}
-        </li>
-      </ul>
       <p v-if="!data.data.length">{{ l('empty') }}</p>
       <div class="inventory-workspaces">
         <article v-for="row in data.data" :key="row.workspaceId" class="inventory-card">
           <h3>
-            {{ l('workspace') }} <code>{{ row.workspaceId }}</code>
+            {{ row.workspaceName || l('workspace') }}
+            <button
+              class="text-button inventory-copy"
+              :title="t('preparation.copy')"
+              @click="copyId(row.workspaceId)"
+            >
+              {{ shortId(row.workspaceId) }}
+            </button>
           </h3>
           <p>
             {{ l('accounting') }}:
@@ -173,14 +175,27 @@ loadVersions()
             {{ l('subscription') }}:
             {{
               row.subscription
-                ? state(row.subscription.kind) + ' · ' + row.subscription.configuredMode
+                ? state(row.subscription.kind) +
+                  ' · ' +
+                  (row.subscription.configuredMode === 'observe'
+                    ? t('preparation.observe')
+                    : row.subscription.configuredMode)
                 : state('uninitialized')
             }}
           </p>
           <ul v-if="row.reasonCodes.length">
             <li v-for="key in row.reasonCodes" :key="key">{{ reason(key) }}</li>
           </ul>
-          <RouterLink :to="'/platform/plans/inventory/' + row.workspaceId"
+          <p class="inventory-inline-counts">
+            <span v-for="key in capacityKeys" :key="key"
+              >{{ resource(key) }} <b>{{ row.counts[key] ?? '—' }}</b></span
+            >
+          </p>
+          <RouterLink
+            :to="{
+              path: '/platform/plans/inventory/' + row.workspaceId,
+              query: target ? { versionId: target } : {},
+            }"
             >{{ l('open') }} →</RouterLink
           >
         </article>
@@ -204,21 +219,19 @@ loadVersions()
         {{ l('accounting') }}:
         <strong :data-state="data.accountingState">{{ state(data.accountingState) }}</strong>
       </p>
-      <p>{{ l('configured') }}: {{ data.policy.configuredGlobalMode }}. {{ l('effective') }}</p>
+      <details>
+        <summary>{{ l('configured') }}</summary>
+        <p>{{ data.policy.configuredGlobalMode }}. {{ l('effective') }}</p>
+      </details>
       <p v-for="key in data.policy.reasonCodes" :key="key" class="inventory-notice">
         {{ reason(key) }}
       </p>
       <ul v-if="data.reasonCodes.length">
         <li v-for="key in data.reasonCodes" :key="key">{{ reason(key) }}</li>
       </ul>
-      <p>{{ l('seats') }}</p>
-      <p>{{ l('feature') }}</p>
-      <p>{{ l('preserve') }}</p>
-      <p>{{ l('drift') }}</p>
       <div v-if="data.target" class="inventory-target">
         <strong>{{ l('target') }} · v{{ data.target.number }}</strong
-        ><code>{{ data.target.versionId }}</code
-        ><code>{{ data.target.contentHash }}</code>
+        ><code>{{ data.target.versionId }}</code>
       </div>
       <div class="inventory-table-wrap">
         <table class="inventory-table">
@@ -230,20 +243,27 @@ loadVersions()
           <thead>
             <tr>
               <th>{{ l('resource') }}</th>
-              <th>{{ l('actual') }}</th>
-              <th>{{ l('limit') }}</th>
-              <th>{{ l('decision') }}</th>
-              <th>{{ l('excess') }}</th>
+              <th>{{ t('preparation.used') }}</th>
+              <th v-if="data.target">{{ l('limit') }}</th>
+              <th>{{ t('preparation.status') }}</th>
+              <th v-if="data.target">{{ l('excess') }}</th>
             </tr>
           </thead>
           <tbody v-if="data.target">
             <tr
-              v-for="d in data.decisions.filter((d) => d.measurementState !== 'unavailable')"
+              v-for="d in data.decisions.filter((d) => capacityKeys.includes(d.key))"
               :key="d.key"
             >
               <th scope="row">{{ resource(d.key) }}</th>
               <td :data-label="l('actual')">
-                {{ d.actual ?? '—' }}<small>{{ state(d.measurementState) }}</small>
+                <strong>{{ d.actual ?? '—' }}</strong
+                ><meter
+                  v-if="d.limit?.kind === 'integer' && d.measurementState === 'ready'"
+                  :min="0"
+                  :max="Math.max(d.actual, d.limit.value, 1)"
+                  :value="d.actual"
+                  :aria-label="resource(d.key)"
+                />
               </td>
               <td :data-label="l('limit')">{{ limitText(d.limit) }}</td>
               <td :data-label="l('decision')" :data-state="d.state">
@@ -261,17 +281,34 @@ loadVersions()
             >
               <th scope="row">{{ resource(key) }}</th>
               <td :data-label="l('actual')">
-                {{ m.count ?? '—' }}<small>{{ state(m.state) }}</small>
+                <strong>{{ m.count ?? '—' }}</strong>
               </td>
-              <td>—</td>
               <td>
+                {{ state(m.state) }}
                 <small v-for="code in m.reason_codes" :key="code">{{ reason(code) }}</small>
               </td>
-              <td>—</td>
             </tr>
           </tbody>
         </table>
       </div>
+      <details v-if="featureDecisions.length" class="inventory-unavailable">
+        <summary>{{ l('feature') }}</summary>
+        <dl>
+          <div v-for="d in featureDecisions" :key="d.key">
+            <dt>{{ resource(d.key) }}</dt>
+            <dd>{{ d.actual ?? '—' }} · {{ limitText(d.limit) }} · {{ state(d.state) }}</dd>
+          </div>
+        </dl>
+      </details>
+      <details class="selection-toggle" @toggle="selectionOpen = $event.target.open">
+        <summary>{{ t('preparation.open') }}</summary>
+        <ResourceSelectionPanel
+          v-if="selectionOpen"
+          :workspace-id="route.params.workspaceId"
+          platform
+          :target-id="target"
+        />
+      </details>
       <details v-if="unavailableMetrics.length" class="inventory-unavailable">
         <summary>{{ l('unavailableMetrics') }} · {{ unavailableMetrics.length }}</summary>
         <ul>
@@ -484,5 +521,28 @@ loadVersions()
   .inventory-table small {
     max-width: none;
   }
+}
+.inventory-inline-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.inventory-copy {
+  font-size: 12px;
+  display: block;
+}
+.inventory-table meter {
+  display: block;
+  width: 90px;
+  margin-top: 6px;
+  accent-color: var(--action);
+}
+.selection-toggle {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-block: 16px;
 }
 </style>

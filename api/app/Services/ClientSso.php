@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectAccessToken;
 use App\Models\ProjectClient;
 use App\Models\User;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -38,6 +39,7 @@ class ClientSso
             abort_if($this->staff($email), 403);
             $clients = $project->clients()->where('active', true)->whereRaw('LOWER(TRIM(email)) = ?', [$email])->lockForUpdate()->get();
             abort_unless($clients->count() === 1, 403);
+            app(ShadowGuard::class)->observe($token->workspace_id, 'sso.use', []);
             $externalHash = hash('sha256', $input['externalUserId']);
             $emailHash = hash('sha256', $email);
             $bindings = DB::table('client_sso_bindings')->where('workspace_id', $token->workspace_id)->where('integration_source_id', $source->id);
@@ -126,6 +128,7 @@ class ClientSso
 
         return DB::transaction(function () use ($request, $known): ?array {
             IntegrationWrites::lockWorkspace($known->workspace_id);
+            app(ShadowGuard::class)->observe($known->workspace_id, 'sso.use', []);
             $row = DB::table('client_sso_handoffs')->where('id', $known->id)->lockForUpdate()->first();
             if (! $row || $row->consumed_at || $row->revoked_at || ! Carbon::parse($row->expires_at)->isFuture() || ! ($client = $this->eligible($row))) {
                 return null;
@@ -152,6 +155,11 @@ class ClientSso
     {
         $row = DB::table('client_sso_handoffs')->find($access->client_sso_handoff_id);
 
-        return $row && $row->consumed_at && ! $row->revoked_at && $row->project_id === $access->project_id && $row->project_client_id === $access->project_client_id && $this->eligible($row) !== null;
+        $usable = $row && $row->consumed_at && ! $row->revoked_at && $row->project_id === $access->project_id && $row->project_client_id === $access->project_client_id && $this->eligible($row) !== null;
+        if ($usable) {
+            app(ShadowGuard::class)->observe($row->workspace_id, 'sso.use');
+        }
+
+        return $usable;
     }
 }

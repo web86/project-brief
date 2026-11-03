@@ -38,7 +38,7 @@ export const luminance = (color) =>
 export const contrast = (a, b) =>
   (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05)
 export function brandTokens(color, dark = false) {
-  if (!/^#[a-f0-9]{6}$/i.test(color || '')) return {}
+  if (!/^#[a-f0-9]{6}$/i.test(color || '')) color = '#5b4bd6'
   const background = dark ? '#1e252e' : '#ffffff'
   let link = color
   for (let i = 0; contrast(link, background) < 4.5 && i < 50; i++) {
@@ -52,10 +52,33 @@ export function brandTokens(color, dark = false) {
         )
         .join('')
   }
+  const mix = (a, b, amount) =>
+    '#' +
+    rgb(a)
+      .map((v, i) =>
+        Math.round(v * (1 - amount) + rgb(b)[i] * amount)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')
+  const onAction = contrast(color, '#ffffff') >= 4.5 ? '#ffffff' : '#000000'
+  const shade = onAction === '#ffffff' ? '#000000' : '#ffffff'
+  const tint = mix(color, background, 0.88)
+  let selectedText = link
+  for (let i = 0; contrast(selectedText, tint) < 4.5 && i < 50; i++)
+    selectedText = mix(selectedText, dark ? '#ffffff' : '#000000', 0.1)
   return {
     '--action': color,
-    '--action-hover': color,
-    '--on-action': contrast(color, '#ffffff') >= 4.5 ? '#ffffff' : '#000000',
+    '--action-hover': mix(color, shade, 0.1),
+    '--action-active': mix(color, shade, 0.18),
+    '--action-soft': tint,
+    '--selected-bg': tint,
+    '--nav-selected-bg': tint,
+    '--nav-selected-text': selectedText,
+    '--badge-bg': tint,
+    '--badge-text': selectedText,
+    '--focus-ring': link + '45',
+    '--on-action': onAction,
     '--link': link,
     '--progress': link,
     '--focus': link,

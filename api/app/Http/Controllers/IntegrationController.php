@@ -12,6 +12,7 @@ use App\Services\ClientSso;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\ShadowGuard;
 use App\Services\WebhookDestination;
 use App\Services\WebhookEvents;
 use App\Services\WebhookProjectFilter;
@@ -31,6 +32,8 @@ class IntegrationController extends Controller
         abort_unless($member->role === 'owner', 403);
         if (! $request->isMethodSafe()) {
             app(AccountSecurity::class)->requireFresh($request);
+            $op = $request->isMethod('DELETE') ? 'safe.reduce' : ($request->is('api/admin/integrations/webhooks*') ? 'webhook.manage' : ($request->input('type') === 'agent' ? 'agent.key' : ($request->input('scopes') === ['clients:sso'] ? 'sso.use' : 'api.key')));
+            app(ShadowGuard::class)->observe($member->workspace_id, $op);
         }
 
         return $member->workspace_id;

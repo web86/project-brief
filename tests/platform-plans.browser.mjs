@@ -15,7 +15,7 @@ const publicRoot = path.join(scratch, 'domains/brief.web86.site')
 const app = path.join(scratch, packageRoot ? 'project-brief-app' : 'app'),
   output =
     process.env.UX_BROWSER_OUTPUT_DIRECTORY ||
-    path.join(root, 'artifacts/milestone-10-0-phase-2/browser')
+    path.join(root, 'artifacts/milestone-10-0-phase-4a/browser')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 async function port() {
@@ -525,9 +525,49 @@ require __DIR__.'/../vendor/autoload.php';
           true,
         )
       }
+      await page.locator('.selection-toggle > summary').click()
+      const selectionPanel = page.locator('.resource-selection')
+      await selectionPanel.locator('fieldset').first().waitFor()
+      assert.equal(await selectionPanel.locator('input[type=checkbox]:disabled').count(), 1)
+      await selectionPanel
+        .locator('button')
+        .filter({ hasText: language === 'en' ? /^Freeze preview$/ : /^Зафиксировать оценку$/ })
+        .click()
+      await selectionPanel.locator('.frozen-summary').waitFor()
+      assert.equal(await selectionPanel.locator('[role=alert]').count(), 0)
+      await selectionPanel.locator('.frozen-summary button').click()
+      await selectionPanel.locator('[role=status]').waitFor()
+      for (const width of [390, 375]) {
+        await page.setViewportSize({ width, height: 900 })
+        await capture(page, `${language}-${theme}-selection-${width}.png`)
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        )
+      }
       await page.reload()
       await page.locator('.inventory-table tbody tr').first().waitFor()
+      assert.equal(await page.locator('.inventory-controls select').inputValue(), basic)
       assert.equal((await call(context, '/api/platform/workspace-inventory')).status(), 200)
+      if (language === 'en' && theme === 'light') {
+        await page.goto(origin + '/admin/settings/resource-preview')
+        await page
+          .locator('.owner-resource-preview select option')
+          .filter({ hasText: /Basic · v1/ })
+          .waitFor({ state: 'attached' })
+        await page.locator('.owner-resource-preview > label select').selectOption(basic)
+        const ownerPanel = page.locator('.resource-selection')
+        await ownerPanel.locator('fieldset').first().waitFor()
+        assert.ok((await ownerPanel.innerText()).includes('Private fixture title'))
+        await ownerPanel.getByRole('button', { name: 'Freeze preview', exact: true }).click()
+        await ownerPanel.locator('.frozen-summary').waitFor()
+        await ownerPanel
+          .getByRole('button', { name: 'Recheck frozen preview', exact: true })
+          .click()
+        await ownerPanel.locator('[role=status]').waitFor()
+        assert.equal(await ownerPanel.locator('[role=alert]').count(), 0)
+        await capture(page, 'owner-resource-selection.png')
+      }
       results.push({ language, theme, mobile })
       await context.close()
       php(['artisan', 'cache:clear', '--no-interaction'])

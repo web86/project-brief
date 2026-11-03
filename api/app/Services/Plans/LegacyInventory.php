@@ -96,7 +96,7 @@ final class LegacyInventory
             if (DB::table('workspace_members')->where('workspace_id', $workspaceId)->where('status', 'active')->where('role', 'owner')->distinct()->count('user_id') !== 1) {
                 $reasons[] = 'ownership_review_required';
             }
-            if (DB::table('entitlement_client_observations')->where('workspace_id', $workspaceId)->where('state', 'needs_review')->exists() || DB::table('entitlement_client_aliases')->where('workspace_id', $workspaceId)->where('state', 'ambiguous')->exists()) {
+            if (DB::table('entitlement_client_observations')->where('workspace_id', $workspaceId)->where('state', 'needs_review')->exists()) {
                 $reasons[] = 'client_accounting_review_required';
             }
             if ($chunk['done'] && $before > $chunk['new_mappings']) {

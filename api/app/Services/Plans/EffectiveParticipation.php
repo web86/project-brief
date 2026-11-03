@@ -24,8 +24,8 @@ final class EffectiveParticipation
     }
 
     /** Open-cycle high-watermark semantics need the future executor; never promise a ready count. */
-    public function reasons(int $workspaceId): array
+    public function reasons(int $workspaceId, bool $current = false): array
     {
-        return DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')->exists() ? ['participation_cycle_adapter_required'] : [];
+        return DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')->when($current, fn ($q) => $q->sharedLock())->first(['id']) !== null ? ['participation_cycle_adapter_required'] : [];
     }
 }

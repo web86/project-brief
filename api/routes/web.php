@@ -36,6 +36,7 @@ use App\Http\Controllers\ProjectSectionController;
 use App\Http\Controllers\ProjectTeamController;
 use App\Http\Controllers\ProjectTrashController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\ResourceSelectionController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
@@ -105,6 +106,16 @@ Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(func
         });
     });
 });
+
+foreach (['platform', 'admin'] as $persona) {
+    $middleware = $persona === 'platform' ? [EnsurePlatformAdmin::class, 'throttle:platform'] : ['admin', 'throttle:account-security'];
+    $prefix = $persona === 'platform' ? '/api/platform/workspaces/{workspace}/resource-selection' : '/api/admin/resource-selection';
+    Route::middleware($middleware)->prefix($prefix)->group(function (): void {
+        foreach ([['get', '', 'options'], ['get', '/versions', 'versions'], ['post', '/previews', 'create'], ['get', '/previews/{preview}', 'read'], ['get', '/accounting-review', 'review-list'], ['post', '/accounting-review', 'review']] as [$method, $path, $kind]) {
+            Route::{$method}($path, [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', $kind)->whereUuid(['workspace', 'preview']);
+        }
+    });
+}
 
 Route::get('/', SpaController::class);
 Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cache-Control', 'no-store'))

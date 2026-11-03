@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\WorkspaceMember;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Support\Facades\DB;
 
 class ProjectCreation
@@ -11,6 +12,8 @@ class ProjectCreation
     public function create(int $workspaceId, array $data, array $input, ?WorkspaceMember $member = null, bool $emitEvent = true): Project
     {
         return DB::transaction(function () use ($workspaceId, $data, $input, $member, $emitEvent): Project {
+            IntegrationWrites::lockWorkspace($workspaceId);
+            app(ShadowGuard::class)->observe($workspaceId, 'project.create', ['projects.active.max' => ($data['status'] ?? 'active') === 'active' ? 1 : 0, 'clients.max' => empty($input['clientEmail']) ? 0 : null]);
             $project = Project::create([...$data, 'workspace_id' => $workspaceId]);
             if ($member && $member->role !== 'owner') {
                 $project->members()->create(['workspace_id' => $workspaceId, 'workspace_member_id' => $member->id]);

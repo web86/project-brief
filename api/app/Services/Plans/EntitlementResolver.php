@@ -11,12 +11,12 @@ final class EntitlementResolver
     public function __construct(private readonly EntitlementRegistry $registry, private readonly SubscriptionClock $clock) {}
 
     /** Metadata only, no authorization grant. Existing object/user permissions remain a separate check. */
-    public function resolve(int $workspaceId, ?CarbonImmutable $at = null): array
+    public function resolve(int $workspaceId, ?CarbonImmutable $at = null, bool $current = false): array
     {
         $at = ($at ?? CarbonImmutable::now('UTC'))->utc();
         $row = DB::table('workspace_subscriptions as s')->join('subscription_periods as p', function ($join): void {
             $join->on('p.id', '=', 's.current_period_id')->on('p.subscription_id', '=', 's.id')->on('p.workspace_id', '=', 's.workspace_id');
-        })->join('plan_versions as v', 'v.id', '=', 'p.entitlement_version_id')->leftJoin('platform_policy_versions as policy', 'policy.id', '=', 'p.policy_version_id')->where('s.workspace_id', $workspaceId)->select(['s.id as subscription_id', 's.revision as subscription_revision', 's.approved_extra_seats', 's.enforcement_mode', 'p.*', 'v.state as version_state', 'v.access_class', 'v.developer_seats_json', 'v.registry_revision', 'v.content_hash', 'v.translations_json', 'v.price_json', 'policy.state as policy_state', 'policy.fallback_version_id as policy_fallback_version_id'])->first();
+        })->join('plan_versions as v', 'v.id', '=', 'p.entitlement_version_id')->leftJoin('platform_policy_versions as policy', 'policy.id', '=', 'p.policy_version_id')->where('s.workspace_id', $workspaceId)->select(['s.id as subscription_id', 's.revision as subscription_revision', 's.approved_extra_seats', 's.enforcement_mode', 'p.*', 'v.state as version_state', 'v.access_class', 'v.developer_seats_json', 'v.registry_revision', 'v.content_hash', 'v.translations_json', 'v.price_json', 'policy.state as policy_state', 'policy.fallback_version_id as policy_fallback_version_id'])->when($current, fn ($q) => $q->sharedLock())->first();
         if (! $row || $row->version_state !== 'published') {
             return $this->unavailable('subscription_missing_or_incomplete');
         }
@@ -59,7 +59,7 @@ final class EntitlementResolver
             }
             $validUntil = $phase['valid_until'];
             $activeKeys = [];
-            foreach (DB::table('workspace_entitlement_overrides')->where('workspace_id', $workspaceId)->where('subscription_id', $row->subscription_id)->get() as $override) {
+            foreach (DB::table('workspace_entitlement_overrides')->where('workspace_id', $workspaceId)->where('subscription_id', $row->subscription_id)->when($current, fn ($q) => $q->sharedLock())->get() as $override) {
                 $start = CarbonImmutable::parse($override->starts_at, 'UTC');
                 $end = $override->ends_at === null ? null : CarbonImmutable::parse($override->ends_at, 'UTC');
                 if ($start > $at) {

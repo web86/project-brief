@@ -1,0 +1,57 @@
+{
+  "phase": "10.0-4A",
+  "backend": {
+    "runtime": "PHP 8.4.26 / MariaDB 11.8.9",
+    "full": {
+      "tests": 1140,
+      "assertions": 16567,
+      "seconds": 540.677,
+      "failures": 0
+    },
+    "finalPreparationAndIndependentWorkers": {
+      "tests": 16,
+      "assertions": 77,
+      "failures": 0
+    },
+    "note": "Full suite preceded last catalog-archive drift case and final metadata fingerprint additions, which passed the final targeted suite. Canonical builder repeats the complete final source suite on host PHP."
+  },
+  "frontend": {
+    "tests": 450,
+    "failures": 0,
+    "build": true,
+    "brandAssets": true
+  },
+  "browser": {
+    "platformMatrix": 6,
+    "ownerFreezeVerify": true,
+    "errors": 0,
+    "themes": ["light", "dark", "system"],
+    "locales": ["ru", "en"],
+    "mobileWidths": [375, 390],
+    "brandingScenarios": 9,
+    "customColorPriority": true
+  },
+  "static": {
+    "screens": 75,
+    "apiRequests": 0,
+    "writes": 0,
+    "externalRequests": 0,
+    "errors": 0,
+    "manifestSha256": "8f42d433b5f9f467877ee36d89a24b02a538afa2da8ac28cb83698cc4b9ae42c"
+  },
+  "shadowQuerySample": {
+    "runtime": "host PHP 8.5",
+    "coreQueries": 0,
+    "coreMicros": 28,
+    "featureQueries": 5,
+    "featureMicros": 3544,
+    "clientScans": 0
+  },
+  "productionActions": {
+    "deploy": false,
+    "push": false,
+    "merge": false,
+    "jinoCommands": false,
+    "commercialEnforcement": false
+  }
+}

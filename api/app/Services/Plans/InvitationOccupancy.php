@@ -16,6 +16,31 @@ final class InvitationOccupancy
         return hash_hmac('sha256', $userId === null ? 'invite-email|'.DeveloperInvitations::normalizeEmail($email) : 'human|'.$userId, (string) config('app.key'));
     }
 
+    public function invitationDelta(int $workspaceId, string $email): ?int
+    {
+        $email = DeveloperInvitations::normalizeEmail($email);
+        $users = DB::table('users')->whereRaw('LOWER(TRIM(email)) = ?', [$email])->sharedLock()->get(['id']);
+        if ($users->count() > 1) {
+            return null;
+        }
+        if ($users->count() === 1 && DB::table('workspace_members')->where('workspace_id', $workspaceId)->where('user_id', $users->first()->id)->where('status', 'active')->whereIn('role', ['owner', 'admin'])->sharedLock()->first()) {
+            return 0;
+        }
+        $invites = DB::table('developer_invitations')->where('workspace_id', $workspaceId)->whereRaw('LOWER(TRIM(email)) = ?', [$email])->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now('UTC'))->orderBy('id')->limit(251)->sharedLock()->get();
+        if ($invites->count() > 250) {
+            return null;
+        }
+        foreach ($this->managerValidity($invites, $workspaceId, true) as $valid) {
+            if ($valid === true) {
+                return 0;
+            } if ($valid === null) {
+                return null;
+            }
+        }
+
+        return 1;
+    }
+
     /** Shadow persistence must not reject an otherwise authorized invitation operation. */
     public function observe(int $invitationId): void
     {
@@ -73,11 +98,11 @@ final class InvitationOccupancy
     }
 
     /** Current invitation facts, not stale reservation hashes, define the union after email edits. */
-    public function measure(int $workspaceId, CarbonImmutable $at): array
+    public function measure(int $workspaceId, CarbonImmutable $at, bool $current = false): array
     {
-        $members = DB::table('workspace_members')->where('workspace_id', $workspaceId)->where('status', 'active')->whereIn('role', ['owner', 'admin']);
+        $members = DB::table('workspace_members')->when($current, fn ($q) => $q->lockForUpdate())->where('workspace_id', $workspaceId)->where('status', 'active')->whereIn('role', ['owner', 'admin']);
         $humans = [];
-        foreach ((clone $members)->orderBy('id')->cursor(['user_id']) as $member) {
+        foreach ((clone $members)->orderBy('id')->limit(20001)->get(['user_id']) as $member) {
             $humans[$this->identity('', $member->user_id)] = true;
             if (count($humans) > 20000) {
                 return ['state' => 'incomplete', 'count' => null, 'reason_codes' => ['occupancy_scan_limit']];
@@ -86,11 +111,11 @@ final class InvitationOccupancy
         $occupied = $humans;
         $count = 0;
         $refresh = false;
-        DB::table('developer_invitations')->where('workspace_id', $workspaceId)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', $at->format('Y-m-d H:i:s.u'))->orderBy('id')->chunkById(200, function ($rows) use ($workspaceId, &$occupied, &$count, &$refresh): bool {
-            $validity = $this->managerValidity($rows, $workspaceId);
+        DB::table('developer_invitations')->where('workspace_id', $workspaceId)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', $at->format('Y-m-d H:i:s.u'))->when($current, fn ($q) => $q->lockForUpdate())->orderBy('id')->chunkById(200, function ($rows) use ($current, $workspaceId, &$occupied, &$count, &$refresh): bool {
+            $validity = $this->managerValidity($rows, $workspaceId, $current);
             $emails = $rows->map(fn ($i) => DeveloperInvitations::normalizeEmail($i->email))->unique()->all();
-            $users = DB::table('users')->whereIn(DB::raw('LOWER(TRIM(email))'), $emails)->get(['id', 'email'])->groupBy(fn ($u) => DeveloperInvitations::normalizeEmail($u->email));
-            $holds = DB::table('entitlement_capacity_reservations')->where('key', 'developers.max')->whereIn('developer_invitation_id', $rows->pluck('id'))->get()->keyBy('developer_invitation_id');
+            $users = DB::table('users')->whereIn(DB::raw('LOWER(TRIM(email))'), $emails)->when($current, fn ($q) => $q->sharedLock())->orderBy('id')->get(['id', 'email'])->groupBy(fn ($u) => DeveloperInvitations::normalizeEmail($u->email));
+            $holds = DB::table('entitlement_capacity_reservations')->where('key', 'developers.max')->whereIn('developer_invitation_id', $rows->pluck('id'))->when($current, fn ($q) => $q->lockForUpdate())->get()->keyBy('developer_invitation_id');
             foreach ($rows as $i) {
                 if ($validity[$i->id] === false) {
                     continue;
@@ -122,19 +147,21 @@ final class InvitationOccupancy
 
             return true;
         });
-        $owners = (clone $members)->where('role', 'owner')->distinct()->count('user_id');
+        $owners = (clone $members)->where('role', 'owner')->get(['user_id'])->unique('user_id')->count();
         $reasons = $owners === 1 ? [] : ['ownership_review_required'];
         if ($count > 20000) {
             $reasons[] = 'invitation_accounting_review_required';
         }
 
-        return ['state' => $reasons ? 'incomplete' : 'ready', 'count' => $count > 20000 ? null : count($occupied), 'human_count' => count($humans), 'invitation_slots' => $count > 20000 ? null : count($occupied) - count($humans), 'observed_human_members' => count($humans), 'reason_codes' => $reasons, 'reservation_refresh_required' => $refresh];
+        ksort($occupied);
+
+        return ['identity_fingerprint' => hash('sha256', json_encode(array_keys($occupied))), 'state' => $reasons ? 'incomplete' : 'ready', 'count' => $count > 20000 ? null : count($occupied), 'human_count' => count($humans), 'invitation_slots' => $count > 20000 ? null : count($occupied) - count($humans), 'observed_human_members' => count($humans), 'reason_codes' => $reasons, 'reservation_refresh_required' => $refresh];
     }
 
-    private function managerValidity(Collection $rows, int $workspaceId): array
+    public function managerValidity(Collection $rows, int $workspaceId, bool $current = false): array
     {
         $scoped = $rows->filter(fn ($i) => $i->project_scoped);
-        $managers = DB::table('workspace_members')->where('workspace_id', $workspaceId)->whereIn('user_id', $scoped->pluck('invited_by'))->where('status', 'active')->whereIn('role', ['owner', 'admin'])->get()->keyBy('user_id');
+        $managers = DB::table('workspace_members')->when($current, fn ($q) => $q->sharedLock())->where('workspace_id', $workspaceId)->whereIn('user_id', $scoped->pluck('invited_by'))->where('status', 'active')->whereIn('role', ['owner', 'admin'])->get()->keyBy('user_id');
         $projects = [];
         $parsed = [];
         foreach ($scoped as $i) {
@@ -146,8 +173,8 @@ final class InvitationOccupancy
                 $parsed[$i->id] = null;
             }
         }
-        $existing = DB::table('projects')->where('workspace_id', $workspaceId)->whereNull('deleted_at')->whereIn('id', $projects)->pluck('id')->all();
-        $assignments = DB::table('project_members')->where('workspace_id', $workspaceId)->whereIn('workspace_member_id', $managers->pluck('id'))->whereIn('project_id', $existing)->get()->groupBy('workspace_member_id');
+        $existing = DB::table('projects')->when($current, fn ($q) => $q->sharedLock())->where('workspace_id', $workspaceId)->whereNull('deleted_at')->whereIn('id', $projects)->pluck('id')->all();
+        $assignments = DB::table('project_members')->when($current, fn ($q) => $q->sharedLock())->where('workspace_id', $workspaceId)->whereIn('workspace_member_id', $managers->pluck('id'))->whereIn('project_id', $existing)->get()->groupBy('workspace_member_id');
         $result = [];
         foreach ($rows as $i) {
             if (! $i->project_scoped) {

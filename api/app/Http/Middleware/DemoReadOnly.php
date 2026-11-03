@@ -30,7 +30,7 @@ class DemoReadOnly
             // credential challenges, private documents, platform tools or future API families.
             $read = $request->isMethod('GET') || $request->isMethod('HEAD');
             $allowed = $request->is('api/demo/status', 'api/demo/enter/developer', 'api/demo/enter/client', 'api/session', 'api/csrf', 'api/entry/branding', 'api/security/status', 'api/admin/*', 'api/client/*', 'api/push/*/status', 'api/notifications/*', 'api/telegram/*', 'api/workspaces/*/branding');
-            if (! $read || $request->is('api/*') && ! $allowed || $request->is('platform', 'platform/*', 'api/platform/*', 'access/*', 'client-sso/*', 'api/admin/account*', 'api/admin/settings/agreement', 'api/admin/agreement')) {
+            if (! $read || $request->is('api/*') && ! $allowed || $request->is('platform', 'platform/*', 'api/platform/*', 'access/*', 'client-sso/*', 'api/admin/resource-selection*', 'api/admin/account*', 'api/admin/settings/agreement', 'api/admin/agreement')) {
                 return DemoEnvironment::blocked();
             }
         }

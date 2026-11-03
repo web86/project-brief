@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\Workspace;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +58,7 @@ class IntegrationWrites
                 $assignment = AgentAccess::assignment($request, (string) $request->route('task'));
                 abort_unless(hash_equals($assignment->uuid, (string) $request->input('assignmentId')), 409);
             }
+            app(ShadowGuard::class)->observe($token->workspace_id, AgentCredentials::isAgent($current) ? 'agent.write' : 'api.write');
             $previous = DB::table('integration_requests')->where('workspace_id', $token->workspace_id)->where('key_hash', $keyHash)->first();
             if ($previous) {
                 abort_unless(hash_equals($previous->body_hash, $bodyHash), 409, 'Idempotency key was already used with another body.');

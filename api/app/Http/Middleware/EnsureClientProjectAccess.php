@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Project;
 use App\Models\ProjectAccessToken;
+use App\Services\Plans\ShadowGuard;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +36,8 @@ class EnsureClientProjectAccess
         if ($requested) {
             abort_unless(($requested instanceof Project ? $requested->id === $access->project_id : $requested === $access->project->uuid), 404);
         }
+
+        app(ShadowGuard::class)->observe($access->project->workspace_id, 'client.access');
 
         return $next($request);
     }

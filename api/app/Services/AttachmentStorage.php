@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Comment;
+use App\Models\Project;
 use App\Models\Task;
+use App\Services\Plans\ShadowGuard;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +33,7 @@ class AttachmentStorage
 
     public static function storeFiles(Request $request, Task $task, array &$paths): void
     {
+        app(ShadowGuard::class)->observe($task->project->workspace_id, 'file.write', []);
         $files = $request->file('attachments', []);
         if ($task->attachments()->whereNull('comment_id')->count() + count($files) > 10) {
             throw ValidationException::withMessages(['attachments' => 'К одной идее можно добавить до 10 файлов.']);
@@ -53,6 +56,7 @@ class AttachmentStorage
 
     public static function storeCommentFiles(Request $request, Comment $comment, ?Task $task, array &$paths): void
     {
+        app(ShadowGuard::class)->observe($comment->project_id ? Project::findOrFail($comment->project_id)->workspace_id : $task->project->workspace_id, 'file.write', []);
         abort_if($task && ($task->project_id !== $comment->project_id || $comment->task_id !== $task->id), 422);
         foreach ($request->file('attachments', []) as $file) {
             $name = Str::uuid().'.'.strtolower($file->getClientOriginalExtension());

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Plans\ShadowGuard;
 use Closure;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,7 @@ class WebhookProcessor
             return true;
         }
 
-        return DB::transaction(function () use ($delivery, $owner): bool|array {
+        $prepared = DB::transaction(function () use ($delivery, $owner): bool|array {
             $recipient = DB::table('webhook_endpoints')->find($delivery->webhook_endpoint_id);
             if ($recipient) {
                 IntegrationWrites::lockWorkspace($recipient->workspace_id);
@@ -84,36 +85,64 @@ class WebhookProcessor
             }
             $attempt = $delivery->attempts + 1;
             DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => 'processing', 'available_at' => now()->addSeconds(90), 'attempts' => $attempt]);
-            $started = microtime(true);
-            $httpStatus = null;
-            $code = null;
-            $retry = false;
-            try {
-                $target = app(WebhookDestination::class)->resolve($endpoint->url);
-                if (! extension_loaded('curl')) {
-                    throw new \RuntimeException('curl_required');
+            app(ShadowGuard::class)->observe($endpoint->workspace_id, 'webhook.send');
+
+            return compact('endpoint', 'event', 'payload', 'attempt');
+        }, 3);
+        if (! is_array($prepared)) {
+            return $prepared;
+        }
+        ['endpoint' => $endpoint, 'event' => $event, 'payload' => $payload, 'attempt' => $attempt] = $prepared;
+        // The bounded external call runs without workspace/lease/endpoint locks. In-flight calls cannot be recalled.
+        $started = microtime(true);
+        $httpStatus = null;
+        $code = null;
+        $retry = false;
+        try {
+            $target = app(WebhookDestination::class)->resolve($endpoint->url);
+            if (! extension_loaded('curl')) {
+                throw new \RuntimeException('curl_required');
+            }
+            $timestamp = (string) now()->timestamp;
+            $signature = hash_hmac('sha256', $timestamp.'.'.$event->body, Crypt::decryptString($endpoint->secret));
+            $response = Http::withOptions(['allow_redirects' => false, 'verify' => true, 'decode_content' => false, 'proxy' => '', 'curl' => [CURLOPT_RESOLVE => [$target['host'].':443:'.(str_contains($target['ip'], ':') ? '['.$target['ip'].']' : $target['ip'])]], 'on_headers' => function ($response): void {
+                if ((int) $response->getHeaderLine('Content-Length') > 16384) {
+                    throw new \RuntimeException('response_too_large');
                 }
-                $timestamp = (string) now()->timestamp;
-                $signature = hash_hmac('sha256', $timestamp.'.'.$event->body, Crypt::decryptString($endpoint->secret));
-                $response = Http::withOptions(['allow_redirects' => false, 'verify' => true, 'decode_content' => false, 'proxy' => '', 'curl' => [CURLOPT_RESOLVE => [$target['host'].':443:'.(str_contains($target['ip'], ':') ? '['.$target['ip'].']' : $target['ip'])]], 'on_headers' => function ($response): void {
-                    if ((int) $response->getHeaderLine('Content-Length') > 16384) {
-                        throw new \RuntimeException('response_too_large');
-                    }
-                }, 'progress' => function ($total, $downloaded): void {
-                    if ($downloaded > 16384) {
-                        throw new \RuntimeException('response_too_large');
-                    }
-                }])->connectTimeout(3)->timeout(8)->withHeaders(['Accept-Encoding' => 'identity', 'X-ProjectBrief-Event' => $event->type, 'X-ProjectBrief-Delivery' => $delivery->uuid, 'X-ProjectBrief-Timestamp' => $timestamp, 'X-ProjectBrief-Signature' => 'sha256='.$signature])->withBody($event->body, 'application/json')->post($endpoint->url);
-                $httpStatus = $response->status();
-                $retry = $httpStatus === 429 || $httpStatus >= 500;
-                $code = $response->successful() ? null : ($retry ? 'remote_transient' : 'remote_rejected');
-            } catch (ValidationException) {
-                $code = 'unsafe_destination';
-            } catch (Throwable) {
-                $code = 'transport_error';
-                $retry = true;
+            }, 'progress' => function ($total, $downloaded): void {
+                if ($downloaded > 16384) {
+                    throw new \RuntimeException('response_too_large');
+                }
+            }])->connectTimeout(3)->timeout(8)->withHeaders(['Accept-Encoding' => 'identity', 'X-ProjectBrief-Event' => $event->type, 'X-ProjectBrief-Delivery' => $delivery->uuid, 'X-ProjectBrief-Timestamp' => $timestamp, 'X-ProjectBrief-Signature' => 'sha256='.$signature])->withBody($event->body, 'application/json')->post($endpoint->url);
+            $httpStatus = $response->status();
+            $retry = $httpStatus === 429 || $httpStatus >= 500;
+            $code = $response->successful() ? null : ($retry ? 'remote_transient' : 'remote_rejected');
+        } catch (ValidationException) {
+            $code = 'unsafe_destination';
+        } catch (Throwable) {
+            $code = 'transport_error';
+            $retry = true;
+        }
+
+        return DB::transaction(function () use ($delivery, $owner, $endpoint, $payload, $attempt, $started, $httpStatus, $code, $retry): bool|array {
+            IntegrationWrites::lockWorkspace($endpoint->workspace_id);
+            $lease = DB::table('integration_locks')->where('name', 'webhooks')->lockForUpdate()->first();
+            if (! $lease || $lease->owner !== $owner) {
+                return false;
+            }
+            $currentEndpoint = DB::table('webhook_endpoints')->where('id', $endpoint->id)->lockForUpdate()->first();
+            $currentDelivery = DB::table('webhook_deliveries')->where('id', $delivery->id)->lockForUpdate()->first();
+            if (! $currentDelivery) {
+                return true;
+            }
+            if ($currentDelivery->attempts !== $attempt || $currentDelivery->status !== 'processing') {
+                return true;
             }
             $status = $code === null ? 'succeeded' : ($retry && $attempt < self::MAX_ATTEMPTS ? 'pending' : 'failed');
+            if (! $currentEndpoint || ! $currentEndpoint->enabled || $currentEndpoint->secret_version !== $endpoint->secret_version) {
+                $status = 'cancelled';
+                $code = 'endpoint_changed';
+            }
             DB::table('webhook_deliveries')->where('id', $delivery->id)->update(['status' => $status, 'http_status' => $httpStatus, 'error_code' => $code, 'available_at' => now()->addSeconds(min(3600, 30 * (2 ** ($attempt - 1)))), 'updated_at' => now()]);
             if ($status === 'succeeded' && isset($payload['runId'])) {
                 DB::table('agent_runs')->where('uuid', $payload['runId'])->whereNull('delivered_at')->update(['delivered_at' => now()]);

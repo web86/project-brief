@@ -125,7 +125,7 @@ class QuietWebhookCronTest extends TestCase
         $this->assertMatchesRegularExpression('/^\S+ webhook command=integrations:webhooks code=internal_error\n$/', $fatal->getErrorOutput());
     }
 
-    public function test_history_database_failure_rolls_back_and_exits_nonzero_without_stack_trace(): void
+    public function test_completion_failure_preserves_durable_claim_and_exits_nonzero_without_stack_trace(): void
     {
         $this->silent($this->runCommand('seed'));
         $failed = $this->runCommand('db-error');
@@ -133,7 +133,9 @@ class QuietWebhookCronTest extends TestCase
         $this->assertSame('', $failed->getOutput());
         $this->assertStringContainsString('code=internal_error', $failed->getErrorOutput());
         $this->assertStringNotContainsString('SQL', $failed->getErrorOutput());
-        $this->assertSame(['pending', 'pending'], json_decode($this->runCommand('stats')->getOutput(), true)['statuses']);
+        $stats = json_decode($this->runCommand('stats')->getOutput(), true);
+        $this->assertSame(['processing', 'pending'], $stats['statuses']);
+        $this->assertNull($stats['attempts']);
         $lockError = $this->runCommand('lock-error');
         $this->assertSame(1, $lockError->getExitCode());
         $this->assertStringContainsString('code=internal_error', $lockError->getErrorOutput());

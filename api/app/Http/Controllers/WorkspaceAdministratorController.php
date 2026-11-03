@@ -11,6 +11,7 @@ use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
 use App\Services\DeveloperInvitations;
 use App\Services\Plans\InvitationOccupancy;
+use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectPermissions;
 use App\Services\WorkspaceAgreements;
 use Illuminate\Http\JsonResponse;
@@ -77,6 +78,7 @@ class WorkspaceAdministratorController extends Controller
             if ($pending) {
                 return response()->json(['code' => 'administrator_invitation_exists', 'errors' => ['invitationId' => $pending->uuid]], 409);
             }
+            app(ShadowGuard::class)->observe($owner->workspace_id, 'developer.invite', ['developers.max' => app(InvitationOccupancy::class)->invitationDelta($owner->workspace_id, $email)]);
             $invitation = DeveloperInvitation::create(['workspace_id' => $owner->workspace_id, 'invited_by' => $owner->user_id, 'email' => $email, 'name' => $data['name'] ?? null, 'project_ids' => $ids, 'locale' => $owner->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7), 'is_project_superadmin' => $data['isProjectSuperadmin'] ?? false, 'can_create_projects' => false, 'project_permissions' => $data['projectPermissions'] ?? null]);
             app(InvitationOccupancy::class)->observe($invitation->id);
             $sent = ($data['sendEmail'] ?? true) ? $invitations->deliver($invitation) : false;
@@ -201,6 +203,7 @@ class WorkspaceAdministratorController extends Controller
             app(DeveloperInvitations::class)->owner($request);
             $target = WorkspaceMember::where('workspace_id', $owner->workspace_id)->whereIn('role', ['admin', 'owner'])->whereKey($member)->lockForUpdate()->firstOrFail();
             abort_if($target->role === 'owner', 403);
+            app(ShadowGuard::class)->observe($owner->workspace_id, ($data['status'] ?? null) === 'inactive' ? 'safe.reduce' : 'developer.change', ['developers.max' => $target->status !== 'active' && ($data['status'] ?? null) === 'active' ? null : 0]);
             if (isset($data['status'])) {
                 $target->update(['status' => $data['status']]);
                 if ($data['status'] === 'inactive') {

@@ -28,8 +28,11 @@ class PlatformPlansController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->validate(['q' => 'nullable|string|max:100', 'status' => 'nullable|in:draft,published,archived', 'visibility' => 'nullable|in:public,hidden', 'sort' => 'nullable|in:code,status,newest,order', 'page' => 'nullable|integer|min:1', 'perPage' => 'nullable|integer|min:25|max:100']);
+        $filters = $request->validate(['showSystem' => 'sometimes|boolean', 'q' => 'nullable|string|max:100', 'status' => 'nullable|in:draft,published,archived', 'visibility' => 'nullable|in:public,hidden', 'sort' => 'nullable|in:code,status,newest,order', 'page' => 'nullable|integer|min:1', 'perPage' => 'nullable|integer|min:25|max:100']);
         $query = Plan::with(['versions' => fn ($q) => $q->latest('number')->limit(20)]);
+        if (! ($filters['showSystem'] ?? false)) {
+            $query->whereDoesntHave('versions', fn ($q) => $q->where('access_class', 'compatibility'));
+        }
         if ($filters['q'] ?? '') {
             $search = '%'.($filters['q']).'%';
             $query->where(fn ($q) => $q->where('code', 'like', $search)->orWhereHas('versions', fn ($v) => $v->where('translations_json->ru->name', 'like', $search)->orWhere('translations_json->en->name', 'like', $search)->orWhere('translations_json->tr->name', 'like', $search)->orWhere('translations_json->zh-CN->name', 'like', $search)));
@@ -251,6 +254,6 @@ class PlatformPlansController extends Controller
 
     private function planResource(Plan $plan, array $limits = []): array
     {
-        return ['id' => $plan->uuid, 'code' => $plan->code, 'status' => $plan->status, 'visibility' => $plan->visibility, 'revision' => (string) $plan->revision, 'sortOrder' => $plan->sort_order, 'hasDraft' => $plan->has_draft ?? $plan->versions->contains('state', 'draft'), 'versions' => $plan->versions->map(fn ($v) => ['id' => $v->uuid, 'number' => $v->number, 'state' => $v->state, 'revision' => (string) $v->revision, 'translations' => $v->translations_json, 'price' => $v->price_json, 'developerSeats' => $v->developer_seats_json, 'limits' => $limits[$v->id] ?? [], 'current' => $plan->published_version_id === $v->id])];
+        return ['id' => $plan->uuid, 'code' => $plan->code, 'status' => $plan->status, 'visibility' => $plan->visibility, 'revision' => (string) $plan->revision, 'sortOrder' => $plan->sort_order, 'hasDraft' => $plan->has_draft ?? $plan->versions->contains('state', 'draft'), 'versions' => $plan->versions->map(fn ($v) => ['id' => $v->uuid, 'number' => $v->number, 'accessClass' => $v->access_class, 'state' => $v->state, 'revision' => (string) $v->revision, 'translations' => $v->translations_json, 'price' => $v->price_json, 'developerSeats' => $v->developer_seats_json, 'limits' => $limits[$v->id] ?? [], 'current' => $plan->published_version_id === $v->id])];
     }
 }

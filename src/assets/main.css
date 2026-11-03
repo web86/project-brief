@@ -90,8 +90,8 @@
   --muted: #a7b2c3;
   --border: #414d5e;
   --surface: #1e242e;
-  --action: #beb5ff;
-  --action-hover: #d0caff;
+  --action: #5b4bd6;
+  --action-hover: #4939bc;
   --link: #beb5ff;
   --focus: #bdb4ff;
   --text-secondary: #d1d9e5;
@@ -157,7 +157,7 @@
   --loading-overlay: rgb(21 25 31 / 55%);
   --toolbar-bg: rgb(30 36 46 / 96%);
   --drawer-backdrop: rgb(8 12 20 / 65%);
-  --on-action: #241c4d;
+  --on-action: #fff;
   --input-bg: #191f28;
   --input-border: #68778e;
   color-scheme: dark;

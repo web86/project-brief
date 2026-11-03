@@ -12,6 +12,8 @@ use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
 use App\Services\CurrentWorkspace;
 use App\Services\DeveloperInvitations;
+use App\Services\Plans\InvitationOccupancy;
+use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,6 +49,7 @@ class ProjectTeamController extends Controller
 
                 return response()->json(['assigned' => true]);
             }
+            app(ShadowGuard::class)->observe($manager->workspace_id, 'developer.invite', ['developers.max' => app(InvitationOccupancy::class)->invitationDelta($manager->workspace_id, $email)]);
             $invitation = DeveloperInvitation::create(['workspace_id' => $manager->workspace_id, 'invited_by' => $manager->user_id, 'email' => $email, 'name' => $data['name'] ?? null,
                 'project_ids' => [$project->id], 'project_scoped' => true, 'is_project_superadmin' => false, 'locale' => $manager->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7)]);
             $link = ($data['generateLink'] ?? false) ? $invitations->issue($invitation) : null;

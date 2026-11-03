@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ExternalAgent;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,8 @@ class AgentCredentials
         }
         $request->attributes->set('integration_agent', $agent);
 
+        app(ShadowGuard::class)->observe($agent->workspace_id, 'agent.read', []);
+
         return $agent;
     }
 
@@ -59,6 +62,7 @@ class AgentCredentials
         if (($current ? (int) $current->integration_token_id : null) === ($token ? (int) $token->id : null)) {
             return;
         }
+        app(ShadowGuard::class)->observe($agent->workspace_id, 'agent.key', []);
         DB::table('agent_credential_links')->where('external_agent_id', $agent->id)->delete();
         if ($token) {
             DB::table('agent_credential_links')->insert(['uuid' => (string) Str::uuid(), 'workspace_id' => $agent->workspace_id, 'integration_token_id' => $token->id, 'external_agent_id' => $agent->id, 'created_at' => now()]);

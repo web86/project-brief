@@ -232,7 +232,7 @@ const changed = (section) =>
                   :pattern="key === 'primaryColor' ? '#[0-9a-fA-F]{6}' : undefined"
                   :placeholder="
                     key === 'primaryColor'
-                      ? '#2454a5'
+                      ? '#5b4bd6'
                       : key === 'website'
                         ? 'company.com'
                         : undefined
@@ -266,7 +266,7 @@ const changed = (section) =>
                   ><span class="sr-only">{{ t('branding.fields.primaryColor') }}</span
                   ><input
                     type="color"
-                    :value="store.draft.visual.primaryColor || '#2454a5'"
+                    :value="store.draft.visual.primaryColor || '#5b4bd6'"
                     @input="store.draft.visual.primaryColor = $event.target.value" /></label
                 ><button
                   type="button"

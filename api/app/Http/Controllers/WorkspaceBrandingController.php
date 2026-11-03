@@ -8,6 +8,7 @@ use App\Services\AttachmentStorage;
 use App\Services\BrandImage;
 use App\Services\CompanyWebsite;
 use App\Services\CurrentWorkspace;
+use App\Services\Plans\ShadowGuard;
 use App\Services\WorkspaceBranding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class WorkspaceBrandingController extends Controller
         abort_unless($request->route('brandingWorkspace') === $member->workspace->uuid, 404);
         if (! $request->isMethodSafe()) {
             app(AccountSecurity::class)->requireFresh($request);
+            app(ShadowGuard::class)->observe($member->workspace_id, 'branding.write');
         }
 
         return $lock ? Workspace::whereKey($member->workspace_id)->lockForUpdate()->firstOrFail() : $member->workspace;

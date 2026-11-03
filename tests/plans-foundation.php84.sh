@@ -13,7 +13,7 @@ for entry in app config database lang resources routes tests artisan composer.js
 done
 mkdir -p "$qa_root/api/bootstrap/cache" "$qa_root/api/storage/framework/cache/data" "$qa_root/api/storage/framework/sessions" "$qa_root/api/storage/framework/views" "$qa_root/api/storage/app/private" "$qa_root/api/storage/logs"
 cp /workspace/api/bootstrap/app.php /workspace/api/bootstrap/providers.php "$qa_root/api/bootstrap/"
-ln -s /workspace/api/vendor "$qa_root/api/vendor"
+cp -R /workspace/api/vendor "$qa_root/api/vendor"
 ln -s /workspace/tests "$qa_root/tests"
 export APP_BASE_PATH="$qa_root/api"
 APP_KEY="$(php -r 'echo "base64:".base64_encode(random_bytes(32));')"

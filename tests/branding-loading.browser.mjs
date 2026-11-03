@@ -25,7 +25,13 @@ const results = []
 const runtimeErrors = []
 let browser
 
-async function fixture({ mode = 'system', language = 'ru', guest = false, ...options } = {}) {
+async function fixture({
+  mode = 'system',
+  language = 'ru',
+  guest = false,
+  color = null,
+  ...options
+} = {}) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     colorScheme: 'light',
@@ -49,7 +55,8 @@ async function fixture({ mode = 'system', language = 'ru', guest = false, ...opt
         await route.fulfill({ status: 401, json: { message: 'Unauthenticated' } })
         return
       }
-      if (path === '/api/csrf') json = { token: 'fixture' }
+      if (path === '/api/entry/branding') json = { branding: { primaryColor: color } }
+      else if (path === '/api/csrf') json = { token: 'fixture' }
       else if (path === '/api/session') json = { persona: 'guest' }
       else if (path.endsWith('/push/status')) json = { available: false }
       else if (path === '/api/admin/me')
@@ -60,7 +67,7 @@ async function fixture({ mode = 'system', language = 'ru', guest = false, ...opt
             email: 'alex@example.test',
             membershipRole: 'owner',
           },
-          workspace: { id: 'studio', name: 'Studio workspace' },
+          workspace: { id: 'studio', name: 'Studio workspace', branding: { primaryColor: color } },
         }
       else if (path === '/api/client/me')
         json = { id: 'client', name: 'Анна', preferredLocale: 'ru' }
@@ -79,7 +86,7 @@ async function fixture({ mode = 'system', language = 'ru', guest = false, ...opt
       else if (path.endsWith('/tasks')) json = { data: demo.tasks }
       else if (path.endsWith('/sections')) json = { data: demo.sections }
       else if (path === `/api/admin/projects/${id}` || path === `/api/client/project/${id}`)
-        json = { data: project }
+        json = { data: { ...project, branding: { primaryColor: color } } }
       else if (path.endsWith('/me/locale'))
         json = { preferredLocale: route.request().postDataJSON().locale }
       await route.fulfill({ json })
@@ -324,6 +331,23 @@ try {
     }
     results.push(
       'Favicon, manifest, PNG/Apple assets return 200; 16/32px favicon and circular maskable visual preview',
+    )
+    for (const mode of ['light', 'dark', 'system']) {
+      for (const color of [null, '#17695d']) {
+        const { context, page } = await fixture({ mode, color })
+        for (const path of ['/admin', `/project/${id}`, '/admin/login']) {
+          await ready(page, path)
+          const actual = await page
+            .locator('.workspace-appearance')
+            .evaluate((e) => getComputedStyle(e).getPropertyValue('--action').trim())
+          assert.equal(actual, color || '#5b4bd6', `${mode} ${color} ${path}`)
+        }
+        await screenshot(page, `palette-${mode}-${color ? 'custom' : 'default'}`)
+        await context.close()
+      }
+    }
+    results.push(
+      'Browser computed colors: default #5b4bd6 and explicit custom priority on admin/client/login, light/dark/system',
     )
     assert.deepEqual(runtimeErrors, [])
     await writeFile(

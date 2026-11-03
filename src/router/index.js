@@ -195,6 +195,17 @@ export function createProjectRouter({
             },
           },
           {
+            path: 'settings/resource-preview',
+            component: () => import('../views/ResourceSelectionView.vue'),
+            meta: {
+              ownerOnly: true,
+              personalSettings: true,
+              get title() {
+                return t('preparation.title')
+              },
+            },
+          },
+          {
             path: 'settings/branding',
             component: () => import('../views/AdminBrandingView.vue'),
             meta: {

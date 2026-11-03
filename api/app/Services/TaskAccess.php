@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -40,6 +41,9 @@ class TaskAccess
             $query->lockForUpdate();
         }
 
-        return $query->firstOrFail();
+        $task = $query->firstOrFail();
+        app(ShadowGuard::class)->observe($task->project->workspace_id, $request->isMethodSafe() ? 'task.read' : 'task.write');
+
+        return $task;
     }
 }
