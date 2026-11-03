@@ -1,0 +1,392 @@
+{
+  "sourceCommit": "ab6af9aa5c48ab8df84a82bab0d17c434fd86281",
+  "branch": "codex/phase-4b1-ux-polish",
+  "production": {
+    "archive": "release/dev2done-v0.9.16-ab6af9a.zip",
+    "bytes": 39801617,
+    "files": 9018,
+    "sha256": "ab6c049e44b2571b69a59ddadeaf1871472b4fdf00023707339338d6d25a8de6",
+    "release": {
+      "version": "0.9.16",
+      "product": "Dev2Done",
+      "commit": "ab6af9aa5c48ab8df84a82bab0d17c434fd86281",
+      "builtAt": "2026-11-03T12:45:17.203Z",
+      "phpTarget": "8.4",
+      "domain": "brief.web86.site"
+    },
+    "extracted": "/tmp/dev2done-ux-polish-production-ab6af9a"
+  },
+  "static": {
+    "archive": "release/dev2done-static-demo-v4-ab6af9a.zip",
+    "sha256": "7cf3762cf5ba5b582a29581f9f08b6aa5543dca49603b7118a1d64bac6512558",
+    "bytes": 2948587,
+    "files": 273,
+    "release": {
+      "type": "project-brief-static-demo",
+      "product": "Dev2Done",
+      "version": 4,
+      "schemaVersion": 1,
+      "commit": "ab6af9aa5c48ab8df84a82bab0d17c434fd86281",
+      "preview": false,
+      "builtAt": "2026-11-03T12:45:00.847Z",
+      "sourceContentHash": "9a39a84bb3111143a29505bacb254b15268393c08975d170d7e78240ee6af77c",
+      "runtime": "static HTTP only; no PHP, database or authentication server"
+    },
+    "extracted": "/tmp/dev2done-ux-polish-static-ab6af9a"
+  },
+  "fullMariaDB": {
+    "php": "8.4.26",
+    "database": "MariaDB11.8.9",
+    "passed": 1182,
+    "assertions": 17122,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "canonicalSource": {
+    "php": "8.5.10",
+    "database": "SQLite",
+    "tests": 1182,
+    "passed": 1176,
+    "assertions": 16964,
+    "skipped": 6,
+    "errors": 0,
+    "failures": 0
+  },
+  "frontend": {
+    "passed": 453
+  },
+  "uxContracts": {
+    "tests": 3,
+    "assertions": 75,
+    "sqlite": true,
+    "mariadb": true
+  },
+  "focusedAuth": {
+    "tests": 39,
+    "assertions": 486
+  },
+  "sourceBrowser": {
+    "groups": 20,
+    "screenshots": 106,
+    "consoleErrors": [],
+    "liveProviderRequests": 0
+  },
+  "compiledBrowser": {
+    "package": true,
+    "results": [
+      {
+        "scenario": "email signup \u2192 owned proof \u2192 real MFA enrollment \u2192 pending activation; no workspace access",
+        "passed": true
+      },
+      {
+        "scenario": "fresh explicit provider link cancellation and success return to connected methods",
+        "passed": true
+      },
+      {
+        "scenario": "optional real virtual Passkey lives in settings and never changes completion",
+        "passed": true
+      },
+      {
+        "scenario": "returning owner after logout/password/MFA goes directly to account status",
+        "passed": true
+      },
+      {
+        "scenario": "operator security recovery preserves pending activation and returns through required steps",
+        "passed": true
+      },
+      {
+        "scenario": "mock GitHub PKCE, cancellation, retry, verified owner primary login",
+        "passed": true
+      },
+      {
+        "language": "en",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "en",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "en",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "mandatorySecuritySteps": 2,
+        "serverCompletion": true,
+        "personalSecurity": true,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "scenario": "Compatibility owner retains business access and permanent security settings",
+        "passed": true
+      },
+      {
+        "scenario": "server-controlled closed registration and unconfigured providers have no active signup form",
+        "passed": true
+      }
+    ],
+    "consoleErrors": [],
+    "screenshots": [
+      "en-email-pending.png",
+      "en-authenticator-step.png",
+      "en-recovery-step.png",
+      "en-completion.png",
+      "en-ready-connections.png",
+      "en-ready-linked-github.png",
+      "security-recovery-completion.png",
+      "en-light-login.png",
+      "en-light-register.png",
+      "en-light-verify-email.png",
+      "en-light-authenticator.png",
+      "en-light-recovery.png",
+      "en-light-completion.png",
+      "en-light-security.png",
+      "en-tablet-completion.png",
+      "en-tablet-security.png",
+      "en-light-diagnostics.png",
+      "en-dark-login.png",
+      "en-dark-register.png",
+      "en-dark-verify-email.png",
+      "en-dark-authenticator.png",
+      "en-dark-recovery.png",
+      "en-dark-completion.png",
+      "en-dark-security.png",
+      "en-dark-diagnostics.png",
+      "en-system-login.png",
+      "en-system-register.png",
+      "en-system-verify-email.png",
+      "en-system-authenticator.png",
+      "en-system-recovery.png",
+      "en-system-completion.png",
+      "en-system-security.png",
+      "en-system-diagnostics.png",
+      "ru-light-login.png",
+      "ru-light-register.png",
+      "ru-light-verify-email.png",
+      "ru-light-authenticator.png",
+      "ru-light-recovery.png",
+      "ru-light-completion.png",
+      "ru-light-security.png",
+      "ru-light-diagnostics.png",
+      "ru-dark-login.png",
+      "ru-dark-register.png",
+      "ru-dark-verify-email.png",
+      "ru-dark-authenticator.png",
+      "ru-dark-recovery.png",
+      "ru-dark-completion.png",
+      "ru-dark-security.png",
+      "ru-dark-diagnostics.png",
+      "ru-system-login.png",
+      "ru-system-register.png",
+      "ru-system-verify-email.png",
+      "ru-system-authenticator.png",
+      "ru-system-recovery.png",
+      "ru-system-completion.png",
+      "ru-system-security.png",
+      "ru-system-diagnostics.png",
+      "tr-light-login.png",
+      "tr-light-register.png",
+      "tr-light-verify-email.png",
+      "tr-light-authenticator.png",
+      "tr-light-recovery.png",
+      "tr-light-completion.png",
+      "tr-light-security.png",
+      "tr-light-diagnostics.png",
+      "tr-dark-login.png",
+      "tr-dark-register.png",
+      "tr-dark-verify-email.png",
+      "tr-dark-authenticator.png",
+      "tr-dark-recovery.png",
+      "tr-dark-completion.png",
+      "tr-dark-security.png",
+      "tr-dark-diagnostics.png",
+      "tr-system-login.png",
+      "tr-system-register.png",
+      "tr-system-verify-email.png",
+      "tr-system-authenticator.png",
+      "tr-system-recovery.png",
+      "tr-system-completion.png",
+      "tr-system-security.png",
+      "tr-system-diagnostics.png",
+      "zh-CN-light-login.png",
+      "zh-CN-light-register.png",
+      "zh-CN-light-verify-email.png",
+      "zh-CN-light-authenticator.png",
+      "zh-CN-light-recovery.png",
+      "zh-CN-light-completion.png",
+      "zh-CN-light-security.png",
+      "zh-CN-light-diagnostics.png",
+      "zh-CN-dark-login.png",
+      "zh-CN-dark-register.png",
+      "zh-CN-dark-verify-email.png",
+      "zh-CN-dark-authenticator.png",
+      "zh-CN-dark-recovery.png",
+      "zh-CN-dark-completion.png",
+      "zh-CN-dark-security.png",
+      "zh-CN-dark-diagnostics.png",
+      "zh-CN-system-login.png",
+      "zh-CN-system-register.png",
+      "zh-CN-system-verify-email.png",
+      "zh-CN-system-authenticator.png",
+      "zh-CN-system-recovery.png",
+      "zh-CN-system-completion.png",
+      "zh-CN-system-security.png",
+      "zh-CN-system-diagnostics.png",
+      "compatibility-owner-security.png",
+      "ru-dark-register-github-only.png",
+      "ru-registration-closed.png"
+    ],
+    "liveProviderRequests": 0
+  },
+  "staticBrowser": {
+    "screens": 87,
+    "apiRequests": [],
+    "writes": [],
+    "external": [],
+    "errors": []
+  },
+  "staticData": {
+    "unchangedFiles": 143,
+    "manifestSha256": "8f42d433b5f9f467877ee36d89a24b02a538afa2da8ac28cb83698cc4b9ae42c"
+  },
+  "php84ProductionVendor": {
+    "signedWebAuthn": true,
+    "fullHttpRuntime": true,
+    "plans": true,
+    "onboarding": true,
+    "privacyAndNoDemo": true
+  },
+  "gates": {
+    "productionRegistration": false,
+    "trialActivation": false
+  },
+  "productionChanged": false,
+  "cleanup": {
+    "ownQaContainersAndVolumeRemoved": true,
+    "persistentDemoContainersRetained": 4,
+    "professionalDemoHttp": 200,
+    "staticPreviewHttp": 200
+  },
+  "notVerified": [
+    "live OAuth consent",
+    "SMTP delivery",
+    "Jino",
+    "hardware TouchID",
+    "Safari/WebKit"
+  ]
+}
