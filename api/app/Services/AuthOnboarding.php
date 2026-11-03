@@ -124,9 +124,27 @@ final class AuthOnboarding
         }
         $security = app(AccountSecurity::class)->state($request);
         $verified = $user->email_verified_at !== null;
-        $ready = $verified && $row->workspace_id && $security === 'authenticated';
+        $member = $row->workspace_id ? $user->workspaceMembers()->active()->with('workspace')->where('workspace_id', $row->workspace_id)->first() : null;
+        $agreementRequired = $member && app(WorkspaceAgreements::class)->required($member);
+        $checks = ['emailVerified' => $verified, 'totpConfirmed' => $user->hasEnabledTwoFactorAuthentication(), 'recoveryAcknowledged' => (bool) $user->recovery_codes_acknowledged_at, 'agreementAccepted' => ! $agreementRequired, 'workspacePrepared' => (bool) $member];
+        $ready = ! in_array(false, $checks, true) && $security === 'authenticated';
+        $step = match (true) {
+            ! $verified => 'email',
+            ! $checks['totpConfirmed'] => 'authenticator',
+            ! $checks['recoveryAcknowledged'] => 'recovery',
+            $security !== 'authenticated' => 'security',
+            $agreementRequired => 'agreement',
+            ! $checks['workspacePrepared'] => 'preparing',
+            default => 'complete',
+        };
+        $nextPath = match ($step) {
+            'email' => '/admin/verify-email',
+            'agreement' => '/admin/agreement',
+            'complete', 'preparing' => '/admin/onboarding',
+            default => '/admin/security',
+        };
 
-        return ['onboarding' => true, 'state' => ! $verified ? 'email_verification_pending' : ($ready ? 'ready_for_trial_activation' : 'security_and_agreement_onboarding'), 'email' => $user->email, 'emailVerified' => $verified, 'passwordEnabled' => (bool) $user->password_login_enabled, 'workspacePrepared' => (bool) $row->workspace_id, 'securityState' => $security, 'trialActivationEnabled' => false, 'resendAfter' => $row->sent_at ? CarbonImmutable::parse($row->sent_at, 'UTC')->addSeconds(config('onboarding.resend_seconds'))->toISOString() : null, 'nextPath' => ! $verified ? '/admin/verify-email' : ($ready ? '/admin/onboarding' : '/admin/security')];
+        return ['onboarding' => true, 'state' => ! $verified ? 'email_verification_pending' : ($ready ? 'ready_for_trial_activation' : 'security_and_agreement_onboarding'), 'step' => $step, 'checks' => $checks, 'agreementRequired' => (bool) $agreementRequired, 'registrationEnabled' => app(RegistrationReadiness::class)->registrationEnabled(), 'email' => $user->email, 'emailVerified' => $verified, 'passwordEnabled' => (bool) $user->password_login_enabled, 'workspacePrepared' => $checks['workspacePrepared'], 'securityState' => $security, 'trialActivationEnabled' => app(RegistrationReadiness::class)->activationEnabled(), 'resendAfter' => $row->sent_at ? CarbonImmutable::parse($row->sent_at, 'UTC')->addSeconds(config('onboarding.resend_seconds'))->toISOString() : null, 'nextPath' => $nextPath];
     }
 
     public function audit(User $user, string $event, array $metadata = []): void

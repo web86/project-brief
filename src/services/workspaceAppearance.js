@@ -42,6 +42,7 @@ export const isEntryRoute = (route) =>
     '/register',
     '/admin/verify-email',
     '/admin/onboarding',
+    '/admin/account/security',
   ].includes(route.path) || route.meta.clientLogin === true
 export function activeWorkspaceBrand(route, admin, project) {
   if (route.meta.adminShell) {

@@ -2,7 +2,8 @@
 import SocialConnections from './SocialConnections.vue'
 import { STATIC_DEMO } from '../services/demo.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import AppIcon from './AppIcon.vue'
 import { api } from '../api/client.js'
 import { t, formatApiError, formatDate } from '../i18n/index.js'
 import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
@@ -11,8 +12,13 @@ import LoadingButton from './LoadingButton.vue'
 import SecurityError from './SecurityError.vue'
 import { toast } from '../services/toast.js'
 const props = defineProps({ onboarding: Boolean })
-const showPasskeyForm = ref(!props.onboarding)
+const showPasskeyForm = ref(false)
 const emit = defineEmits(['ready'])
+const mandatoryFlow = computed(
+  () =>
+    props.onboarding &&
+    (state.value?.owner || state.value?.platformAdmin || state.value?.onboardingNext),
+)
 const state = ref(null),
   setup = ref(null),
   codes = ref([]),
@@ -62,7 +68,7 @@ async function action(run, success, context = 'general') {
   errorContext.value = context
   try {
     await run()
-    if (success) toast.success(() => t(`security.${success}`))
+    if (success && !props.onboarding) toast.success(() => t(`security.${success}`))
   } catch (cause) {
     if (isSecurityCancellation(cause)) return
     error.value = cause
@@ -122,7 +128,7 @@ function recovery(regenerate = false) {
       await load()
     },
     regenerate ? 'securityUpdated' : 'recoveryShown',
-    'totp',
+    'recovery',
   )
 }
 function acknowledge() {
@@ -134,7 +140,7 @@ function acknowledge() {
       codes.value = []
     },
     'recoverySaved',
-    'totp',
+    'recovery',
   )
 }
 function register() {
@@ -217,7 +223,11 @@ function finish() {
       {{ t('ui.tryAgain') }}
     </button>
     <template v-if="state">
-      <p v-if="state.state === 'enrollment_required'" class="surface security-notice" role="status">
+      <p
+        v-if="!props.onboarding && state.state === 'enrollment_required'"
+        class="surface security-notice"
+        role="status"
+      >
         {{ t('security.enrollmentHelp') }}
       </p>
       <RouterLink v-if="state.state === 'guest'" to="/admin/login">{{
@@ -230,15 +240,19 @@ function finish() {
             (state.state === 'enrollment_required' && !state.setupFresh && !state.recoveryFresh))
         "
         :pending="state.state === 'pending_2fa'"
+        :quiet-success="props.onboarding"
         @confirmed="refreshed"
       />
       <div
         v-else-if="state.state !== 'guest'"
         :class="{ 'onboarding-security-grid': props.onboarding }"
       >
-        <section class="surface admin-form">
+        <section
+          v-if="!mandatoryFlow || !state.totp"
+          class="surface admin-form authentication-section"
+        >
           <h2>
-            {{ t('security.authenticator') }}
+            <AppIcon name="shield" :size="22" />{{ t('security.authenticator') }}
             <span class="small muted">{{
               t(state.owner || state.platformAdmin ? 'security.required' : 'security.optional')
             }}</span>
@@ -308,31 +322,11 @@ function finish() {
                 >
               </form>
             </template>
-            <h3>{{ t('security.recoveryCodes') }}</h3>
-            <p>{{ t('security.recoveryHelp') }}</p>
-            <div class="security-actions">
-              <button class="button secondary" :disabled="busy" @click="recovery()">
-                {{ t('security.showCodes') }}
-              </button>
-              <button class="text-button" :disabled="busy" @click="recovery(true)">
-                {{ t('security.regenerateCodes') }}
-              </button>
-            </div>
-            <template v-if="codes.length">
-              <ul class="security-codes">
-                <li v-for="item in codes" :key="item">
-                  <code>{{ item }}</code>
-                </li>
-              </ul>
-              <button class="button primary" :disabled="busy" @click="acknowledge">
-                {{ t('security.savedCodes') }}
-              </button>
-            </template>
           </template>
         </section>
-        <section class="surface admin-form">
+        <section v-if="!mandatoryFlow" class="surface admin-form passkeys-section">
           <h2>
-            {{ t('security.passkeys') }}
+            <AppIcon name="key" :size="22" />{{ t('security.passkeys') }}
             <span class="small muted">{{ t('security.optional') }}</span>
           </h2>
           <p>
@@ -429,6 +423,46 @@ function finish() {
             {{ t('security.lastPasskey') }}
           </p>
         </section>
+        <SocialConnections v-if="!props.onboarding && state.signedIn" />
+        <section
+          v-if="state.totp && (!mandatoryFlow || !state.recoverySaved)"
+          class="surface admin-form recovery-section"
+        >
+          <h2><AppIcon name="life-buoy" :size="22" />{{ t('security.recoveryCodes') }}</h2>
+          <p>{{ t(mandatoryFlow ? 'onboarding.saveCodesHint' : 'security.recoveryHelp') }}</p>
+          <SecurityError v-if="errorContext === 'recovery'" :error="error" />
+          <p v-if="STATIC_DEMO && state.recoverySaved" class="small" role="status">
+            {{ t('security.recoverySaved') }}
+          </p>
+          <div v-if="!STATIC_DEMO && (!codes.length || !mandatoryFlow)" class="security-actions">
+            <button class="button secondary" :disabled="busy" @click="recovery()">
+              {{ t('security.showCodes') }}
+            </button>
+            <button
+              v-if="!mandatoryFlow"
+              class="text-button"
+              :disabled="busy"
+              @click="recovery(true)"
+            >
+              {{ t('security.regenerateCodes') }}
+            </button>
+          </div>
+          <template v-if="codes.length">
+            <ul class="security-codes">
+              <li v-for="item in codes" :key="item">
+                <code>{{ item }}</code>
+              </li>
+            </ul>
+            <button
+              v-if="!state.recoverySaved"
+              class="button primary"
+              :disabled="busy"
+              @click="acknowledge"
+            >
+              {{ t('security.savedCodes') }}
+            </button>
+          </template>
+        </section>
         <button
           v-if="props.onboarding && state.state === 'authenticated'"
           class="button secondary onboarding-continue"
@@ -438,13 +472,12 @@ function finish() {
         </button>
       </div>
     </template>
-    <SocialConnections v-if="!props.onboarding && state?.signedIn" />
   </section>
 </template>
 <style scoped>
 .onboarding-security-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   align-items: start;
 }
@@ -518,5 +551,27 @@ function finish() {
 textarea {
   max-width: 100%;
   box-sizing: border-box;
+}
+</style>
+
+<style scoped>
+.account-security-panel h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.account-security-panel h2 :deep(svg) {
+  flex-shrink: 0;
+  color: var(--link);
+}
+.account-security-panel .surface {
+  padding: 24px;
+  gap: 12px;
+  min-width: 0;
+}
+.account-security-panel p {
+  margin: 0;
 }
 </style>

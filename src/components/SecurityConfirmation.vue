@@ -6,7 +6,12 @@ import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.
 import LoadingButton from './LoadingButton.vue'
 import SecurityError from './SecurityError.vue'
 import { toast } from '../services/toast.js'
-const props = defineProps({ pending: Boolean, compact: Boolean, initialStatus: Object })
+const props = defineProps({
+  pending: Boolean,
+  compact: Boolean,
+  initialStatus: Object,
+  quietSuccess: Boolean,
+})
 const emit = defineEmits(['confirmed'])
 const status = ref(props.initialStatus || null),
   password = ref(''),
@@ -50,7 +55,7 @@ async function confirm(passkey = false) {
     api.resetCsrf()
     password.value = ''
     code.value = ''
-    toast.success(() => t('security.identityConfirmed'))
+    if (!props.quietSuccess) toast.success(() => t('security.identityConfirmed'))
     emit('confirmed', result)
   } catch (cause) {
     error.value = cause

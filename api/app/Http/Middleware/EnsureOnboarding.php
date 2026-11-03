@@ -22,7 +22,7 @@ class EnsureOnboarding
             $safe = $request->is('api/security/*', 'api/admin/account', 'api/admin/account/password', 'api/admin/account/email*', 'api/admin/agreement', 'api/admin/agreement/accept');
         }
         if (! str_starts_with($request->path(), 'api/') && ! str_starts_with($request->path(), 'auth/')) {
-            if ($request->is('register', 'admin/login', 'admin/verify-email', 'admin/onboarding', 'admin/forgot-password', 'admin/reset-password') || ($user->email_verified_at && $request->is('admin/security', 'admin/agreement'))) {
+            if ($request->is('register', 'admin/login', 'admin/verify-email', 'admin/onboarding', 'admin/forgot-password', 'admin/reset-password') || ($user->email_verified_at && $request->is('admin/security', 'admin/account/security', 'admin/agreement'))) {
                 return $next($request);
             }
 

@@ -5,6 +5,8 @@ import { mkdtemp, mkdir, writeFile, readFile, cp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import net from 'node:net'
+import https from 'node:https'
+import http from 'node:http'
 import { createServer } from 'vite'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
@@ -15,7 +17,7 @@ const publicRoot = path.join(scratch, 'domains/brief.web86.site')
 const app = path.join(scratch, packageRoot ? 'project-brief-app' : 'app'),
   output =
     process.env.UX_BROWSER_OUTPUT_DIRECTORY ||
-    path.join(root, 'artifacts/milestone-10-0-phase-4b1/browser')
+    path.join(root, 'artifacts/phase-4b1-ux-polish/after')
 await mkdir(app)
 await mkdir(output, { recursive: true })
 async function port() {
@@ -27,7 +29,7 @@ async function port() {
 }
 const backendPort = await port(),
   webPort = await port(),
-  origin = `http://127.0.0.1:${packageRoot ? backendPort : webPort}`
+  origin = `https://localhost:${webPort}`
 const env = {
   ...process.env,
   APP_ENV: 'testing',
@@ -37,9 +39,18 @@ const env = {
   GITHUB_LOGIN_CLIENT_SECRET: 'synthetic-browser-secret',
   GITHUB_LOGIN_CALLBACK: origin + '/auth/github/callback',
   QA_MAIL_FILE: path.join(scratch, 'mail.json'),
+  QA_STATE_FILE: path.join(scratch, 'ui-config.json'),
+  GOOGLE_LOGIN_CLIENT_ID: 'synthetic-browser-google',
+  GOOGLE_LOGIN_CLIENT_SECRET: 'synthetic-browser-secret',
+  GOOGLE_LOGIN_CALLBACK: origin + '/auth/google/callback',
+  YANDEX_LOGIN_CLIENT_ID: 'synthetic-browser-yandex',
+  YANDEX_LOGIN_CLIENT_SECRET: 'synthetic-browser-secret',
+  YANDEX_LOGIN_CALLBACK: origin + '/auth/yandex/callback',
   APP_DEBUG: 'false',
   APP_KEY: `base64:${randomBytes(32).toString('base64')}`,
   APP_URL: origin,
+  PASSKEY_ORIGIN: origin,
+  PASSKEY_RP_ID: 'localhost',
   FRONTEND_URL: origin,
   DB_CONNECTION: 'sqlite',
   DB_DATABASE: path.join(scratch, 'test.sqlite'),
@@ -55,17 +66,22 @@ const env = {
   AI_ENABLED: 'false',
   PHP_INI_SCAN_DIR: `:${root}/api/dev-php`,
 }
-function php(args) {
-  const result = spawnSync(phpBin, args, { cwd: app, env, encoding: 'utf8' })
+function php(args, input) {
+  const result = spawnSync(phpBin, args, { cwd: app, env, encoding: 'utf8', input })
   assert.equal(result.status, 0, result.stdout + result.stderr)
   return result.stdout
 }
 let backend,
+  tlsServer,
   vite,
   browser,
   counter = 0
 const errors = [],
-  results = []
+  results = [],
+  captures = []
+async function createContext(options = {}) {
+  return browser.newContext({ ignoreHTTPSErrors: true, ...options })
+}
 async function call(context, url, method = 'GET', data) {
   let headers = { Accept: 'application/json' }
   if (method !== 'GET')
@@ -78,6 +94,7 @@ async function capture(page, name) {
   await page.evaluate(() => document.fonts.ready)
   await page.waitForTimeout(220)
   await page.screenshot({ path: path.join(output, name), fullPage: true })
+  captures.push(name)
 }
 async function login(context, fixture, owner = false) {
   const response = await call(context, '/api/admin/login', 'POST', {
@@ -149,7 +166,21 @@ require __DIR__.'/../vendor/autoload.php';
     )
   }
 
+  const fixtureFile = path.join(app, 'tests/platform-plans-fixture.php')
+  await writeFile(
+    fixtureFile,
+    (await readFile(fixtureFile, 'utf8'))
+      .replace(
+        '$primary = User::factory()',
+        "$legacy = User::factory()->owner()->create(['email'=>'compatibility@example.test','password'=>'Plans-QA-only!84']);\n$primary = User::factory()",
+      )
+      .replace(
+        "['admin' => $primary->email",
+        "['legacy' => $legacy->email, 'admin' => $primary->email",
+      ),
+  )
   const fixture = JSON.parse(php(['tests/platform-plans-fixture.php']))
+  php(['artisan', 'plans:inventory', '--apply', '--no-interaction'])
   const providersPath = path.join(app, 'bootstrap/providers.php')
   await writeFile(
     providersPath,
@@ -170,6 +201,9 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     file_put_contents(getenv('QA_MAIL_FILE'), json_encode(['url'=>$url,'email'=>$email,'locale'=>$locale])); return true;
    }
   });
+  $overrides = is_file(getenv('QA_STATE_FILE')) ? json_decode(file_get_contents(getenv('QA_STATE_FILE')),true) : [];
+  if (isset($overrides['registrationEnabled'])) config(['onboarding.registration_enabled'=>$overrides['registrationEnabled']]);
+  if (isset($overrides['providers'])) foreach (['google','yandex','github'] as $provider) if (!in_array($provider,$overrides['providers'],true)) config(['onboarding.providers.'.$provider.'.client_secret'=>null]);
   \Illuminate\Support\Facades\Http::preventStrayRequests();
   \Illuminate\Support\Facades\Http::fake([
    'https://github.com/login/oauth/access_token' => fn($r) => \Illuminate\Support\Facades\Http::response(['access_token'=>$r['code'],'token_type'=>'bearer']),
@@ -183,7 +217,68 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     path.join(app, 'tests/browser-totp.php'),
     String.raw`<?php require __DIR__.'/../vendor/autoload.php'; echo (new \PragmaRX\Google2FA\Google2FA)->getCurrentOtp($argv[1]);`,
   )
+  await writeFile(
+    path.join(app, 'tests/browser-ux-owner.php'),
+    String.raw`<?php
+require __DIR__.'/../vendor/autoload.php';
+$app=require __DIR__.'/../bootstrap/app.php';$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+if (!app()->environment('testing') || !str_contains(\Illuminate\Support\Facades\DB::getDatabaseName(),'brief-platform-plans-')) throw new \RuntimeException('Scratch fixture only');
+$user=\App\Models\User::create(['name'=>'Synthetic UX owner','email'=>$argv[1],'password'=>\Illuminate\Support\Facades\Hash::make('Browser-registration-only!2026'),'preferred_locale'=>$argv[2]]);
+app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['email_verified_at'=>now()])->save();app(\App\Services\AuthOnboarding::class)->prepare($user);
+`,
+  )
+  const certificate = path.join(scratch, 'localhost.pem'),
+    certificateKey = path.join(scratch, 'localhost-key.pem')
+  assert.equal(
+    spawnSync(
+      'openssl',
+      [
+        'req',
+        '-x509',
+        '-newkey',
+        'rsa:2048',
+        '-nodes',
+        '-keyout',
+        certificateKey,
+        '-out',
+        certificate,
+        '-days',
+        '1',
+        '-subj',
+        '/CN=localhost',
+      ],
+      { stdio: 'ignore' },
+    ).status,
+    0,
+  )
+  const tls = { key: await readFile(certificateKey), cert: await readFile(certificate) }
   if (packageRoot) {
+    tlsServer = https.createServer(tls, (request, response) => {
+      const upstream = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: backendPort,
+          path: request.url,
+          method: request.method,
+          headers: { ...request.headers, 'x-forwarded-proto': 'https' },
+        },
+        (incoming) => {
+          const headers = { ...incoming.headers }
+          if (headers.location) {
+            const destination = new URL(headers.location, origin)
+            headers.location = origin + destination.pathname + destination.search
+          }
+          response.writeHead(incoming.statusCode, headers)
+          incoming.pipe(response)
+        },
+      )
+      upstream.on('error', () => {
+        response.writeHead(502)
+        response.end()
+      })
+      request.pipe(upstream)
+    })
+    await new Promise((resolve) => tlsServer.listen(webPort, '127.0.0.1', resolve))
     const routerFile = path.join(scratch, 'server.php')
     await writeFile(
       routerFile,
@@ -208,14 +303,23 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
         'import.meta.env.VITE_API_BASE_URL': JSON.stringify(''),
       },
       server: {
+        https: tls,
+        hmr: false,
         host: '127.0.0.1',
         port: webPort,
         strictPort: true,
         proxy: {
           '/api': `http://127.0.0.1:${backendPort}`,
           '/auth': {
+            changeOrigin: true,
             target: `http://127.0.0.1:${backendPort}`,
-            hostRewrite: `127.0.0.1:${webPort}`,
+            configure: (proxy) =>
+              proxy.on('proxyRes', (response) => {
+                if (response.headers.location) {
+                  const destination = new URL(response.headers.location, origin)
+                  response.headers.location = origin + destination.pathname + destination.search
+                }
+              }),
           },
         },
       },
@@ -230,16 +334,28 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
   }
   browser = await chromium.launch({ headless: true })
   const password = 'Browser-registration-only!2026'
-  const ownerContext = await browser.newContext()
+  const ownerContext = await createContext()
   const ownerPage = await ownerContext.newPage()
   ownerPage.on('pageerror', (e) => errors.push(String(e)))
+  const unexpectedBusiness = []
+  ownerPage.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname
+    if (
+      /^\/api\/admin\//.test(pathname) &&
+      !/^\/api\/admin\/(?:account(?:\/|$)|login$|logout$|password\/)/.test(pathname)
+    )
+      unexpectedBusiness.push(pathname)
+  })
   await ownerContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
   await ownerPage.goto(origin + '/register')
+  await ownerPage.locator('.registration-form button[type=submit]').click()
+  await ownerPage.locator('#registration-email[aria-invalid=true]').waitFor()
   await ownerPage.locator('.registration-form input[type=email]').fill('browser-owner@example.test')
   await ownerPage.locator('.registration-form input[type=password]').nth(0).fill(password)
   await ownerPage.locator('.registration-form input[type=password]').nth(1).fill(password)
   await ownerPage.locator('.registration-form button[type=submit]').click()
   await ownerPage.waitForURL('**/admin/verify-email')
+  await capture(ownerPage, 'en-email-pending.png')
   const mail = JSON.parse(await readFile(env.QA_MAIL_FILE, 'utf8'))
   assert.equal(mail.email, 'browser-owner@example.test')
   await ownerPage.goto(mail.url)
@@ -248,6 +364,11 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
   await ownerPage.locator('.onboarding-form button[type=submit]').first().click()
   await ownerPage.waitForURL('**/admin/security')
   assert.equal(new URL(ownerPage.url()).hash, '')
+  assert.equal(
+    await ownerPage.locator('.passkeys-section, .social-connections, .recovery-section').count(),
+    0,
+  )
+  await capture(ownerPage, 'en-authenticator-step.png')
   await ownerPage.getByRole('button', { name: 'Set up authenticator', exact: true }).click()
   const uri = await ownerPage.locator('#totp-uri').inputValue()
   const code = php(['tests/browser-totp.php', new URL(uri).searchParams.get('secret')]).trim()
@@ -258,7 +379,22 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     .locator('button[type=submit]')
     .click()
   await ownerPage.locator('.security-codes code').first().waitFor()
-  const recoveryCode = await ownerPage.locator('.security-codes code').first().innerText()
+  const recoveryCodes = await ownerPage.locator('.security-codes code').allTextContents()
+  const recoveryCode = recoveryCodes[0]
+  assert.equal(
+    await ownerPage.getByRole('button', { name: 'Replace authenticator', exact: true }).count(),
+    0,
+  )
+  assert.equal(await ownerPage.locator('.passkeys-section, .social-connections').count(), 0)
+  await capture(ownerPage, 'en-recovery-step.png')
+  await ownerPage.reload()
+  await ownerPage.locator('.recovery-section').waitFor()
+  assert.equal(await ownerPage.locator('.authentication-section').count(), 0)
+  assert.equal(await ownerPage.locator('.security-codes code').count(), 0)
+  await ownerPage.getByRole('button', { name: 'Show recovery codes', exact: true }).click()
+  await ownerPage.locator('.security-codes code').first().waitFor()
+  assert.deepEqual(await ownerPage.locator('.security-codes code').allTextContents(), recoveryCodes)
+
   await ownerPage
     .getByRole('button', { name: 'I have saved my recovery codes', exact: true })
     .click()
@@ -268,7 +404,22 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     (await (await call(ownerContext, '/api/onboarding/state')).json()).state,
     'ready_for_trial_activation',
   )
-  await ownerPage.locator('summary').click()
+  await ownerPage.locator('.readiness-checks').waitFor()
+  assert.equal(
+    await ownerPage
+      .locator('.account-security-panel, .social-connections, .app-toast.toast-success')
+      .count(),
+    0,
+  )
+  await capture(ownerPage, 'en-completion.png')
+  await ownerPage.reload()
+  await ownerPage.locator('.readiness-checks').waitFor()
+  assert.equal(
+    await ownerPage.locator('.account-security-panel, .app-toast.toast-success').count(),
+    0,
+  )
+  await ownerPage.getByRole('link', { name: 'Account security', exact: true }).click()
+  await ownerPage.waitForURL('**/admin/account/security')
   await ownerPage.locator('.social-connections').waitFor()
   assert.equal(await ownerPage.locator('.social-connection-row').count(), 3)
   await capture(ownerPage, 'en-ready-connections.png')
@@ -304,7 +455,7 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     .getByRole('dialog')
     .getByRole('button', { name: 'Confirm identity', exact: true })
     .click()
-  await ownerPage.waitForURL('**/admin/onboarding?authError=*')
+  await ownerPage.waitForURL('**/admin/account/security?authError=*')
   await ownerPage.locator('.social-connections [role=alert]').waitFor()
   cancelLink = false
   await ownerPage
@@ -312,7 +463,7 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     .filter({ hasText: 'GitHub' })
     .getByRole('button')
     .click()
-  await ownerPage.waitForURL('**/admin/onboarding?connected=github')
+  await ownerPage.waitForURL('**/admin/account/security?connected=github')
   await ownerPage
     .locator('.social-connection-row')
     .filter({ hasText: 'GitHub' })
@@ -323,9 +474,117 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     scenario: 'fresh explicit provider link cancellation and success return to connected methods',
     passed: true,
   })
+  php(['artisan', 'cache:clear', '--no-interaction'])
+  assert.equal(
+    (
+      await call(ownerContext, '/api/security/confirm', 'POST', { recovery_code: recoveryCodes[1] })
+    ).status(),
+    200,
+  )
+  await ownerPage.reload()
+  const cdp = await ownerContext.newCDPSession(ownerPage)
+  await cdp.send('WebAuthn.enable')
+  await cdp.send('WebAuthn.addVirtualAuthenticator', {
+    options: {
+      protocol: 'ctap2',
+      transport: 'internal',
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  })
+  await ownerPage
+    .locator('.passkeys-section')
+    .getByRole('button', { name: 'Add Passkey', exact: true })
+    .click()
+  await ownerPage.locator('#passkey-name').fill('Synthetic UX key')
+  await ownerPage
+    .locator('.passkeys-section form')
+    .filter({ has: ownerPage.locator('#passkey-name') })
+    .locator('button[type=submit]')
+    .click()
+  await ownerPage
+    .locator('.security-passkeys')
+    .getByText('Synthetic UX key', { exact: true })
+    .waitFor()
+  await ownerPage.getByRole('link', { name: 'Account status', exact: true }).click()
+  await ownerPage.locator('.readiness-checks').waitFor()
+  assert.equal(
+    await ownerPage.locator('.account-security-panel, .app-toast.toast-success').count(),
+    0,
+  )
+  results.push({
+    scenario: 'optional real virtual Passkey lives in settings and never changes completion',
+    passed: true,
+  })
+  await call(ownerContext, '/api/admin/logout', 'POST')
+  php(['artisan', 'cache:clear', '--no-interaction'])
+  await ownerPage.goto(origin + '/admin/login')
+  await ownerPage.locator('#admin-email').fill('browser-owner@example.test')
+  await ownerPage.locator('#admin-password').fill(password)
+  await ownerPage.locator('form button[type=submit]').click()
+  await ownerPage.waitForURL('**/admin/security')
+  await ownerPage.getByRole('button', { name: 'Use a recovery code', exact: true }).click()
+  await ownerPage.locator('#security-code').fill(recoveryCodes[2])
+  await ownerPage
+    .locator('form')
+    .filter({ has: ownerPage.locator('#security-code') })
+    .locator('button[type=submit]')
+    .click()
+  await ownerPage.waitForURL('**/admin/onboarding')
+  await ownerPage.locator('.readiness-checks').waitFor()
+  assert.equal(await ownerPage.locator('.app-toast.toast-success').count(), 0)
+  results.push({
+    scenario: 'returning owner after logout/password/MFA goes directly to account status',
+    passed: true,
+  })
+  assert.deepEqual(unexpectedBusiness, [])
   await ownerContext.close()
+  php(['artisan', 'cache:clear', '--no-interaction'])
+  const recoveryOutput = php(
+    ['artisan', 'account:recover-security', 'browser-owner@example.test'],
+    'browser-owner@example.test\n',
+  )
+  const recoveryToken = /\b[a-f0-9]{64}\b/.exec(recoveryOutput)?.[0]
+  assert.ok(recoveryToken)
+  const recoveredContext = await createContext()
+  await recoveredContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+  const recoveredPage = await recoveredContext.newPage()
+  recoveredPage.on('pageerror', (e) => errors.push(String(e)))
+  await recoveredPage.goto(origin + '/admin/login')
+  await recoveredPage.locator('#admin-email').fill('browser-owner@example.test')
+  await recoveredPage.locator('#admin-password').fill(password)
+  await recoveredPage.locator('details summary').click()
+  await recoveredPage.locator('#operator-token').fill(recoveryToken)
+  await recoveredPage.locator('form button[type=submit]').click()
+  await recoveredPage.waitForURL('**/admin/security')
+  await recoveredPage.getByRole('button', { name: 'Set up authenticator', exact: true }).click()
+  const recoveredUri = await recoveredPage.locator('#totp-uri').inputValue()
+  await recoveredPage
+    .locator('#totp-confirm')
+    .fill(php(['tests/browser-totp.php', new URL(recoveredUri).searchParams.get('secret')]).trim())
+  await recoveredPage
+    .locator('form')
+    .filter({ has: recoveredPage.locator('#totp-confirm') })
+    .locator('button[type=submit]')
+    .click()
+  await recoveredPage
+    .getByRole('button', { name: 'I have saved my recovery codes', exact: true })
+    .click()
+  await recoveredPage.waitForURL('**/admin/onboarding')
+  await recoveredPage.locator('.readiness-checks').waitFor()
+  assert.equal((await call(recoveredContext, '/api/admin/projects')).status(), 403)
+  assert.equal(await recoveredPage.locator('.app-toast.toast-success').count(), 0)
+  await capture(recoveredPage, 'security-recovery-completion.png')
+  await recoveredContext.close()
+  results.push({
+    scenario:
+      'operator security recovery preserves pending activation and returns through required steps',
+    passed: true,
+  })
 
-  const socialContext = await browser.newContext()
+  const socialContext = await createContext()
   await socialContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
   let cancel = true,
     external = 0
@@ -366,7 +625,7 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
   for (const language of ['en', 'ru', 'tr', 'zh-CN'])
     for (const theme of ['light', 'dark', 'system']) {
       php(['artisan', 'cache:clear', '--no-interaction'])
-      const context = await browser.newContext({
+      const context = await createContext({
         viewport:
           theme === 'light'
             ? { width: 1440, height: 1000 }
@@ -398,6 +657,77 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
       await page.waitForURL('**/register')
       await page.goForward()
       await page.waitForURL('**/admin/verify-email')
+      const matrixEmail = `matrix-${language.toLowerCase()}-${theme}@example.test`
+      php(['tests/browser-ux-owner.php', matrixEmail, language])
+      assert.equal(
+        (
+          await call(context, '/api/admin/login', 'POST', { email: matrixEmail, password })
+        ).status(),
+        200,
+      )
+      const unexpected = []
+      let personalOnly = true
+      page.on('request', (request) => {
+        const pathname = new URL(request.url()).pathname
+        if (
+          personalOnly &&
+          /^\/api\/admin\//.test(pathname) &&
+          !/^\/api\/admin\/(?:account(?:\/|$)|login$|logout$|password\/)/.test(pathname)
+        )
+          unexpected.push(pathname)
+      })
+      await page.goto(origin + '/admin/security')
+      await page.locator('.authentication-section').waitFor()
+      assert.equal(await page.locator('.passkeys-section, .recovery-section').count(), 0)
+      await capture(page, `${language}-${theme}-authenticator.png`)
+      await page.locator('.authentication-section > button.button.secondary').click()
+      const matrixUri = await page.locator('#totp-uri').inputValue()
+      await page
+        .locator('#totp-confirm')
+        .fill(php(['tests/browser-totp.php', new URL(matrixUri).searchParams.get('secret')]).trim())
+      await page
+        .locator('form')
+        .filter({ has: page.locator('#totp-confirm') })
+        .locator('button[type=submit]')
+        .click()
+      await page.locator('.recovery-section .security-codes').waitFor()
+      assert.equal(await page.locator('.authentication-section, .passkeys-section').count(), 0)
+      await capture(page, `${language}-${theme}-recovery.png`)
+      await page.locator('.recovery-section > button.button.primary').click()
+      await page.waitForURL('**/admin/onboarding')
+      await page.locator('.readiness-checks').waitFor()
+      assert.equal(
+        await page.locator('.app-toast.toast-success, .account-security-panel').count(),
+        0,
+      )
+      await capture(page, `${language}-${theme}-completion.png`)
+      await page.locator('a[href="/admin/account/security"]').click()
+      await page.locator('.social-connections').waitFor()
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+        language + theme + ' security',
+      )
+      await capture(page, `${language}-${theme}-security.png`)
+      if (language === 'en' && theme === 'light') {
+        await page.setViewportSize({ width: 768, height: 1024 })
+        await page.goto(origin + '/admin/onboarding')
+        await page.locator('.readiness-checks').waitFor()
+        await capture(page, 'en-tablet-completion.png')
+        await page.locator('a[href="/admin/account/security"]').click()
+        await page.locator('.social-connections').waitFor()
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        )
+        await capture(page, 'en-tablet-security.png')
+        await page.setViewportSize({ width: 1440, height: 1000 })
+      }
+
+      assert.deepEqual(unexpected, [])
+      personalOnly = false
+      await call(context, '/api/admin/logout', 'POST')
+      php(['artisan', 'cache:clear', '--no-interaction'])
       await login(context, fixture)
       await page.goto(origin + '/platform/plans/registration')
       await page.locator('.registration-diagnostics').waitFor()
@@ -411,16 +741,91 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
         theme,
         width: theme === 'light' ? 1440 : theme === 'dark' ? 375 : 390,
         publicScreens: 3,
+        mandatorySecuritySteps: 2,
+        serverCompletion: true,
+        personalSecurity: true,
         diagnostics: true,
         history: true,
       })
       await context.close()
     }
+  const legacyContext = await createContext()
+  assert.equal(
+    (
+      await call(legacyContext, '/api/admin/login', 'POST', {
+        email: fixture.legacy,
+        password: fixture.password,
+      })
+    ).status(),
+    200,
+  )
+  assert.equal(
+    (
+      await call(legacyContext, '/api/security/challenge', 'POST', {
+        recovery_code: 'test-recovery-code',
+      })
+    ).status(),
+    200,
+  )
+  assert.equal((await call(legacyContext, '/api/admin/projects')).status(), 200)
+  const legacyPage = await legacyContext.newPage()
+  await legacyPage.goto(origin + '/admin/account/security')
+  await legacyPage.locator('.passkeys-section').waitFor()
+  assert.equal(await legacyPage.locator('.security-back').count(), 0)
+  await capture(legacyPage, 'compatibility-owner-security.png')
+  await legacyContext.close()
+  results.push({
+    scenario: 'Compatibility owner retains business access and permanent security settings',
+    passed: true,
+  })
+  await writeFile(
+    env.QA_STATE_FILE,
+    JSON.stringify({ registrationEnabled: true, providers: ['github'] }),
+  )
+  const closedContext = await createContext({
+    viewport: { width: 375, height: 844 },
+    colorScheme: 'dark',
+  })
+  await closedContext.addInitScript(() => {
+    localStorage.setItem('projectbrief.locale', 'ru')
+    localStorage.setItem('projectbrief.theme', 'dark')
+  })
+  const closedPage = await closedContext.newPage()
+  await closedPage.goto(origin + '/register')
+  await closedPage.locator('.registration-form').waitFor()
+  await capture(closedPage, 'ru-dark-register-github-only.png')
+  await writeFile(env.QA_STATE_FILE, JSON.stringify({ registrationEnabled: false, providers: [] }))
+  await closedPage.reload()
+  await closedPage.locator('.registration-closed').waitFor()
+  assert.equal(await closedPage.locator('.registration-form, .social-sign-in button').count(), 0)
+  assert.equal(
+    (
+      await call(closedContext, '/api/onboarding/register', 'POST', {
+        email: 'closed@example.test',
+        password,
+        password_confirmation: password,
+      })
+    ).status(),
+    403,
+  )
+  await capture(closedPage, 'ru-registration-closed.png')
+  await closedContext.close()
+  results.push({
+    scenario:
+      'server-controlled closed registration and unconfigured providers have no active signup form',
+    passed: true,
+  })
   assert.deepEqual(errors, [])
   await writeFile(
     path.join(output, 'result.json'),
     JSON.stringify(
-      { package: !!packageRoot, results, consoleErrors: errors, liveProviderRequests: 0 },
+      {
+        package: !!packageRoot,
+        results,
+        consoleErrors: errors,
+        screenshots: captures,
+        liveProviderRequests: 0,
+      },
       null,
       2,
     ) + '\n',
@@ -429,7 +834,7 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
     JSON.stringify({
       passed: true,
       scenarios: results.length,
-      screenshots: 50,
+      screenshots: captures.length,
       package: !!packageRoot,
     }),
   )
@@ -451,6 +856,7 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
 } finally {
   await browser?.close()
   await vite?.close()
+  if (tlsServer) await new Promise((resolve) => tlsServer.close(resolve))
   backend?.kill('SIGTERM')
   await rm(scratch, { recursive: true, force: true })
 }

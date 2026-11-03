@@ -6,6 +6,8 @@ import { demo, STATIC_DEMO } from '../services/demo.js'
 import { t } from '../i18n/index.js'
 import { onboardingError } from '../services/onboarding.js'
 import LoadingButton from './LoadingButton.vue'
+import ProviderIcon from './ProviderIcon.vue'
+import AppIcon from './AppIcon.vue'
 const route = useRoute()
 const callbackError = computed(() =>
   route.query.authError
@@ -93,8 +95,11 @@ async function setPassword() {
 }
 </script>
 <template>
-  <section v-if="!STATIC_DEMO && !demo.readOnly && (state || error)" class="social-connections">
-    <h2>{{ t('onboarding.connections') }}</h2>
+  <section
+    v-if="!STATIC_DEMO && !demo.readOnly && (state || error)"
+    class="social-connections surface admin-form"
+  >
+    <h2><AppIcon name="globe" :size="22" />{{ t('onboarding.connections') }}</h2>
     <p v-if="callbackError" role="alert" class="field-error">{{ callbackError }}</p>
     <p v-if="error" role="alert" class="field-error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
@@ -120,7 +125,7 @@ async function setPassword() {
       >
     </div>
     <p>
-      {{ t('onboarding.emailPassword') }} ·
+      <AppIcon name="mail" :size="20" /> {{ t('onboarding.emailPassword') }} ·
       {{ t('onboarding.' + (state?.passwordEnabled ? 'connected' : 'disconnected')) }}
     </p>
     <form
@@ -156,7 +161,7 @@ async function setPassword() {
 </template>
 <style scoped>
 .social-connections {
-  margin-top: 24px;
+  margin-top: 0;
   display: grid;
   gap: 14px;
   min-width: 0;
@@ -189,5 +194,20 @@ input {
   padding: 10px 12px;
   color: var(--text);
   font: inherit;
+}
+</style>
+
+<style scoped>
+h2,
+.provider-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.social-connections h2 {
+  margin: 0;
+}
+.social-connections p {
+  margin: 0;
 }
 </style>

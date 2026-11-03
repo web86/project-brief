@@ -4,11 +4,14 @@ defineProps({
   size: { type: [Number, String], default: 20 },
 })
 const paths = {
+  'arrow-left': 'M19 12H5m6-6-6 6 6 6',
   undo: 'M3 10h10a7 7 0 0 1 7 7M3 10l5-5M3 10l5 5',
   redo: 'M21 10H11a7 7 0 0 0-7 7M21 10l-5-5M21 10l-5 5',
   bot: 'M8 4h8M12 2v2M5 7h14v13H5zM2 11v5M22 11v5M9 11h.01M15 11h.01M9 16h6',
   message: 'M21 11a8 8 0 0 1-8 8H8l-5 3V11a9 9 0 0 1 18 0ZM7 10h10M7 14h6',
   lock: 'M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3M12 14v3',
+  'life-buoy':
+    'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5.6 5.6l3.6 3.6m5.6 5.6 3.6 3.6m0-12.8-3.6 3.6m-5.6 5.6-3.6 3.6',
   key: 'M15 8a5 5 0 1 0-5 5l-7 7h4v-3h3v-3l3-3M15 8h.01',
   paragraph: 'M13 4H8a4 4 0 0 0 0 8h5M13 4v16M18 4v16M10 4h11',
   'heading-1': 'M3 4v16M12 4v16M3 12h9M17 9l3-2v13M17 20h6',

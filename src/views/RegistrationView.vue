@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { demo, STATIC_DEMO } from '../services/demo.js'
@@ -7,6 +7,7 @@ import { t, locale } from '../i18n/index.js'
 import { onboardingError, pendingRegistrationEmail } from '../services/onboarding.js'
 import LoadingButton from '../components/LoadingButton.vue'
 import SocialSignIn from '../components/SocialSignIn.vue'
+import AppIcon from '../components/AppIcon.vue'
 const route = useRoute(),
   router = useRouter()
 const readiness = ref(null),
@@ -14,7 +15,8 @@ const readiness = ref(null),
   password = ref(''),
   confirmation = ref(''),
   busy = ref(false),
-  error = ref('')
+  error = ref(''),
+  fields = ref({})
 let current = true
 onMounted(async () => {
   if (demo.readOnly || STATIC_DEMO) {
@@ -24,8 +26,8 @@ onMounted(async () => {
   try {
     const value = await api.request('/api/onboarding/readiness')
     if (current) readiness.value = value
-  } catch (e) {
-    if (current) error.value = onboardingError(e)
+  } catch (cause) {
+    if (current) error.value = onboardingError(cause)
   }
 })
 onBeforeUnmount(() => {
@@ -33,14 +35,29 @@ onBeforeUnmount(() => {
   password.value = ''
   confirmation.value = ''
 })
-async function submit() {
-  busy.value = true
+async function submit(event) {
+  if (busy.value || !readiness.value?.registrationEnabled) return
+  const issues = {}
+  if (!email.value.trim() || event.target.elements.email.validity.typeMismatch)
+    issues.email = 'emailInvalid'
+  if (route.query.providerEmail !== '1') {
+    if (password.value.length < 12) issues.password = 'passwordHint'
+    if (!confirmation.value || confirmation.value !== password.value)
+      issues.confirmation = 'passwordMismatch'
+  }
+  fields.value = issues
   error.value = ''
+  if (Object.keys(issues).length) {
+    await nextTick()
+    event.target.querySelector('[aria-invalid=true]')?.focus()
+    return
+  }
+  busy.value = true
   try {
     if (route.query.providerEmail === '1') {
       const result = await api.request('/api/auth/provider-email', {
         method: 'POST',
-        body: { email: email.value },
+        body: { email: email.value.trim() },
       })
       if (current)
         await router.replace(
@@ -50,87 +67,181 @@ async function submit() {
       await api.request('/api/onboarding/register', {
         method: 'POST',
         body: {
-          email: email.value,
+          email: email.value.trim(),
           password: password.value,
           password_confirmation: confirmation.value,
           locale: locale.value,
         },
       })
-      pendingRegistrationEmail.value = email.value
+      pendingRegistrationEmail.value = email.value.trim()
       password.value = ''
       confirmation.value = ''
       if (current) await router.replace('/admin/verify-email')
     }
-  } catch (e) {
-    if (current) error.value = onboardingError(e)
+  } catch (cause) {
+    if (current) error.value = onboardingError(cause)
   } finally {
     if (current) busy.value = false
   }
 }
 </script>
 <template>
-  <section class="registration-page">
-    <h1>{{ t('onboarding.create') }}</h1>
-    <p class="muted">{{ t('onboarding.trial') }}</p>
-    <p v-if="error" role="alert" class="field-error">{{ error }}</p>
-    <p v-if="readiness && !readiness.registrationEnabled" class="surface registration-closed">
-      {{ t('onboarding.closed') }}
+  <section class="registration-page surface" :aria-busy="busy">
+    <header>
+      <AppIcon
+        v-if="readiness && !readiness.registrationEnabled"
+        class="closed-icon"
+        name="clock"
+        :size="28"
+      />
+      <h1>
+        {{ t('onboarding.' + (readiness && !readiness.registrationEnabled ? 'closed' : 'create')) }}
+      </h1>
+      <p
+        :class="error && readiness?.registrationEnabled ? 'field-error' : 'muted'"
+        :role="error && readiness?.registrationEnabled ? 'alert' : undefined"
+      >
+        {{
+          error && readiness?.registrationEnabled
+            ? error
+            : t(
+                'onboarding.' +
+                  (readiness && !readiness.registrationEnabled ? 'closedHint' : 'registrationHint'),
+              )
+        }}
+      </p>
+    </header>
+    <p v-if="!readiness && !error" role="status">{{ t('onboarding.loading') }}</p>
+    <p v-if="readiness && !readiness.registrationEnabled" class="registration-closed" role="status">
+      {{ t('onboarding.noTrialYet') }}
     </p>
-    <form v-else-if="readiness" class="surface registration-form" @submit.prevent="submit">
+    <form v-else-if="readiness" class="registration-form" novalidate @submit.prevent="submit">
       <p v-if="route.query.providerEmail === '1'">{{ t('onboarding.providerEmailHint') }}</p>
-      <label
-        >{{ t('common.email')
-        }}<input v-model="email" type="email" autocomplete="username" maxlength="254" required
-      /></label>
+      <div class="registration-field">
+        <label for="registration-email">{{ t('common.email') }}</label>
+        <input
+          id="registration-email"
+          v-model="email"
+          name="email"
+          type="email"
+          inputmode="email"
+          autocomplete="username"
+          enterkeyhint="next"
+          maxlength="254"
+          required
+          :aria-invalid="!!fields.email"
+          aria-describedby="registration-email-help"
+          @input="delete fields.email"
+        />
+        <small
+          id="registration-email-help"
+          :class="{ 'field-error': fields.email }"
+          :role="fields.email ? 'alert' : undefined"
+          >{{ fields.email ? t('onboarding.' + fields.email) : '\u00a0' }}</small
+        >
+      </div>
       <template v-if="route.query.providerEmail !== '1'">
-        <label
-          >{{ t('onboarding.password')
-          }}<input
+        <div class="registration-field">
+          <label for="registration-password">{{ t('onboarding.password') }}</label>
+          <input
+            id="registration-password"
             v-model="password"
             type="password"
             minlength="12"
             maxlength="1024"
             autocomplete="new-password"
+            enterkeyhint="next"
             required
-          /><small class="muted">{{ t('onboarding.passwordHint') }}</small></label
-        >
-        <label
-          >{{ t('onboarding.passwordConfirmation')
-          }}<input
+            :aria-invalid="!!fields.password"
+            aria-describedby="registration-password-help"
+            @input="delete fields.password"
+          />
+          <small
+            id="registration-password-help"
+            :class="fields.password ? 'field-error' : 'muted'"
+            :role="fields.password ? 'alert' : undefined"
+            >{{ t('onboarding.passwordHint') }}</small
+          >
+        </div>
+        <div class="registration-field">
+          <label for="registration-confirmation">{{ t('onboarding.passwordConfirmation') }}</label>
+          <input
+            id="registration-confirmation"
             v-model="confirmation"
             type="password"
             minlength="12"
             maxlength="1024"
             autocomplete="new-password"
+            enterkeyhint="done"
             required
-        /></label>
+            :aria-invalid="!!fields.confirmation"
+            aria-describedby="registration-confirmation-help"
+            @input="delete fields.confirmation"
+          />
+          <small
+            id="registration-confirmation-help"
+            :class="{ 'field-error': fields.confirmation }"
+            :role="fields.confirmation ? 'alert' : undefined"
+            >{{ fields.confirmation ? t('onboarding.' + fields.confirmation) : '\u00a0' }}</small
+          >
+        </div>
       </template>
+
       <LoadingButton type="submit" class="button primary" :busy="busy">{{
         t('onboarding.' + (route.query.providerEmail === '1' ? 'continue' : 'signUp'))
       }}</LoadingButton>
-      <SocialSignIn v-if="route.query.providerEmail !== '1'" />
+      <SocialSignIn v-if="route.query.providerEmail !== '1'" :readiness="readiness" />
+      <p class="registration-trial muted">{{ t('onboarding.trial') }}</p>
     </form>
-    <RouterLink to="/admin/login">{{ t('onboarding.login') }}</RouterLink>
+    <p v-if="error && !readiness" role="alert" class="field-error">{{ error }}</p>
+    <RouterLink class="registration-login" to="/admin/login">{{
+      t('onboarding.login')
+    }}</RouterLink>
   </section>
 </template>
 <style scoped>
 .registration-page {
-  max-width: 510px;
-  width: 100%;
-  margin: 32px auto;
-  display: grid;
-  gap: 20px;
-  padding: 0 16px;
-}
-.registration-form {
+  max-width: 520px;
+  width: calc(100% - 32px);
+  margin: 24px auto;
   display: grid;
   gap: 20px;
   padding: 24px;
+}
+header p {
+  min-height: 2.9em;
+}
+header {
+  display: grid;
+  gap: 8px;
+}
+h1 {
+  font-size: 1.65rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+p {
+  margin: 0;
+  line-height: 1.45;
+}
+.registration-form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.registration-field {
+  display: grid;
+  gap: 6px;
   min-width: 0;
 }
 label {
-  display: grid;
-  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+small {
+  min-height: 1.2em;
+  font-size: 0.8rem;
 }
 input {
   width: 100%;
@@ -142,7 +253,36 @@ input {
   color: var(--text);
   font: inherit;
 }
+input[aria-invalid='true'] {
+  border-color: var(--invalid-border);
+}
+
+.registration-form > .button {
+  min-height: 44px;
+}
+.registration-trial {
+  font-size: 0.8rem;
+  text-align: center;
+  padding-top: 4px;
+}
+.registration-login {
+  text-align: center;
+  font-size: 0.9rem;
+}
 .registration-closed {
-  padding: 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  color: var(--text-subtle);
+}
+.closed-icon {
+  color: var(--link);
+  margin-bottom: 8px;
+}
+@media (max-width: 520px) {
+  .registration-page {
+    margin: 20px auto;
+    padding: 24px 20px;
+    gap: 16px;
+  }
 }
 </style>

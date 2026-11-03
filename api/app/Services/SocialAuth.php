@@ -168,7 +168,7 @@ final class SocialAuth
 
     public function connectionsPath(Request $request): string
     {
-        return app(AuthOnboarding::class)->state($request)['onboarding'] ? '/admin/onboarding' : '/admin/account/security';
+        return '/admin/account/security';
     }
 
     public function connections(User $user): array

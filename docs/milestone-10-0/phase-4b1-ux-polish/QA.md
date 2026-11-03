@@ -1,0 +1,13 @@
+# UX and security validation
+
+All account/provider/mail data are synthetic. Browser fixtures are injected only into disposable copies, not shipped. Browser OAuth is mocked; real virtual WebAuthn registration uses the unchanged server validation through local HTTPS with the correct localhost origin/RP. Local self-signed certificates are restricted to QA. No real OAuth credentials, SMTP or Jino were used.
+
+`OnboardingUxTest` covers authoritative step progression, explicit TOTP and recovery checks, repeated retrieval of existing recovery codes, no Passkey requirement, lost provisioning membership, unchanged complete claim records/no periods, personal account/factor access, denied business endpoints, fresh-security expiry and existing required agreement/one acceptance. Existing onboarding, provider, Trial, MFA/passkey/recovery, invitation and Compatibility tests remain in regression.
+
+`tests/onboarding.browser.mjs` uses a real temporary backend. It checks signup/local validation, email proof, TOTP only, recovery only and reload without regeneration, completion and repeated opening, real settings without workspace/notification API bootstrap, actual fresh step-up for provider linking and cancellation, actual virtual Passkey, logout/password/MFA return, real operator security recovery, Compatibility owner and server-controlled closed/unconfigured registration. It repeats public, TOTP, recovery, completion, personal security and diagnostics screens in RU/EN/TR/ZH-CN × light/dark/system at desktop/375/390. Private CLI fixtures establish isolated matrix accounts; no frontend registration toggle is introduced. Scratch caches are cleared between independent scenarios to isolate rate-limit windows; production limits are unchanged.
+
+Screenshots are inspected visually against the previous compiled v0.9.15 screenshots. The expanded matrix caught a RU375px factor heading overflow, corrected by wrapping the optional/required label. Registration's unused request-error gap was replaced with reserved subtitle feedback. No mandatory onboarding view includes the full factor-management panel or stale success stack.
+
+Shared component changes require Static Demo rebuilding. Its browser suite verifies Developer/Client routes, exact Core experience ordering, personal settings, read-only behavior, inert registration URLs and zero real API/write/external traffic. Dataset/schema bytes and manifest pin must remain unchanged.
+
+Final results and exact immutable archive identity are recorded in ARTIFACTS.md after release validation. Safari/WebKit, hardware TouchID, real provider consent/SMTP and Jino remain outside local automated evidence. Existing Vite large-chunk warning remains; no dependencies changed.

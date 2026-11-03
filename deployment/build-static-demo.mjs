@@ -88,7 +88,7 @@ await writeFile(
     {
       type: 'project-brief-static-demo',
       product: 'Dev2Done',
-      version: 3,
+      version: 4,
       schemaVersion: 1,
       commit,
       preview,
@@ -138,7 +138,7 @@ await writeFile(path.join(output, 'checksums.txt'), checksumText)
 await validateStaticDemo(output)
 if (!preview) {
   await mkdir('release', { recursive: true })
-  const archive = path.join(root, 'release', `dev2done-static-demo-v3-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(root, 'release', `dev2done-static-demo-v4-${commit.slice(0, 7)}.zip`)
   const temporary = archive + '.partial'
   const extracted = await mkdtemp(path.join(tmpdir(), 'brief-static-package-'))
   try {

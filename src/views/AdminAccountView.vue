@@ -11,6 +11,7 @@ import AccountSecurityPanel from '../components/AccountSecurityPanel.vue'
 import AccountTabs from '../components/AccountTabs.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import LoadingButton from '../components/LoadingButton.vue'
+const props = defineProps({ standaloneSecurity: Boolean, preparedOwner: Boolean })
 const route = useRoute(),
   router = useRouter(),
   nav = useAdminNavigationStore()
@@ -57,7 +58,7 @@ async function action(run, key) {
   try {
     await run()
     success.value = t(key)
-    toast.success(() => t(key))
+    if (!props.standaloneSecurity) toast.success(() => t(key))
   } catch (cause) {
     if (isSecurityCancellation(cause)) return
     error.value = message(cause)
@@ -142,8 +143,8 @@ function changePassword() {
 </script>
 <template>
   <div class="account-page">
-    <h1>{{ t('account.title') }}</h1>
-    <AccountTabs />
+    <h1>{{ t(props.standaloneSecurity ? 'onboarding.security' : 'account.title') }}</h1>
+    <AccountTabs v-if="!props.preparedOwner" />
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
     <p v-if="success" class="account-success" role="status">{{ success }}</p>
     <template v-if="state">

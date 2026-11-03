@@ -4,8 +4,13 @@ import { appDestination } from '../src/services/session.js'
 import { isSensitiveMutation, isSecurityConfirmationScreen } from '../src/services/stepUp.js'
 import { onboardingMessages } from '../src/locales/onboarding.js'
 
-test('onboarding destinations stay inside the three server-owned entry screens', async () => {
-  for (const nextPath of ['/admin/verify-email', '/admin/security', '/admin/onboarding'])
+test('onboarding destinations stay inside the server-owned entry and required-agreement screens', async () => {
+  for (const nextPath of [
+    '/admin/verify-email',
+    '/admin/security',
+    '/admin/onboarding',
+    '/admin/agreement',
+  ])
     assert.equal(
       await appDestination(async () => ({ authenticated: true, type: 'onboarding', nextPath })),
       nextPath,

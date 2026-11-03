@@ -25,8 +25,8 @@ async function logout() {
 </script>
 <template>
   <div class="account-page enrollment-page">
-    <h1>{{ t('team95.accountProtection') }}</h1>
-    <p class="muted onboarding-intro">{{ t('team95.securityIntro') }}</p>
+    <h1>{{ t('onboarding.protectTitle') }}</h1>
+    <p class="muted onboarding-intro">{{ t('onboarding.protectHint') }}</p>
     <AccountSecurityPanel onboarding @ready="ready" /><button class="text-button" @click="logout">
       {{ t('account.logout') }}
     </button>
@@ -35,7 +35,10 @@ async function logout() {
 
 <style scoped>
 .enrollment-page {
-  max-width: 940px;
+  max-width: 560px;
+  width: 100%;
+  margin: 24px auto;
+  padding: 0 16px;
 }
 .enrollment-page > .text-button {
   margin-top: 1rem;

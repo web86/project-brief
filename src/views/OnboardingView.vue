@@ -7,7 +7,8 @@ import { t } from '../i18n/index.js'
 import { onboardingError, pendingRegistrationEmail } from '../services/onboarding.js'
 import { appDestination } from '../services/session.js'
 import LoadingButton from '../components/LoadingButton.vue'
-import AccountSecurityPanel from '../components/AccountSecurityPanel.vue'
+import AppIcon from '../components/AppIcon.vue'
+import { toast } from '../services/toast.js'
 const router = useRouter(),
   route = useRoute()
 const state = ref(null),
@@ -18,7 +19,6 @@ const state = ref(null),
   busy = ref(false),
   error = ref(''),
   notice = ref(''),
-  securityOpen = ref(Boolean(route.query.connected || route.query.authError)),
   now = ref(Date.now())
 let current = true,
   timer
@@ -26,7 +26,9 @@ const cooldown = computed(
   () =>
     Math.max(0, Math.ceil((Date.parse(state.value?.resendAfter || '') - now.value) / 1000)) || 0,
 )
-const ready = computed(() => state.value?.emailVerified === true)
+const ready = computed(
+  () => state.value?.step === 'complete' && state.value?.state === 'ready_for_trial_activation',
+)
 async function captureToken(hash) {
   const match = /^#token=([a-f0-9]{64})$/.exec(hash)
   if (!match) return false
@@ -38,7 +40,12 @@ watch(
   () => route.hash,
   async (hash) => {
     if (demo.readOnly || STATIC_DEMO) return
-    if ((await captureToken(hash)) && state.value?.onboarding && !ready.value && !busy.value)
+    if (
+      (await captureToken(hash)) &&
+      state.value?.onboarding &&
+      !state.value.emailVerified &&
+      !busy.value
+    )
       await confirm()
   },
 )
@@ -47,6 +54,8 @@ async function load() {
   if (current) {
     state.value = result
     if (result.email) email.value = result.email
+    if (result.onboarding && result.step === 'complete')
+      for (const item of toast.items.value) if (item.type === 'success') toast.dismiss(item.id)
   }
   return result
 }
@@ -63,7 +72,7 @@ onMounted(async () => {
   try {
     const result = await load()
     if (token.value && result.onboarding && !result.emailVerified) await verify()
-    else if (result.onboarding && result.emailVerified && result.nextPath === '/admin/security')
+    else if (result.onboarding && result.nextPath !== route.path)
       await router.replace(result.nextPath)
   } catch (e) {
     if (current) error.value = onboardingError(e)
@@ -157,23 +166,57 @@ async function logout() {
 }
 </script>
 <template>
-  <section class="onboarding-page">
-    <h1>{{ t('onboarding.' + (ready ? 'ready' : 'verification')) }}</h1>
+  <section class="onboarding-page surface" :aria-busy="busy">
     <p v-if="error" role="alert" class="field-error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <template v-if="ready">
-      <p>{{ t('onboarding.prepared') }}</p>
-      <details :open="securityOpen" @toggle="securityOpen = $event.target.open">
-        <summary>{{ t('onboarding.security') }}</summary>
-        <AccountSecurityPanel v-if="securityOpen" />
-      </details>
+    <p v-if="!state" role="status">{{ t('onboarding.loading') }}</p>
+    <template v-else-if="ready">
+      <div class="completion-mark"><AppIcon name="check" :size="28" /></div>
+      <header>
+        <h1>{{ t('onboarding.ready') }}</h1>
+        <p class="muted">{{ t('onboarding.prepared') }}</p>
+      </header>
+      <ul class="readiness-checks">
+        <li
+          v-for="[check, label] in [
+            ['emailVerified', 'emailComplete'],
+            ['totpConfirmed', 'totpComplete'],
+            ['recoveryAcknowledged', 'recoveryComplete'],
+          ]"
+          :key="check"
+        >
+          <AppIcon :name="state.checks[check] ? 'check' : 'clock'" :size="20" />{{
+            t('onboarding.' + label)
+          }}
+        </li>
+      </ul>
+      <div class="activation-status" role="status">
+        <AppIcon name="clock" :size="22" />
+        <div>
+          <h2>{{ t('onboarding.waitingTitle') }}</h2>
+          <p>{{ t('onboarding.waitingHint') }}</p>
+        </div>
+      </div>
+      <RouterLink class="button secondary security-settings-link" to="/admin/account/security"
+        ><AppIcon name="shield" :size="20" />{{ t('onboarding.security') }}</RouterLink
+      >
       <button class="text-button" @click="logout">{{ t('onboarding.logout') }}</button>
     </template>
+    <template v-else-if="state?.onboarding && state.emailVerified">
+      <div class="completion-mark"><AppIcon name="clock" :size="28" /></div>
+      <h1>{{ t('onboarding.preparingTitle') }}</h1>
+      <p>{{ t('onboarding.preparingHint') }}</p>
+      <LoadingButton class="button secondary" :busy="busy" @click="load">{{
+        t('onboarding.refresh')
+      }}</LoadingButton>
+    </template>
     <template v-else>
+      <div class="verification-mark"><AppIcon name="mail" :size="28" /></div>
+      <h1>{{ t('onboarding.verification') }}</h1>
       <p>{{ t('onboarding.pending') }}</p>
       <form
         v-if="state && !state.onboarding && !demo.readOnly && !STATIC_DEMO"
-        class="surface onboarding-form"
+        class="onboarding-form"
         @submit.prevent="signIn"
       >
         <p>{{ t('onboarding.signInToVerify') }}</p>
@@ -194,7 +237,7 @@ async function logout() {
           t('ui.signIn')
         }}</LoadingButton>
       </form>
-      <div v-if="state?.onboarding" class="surface onboarding-form">
+      <div v-if="state?.onboarding" class="onboarding-form">
         <p>{{ state.email }}</p>
         <LoadingButton v-if="token" class="button primary" :busy="busy" @click="confirm">{{
           t('onboarding.verify')
@@ -238,21 +281,87 @@ async function logout() {
 </template>
 <style scoped>
 .onboarding-page {
-  width: 100%;
-  max-width: 660px;
+  width: calc(100% - 32px);
+  max-width: 520px;
   margin: 32px auto;
   display: grid;
-  gap: 20px;
-  padding: 0 16px;
+  gap: 16px;
+  padding: 24px;
+  min-height: 260px;
+  align-content: start;
+}
+h1 {
+  font-size: 1.65rem;
+  line-height: 1.2;
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+p {
+  margin: 0;
+  line-height: 1.5;
+}
+header {
+  display: grid;
+  gap: 12px;
+}
+.completion-mark,
+.verification-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: var(--selected-bg);
+  color: var(--link);
+  border-radius: 50%;
+}
+.readiness-checks {
+  padding: 8px 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+  list-style: none;
+}
+.readiness-checks li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+.readiness-checks :deep(svg) {
+  color: var(--success);
+  flex-shrink: 0;
+}
+.activation-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+.activation-status > :deep(svg) {
+  flex-shrink: 0;
+  color: var(--text-subtle);
+}
+.activation-status p {
+  color: var(--text-subtle);
+  font-size: 0.95rem;
+}
+.security-settings-link {
+  gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
 }
 .onboarding-form,
 label {
   display: grid;
   gap: 12px;
   min-width: 0;
-}
-.surface {
-  padding: 24px;
 }
 input {
   min-height: 44px;
@@ -265,11 +374,16 @@ input {
   font: inherit;
 }
 details {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
 }
 summary {
   cursor: pointer;
+}
+@media (max-width: 520px) {
+  .onboarding-page {
+    margin: 20px auto;
+    padding: 24px 20px;
+  }
 }
 </style>

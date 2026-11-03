@@ -120,6 +120,16 @@ export function createProjectRouter({
       },
       { path: '/admin/security', component: () => import('../views/AccountEnrollmentView.vue') },
       {
+        path: '/admin/account/security',
+        component: () => import('../views/AccountSecuritySettingsView.vue'),
+        meta: {
+          accountSecurity: true,
+          get title() {
+            return t('onboarding.security')
+          },
+        },
+      },
+      {
         path: '/admin/agreement',
         component: () => import('../views/AgreementView.vue'),
         meta: { agreement: true },
@@ -139,7 +149,7 @@ export function createProjectRouter({
         component: () => import('../views/AdminShell.vue'),
         meta: { requiresAdmin: true, adminShell: true },
         children: [
-          ...['account', 'account/security'].map((path) => ({
+          ...['account'].map((path) => ({
             path,
             component: () => import('../views/AdminAccountView.vue'),
             meta: {
@@ -519,6 +529,13 @@ export function createProjectRouter({
       if (['pending_2fa', 'enrollment_required'].includes(session.state)) return '/admin/security'
       if (!session.authenticated) return '/admin/login'
       if (!session.agreementRequired) return (await appDestination(request)) || '/app'
+    }
+    if (apiMode && to.meta.accountSecurity) {
+      const status = await request('/api/security/status')
+      if (['pending_2fa', 'enrollment_required'].includes(status.state)) return '/admin/security'
+      if (!status.signedIn) return '/admin/login'
+      if (status.onboardingNext && status.onboardingNext !== '/admin/onboarding')
+        return status.onboardingNext
     }
     if (apiMode && to.path === '/admin/security') {
       const status = await request('/api/security/status')
