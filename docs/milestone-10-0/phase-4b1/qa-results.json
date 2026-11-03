@@ -1,0 +1,409 @@
+{
+  "phase": "4B.1",
+  "sourceCommit": "2190f0083923300499d0cdc8c5048a9095f97e6f",
+  "branch": "codex/milestone-10-0-phase-4b1",
+  "frontend": {
+    "tests": 453,
+    "passed": 453
+  },
+  "sourceBrowser": {
+    "package": false,
+    "results": [
+      {
+        "scenario": "email signup \u2192 owned proof \u2192 real MFA enrollment \u2192 pending activation; no workspace access",
+        "passed": true
+      },
+      {
+        "scenario": "fresh explicit provider link cancellation and success return to connected methods",
+        "passed": true
+      },
+      {
+        "scenario": "mock GitHub PKCE, cancellation, retry, verified owner primary login",
+        "passed": true
+      },
+      {
+        "language": "en",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "en",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "en",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      }
+    ],
+    "consoleErrors": [],
+    "liveProviderRequests": 0
+  },
+  "staticBrowser": {
+    "passed": true,
+    "runtime": "Node static files only; no PHP or DB",
+    "archive": null,
+    "browser": "151.0.7922.34",
+    "checked": [
+      "entry",
+      "developer-profile",
+      "developer-security",
+      "developer-agreement",
+      "developer-notifications",
+      "developer-branding",
+      "developer-administrators",
+      "developer-integrations",
+      "developer-requests",
+      "developer-reviews",
+      "published-agreement",
+      "project-19fe7520-ef15-51ae-ae94-3a582ed5474e",
+      "task-19fe7520-ef15-51ae-ae94-3a582ed5474e",
+      "project-737f6708-4157-55b5-86f4-0b83838a307e",
+      "task-737f6708-4157-55b5-86f4-0b83838a307e",
+      "project-6d6e8c95-ee07-5c58-a85b-6c3b017b7305",
+      "task-6d6e8c95-ee07-5c58-a85b-6c3b017b7305",
+      "project-3edda7e4-9ade-5757-9573-95cc19f0283e",
+      "task-3edda7e4-9ade-5757-9573-95cc19f0283e",
+      "project-9261f6d0-64b4-5a19-aab6-5e2772f97508",
+      "task-9261f6d0-64b4-5a19-aab6-5e2772f97508",
+      "project-74d01e94-ca0a-59a6-bc27-f0807d08dac0",
+      "task-74d01e94-ca0a-59a6-bc27-f0807d08dac0",
+      "project-6fb73b1b-6d9b-5fee-8e0c-afc63e375ffd",
+      "task-6fb73b1b-6d9b-5fee-8e0c-afc63e375ffd",
+      "project-b018eacf-7d76-5397-a0db-36bcc8b7fd12",
+      "task-b018eacf-7d76-5397-a0db-36bcc8b7fd12",
+      "project-e9d5c4c9-50a1-53e2-8729-22a9d4782e98",
+      "task-e9d5c4c9-50a1-53e2-8729-22a9d4782e98",
+      "project-30ef0046-eeb8-5219-ad51-9f646784cdcc",
+      "task-30ef0046-eeb8-5219-ad51-9f646784cdcc",
+      "project-team",
+      "project-clients",
+      "project-discussions",
+      "project-structure",
+      "project-notifications",
+      "project-settings",
+      "project-export",
+      "team-chat",
+      "agent-task",
+      "integration-tabs",
+      "Webhooks",
+      "Agents",
+      "SSO",
+      "Recent operations",
+      "project-search",
+      "project-status-filter",
+      "history-profile",
+      "mobile-390-profile",
+      "mobile-390-security",
+      "mobile-390-agreement",
+      "mobile-390-notifications",
+      "mobile-390-branding",
+      "mobile-390-administrators",
+      "mobile-390-integrations",
+      "mobile-390-requests",
+      "mobile-390-reviews",
+      "mobile-375-profile",
+      "mobile-375-security",
+      "mobile-375-agreement",
+      "mobile-375-notifications",
+      "mobile-375-branding",
+      "mobile-375-administrators",
+      "mobile-375-integrations",
+      "mobile-375-requests",
+      "mobile-375-reviews",
+      "client-overview",
+      "client-task",
+      "client-discussions",
+      "client-notifications",
+      "client-export",
+      "client-mobile-390",
+      "client-task-mobile-390",
+      "client-mobile-375",
+      "client-task-mobile-375",
+      "en-inert-register",
+      "en-inert-verify-email",
+      "en-inert-onboarding",
+      "ru-inert-register",
+      "ru-inert-verify-email",
+      "ru-inert-onboarding",
+      "tr-inert-register",
+      "tr-inert-verify-email",
+      "tr-inert-onboarding",
+      "zh-CN-inert-register",
+      "zh-CN-inert-verify-email",
+      "zh-CN-inert-onboarding"
+    ],
+    "apiRequests": [],
+    "writes": [],
+    "external": [],
+    "errors": [],
+    "staticRequests": 1346,
+    "schemas": {
+      "developer": 314,
+      "client": 26
+    }
+  },
+  "staticDataset": {
+    "files": 143,
+    "changed": 0,
+    "manifestSha256": "8f42d433b5f9f467877ee36d89a24b02a538afa2da8ac28cb83698cc4b9ae42c"
+  },
+  "gates": {
+    "productionRegistration": false,
+    "runtimeTrialActivation": false
+  },
+  "productionChanged": false,
+  "liveOAuth": false,
+  "liveSmtp": false,
+  "archive": {
+    "archive": "release/dev2done-v0.9.15-2190f00.zip",
+    "bytes": 39796455,
+    "files": 9016,
+    "sha256": "f0b2e616e1382a8fb53058210a3f8ada4644b6bd9e09f727fdc0e13adbeb4b6b",
+    "release": {
+      "version": "0.9.15",
+      "product": "Dev2Done",
+      "commit": "2190f0083923300499d0cdc8c5048a9095f97e6f",
+      "builtAt": "2026-11-03T11:31:05.039Z",
+      "phpTarget": "8.4",
+      "domain": "brief.web86.site"
+    },
+    "extracted": "/tmp/dev2done-phase4b1-production-2190f00"
+  },
+  "canonicalSource": {
+    "php": "8.5.10",
+    "database": "SQLite",
+    "tests": 1179,
+    "passed": 1173,
+    "assertions": 16889,
+    "skipped": 6,
+    "errors": 0,
+    "failures": 0
+  },
+  "compiledBrowser": {
+    "package": true,
+    "results": [
+      {
+        "scenario": "email signup \u2192 owned proof \u2192 real MFA enrollment \u2192 pending activation; no workspace access",
+        "passed": true
+      },
+      {
+        "scenario": "fresh explicit provider link cancellation and success return to connected methods",
+        "passed": true
+      },
+      {
+        "scenario": "mock GitHub PKCE, cancellation, retry, verified owner primary login",
+        "passed": true
+      },
+      {
+        "language": "en",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "en",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "en",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "ru",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "tr",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "light",
+        "width": 1440,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "dark",
+        "width": 375,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      },
+      {
+        "language": "zh-CN",
+        "theme": "system",
+        "width": 390,
+        "publicScreens": 3,
+        "diagnostics": true,
+        "history": true
+      }
+    ],
+    "consoleErrors": [],
+    "liveProviderRequests": 0
+  },
+  "php84Package": {
+    "php": "8.4.26",
+    "productionVendor": true,
+    "signedWebAuthn": true,
+    "fullHttpRuntime": true,
+    "plans": true,
+    "onboarding": true,
+    "privacy": true,
+    "onboardingMariaDB": true
+  },
+  "fullMariaDB": {
+    "status": "passed",
+    "sourceCommit": "2190f0083923300499d0cdc8c5048a9095f97e6f",
+    "php": "8.4.26",
+    "database": "MariaDB11.8.9",
+    "tests": 1179,
+    "passed": 1179,
+    "assertions": 17047,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "cleanup": {
+    "ownTemporaryDatabaseAndVolumeRemoved": true,
+    "ownPhp84ServersRemoved": true,
+    "persistentDemoContainersRetained": 4,
+    "professionalDemoHttp": 200,
+    "staticPreviewHttp": 200
+  }
+}

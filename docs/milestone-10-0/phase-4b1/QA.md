@@ -1,6 +1,6 @@
 # Validation evidence
 
-Automated tests use synthetic accounts, disposable databases, mocked provider endpoints and ephemeral signed Google JWTs. No real Google/Yandex/GitHub credentials, SMTP delivery or Jino access were used. Final counts and artifact verification are recorded below after completion.
+Automated tests use synthetic accounts, disposable databases, mocked provider endpoints and ephemeral signed Google JWTs. No real Google/Yandex/GitHub credentials, SMTP delivery or Jino access were used. Final artifact identity and runtime evidence are recorded in ARTIFACTS.md.
 
 ## Security matrix
 
@@ -22,4 +22,11 @@ Static Demo validation checks the prior manifest pin, unchanged synthetic data, 
 
 ## Final results
 
-Pending completion of full source/package/browser runs. See ARTIFACTS.md for immutable release identity; this section will be finalized before delivery.
+- Canonical source: PHP8.5.10/SQLite **1,179 tests /1,173 passed /16,889 assertions**,6 explicit MariaDB-only skips, no errors/failures. Frontend **453 passed**, brand check/build passed.
+- Full PHP8.4.26/MariaDB11.8.9 release-commit run: **1,179 passed /17,047 assertions**, no skipped tests, failures or errors. It includes independent worker races, populated/reentrant migrations and the final atomic invitation-mismatch case.
+- Both source and actual compiled ZIP: **15 browser scenarios /50 screenshots each**, zero console/page errors; mock OAuth only. Explicit linking exercises the actual MFA step-up and safe callback destination. The harness clears only its scratch cache between enrollment and linking/matrix cases to isolate rate-limit windows; production limits are unchanged.
+- Actual ZIP on PHP8.4.26: signed WebAuthn plus full HTTP/runtime/API/SSO/upgrade/files/cron, plans, onboarding, privacy and absent-demo checks passed using production vendor. A separate fresh MariaDB11.8.9 database passed the packaged onboarding contract without Faker/factories/test activation code.
+- Static Demo current preview: **87 screens**,0 API/write/external/console/page errors,143 byte-identical dataset/schema files, pinned manifest hash unchanged. Existing immutable v3 ZIP is reused. Branding browser9 groups passed.
+- Final extracted package scan and checksums passed; previous production/static ZIPs remain unchanged. Migration runs include fresh MariaDB and populated legacy/reentrant/index-repair tests from the source suites.
+
+Evidence is local/automated, not a claim of production verification. Real provider consent/credentials, SMTP, Jino, hardware TouchID and Safari/WebKit were not tested. The existing Vite >500kB chunk warning remains. See [artifacts](ARTIFACTS.md) for immutable ZIP identity and [runbook](PRODUCTION.md) for deployment/rollback boundaries.
