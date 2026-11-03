@@ -33,6 +33,19 @@ final class EffectiveParticipation
         });
     }
 
+    public function requireProjectWritable(int $workspaceId, int $projectId): void
+    {
+        $project = DB::table('projects')->where('workspace_id', $workspaceId)->where('id', $projectId);
+        abort_unless($this->excludeHeld($project, $workspaceId, 'project', 'projects.id')->exists(), 403, 'subscription_project_held');
+    }
+
+    /** Capacity adapters must review new allocations while a selection is in force. */
+    public function requireGrowthAvailable(int $workspaceId): void
+    {
+        abort_if(DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)
+            ->where('state', 'open')->exists(), 403, 'subscription_selection_required');
+    }
+
     /** Open-cycle high-watermark semantics need the future executor; never promise a ready count. */
     public function reasons(int $workspaceId, bool $current = false): array
     {

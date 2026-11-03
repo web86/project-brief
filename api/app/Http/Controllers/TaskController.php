@@ -7,6 +7,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Services\AttachmentStorage;
 use App\Services\ClientTaskDeletion;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
@@ -29,6 +30,7 @@ class TaskController extends Controller
         $task = AttachmentStorage::atomic(function (array &$paths) use ($request, $project) {
             $owner = TaskAccess::project($request, $project);
             ProjectStructure::lock($owner);
+            app(EffectiveParticipation::class)->requireProjectWritable($owner->workspace_id, $owner->id);
             $sectionName = $request->validated('section') ?? $request->validated('location');
             $this->authorizeSectionCreation($request, $owner, $sectionName);
             $task = app(TaskCreation::class)->create($request, $owner, $request->taskData(), $sectionName);
@@ -51,6 +53,7 @@ class TaskController extends Controller
         $owner = TaskAccess::task($request, $task)->project;
         DB::transaction(function () use ($request, $task, $owner) {
             ProjectStructure::lock($owner);
+            app(EffectiveParticipation::class)->requireProjectWritable($owner->workspace_id, $owner->id);
             $model = TaskAccess::task($request, $task, true);
             if (TaskAccess::isAdmin($request) && array_intersect(array_keys($request->validated()), ['title', 'location', 'description', 'descriptionHtml', 'expectedResult', 'priority', 'section'])) {
                 ProjectPermissions::authorize($request, $owner, 'manage_structure', true);

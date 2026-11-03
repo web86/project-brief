@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\WorkspaceMember;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +14,7 @@ class ProjectCreation
     {
         return DB::transaction(function () use ($workspaceId, $data, $input, $member, $emitEvent): Project {
             IntegrationWrites::lockWorkspace($workspaceId);
+            app(EffectiveParticipation::class)->requireGrowthAvailable($workspaceId);
             app(ShadowGuard::class)->observe($workspaceId, 'project.create', ['projects.active.max' => ($data['status'] ?? 'active') === 'active' ? 1 : 0, 'clients.max' => empty($input['clientEmail']) ? 0 : null]);
             $project = Project::create([...$data, 'workspace_id' => $workspaceId]);
             if ($member && $member->role !== 'owner') {

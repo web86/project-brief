@@ -6,6 +6,7 @@ use App\Http\Requests\ProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\CurrentWorkspace;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectAccess;
 use App\Services\ProjectCreation;
@@ -74,6 +75,9 @@ class ProjectController extends Controller
         DB::transaction(function () use ($request, $project): void {
             app(CurrentWorkspace::class)->resolve($request, true);
             $project = ProjectAccess::query($request)->whereKey($project->id)->lockForUpdate()->firstOrFail();
+            if ($project->status !== 'active' && $request->input('status') === 'active') {
+                app(EffectiveParticipation::class)->requireGrowthAvailable($project->workspace_id);
+            }
             app(ShadowGuard::class)->observe($project->workspace_id, 'project.activate', ['projects.active.max' => $project->status !== 'active' && $request->input('status') === 'active' ? 1 : 0, 'clients.max' => null]);
             $project->fill($request->projectData());
             $changes = $project->getDirty();

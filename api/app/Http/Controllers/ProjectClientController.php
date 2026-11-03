@@ -9,6 +9,7 @@ use App\Models\Workspace;
 use App\Services\AccountSecurity;
 use App\Services\ClientInvitations;
 use App\Services\DeveloperInvitations;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectPermissions;
 use App\Services\ProjectProvisioning;
@@ -47,6 +48,7 @@ class ProjectClientController extends Controller
             if ($existing) {
                 return [$existing, null, true];
             }
+            app(EffectiveParticipation::class)->requireGrowthAvailable($project->workspace_id);
             app(ShadowGuard::class)->observe($project->workspace_id, 'client.change', ['clients.max' => null]);
             $client = $project->clients()->create([...$data, 'name' => trim($data['name']), 'preferred_locale' => SupportedLocales::storage(app()->getLocale())])->refresh();
             $link = $send ? app(ClientInvitations::class)->issue($project, $client, now()->addDays(7)) : null;
@@ -91,8 +93,12 @@ class ProjectClientController extends Controller
             $request->attributes->remove(ProjectPermissions::class);
             ProjectPermissions::authorize($request, $project, 'manage_clients', true);
             app(AccountSecurity::class)->requireFresh($request);
+            $client->refresh();
+            if (($data['active'] ?? $client->active) && (! $client->active || (array_key_exists('email', $data) && $data['email'] !== $client->email))) {
+                app(EffectiveParticipation::class)->requireGrowthAvailable($project->workspace_id);
+            }
             app(ShadowGuard::class)->observe($project->workspace_id, 'client.change', ['clients.max' => null]);
-            $client->refresh()->update($data);
+            $client->update($data);
             if (! $client->active) {
                 // Re-enabling cannot resurrect a link or an already revoked session.
                 $client->accessTokens()->whereNull('revoked_at')->update(['revoked_at' => now()]);
