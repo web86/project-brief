@@ -128,6 +128,6 @@ class SubscriptionLifecycleTest extends TestCase
         DB::table('workspace_execution_epochs')->where('workspace_id', $workspace->id)->where('feature_group', 'agent')->update(['state' => 'ready', 'epoch' => 2]);
         $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => null]));
         $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => 1, 'execution_feature_group' => 'agent']));
-        $this->assertTrue($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => 2, 'execution_feature_group' => 'agent']));
+        $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => 2, 'execution_feature_group' => 'agent']));
     }
 }

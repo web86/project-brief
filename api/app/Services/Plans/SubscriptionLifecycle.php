@@ -78,7 +78,8 @@ final class SubscriptionLifecycle
         DB::transaction(function () use ($workspaceId): void {
             IntegrationWrites::lockWorkspace($workspaceId);
             $subscription = WorkspaceSubscription::where('workspace_id', $workspaceId)->lockForUpdate()->first();
-            if (! $subscription || $subscription->enforcement_mode !== 'enforce') {
+            if (! $subscription || ($subscription->enforcement_mode !== 'enforce'
+                && ! DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->exists())) {
                 return;
             }
 

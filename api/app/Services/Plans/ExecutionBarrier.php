@@ -21,7 +21,10 @@ final class ExecutionBarrier
     public function catchUp(int $workspaceId): void
     {
         if (DB::table('workspace_subscriptions')->where('workspace_id', $workspaceId)
-            ->where('enforcement_mode', 'enforce')->where('next_boundary_at', '<=', CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u'))->exists()) {
+            ->where('next_boundary_at', '<=', CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u'))
+            ->where(fn ($query) => $query->where('enforcement_mode', 'enforce')->orWhereExists(
+                DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)
+            ))->exists()) {
             $this->lifecycle->catchUp($workspaceId);
         }
     }
@@ -42,7 +45,7 @@ final class ExecutionBarrier
                 : ($receipt->execution_epoch ?? null) !== null, 409, 'subscription_execution_stale');
         }
 
-        if ($subscription?->enforcement_mode === 'enforce') {
+        if ($epoch || $subscription?->enforcement_mode === 'enforce') {
             $resolved = $this->resolver->resolve($workspaceId, current: $current);
             abort_unless($resolved['state'] === 'available', 403, 'subscription_execution_blocked');
             foreach ($keys as $key) {
