@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\ProjectPermissions;
 use App\Services\ProjectStructure;
 use App\Services\TaskAccess;
@@ -27,6 +28,7 @@ class TaskTrashController extends Controller
         ProjectPermissions::authorize($request, $project, 'manage_trash');
         $model = DB::transaction(function () use ($request, $task, $project) {
             ProjectStructure::lock($project);
+            app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
             $model = TaskAccess::query($request)->withTrashed()->where('uuid', $task)->lockForUpdate()->firstOrFail();
             abort_unless($model->trashed(), 409, 'The idea has already been restored.');
             $section = $model->projectSection ?? ProjectStructure::defaultSection($project);

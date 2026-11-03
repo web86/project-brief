@@ -12,6 +12,7 @@ use App\Services\ClientSso;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use App\Services\WebhookDestination;
 use App\Services\WebhookEvents;
@@ -243,6 +244,10 @@ class IntegrationController extends Controller
             unset($data['agentId']);
             $existing = $uuid ? DB::table('webhook_endpoints')->where('workspace_id', $workspace)->where('uuid', $uuid)->first() : null;
             abort_if($uuid && ! $existing, 404);
+            if (! $existing || ($data['enabled'] ?? null) === true
+                || (array_intersect_key($data, array_flip(['url', 'events', 'projectFilter', 'projectIds'])) && ($data['enabled'] ?? null) !== false)) {
+                app(ExecutionBarrier::class)->require($workspace, 'webhook');
+            }
             $filters = app(WebhookProjectFilter::class);
             $filter = $filters->input($workspace, $data, $existing);
             unset($data['projectFilter'], $data['projectIds']);
@@ -327,6 +332,7 @@ class IntegrationController extends Controller
         return DB::transaction(function () use ($request, $workspace, $uuid): JsonResponse {
             Workspace::whereKey($workspace)->lockForUpdate()->firstOrFail();
             $this->workspace($request);
+            app(ExecutionBarrier::class)->require($workspace, 'webhook');
             $endpoint = $this->endpoint($workspace, $uuid);
             abort_unless($endpoint->enabled, 422, 'Enable this endpoint first.');
             $workspaceUuid = Workspace::findOrFail($workspace)->uuid;
@@ -364,6 +370,9 @@ class IntegrationController extends Controller
             $payload = $event ? json_decode($event->body, true, 512, JSON_THROW_ON_ERROR) : [];
             abort_unless($event && $event->workspace_id === $endpoint->workspace_id && app(WebhookProjectFilter::class)->matches($endpoint, $event->type, $payload['projectId'] ?? null), 409);
             abort_unless($endpoint->enabled && $endpoint->secret_version === $row->secret_version && $row->status === 'failed' && (! $endpoint->external_agent_id || AgentAccess::deliveryAllowed($endpoint, $payload)), 409);
+            $barrier = app(ExecutionBarrier::class);
+            $barrier->require($workspace, 'webhook', $event);
+            $barrier->require($workspace, 'webhook', $row);
             DB::table('webhook_deliveries')->where('id', $row->id)->update(['status' => 'pending', 'attempts' => 0, 'available_at' => now(), 'http_status' => null, 'error_code' => null, 'updated_at' => now()]);
 
             return response()->json(['queued' => true], 202);

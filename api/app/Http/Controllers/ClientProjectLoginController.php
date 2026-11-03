@@ -7,6 +7,8 @@ use App\Models\Project;
 use App\Services\ClientInvitations;
 use App\Services\DeveloperInvitations;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\SafeExceptionReporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,11 +24,14 @@ class ClientProjectLoginController extends Controller
         abort_if($request->user() || ($access && $access->project->uuid !== $uuid), 403);
         $email = DeveloperInvitations::normalizeEmail($data['email']);
         $project = Project::where('uuid', $uuid)->where('status', 'active')->first();
+        if ($project) {
+            app(ExecutionBarrier::class)->catchUp($project->workspace_id);
+        }
         $delivery = $project ? DB::transaction(function () use ($project, $email): ?array {
             IntegrationWrites::lockWorkspace($project->workspace_id);
             $project = Project::whereKey($project->id)->where('status', 'active')->lockForUpdate()->first();
             $client = $project?->clients()->where('active', true)->whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
-            if (! $client) {
+            if (! $client || ! app(EffectiveParticipation::class)->clientAvailable($project->workspace_id, $project->id, $client->id)) {
                 return null;
             }
             // A public login request must never revoke a previously verified session.

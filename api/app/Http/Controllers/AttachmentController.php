@@ -6,6 +6,8 @@ use App\Http\Requests\AttachmentRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Attachment;
 use App\Services\AttachmentStorage;
+use App\Services\IntegrationWrites;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\ProjectAccess;
 use App\Services\TaskAccess;
 use Illuminate\Http\Request;
@@ -16,7 +18,10 @@ class AttachmentController extends Controller
 {
     public function store(AttachmentRequest $request, string $task): TaskResource
     {
-        $model = AttachmentStorage::atomic(function (array &$paths) use ($request, $task) {
+        $project = TaskAccess::task($request, $task)->project;
+        $model = AttachmentStorage::atomic(function (array &$paths) use ($request, $task, $project) {
+            IntegrationWrites::lockWorkspace($project->workspace_id);
+            app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
             $model = TaskAccess::task($request, $task, true);
             abort_unless(TaskAccess::isAdmin($request) || $model->isClientEditable(), 403);
             AttachmentStorage::storeFiles($request, $model, $paths);

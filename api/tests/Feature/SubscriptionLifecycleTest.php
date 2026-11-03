@@ -257,6 +257,11 @@ class SubscriptionLifecycleTest extends TestCase
             $this->postJson($agentPath.'/start', ['assignmentId' => $assignment->uuid, 'runId' => $run->uuid], $agentHeaders + ['Idempotency-Key' => 'stale-claim'])->assertConflict();
             $this->artisan('plans:reconcile-subscriptions', ['--apply' => true, '--limit' => 1, '--jobs' => 1])->assertSuccessful();
             $this->assertDatabaseHas('agent_runs', ['id' => $run->id, 'state' => 'cancelled', 'error_code' => 'subscription_execution_stale']);
+            DB::table('webhook_deliveries')->update(['status' => 'failed']);
+            $endpointUuid = DB::table('webhook_endpoints')->where('id', $endpoint)->value('uuid');
+            $deliveryUuid = DB::table('webhook_deliveries')->where('webhook_endpoint_id', $endpoint)->value('uuid');
+            $this->postJson('/api/admin/integrations/webhooks/'.$endpointUuid.'/deliveries/'.$deliveryUuid.'/retry')->assertConflict();
+            $this->assertDatabaseHas('webhook_deliveries', ['uuid' => $deliveryUuid, 'status' => 'failed']);
             DB::table('webhook_deliveries')->update(['status' => 'pending']);
             $this->assertSame(1, app(WebhookProcessor::class)->process());
             Http::assertNothingSent();
