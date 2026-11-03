@@ -228,7 +228,11 @@ class WorkspaceAdministratorController extends Controller
             }
             ProjectMember::where('workspace_member_id', $target->id)->where('workspace_id', $owner->workspace_id)->whereHas('project')->whereNotIn('project_id', $ids)->delete();
             foreach ($ids as $id) {
-                $assignment = ProjectMember::firstOrCreate(['project_id' => $id, 'workspace_member_id' => $target->id], ['workspace_id' => $owner->workspace_id]);
+                $assignment = ProjectMember::firstOrNew(['project_id' => $id, 'workspace_member_id' => $target->id, 'workspace_id' => $owner->workspace_id]);
+                if (! $assignment->exists) {
+                    app(EffectiveParticipation::class)->requireProjectWritable($owner->workspace_id, $id);
+                    $assignment->save();
+                }
                 $uuid = Project::whereKey($id)->value('uuid');
                 if (array_key_exists($uuid, $data['projectPermissions'] ?? [])) {
                     $assignment->update(['permissions' => ProjectPermissions::normalize($data['projectPermissions'][$uuid])]);

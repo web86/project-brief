@@ -15,7 +15,7 @@ final class PlanCommands
     /** @param callable(object): array{type: string, id: int, uuid: string, before: int, after: int} $operation */
     public function run(User $actor, string $action, string $key, array $input, callable $operation, ?int $workspaceId = null): array
     {
-        if (! preg_match('/^[A-Za-z0-9._:-]{1,128}$/D', $key) || ! in_array($action, ['management.preview', 'management.publish', 'plan.metadata', 'plan.unarchive', 'rules.copy_preview', 'rules.copy', 'plan.create', 'plan.revise', 'plan.publish', 'plan.next_draft', 'plan.archive', 'plan.transition_rule', 'policy.save', 'policy.publish', 'subscription.pin', 'subscription.override', 'subscription.approve_paid'], true)) {
+        if (! preg_match('/^[A-Za-z0-9._:-]{1,128}$/D', $key) || ! in_array($action, ['management.preview', 'management.publish', 'plan.metadata', 'plan.unarchive', 'rules.copy_preview', 'rules.copy', 'plan.create', 'plan.revise', 'plan.publish', 'plan.next_draft', 'plan.archive', 'plan.transition_rule', 'policy.save', 'policy.publish', 'subscription.pin', 'subscription.override', 'subscription.approve_paid', 'canary.approve', 'canary.stop', 'canary.admit'], true)) {
             throw new InvalidArgumentException('Invalid operation key.');
         }
         $keyHash = hash('sha256', $actor->id.'|'.$key);

@@ -41,6 +41,7 @@ class ProjectTeamController extends Controller
         return DB::transaction(function () use ($request, $project, $manager, $data, $invitations): JsonResponse {
             Workspace::whereKey($manager->workspace_id)->lockForUpdate()->firstOrFail();
             $this->manager($request, $project);
+            app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
             $email = DeveloperInvitations::normalizeEmail($data['email']);
             $member = WorkspaceMember::where('workspace_id', $manager->workspace_id)->active()->whereHas('user', fn ($query) => $query->whereRaw('LOWER(TRIM(email)) = ?', [$email]))->first();
             if ($member) {

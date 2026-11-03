@@ -24,11 +24,13 @@ use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\FrozenTransitions;
 use App\Services\Plans\InvitationOccupancy;
+use App\Services\Plans\LegacyInventory;
 use App\Services\Plans\PlanCatalog;
 use App\Services\Plans\PlatformPolicyCatalog;
 use App\Services\Plans\SubscriptionClock;
 use App\Services\Plans\SubscriptionLifecycle;
 use App\Services\ProjectAccess;
+use App\Services\ProjectProvisioning;
 use App\Services\WebhookEvents;
 use App\Services\WebhookProcessor;
 use Carbon\CarbonImmutable;
@@ -177,6 +179,23 @@ class SubscriptionLifecycleTest extends TestCase
         Http::assertNothingSent();
 
         if ($kind === 'paid') {
+            DB::beginTransaction();
+            try {
+                IntegrationWrites::lockWorkspace($workspace->id);
+                $credential = DB::table('integration_tokens')->where('uuid', $token['id'])->first();
+                [$provisioned, $status] = app(ProjectProvisioning::class)->create($credential, [
+                    'externalId' => 'capacity-audit',
+                    'client' => ['name' => 'Provisioned client', 'email' => 'provisioned@example.test', 'company' => null, 'website' => null],
+                    'project' => ['name' => 'Provisioned project', 'description' => 'Synthetic', 'language' => 'en'],
+                    'sendInvitation' => false,
+                ]);
+                $this->assertSame(201, $status);
+                $participation = DB::table('project_clients')->where('uuid', $provisioned['data']['projectClientId'])->first();
+                $this->assertNotNull($participation->entitlement_identity_id);
+                $this->assertDatabaseHas('entitlement_client_observations', ['project_client_id' => $participation->id, 'state' => 'ready']);
+            } finally {
+                DB::rollBack();
+            }
             $created = $this->actingAs($owner)->postJson('/api/admin/projects', ['title' => 'First effective project'])->assertCreated()->json('data.id');
             $this->postJson('/api/admin/projects', ['title' => 'Over capacity'])->assertForbidden();
             $route = '/api/admin/projects/'.$created.'/clients';
@@ -200,6 +219,8 @@ class SubscriptionLifecycleTest extends TestCase
             ], $subscription->revision, 'switch-created-preview');
             app(FrozenTransitions::class)->applySelection($owner, $workspace->id, $preview['id'], $subscription->revision, 'switch-created');
             $this->assertSame([$replacement->id], app(EffectiveParticipation::class)->projects($workspace->id)->pluck('id')->all());
+            $this->postJson('/api/admin/projects/'.$created.'/team/invitations', ['email' => $developer->user->email])->assertForbidden();
+            $this->assertDatabaseMissing('project_members', ['project_id' => Project::where('uuid', $created)->value('id'), 'workspace_member_id' => $developer->id]);
         }
 
         $barrier = app(ExecutionBarrier::class);
@@ -309,5 +330,63 @@ class SubscriptionLifecycleTest extends TestCase
             $this->assertDatabaseCount('workspace_suspension_cycles', 1);
             $this->assertDatabaseHas('subscription_changes', ['kind' => 'renew', 'state' => 'applied']);
         }
+    }
+
+    public function test_canary_requires_explicit_primary_approval_and_stop_preserves_admitted_trial(): void
+    {
+        config([
+            'onboarding.subject_retention_days' => 365,
+            'onboarding.trial_activation_requested' => false,
+            'mail.default' => 'smtp',
+            'mail.mailers.smtp.host' => 'synthetic.example.test',
+            'mail.from.address' => 'sender@example.test',
+        ]);
+        $primary = User::factory()->owner()->create(['platform_admin' => true]);
+        $secondary = User::factory()->owner()->create(['platform_admin' => true]);
+        DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $primary->id, 'revision' => 1]);
+        $this->seed(PlansFoundationSeeder::class);
+        foreach (['basic', 'studio'] as $code) {
+            $draft = PlanVersion::whereHas('plan', fn ($query) => $query->where('code', $code))->firstOrFail();
+            app(PlanCatalog::class)->publish($primary, $draft->id, 1, 'canary-'.$code);
+        }
+        $policy = app(PlatformPolicyCatalog::class)->publish($primary, PlatformPolicyVersion::firstOrFail()->id, 1, 'canary-policy');
+        DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
+        $inventory = app(LegacyInventory::class);
+        $inventory->bootstrap();
+        foreach ([$primary, $secondary] as $operator) {
+            $inventory->process($operator->workspaceMembers()->firstOrFail()->workspace_id);
+        }
+        $claimIds = [];
+        foreach (range(1, 3) as $index) {
+            $owner = User::factory()->create();
+            app(AuthOnboarding::class)->pending($owner);
+            app(AuthOnboarding::class)->prepare($owner);
+            $owner->forceFill([
+                'two_factor_secret' => Fortify::currentEncrypter()->encrypt(app(Google2FA::class)->generateSecretKey()),
+                'two_factor_confirmed_at' => now(),
+                'recovery_codes_acknowledged_at' => now(),
+            ])->save();
+            $claimIds[] = DB::table('owner_trial_claims')->where('owner_user_id', $owner->id)->value('uuid');
+        }
+        $revision = (int) DB::table('plan_settings')->where('id', 1)->value('revision');
+        $headers = fn (int $at, string $key): array => ['If-Match' => '"revision:'.$at.'"', 'Idempotency-Key' => $key];
+        $endpoint = '/api/platform/registration-canary/';
+        $evidence = array_fill_keys(['lifecycle', 'execution_barriers', 'rollback', 'notification_delivery', 'trial_claim_policy'], hash('sha256', 'synthetic operator attestation'));
+        $approval = ['claims' => array_slice($claimIds, 0, 2), 'evidence' => $evidence];
+        $this->actingAs($secondary)->postJson($endpoint.'approve', $approval, $headers($revision, 'secondary'))->assertForbidden();
+        $this->actingAs($primary)->postJson($endpoint.'approve', $approval, $headers($revision - 1, 'stale'))->assertConflict();
+        config(['onboarding.trial_activation_requested' => true]);
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision, 'env-only'))->assertConflict();
+        $this->postJson($endpoint.'approve', $approval, $headers($revision, 'permit'))->assertOk()->assertJsonPath('data.revision', (string) ($revision + 1));
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[2]], $headers($revision + 1, 'outside'))->assertConflict();
+        config(['onboarding.trial_activation_requested' => false]);
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'disabled'))->assertForbidden();
+        config(['onboarding.trial_activation_requested' => true]);
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'admission'))->assertOk();
+        $this->postJson($endpoint.'stop', [], $headers($revision + 1, 'stop'))->assertOk();
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[1]], $headers($revision + 2, 'stopped'))->assertConflict();
+        $this->assertSame(1, SubscriptionPeriod::where('kind', 'trial')->count());
+        $this->assertSame(2, WorkspaceSubscription::where('enforcement_mode', 'observe')->count());
+        $this->assertDatabaseHas('plan_events', ['action' => 'canary.admit', 'actor_user_id' => $primary->id]);
     }
 }

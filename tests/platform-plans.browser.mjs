@@ -637,6 +637,35 @@ require __DIR__.'/../vendor/autoload.php';
   await ownerPanel.getByLabel('Second synthetic lifecycle project').uncheck()
   await freezeSelection(ownerPanel)
   await apply(ownerPanel, 'Apply Basic selection', '/apply-basic')
+  php(['artisan', 'cache:clear', '--no-interaction'])
+  const projects = await call(ownerContext, '/api/admin/projects')
+  assert.equal(projects.status(), 200, await projects.text())
+  const first = (await projects.json()).data.find(
+    (project) => project.name === 'First synthetic lifecycle project',
+  )
+  assert.ok(first)
+  const clientPath = '/api/admin/projects/' + first.id + '/clients'
+  for (const index of [2, 3]) {
+    const createdClient = await call(ownerContext, clientPath, 'POST', {
+      name: 'Canary client ' + index,
+      email: 'canary-client-' + index + '@example.test',
+    })
+    assert.equal(createdClient.status(), 201, await createdClient.text())
+  }
+  assert.equal(
+    (
+      await call(ownerContext, clientPath, 'POST', {
+        name: 'Over capacity',
+        email: 'canary-client-4@example.test',
+      })
+    ).status(),
+    403,
+  )
+  assert.equal(
+    (await call(ownerContext, '/api/admin/projects', 'POST', { title: 'Over capacity' })).status(),
+    403,
+  )
+
   await capture(ownerPage, 'lifecycle-basic.png')
   await operatorPage.goto(
     origin + '/platform/plans/inventory/' + lifecycle.workspace + '?versionId=' + lifecycle.paid,

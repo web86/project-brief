@@ -58,6 +58,7 @@ class ProjectProvisioning
             'workspace_client_id' => $identity->id, 'name' => $identity->name, 'email' => $identity->email,
             'preferred_locale' => SupportedLocales::storage($input['project']['language']),
         ]);
+        app(EffectiveParticipation::class)->checkAllocation($workspaceId, ['clients.max'], $client->id);
         $id = DB::table('project_provisionings')->insertGetId([
             'uuid' => (string) Str::uuid(), 'workspace_id' => $workspaceId, 'integration_token_id' => $tokenId,
             'external_hash' => $externalHash, 'body_hash' => IntegrationWrites::fingerprint($input), 'workspace_client_id' => $identity->id,

@@ -144,6 +144,8 @@ Route::post('/api/auth/{provider}/start', [SocialAuthController::class, 'start']
 Route::post('/api/auth/{provider}/link', [SocialAuthController::class, 'start'])->defaults('socialIntent', 'link')->whereIn('provider', ['google', 'yandex', 'github'])->middleware(['auth', 'throttle:account-security'])->block();
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware('throttle:social-auth')->block();
 Route::delete('/api/auth/{provider}', [SocialAuthController::class, 'disconnect'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware(['auth', 'throttle:account-security'])->block();
+Route::post('/api/platform/registration-canary/{operation}', [RegistrationDiagnosticsController::class, 'canary'])
+    ->whereIn('operation', ['approve', 'admit', 'stop'])->middleware([EnsurePlatformAdmin::class, 'throttle:platform']);
 Route::get('/api/platform/registration-diagnostics', RegistrationDiagnosticsController::class)->middleware([EnsurePlatformAdmin::class, EnsurePlanAuthority::class, 'throttle:platform']);
 
 Route::get('/', SpaController::class);
