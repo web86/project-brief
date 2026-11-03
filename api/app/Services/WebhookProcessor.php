@@ -119,6 +119,10 @@ class WebhookProcessor
             $timestamp = (string) now()->timestamp;
             $signature = hash_hmac('sha256', $timestamp.'.'.$event->body, Crypt::decryptString($endpoint->secret));
             $barrier->require($endpoint->workspace_id, 'webhook', $delivery);
+            $current = DB::table('webhook_endpoints')->find($endpoint->id);
+            abort_unless($current && $current->enabled && $current->secret_version === $endpoint->secret_version
+                && $current->url === $endpoint->url && app(WebhookProjectFilter::class)->matches($current, $event->type, $payload['projectId'] ?? null)
+                && (! $current->external_agent_id || AgentAccess::deliveryAllowed($current, $payload)), 409, 'endpoint_changed');
             $response = Http::withOptions(['allow_redirects' => false, 'verify' => true, 'decode_content' => false, 'proxy' => '', 'curl' => [CURLOPT_RESOLVE => [$target['host'].':443:'.(str_contains($target['ip'], ':') ? '['.$target['ip'].']' : $target['ip'])]], 'on_headers' => function ($response): void {
                 if ((int) $response->getHeaderLine('Content-Length') > 16384) {
                     throw new \RuntimeException('response_too_large');

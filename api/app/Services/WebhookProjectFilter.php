@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Project;
+use App\Services\Plans\EffectiveParticipation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -37,7 +38,7 @@ class WebhookProjectFilter
     public function matches(object $endpoint, string $type, ?string $projectUuid): bool
     {
         if (str_starts_with($type, 'project_request.')) {
-            return $endpoint->project_filter === 'all';
+            return $endpoint->project_filter === 'all' && app(EffectiveParticipation::class)->reasons($endpoint->workspace_id) === [];
         }
         if ($type === 'webhook.test') {
             return $projectUuid === null;
@@ -46,7 +47,7 @@ class WebhookProjectFilter
             return false;
         }
 
-        return Project::where('workspace_id', $endpoint->workspace_id)->where('uuid', $projectUuid)
+        return app(EffectiveParticipation::class)->visibleProjects($endpoint->workspace_id)->where('uuid', $projectUuid)
             ->when($endpoint->project_filter !== 'all', fn ($query) => $query->whereIn('id', DB::table('webhook_endpoint_projects')->where('workspace_id', $endpoint->workspace_id)->where('webhook_endpoint_id', $endpoint->id)->select('project_id')))->exists();
     }
 

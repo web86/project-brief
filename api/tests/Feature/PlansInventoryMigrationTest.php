@@ -27,6 +27,9 @@ class PlansInventoryMigrationTest extends TestCase
         try {
             Schema::dropAllTables();
             foreach (glob(database_path('migrations/*.php')) as $path) {
+                if (str_contains($path, 'add_restore_cycle_to_entitlement_capacity_reservations')) {
+                    continue;
+                }
                 if (str_contains($path, 'add_plan_inventory_accounting')) {
                     $migration = require $path;
                 } else {

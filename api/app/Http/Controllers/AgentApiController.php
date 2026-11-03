@@ -104,7 +104,8 @@ class AgentApiController extends Controller
                     abort_if($run && $run->key_hash !== hash('sha256', 'initial-'.$row->uuid), 409, 'runId is required for follow-up executions.');
                 }
                 abort_if($run && $operation === 'reports' && $run->state === 'running' && $data['state'] === 'pending', 409);
-                app(ExecutionBarrier::class)->require($row->workspace_id, 'agent', $run);
+                $epoch = app(ExecutionBarrier::class)->require($row->workspace_id, 'agent', $run);
+                abort_if($epoch !== null && ! isset($data['runId']), 409, 'execution_run_receipt_required');
                 $comment = Comment::create(['project_id' => $row->task->project_id, 'task_id' => $row->task_id, 'external_agent_id' => $row->external_agent_id,
                     'author_type' => 'agent', 'team_only' => true, 'text' => trim($data['summary'] ?? $data['text'] ?? '')]);
                 if ($operation === 'attachments') {

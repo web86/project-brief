@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\Plans\EffectiveParticipation;
 use Illuminate\Http\Request;
 
 class TaskCreation
@@ -12,6 +13,7 @@ class TaskCreation
     public function create(Request $request, Project $project, array $data, string $sectionName): Task
     {
         ProjectStructure::lock($project);
+        app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
         $task = $project->tasks()->create($data);
         ProjectStructure::assignNewTask($project, $task, $sectionName);
         if ($request->attributes->has('integration_token')) {

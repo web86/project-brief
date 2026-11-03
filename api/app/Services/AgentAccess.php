@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Models\ExternalAgent;
-use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskAgentAssignment;
+use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,9 +37,7 @@ class AgentAccess
     public static function assignments(ExternalAgent $agent): Builder
     {
         return TaskAgentAssignment::where('task_agent_assignments.workspace_id', $agent->workspace_id)->where('external_agent_id', $agent->id)->whereNull('revoked_at')
-            ->whereHas('task', fn ($q) => $q->whereHas('project', fn ($p) => $p->where('workspace_id', $agent->workspace_id)->where('status', 'active')
-                ->whereExists(fn ($m) => $m->selectRaw('1')->from('project_members')->whereColumn('project_members.project_id', 'projects.id')->where('project_members.workspace_id', $agent->workspace_id)->where('project_members.external_agent_id', $agent->id))
-                ->whereExists(fn ($g) => $g->selectRaw('1')->from('agent_project_grants')->whereColumn('agent_project_grants.project_id', 'projects.id')->where('agent_project_grants.workspace_id', $agent->workspace_id)->where('agent_project_grants.external_agent_id', $agent->id))));
+            ->whereHas('task', fn ($q) => $q->whereIn('project_id', self::projects($agent)->select('projects.id')));
     }
 
     public static function assignment(Request $request, string $taskUuid): TaskAgentAssignment
@@ -51,7 +50,7 @@ class AgentAccess
 
     public static function projects(ExternalAgent $agent): Builder
     {
-        return Project::where('workspace_id', $agent->workspace_id)->where('status', 'active')
+        return app(EffectiveParticipation::class)->visibleProjects($agent->workspace_id)->where('status', 'active')
             ->whereExists(fn ($q) => $q->selectRaw('1')->from('agent_project_grants')->whereColumn('agent_project_grants.project_id', 'projects.id')->where('agent_project_grants.workspace_id', $agent->workspace_id)->where('agent_project_grants.external_agent_id', $agent->id))
             ->whereExists(fn ($q) => $q->selectRaw('1')->from('project_members')->whereColumn('project_members.project_id', 'projects.id')->where('project_members.workspace_id', $agent->workspace_id)->where('project_members.external_agent_id', $agent->id));
     }
@@ -75,7 +74,9 @@ class AgentAccess
 
     public static function deliveryAllowed(object $endpoint, array $payload, ?string $type = null): bool
     {
-        $agent = ExternalAgent::where('workspace_id', $endpoint->workspace_id)->whereKey($endpoint->external_agent_id)->where('active', true)->first();
+        $query = ExternalAgent::where('workspace_id', $endpoint->workspace_id)->whereKey($endpoint->external_agent_id)->where('active', true);
+        app(EffectiveParticipation::class)->excludeHeld($query->getQuery(), $endpoint->workspace_id, 'external_agent', 'external_agents.id');
+        $agent = $query->first();
         if (! $agent || ($payload['agentId'] ?? null) !== $agent->uuid) {
             return false;
         }
@@ -89,7 +90,7 @@ class AgentAccess
         }
         if (isset($payload['runId'])) {
             $run = DB::table('agent_runs')->where('task_agent_assignment_id', $assignment->id)->where('uuid', $payload['runId'])->first();
-            if (! $run) {
+            if (! $run || ! app(ExecutionBarrier::class)->allows($agent->workspace_id, 'agent', $run, lockReads: false)) {
                 return false;
             }
             $type ??= $payload['type'] ?? null;

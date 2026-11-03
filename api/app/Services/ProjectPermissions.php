@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\WorkspaceMember;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -70,6 +71,10 @@ class ProjectPermissions
     {
         if (! (self::effective($request, $project, $lock)[$permission] ?? false)) {
             throw new HttpResponseException(response()->json(['code' => 'project_permission_denied', 'message' => 'Ask the workspace owner for access.'], 403));
+        }
+        if (! $request->isMethodSafe() && ! $request->isMethod('DELETE')
+            && in_array($permission, ['manage_structure', 'manage_project_settings', 'manage_project_notifications'], true)) {
+            app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
         }
         if (! $request->isMethodSafe() && $permission === 'manage_team') {
             app(ShadowGuard::class)->observe($project->workspace_id, 'developer.change', ['developers.max' => 0]);

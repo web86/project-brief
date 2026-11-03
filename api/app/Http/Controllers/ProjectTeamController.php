@@ -12,6 +12,7 @@ use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
 use App\Services\CurrentWorkspace;
 use App\Services\DeveloperInvitations;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\InvitationOccupancy;
 use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectPermissions;
@@ -83,6 +84,7 @@ class ProjectTeamController extends Controller
         DB::transaction(function () use ($request, $project, $owner, $data): void {
             Workspace::whereKey($owner->workspace_id)->lockForUpdate()->firstOrFail();
             $this->manager($request, $project);
+            app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
             $members = WorkspaceMember::where('workspace_id', $owner->workspace_id)->active()->where('role', 'admin')->whereIn('id', $data['members'])->lockForUpdate()->get();
             abort_unless($members->count() === count($data['members']), 422);
             foreach ($members as $member) {

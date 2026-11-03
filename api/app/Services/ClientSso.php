@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectAccessToken;
 use App\Models\ProjectClient;
 use App\Models\User;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Query\Builder;
@@ -42,7 +43,7 @@ class ClientSso
             $email = DeveloperInvitations::normalizeEmail($input['email']);
             abort_if($this->staff($email), 403);
             $clients = $project->clients()->where('active', true)->whereRaw('LOWER(TRIM(email)) = ?', [$email])->lockForUpdate()->get();
-            abort_unless($clients->count() === 1, 403);
+            abort_unless($clients->count() === 1 && app(EffectiveParticipation::class)->clientAvailable($token->workspace_id, $project->id, $clients->first()->id), 403);
             $epoch = $barrier->require($token->workspace_id, 'sso');
             app(ShadowGuard::class)->observe($token->workspace_id, 'sso.use', []);
             $externalHash = hash('sha256', $input['externalUserId']);
@@ -105,7 +106,11 @@ class ClientSso
     {
         $source = DB::table('integration_sources')->where('workspace_id', $handoff->workspace_id)->where('id', $handoff->integration_source_id)->where('sso_enabled', true)->first();
 
-        return $source && is_string($origin) && is_string($source->sso_origin) && hash_equals($source->sso_origin, $origin) && ! $handoff->consumed_at && ! $handoff->revoked_at && Carbon::parse($handoff->expires_at)->isFuture();
+        $barrier = app(ExecutionBarrier::class);
+        $barrier->catchUp($handoff->workspace_id);
+
+        return $barrier->allows($handoff->workspace_id, 'sso', $handoff)
+            && $source && is_string($origin) && is_string($source->sso_origin) && hash_equals($source->sso_origin, $origin) && ! $handoff->consumed_at && ! $handoff->revoked_at && Carbon::parse($handoff->expires_at)->isFuture();
     }
 
     private function eligible(object $row): ?ProjectClient
@@ -116,7 +121,8 @@ class ClientSso
         $client = ProjectClient::with('project')->find($row->project_client_id);
         if (! $token || $token->integration_source_id !== $row->integration_source_id || ! $source || ! $binding || ! $client?->active || ! $client->email ||
             $client->project_id !== $row->project_id || $client->project?->workspace_id !== $row->workspace_id || $client->project->status !== 'active' ||
-            ! $this->granted($row->integration_source_id, $row->workspace_id, $row->project_id)) {
+            ! $this->granted($row->integration_source_id, $row->workspace_id, $row->project_id)
+            || ! app(EffectiveParticipation::class)->clientAvailable($row->workspace_id, $row->project_id, $row->project_client_id)) {
             return null;
         }
         $email = DeveloperInvitations::normalizeEmail($client->email);

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ExternalAgent;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class AgentCredentials
     {
         abort_unless(self::isAgent($token), 403);
         $query = ExternalAgent::where('workspace_id', $token->workspace_id)->where('active', true);
+        app(EffectiveParticipation::class)->excludeHeld($query->getQuery(), $token->workspace_id, 'external_agent', 'external_agents.id');
         $claimed = $request->header(self::HEADER);
         if ($token->agent_shared) {
             abort_unless(is_string($claimed) && Str::isUuid($claimed), 403, 'An explicit linked agent ID is required.');

@@ -8,8 +8,10 @@ use App\Models\TaskAgentAssignment;
 use App\Models\User;
 use App\Models\WorkspaceMember;
 use App\Services\AgentAccess;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use App\Services\WebhookDestination;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -34,6 +36,22 @@ class PlansFoundationMigrationTest extends TestCase
                 public function receipt(string $group, ?int $epoch): array
                 {
                     return [];
+                }
+            });
+            $this->app->instance(EffectiveParticipation::class, new class
+            {
+                public function requireGrowthAvailable(int $workspaceId): void {}
+
+                public function requireProjectWritable(int $workspaceId, int $projectId): void {}
+
+                public function visibleProjects(int $workspaceId): Builder
+                {
+                    return Project::where('workspace_id', $workspaceId);
+                }
+
+                public function excludeHeld(\Illuminate\Database\Query\Builder $query, int $workspaceId, string $kind, string $column): \Illuminate\Database\Query\Builder
+                {
+                    return $query;
                 }
             });
             Http::preventStrayRequests();
@@ -63,6 +81,7 @@ class PlansFoundationMigrationTest extends TestCase
                 }
             }
             $this->app->forgetInstance(ExecutionBarrier::class);
+            $this->app->forgetInstance(EffectiveParticipation::class);
             $migration->up();
             $migration->up();
             foreach ($tables as $table => $before) {
@@ -142,7 +161,7 @@ class PlansFoundationMigrationTest extends TestCase
         try {
             Schema::dropAllTables();
             foreach (glob(database_path('migrations/*.php')) as $path) {
-                if (str_contains($path, 'add_plan_inventory_accounting') || str_contains($path, 'add_execution_receipt_to_client_sso_handoffs')) {
+                if (str_contains($path, 'add_plan_inventory_accounting') || str_contains($path, 'add_execution_receipt_to_client_sso_handoffs') || str_contains($path, 'add_restore_cycle_to_entitlement_capacity_reservations')) {
                     continue; // The pre-foundation upgrade fixture excludes later implementation phases.
                 }
                 if (str_contains($path, 'create_plans_foundation')) {

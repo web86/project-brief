@@ -7,12 +7,18 @@ use App\Http\Requests\CommentRequest;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\Plans\EffectiveParticipation;
 
 class CommentSubmission
 {
     public static function store(CommentRequest $request, Project $project, ?Task $task = null, bool $teamOnly = false): Comment
     {
         return AttachmentStorage::atomic(function (array &$paths) use ($request, $project, $task, $teamOnly) {
+            IntegrationWrites::lockWorkspace($project->workspace_id);
+            app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
+            if (! TaskAccess::isAdmin($request)) {
+                abort_unless(app(EffectiveParticipation::class)->clientAvailable($project->workspace_id, $project->id, TaskAccess::recipient($request)->id), 403, 'subscription_project_held');
+            }
             // Serialize retries in this project before checking the unique submission key.
             if ($teamOnly) {
                 app(TeamChat::class)->authorize($request, $project, true);

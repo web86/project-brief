@@ -71,12 +71,18 @@ class ResourceSelectionController extends Controller
                     return response()->json(['data' => app(AccountingReview::class)->listing($id)]);
                 });
             }
+            if ($kind === 'rearm') {
+                PlanInput::only($request->all(), ['groups']);
+                $input = $request->validate(['groups' => ['required', 'array', 'list', 'min:1', 'max:4'], 'groups.*' => ['required', 'string', 'distinct', 'in:agent,api,sso,webhook']]);
+
+                return response()->json(['data' => $service->rearm($request->user(), $id, PlanInput::revision($request), $input['groups'], PlanInput::key($request))]);
+            }
             if ($kind === 'approve-paid') {
                 PlanInput::only($request->all(), ['serviceDays', 'reason']);
                 $data = $request->validate(['serviceDays' => ['required', 'integer', 'min:1', 'max:36600'], 'reason' => ['required', 'regex:/^[a-z][a-z0-9_]{0,59}$/D']]);
                 $subscription = app(SubscriptionAssignments::class)->approvePaid($request->user(), $id, $preview, PlanInput::revision($request), (int) $data['serviceDays'], $data['reason'], PlanInput::key($request));
 
-                return response()->json(['data' => ['id' => $subscription->uuid, 'revision' => (string) $subscription->revision]]);
+                return response()->json(['data' => $subscription]);
             }
             if (in_array($kind, ['apply-basic', 'restore-paid'], true)) {
                 PlanInput::only($request->all(), []);

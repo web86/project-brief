@@ -36,8 +36,55 @@ final class FrozenTransitions
 
             $subscription = $platform ? null : $this->subscriptionSummary($snapshot);
 
-            return ['workspaceId' => $snapshot['workspaceId'], 'subscriptionRevision' => $snapshot['subscriptionRevision'], 'resources' => $this->selections->options($snapshot, ! $platform), 'usage' => $snapshot['usage'], 'resourceFingerprint' => $snapshot['hash'], 'previewOnly' => true, 'executorAvailable' => false, ...($platform ? [] : ['subscription' => $subscription])];
+            return ['workspaceId' => $snapshot['workspaceId'], 'subscriptionRevision' => $snapshot['subscriptionRevision'], 'resources' => $this->selections->options($snapshot, ! $platform), 'usage' => $snapshot['usage'], 'resourceFingerprint' => $snapshot['hash'], 'previewOnly' => true, 'executorAvailable' => false, ...($platform ? [] : ['subscription' => $subscription, 'rearmGroups' => $this->rearmGroups($snapshot)])];
         }, 3);
+    }
+
+    private function rearmGroups(array $snapshot): array
+    {
+        $cycle = $snapshot['rows']['workspace_suspension_cycles']->firstWhere('state', 'open');
+        if (! $cycle || ($snapshot['pinned']['phase'] ?? null) !== 'paid') {
+            return [];
+        }
+        $restore = DB::table('plan_events')->where('workspace_id', $snapshot['workspaceInternalId'])
+            ->where('action', 'transition.paid_restored')->latest('id')->value('result_json');
+        $result = $restore ? json_decode($restore, true, 16, JSON_THROW_ON_ERROR) : [];
+        if (($result['cycleId'] ?? null) !== $cycle->uuid || ($result['subscriptionRevision'] ?? null) !== $snapshot['subscriptionRevision']) {
+            return [];
+        }
+
+        return array_keys(array_filter(ExecutionBarrier::FEATURES, fn (array $features): bool => collect($features)
+            ->every(fn (string $key): bool => ($snapshot['pinned']['values'][$key]['value'] ?? null) === true)));
+    }
+
+    private function availableAction(array $snapshot, array $target, array $plan, bool $platform): ?string
+    {
+        if (array_diff($plan['reasonCodes'], ['participation_cycle_adapter_required', 'subscription_missing_or_incomplete'])) {
+            return null;
+        }
+        $pinned = $snapshot['pinned'];
+        $phase = $pinned['phase'] ?? null;
+        $cycle = $snapshot['rows']['workspace_suspension_cycles']->firstWhere('state', 'open');
+        if ($platform) {
+            if ($target['accessClass'] !== 'paid' || $snapshot['rows']['workspace_subscriptions']->first()?->enforcement_mode !== 'enforce') {
+                return null;
+            }
+
+            return ($cycle && $phase === 'free') || (in_array($phase, ['paid', 'grace'], true) && ! array_filter($plan['wouldHold'])
+                && hash_equals($pinned['content_hash'], $target['hash'])) ? 'approve-paid' : null;
+        }
+        if (! $cycle || ! $phase || ! hash_equals($pinned['content_hash'], $target['hash'])) {
+            return null;
+        }
+
+        $selection = $plan['selection'];
+
+        return match (true) {
+            $phase === 'paid' => 'restore-paid',
+            $phase === 'free' && count($selection['projects']) === 1 && count($selection['developers']) === 1
+                && count($selection['clients']) <= 3 && ! $selection['agents'] && ! $selection['invitations'] => 'apply-basic',
+            default => null,
+        };
     }
 
     private function subscriptionSummary(array $snapshot): ?array
@@ -85,7 +132,7 @@ final class FrozenTransitions
             $uuid = (string) Str::uuid();
             $now = CarbonImmutable::now('UTC');
             $settings = DB::table('plan_settings')->where('id', 1)->sharedLock()->value('revision') ?? 0;
-            $summary = $plan + ['target' => $target, 'resourceFingerprint' => $snapshot['hash'], 'resourceRevisions' => $snapshot['fingerprints'], 'executionContract' => $this->selections->executionContract($snapshot, $target, $plan)];
+            $summary = $plan + ['availableAction' => $this->availableAction($snapshot, $target, $plan, $platform), 'target' => $target, 'resourceFingerprint' => $snapshot['hash'], 'resourceRevisions' => $snapshot['fingerprints'], 'executionContract' => $this->selections->executionContract($snapshot, $target, $plan)];
             $id = DB::table('plan_previews')->insertGetId(['uuid' => $uuid, 'actor_user_id' => $actor->id, 'authority_revision' => $authorityRevision, 'kind' => 'resource_transition', 'target_uuid' => $target['id'], 'target_revision' => $target['revision'], 'target_hash' => $target['hash'], 'settings_revision' => $settings, 'registry_revision' => EntitlementRegistry::REVISION, 'policy_json' => json_encode(['selection' => $plan['selection'], 'platform' => $platform]), 'state' => 'ready', 'summary_json' => json_encode($summary, JSON_THROW_ON_ERROR), 'ready_at' => $now->format('Y-m-d H:i:s.u'), 'expires_at' => $now->addMinutes(15)->format('Y-m-d H:i:s.u'), 'created_at' => $now->format('Y-m-d H:i:s.u'), 'updated_at' => $now->format('Y-m-d H:i:s.u')]);
             DB::table('plan_preview_items')->insert(['preview_id' => $id, 'workspace_id' => $workspaceId, 'subscription_revision' => $expectedRevision, 'usage_fingerprint' => $snapshot['hash'], 'execution_epochs_json' => json_encode($snapshot['fingerprints']['workspace_execution_epochs']), 'suspension_revision' => $snapshot['rows']['workspace_suspension_cycles']->max('revision') ?? 0, 'evaluated_at' => $now->format('Y-m-d H:i:s.u'), 'result_json' => json_encode(['selectionHash' => $plan['selectionHash']]), 'apply_state' => 'pending']);
             $this->audit($actor, $workspaceId, $platform, 'transition.preview_created', ['previewId' => $uuid, 'selectionHash' => $plan['selectionHash'], 'state' => $plan['state']], $operationHash, $requestHash);
@@ -153,10 +200,9 @@ final class FrozenTransitions
                 && (int) $preview['subscriptionRevision'] === $expectedRevision, 409, 'transition_preview_stale');
 
             $selection = $preview['selection'];
-            abort_if(array_diff($preview['reasonCodes'], ['subscription_missing_or_incomplete', 'participation_cycle_adapter_required'])
-                || $selection['agents'] || $selection['invitations'], 422, 'selection_apply_invalid');
+            abort_if(array_diff($preview['reasonCodes'], ['subscription_missing_or_incomplete', 'participation_cycle_adapter_required']), 422, 'selection_apply_invalid');
             abort_if(! $restorePaid && (count($selection['projects']) !== 1 || count($selection['developers']) !== 1
-                || count($selection['clients']) > 3), 422, 'basic_selection_invalid');
+                || count($selection['clients']) > 3 || $selection['agents'] || $selection['invitations']), 422, 'basic_selection_invalid');
 
             $projects = DB::table('projects')->where('workspace_id', $workspaceId)->whereIn('uuid', $selection['projects'])
                 ->whereNull('deleted_at')->where('status', 'active')->orderBy('id')->get(['id', 'uuid']);
@@ -168,14 +214,35 @@ final class FrozenTransitions
                 && $clients->count() === count($preview['clientParticipations'])
                 && $members->count() + 1 === count($selection['developers']), 409, 'transition_preview_stale');
 
+            $agents = DB::table('external_agents')->where('workspace_id', $workspaceId)->where('active', true)->whereNull('deleted_at')
+                ->whereIn('uuid', $selection['agents'])->whereExists(fn ($query) => $query->selectRaw('1')->from('agent_project_grants as grant_row')
+                ->join('project_members as assignment', function ($join): void {
+                    $join->on('assignment.workspace_id', '=', 'grant_row.workspace_id')
+                        ->on('assignment.external_agent_id', '=', 'grant_row.external_agent_id')->on('assignment.project_id', '=', 'grant_row.project_id');
+                })->whereColumn('grant_row.external_agent_id', 'external_agents.id')
+                ->where('grant_row.workspace_id', $workspaceId)->whereIn('grant_row.project_id', $projects->pluck('id')))
+                ->orderBy('id')->get(['id', 'uuid']);
+            abort_unless($agents->count() === count($selection['agents']), 422, 'selection_agent_participation_required');
+            $invites = DB::table('developer_invitations')->where('workspace_id', $workspaceId)->whereIn('uuid', $selection['invitations'])
+                ->whereNotNull('token_hash')->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now('UTC'))
+                ->orderBy('id')->get();
+            foreach ($invites as $invite) {
+                $assigned = json_decode($invite->project_ids, true, 16, JSON_THROW_ON_ERROR);
+                abort_if(array_diff($assigned, $projects->pluck('id')->all()), 422, 'selection_invitation_projects_held');
+                app(InvitationOccupancy::class)->sync($invite->id);
+            }
+            $reservations = DB::table('entitlement_capacity_reservations')->where('workspace_id', $workspaceId)->where('key', 'developers.max')
+                ->whereIn('developer_invitation_id', $invites->pluck('id'))->where('state', 'held');
+            abort_unless($invites->count() === count($selection['invitations']) && $reservations->count() === $invites->count(), 409, 'selection_invitation_unavailable');
+
             $at = CarbonImmutable::now('UTC');
             abort_if($restorePaid && $period->service_ends_at <= $at, 409, 'selection_apply_unavailable');
             $now = $at->format('Y-m-d H:i:s.u');
             $scope = ['workspace_id' => $workspaceId, 'cycle_id' => $cycle->id];
             DB::table('workspace_entitlement_resource_states')->where($scope)
-                ->whereIn('resource_kind', ['project', 'project_client', 'workspace_member'])->where('state', 'released')
+                ->whereIn('resource_kind', ['project', 'project_client', 'workspace_member', 'external_agent'])->where('state', 'released')
                 ->update(['state' => 'held', 'reviewed_revision' => $expectedRevision, 'confirmed_by' => $actor->id, 'reason_code' => 'selection_replaced', 'changed_at' => $now]);
-            foreach (['project' => $projects, 'project_client' => $clients, 'workspace_member' => $members] as $kind => $resources) {
+            foreach (['project' => $projects, 'project_client' => $clients, 'workspace_member' => $members, 'external_agent' => $agents] as $kind => $resources) {
                 foreach ($resources as $resource) {
                     DB::table('workspace_entitlement_resource_states')->updateOrInsert($scope + ['resource_kind' => $kind, 'resource_id' => $resource->id], [
                         'resource_uuid' => $resource->uuid ?? null,
@@ -187,10 +254,67 @@ final class FrozenTransitions
                     ]);
                 }
             }
+            DB::table('entitlement_capacity_reservations')->where('workspace_id', $workspaceId)
+                ->where('restored_cycle_id', $cycle->id)->update(['restored_cycle_id' => null]);
+            $reservations->update(['restored_cycle_id' => $cycle->id]);
+            if ($restorePaid) {
+                DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->where('state', 'ready')
+                    ->update(['state' => 'blocked', 'epoch' => DB::raw('epoch + 1'), 'revision' => DB::raw('revision + 1'), 'blocked_at' => $now, 'resume_at' => null]);
+            }
             DB::table('workspace_suspension_cycles')->where('id', $cycle->id)->increment('revision');
             $subscription->increment('revision');
             $result = ['previewId' => $previewId, 'selectionHash' => $preview['selectionHash'], 'cycleId' => $cycle->uuid, 'subscriptionRevision' => (string) $subscription->revision];
             $this->audit($actor, $workspaceId, false, $restorePaid ? 'transition.paid_restored' : 'transition.basic_selected', $result, $operationHash, $requestHash);
+
+            return $result;
+        }, 3);
+    }
+
+    public function rearm(User $actor, int $workspaceId, int $revision, array $groups, string $key): array
+    {
+        sort($groups);
+
+        return DB::transaction(function () use ($actor, $workspaceId, $revision, $groups, $key): array {
+            IntegrationWrites::lockWorkspace($workspaceId);
+            $this->authorize($actor, $workspaceId, false);
+            abort_unless($groups && array_is_list($groups) && count(array_unique($groups)) === count($groups)
+                && ! array_diff($groups, array_keys(ExecutionBarrier::FEATURES))
+                && preg_match('/^[A-Za-z0-9._:-]{1,128}$/D', $key), 422);
+            $operationHash = hash('sha256', $actor->id.'|rearm|'.$workspaceId.'|'.$key);
+            $requestHash = PlanConfiguration::hash(compact('revision', 'groups'));
+            $previous = DB::table('plan_events')->where('operation_key_hash', $operationHash)->first();
+            if ($previous) {
+                abort_unless(hash_equals($previous->request_hash, $requestHash), 409, 'preview_key_conflict');
+
+                return json_decode($previous->result_json, true, 16, JSON_THROW_ON_ERROR);
+            }
+
+            $subscription = WorkspaceSubscription::where('workspace_id', $workspaceId)->lockForUpdate()->firstOrFail();
+            abort_unless($subscription->revision === $revision, 409, 'subscription_revision_conflict');
+            $cycles = DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')->limit(2)->get();
+            abort_unless($cycles->count() === 1, 409, 'paid_restore_confirmation_required');
+            $cycle = $cycles->first();
+            $restore = DB::table('plan_events')->where('workspace_id', $workspaceId)->where('action', 'transition.paid_restored')->latest('id')->first();
+            $restored = $restore ? json_decode($restore->result_json, true, 16, JSON_THROW_ON_ERROR) : [];
+            abort_unless(($restored['cycleId'] ?? null) === $cycle->uuid
+                && (int) ($restored['subscriptionRevision'] ?? 0) === $revision, 409, 'paid_restore_confirmation_required');
+            $snapshot = app(EntitlementResolver::class)->resolve($workspaceId, current: true, inspectSuspended: true);
+            abort_unless($snapshot['state'] === 'available' && $snapshot['phase'] === 'paid', 409, 'paid_restore_confirmation_required');
+
+            foreach ($groups as $group) {
+                foreach (ExecutionBarrier::FEATURES[$group] as $feature) {
+                    abort_unless(($snapshot['values'][$feature]['value'] ?? null) === true, 422, 'subscription_feature_unavailable');
+                }
+            }
+            $now = CarbonImmutable::now('UTC');
+            abort_unless($snapshot['valid_until'] !== null && $now < CarbonImmutable::parse($snapshot['valid_until'], 'UTC'), 409, 'subscription_revision_conflict');
+            $updated = DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)
+                ->whereIn('feature_group', $groups)->whereIn('state', ['blocked', 'needs_confirmation'])
+                ->update(['state' => 'ready', 'epoch' => DB::raw('epoch + 1'), 'revision' => DB::raw('revision + 1'), 'resume_at' => $now->format('Y-m-d H:i:s.u')]);
+            abort_unless($updated === count($groups), 409, 'subscription_revision_conflict');
+            $subscription->increment('revision');
+            $result = ['cycleId' => $cycle->uuid, 'groups' => $groups, 'subscriptionRevision' => (string) $subscription->revision];
+            $this->audit($actor, $workspaceId, false, 'transition.integrations_rearmed', $result, $operationHash, $requestHash);
 
             return $result;
         }, 3);

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attachment;
-use App\Models\Project;
 use App\Services\IntegrationReadAccess as Access;
 use App\Services\IntegrationResources;
+use App\Services\Plans\EffectiveParticipation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -100,14 +100,14 @@ class IntegrationReadController extends Controller
     {
         Access::scope($request, 'attachments:read');
         $workspace = $request->attributes->get('integration_token')->workspace_id;
-        $projects = Project::where('workspace_id', $workspace)->select('id');
+        $projects = app(EffectiveParticipation::class)->visibleProjects($workspace)->select('id');
         $file = Attachment::where('uuid', $attachmentUuid)->where(fn ($query) => $query
             ->whereHas('task', fn ($tasks) => $tasks->whereIn('project_id', $projects))
             ->orWhereHas('comment', fn ($comments) => $comments->whereIn('project_id', $projects)))->firstOrFail();
         if ($file->comment_id) {
             Access::scope($request, 'comments:read');
             $comment = $file->comment;
-            $project = Project::where('workspace_id', $workspace)->findOrFail($comment->project_id ?? $comment->task?->project_id);
+            $project = app(EffectiveParticipation::class)->visibleProjects($workspace)->findOrFail($comment->project_id ?? $comment->task?->project_id);
             Access::comment($project, $comment->uuid);
             abort_unless($file->task_id === $comment->task_id, 404);
         } else {

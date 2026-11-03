@@ -10,6 +10,7 @@ use App\Models\WorkspaceMember;
 use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
 use App\Services\DeveloperInvitations;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\InvitationOccupancy;
 use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectPermissions;
@@ -203,6 +204,9 @@ class WorkspaceAdministratorController extends Controller
             app(DeveloperInvitations::class)->owner($request);
             $target = WorkspaceMember::where('workspace_id', $owner->workspace_id)->whereIn('role', ['admin', 'owner'])->whereKey($member)->lockForUpdate()->firstOrFail();
             abort_if($target->role === 'owner', 403);
+            if ($target->status !== 'active' && ($data['status'] ?? null) === 'active') {
+                app(EffectiveParticipation::class)->requireGrowthAvailable($owner->workspace_id);
+            }
             app(ShadowGuard::class)->observe($owner->workspace_id, ($data['status'] ?? null) === 'inactive' ? 'safe.reduce' : 'developer.change', ['developers.max' => $target->status !== 'active' && ($data['status'] ?? null) === 'active' ? null : 0]);
             if (isset($data['status'])) {
                 $target->update(['status' => $data['status']]);

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\InvitationOccupancy;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -118,10 +119,13 @@ class DeveloperInvitations
 
     public function accept(Request $request, array $data): User
     {
-        return DB::transaction(function () use ($request, $data): User {
-            $preview = $this->resolveRequest($request, $data['token'] ?? null);
+        $preview = $this->resolveRequest($request, $data['token'] ?? null);
+        app(ExecutionBarrier::class)->catchUp($preview->workspace_id);
+
+        return DB::transaction(function () use ($request, $data, $preview): User {
             Workspace::whereKey($preview->workspace_id)->lockForUpdate()->firstOrFail();
             $invitation = $this->resolveRequest($request, $data['token'] ?? null, true);
+            app(EffectiveParticipation::class)->requireInvitationSeat($invitation->workspace_id, $invitation->id);
             $user = $request->user();
             if (! $user) {
                 abort_if(User::whereRaw('LOWER(TRIM(email)) = ?', [$invitation->email])->exists(), 401, 'Sign in to accept this invitation.');
@@ -137,7 +141,6 @@ class DeveloperInvitations
             if ($invitation->sent_at) {
                 $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
             }
-            app(EffectiveParticipation::class)->requireGrowthAvailable($invitation->workspace_id);
             app(ShadowGuard::class)->observe($invitation->workspace_id, 'developer.accept', []);
             $member = WorkspaceMember::firstOrCreate(['workspace_id' => $invitation->workspace_id, 'user_id' => $user->id], ['role' => 'admin', 'status' => 'active', 'joined_at' => now(), 'display_name' => $invitation->name]);
             if ($member->wasRecentlyCreated) {

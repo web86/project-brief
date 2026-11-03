@@ -48,7 +48,7 @@ final class ResourceSelections
         app(PlanConfiguration::class)->validate($config);
         abort_unless(hash_equals($version->content_hash, PlanConfiguration::versionHash($config)), 409);
 
-        return ['id' => $version->uuid, 'hash' => $version->content_hash, 'revision' => (string) $version->revision, 'catalogRevision' => (string) $version->plan->revision, 'limits' => $config['entitlements'] + ['developers.max' => app(EntitlementRegistry::class)->seats($config['developer_seats'])]];
+        return ['id' => $version->uuid, 'accessClass' => $version->access_class, 'hash' => $version->content_hash, 'revision' => (string) $version->revision, 'catalogRevision' => (string) $version->plan->revision, 'limits' => $config['entitlements'] + ['developers.max' => app(EntitlementRegistry::class)->seats($config['developer_seats'])]];
     }
 
     /** Computes a proposed set only; it cannot mutate statuses, memberships, credentials, cycles or epochs. */

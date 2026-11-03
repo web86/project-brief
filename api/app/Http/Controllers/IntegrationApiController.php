@@ -7,6 +7,7 @@ use App\Http\Requests\TaskRequest;
 use App\Models\Project;
 use App\Services\IntegrationResources;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\ProjectCreation;
 use App\Services\TaskCreation;
 use App\Services\TaskDescription;
@@ -24,7 +25,7 @@ class IntegrationApiController extends Controller
 
     private function project(Request $request, string $uuid): Project
     {
-        return Project::where('workspace_id', $request->attributes->get('integration_token')->workspace_id)->where('uuid', $uuid)->firstOrFail();
+        return app(EffectiveParticipation::class)->visibleProjects($request->attributes->get('integration_token')->workspace_id)->where('uuid', $uuid)->firstOrFail();
     }
 
     private function validateInput(Request $request, array $rules): array
@@ -41,7 +42,7 @@ class IntegrationApiController extends Controller
     {
         $this->scope($request, 'projects:read');
         $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'perPage' => ['sometimes', 'integer', 'min:1', 'max:100']]);
-        $page = Project::where('workspace_id', $request->attributes->get('integration_token')->workspace_id)->with('briefSections')->orderBy('id')->paginate($request->integer('perPage', 25));
+        $page = app(EffectiveParticipation::class)->visibleProjects($request->attributes->get('integration_token')->workspace_id)->with('briefSections')->orderBy('id')->paginate($request->integer('perPage', 25));
 
         return response()->json(['data' => $page->getCollection()->map(fn ($p) => IntegrationResources::project($p)), 'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()]]);
     }
@@ -67,7 +68,7 @@ class IntegrationApiController extends Controller
                 $identity = hash('sha256', json_encode([$data['sourceSystem'], $data['externalId']], JSON_THROW_ON_ERROR));
                 $link = DB::table('integration_project_links')->where('workspace_id', $workspace)->where('identity_hash', $identity)->first();
                 if ($link) {
-                    return [['data' => IntegrationResources::project(Project::where('workspace_id', $workspace)->findOrFail($link->project_id))], 200];
+                    return [['data' => IntegrationResources::project(app(EffectiveParticipation::class)->visibleProjects($workspace)->findOrFail($link->project_id))], 200];
                 }
             }
             $project = app(ProjectCreation::class)->create($workspace, ['title' => $data['title'], 'website_url' => $data['website'] ?? null, 'currency' => $data['currency'] ?? 'RUB'], $data)->refresh();

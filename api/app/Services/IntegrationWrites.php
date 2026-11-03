@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Project;
 use App\Models\Workspace;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Http\JsonResponse;
@@ -70,7 +70,7 @@ class IntegrationWrites
                 $response = json_decode($previous->response, true, 512, JSON_THROW_ON_ERROR);
                 $projectUuid = $response['data']['projectId'] ?? $response['data']['id'] ?? null;
                 if ($projectUuid && ! AgentCredentials::isAgent($current) && ! $request->is('api/v1/project-requests*')) {
-                    Project::where('workspace_id', $token->workspace_id)->where('uuid', $projectUuid)->firstOrFail();
+                    app(EffectiveParticipation::class)->visibleProjects($token->workspace_id)->where('uuid', $projectUuid)->firstOrFail();
                 }
 
                 return response()->json($response, $previous->status)->header('Idempotency-Replayed', 'true');

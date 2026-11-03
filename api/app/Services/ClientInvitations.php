@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\ProjectClient;
+use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
+use Illuminate\Support\Facades\DB;
 
 class ClientInvitations
 {
@@ -12,6 +15,7 @@ class ClientInvitations
     public function issue(Project $project, ProjectClient $client, mixed $expiresAt = null, bool $revokeExisting = true): array
     {
         abort_unless($client->active && $client->project_id === $project->id && $project->status === 'active', 422);
+        abort_unless(app(EffectiveParticipation::class)->clientAvailable($project->workspace_id, $project->id, $client->id), 403, 'subscription_project_held');
         app(ShadowGuard::class)->observe($project->workspace_id, 'client.access', []);
         $plaintext = bin2hex(random_bytes(32));
         if ($revokeExisting) {
@@ -24,6 +28,13 @@ class ClientInvitations
 
     public function deliver(Project $project, ProjectClient $client, string $url, bool $login = false): bool
     {
+        if (DB::transactionLevel() === 0) {
+            app(ExecutionBarrier::class)->catchUp($project->workspace_id);
+        }
+        if (! app(EffectiveParticipation::class)->clientAvailable($project->workspace_id, $project->id, $client->id)) {
+            return false;
+        }
+
         return app(AccountMail::class)->localized($client->email, $client->preferred_locale, $login ? 'client_login' : 'client_invitation', $url, ['project' => $project->title], $project->workspace()->firstOrFail(), 'client_open_project');
     }
 }

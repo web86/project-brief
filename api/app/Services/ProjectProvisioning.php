@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\ProjectRequest;
+use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -91,7 +93,10 @@ class ProjectProvisioning
 
     public function deliver(string $uuid, int $workspaceId): void
     {
-        $delivery = DB::transaction(function () use ($uuid, $workspaceId): ?array {
+        $barrier = app(ExecutionBarrier::class);
+        $barrier->catchUp($workspaceId);
+        $activity = app(EffectiveParticipation::class);
+        $delivery = DB::transaction(function () use ($uuid, $workspaceId, $activity): ?array {
             IntegrationWrites::lockWorkspace($workspaceId);
             $row = DB::table('project_provisionings')->where('workspace_id', $workspaceId)->where('uuid', $uuid)->lockForUpdate()->firstOrFail();
             if ($row->invitation_status !== 'pending') {
@@ -99,7 +104,7 @@ class ProjectProvisioning
             }
             $project = Project::where('workspace_id', $workspaceId)->find($row->project_id);
             $client = $project?->clients()->find($row->project_client_id);
-            if (! $project || ! $client?->active || $project->status !== 'active') {
+            if (! $project || ! $client?->active || $project->status !== 'active' || $activity->reasons($workspaceId, true) !== []) {
                 $this->transition($row, $project, 'failed');
 
                 return null;
@@ -114,7 +119,8 @@ class ProjectProvisioning
         }
         [$row, $project, $client, $link] = $delivery;
         try {
-            $sent = app(ClientInvitations::class)->deliver($project, $client, $link['url']);
+            $barrier->catchUp($workspaceId);
+            $sent = $activity->reasons($workspaceId) === [] && app(ClientInvitations::class)->deliver($project, $client, $link['url']);
         } catch (Throwable $exception) {
             app(SafeExceptionReporter::class)->report($exception);
             $sent = false;

@@ -25,7 +25,7 @@ final class WorkspaceAllocation
             'developer_invitations' => ['id', 'uuid', 'email', 'invited_by', 'project_scoped', 'project_ids', 'expires_at', 'accepted_at', 'revoked_at'],
             'entitlement_client_observations' => ['project_client_id', 'identity_id', 'input_hash', 'state', 'revision'],
             'entitlement_client_aliases' => ['id', 'identity_id', 'state', 'provenance_revision'],
-            'entitlement_capacity_reservations' => ['id', 'developer_invitation_id', 'identity_hash', 'state', 'expires_at'],
+            'entitlement_capacity_reservations' => ['id', 'developer_invitation_id', 'identity_hash', 'state', 'expires_at', 'restored_cycle_id'],
             'entitlement_client_identities' => ['id', 'uuid', 'provenance_kind', 'revision'],
             'agent_credential_links' => ['id', 'uuid', 'integration_token_id', 'external_agent_id'],
             'agent_project_grants' => ['external_agent_id', 'project_id'],
@@ -38,7 +38,7 @@ final class WorkspaceAllocation
             'workspace_subscriptions' => ['id', 'uuid', 'current_period_id', 'revision', 'approved_extra_seats', 'enforcement_mode'],
             'subscription_periods' => ['id', 'uuid', 'entitlement_version_id', 'policy_version_id', 'fallback_version_id', 'starts_at', 'service_ends_at', 'grace_ends_at', 'superseded_at'],
             'workspace_entitlement_overrides' => ['id', 'revision', 'value_json', 'starts_at', 'ends_at'],
-            'workspace_suspension_cycles' => ['id', 'revision', 'state'],
+            'workspace_suspension_cycles' => ['id', 'revision', 'state', 'uuid'],
             'workspace_entitlement_resource_states' => ['id', 'cycle_id', 'resource_kind', 'resource_id', 'state', 'reviewed_revision'],
             'workspace_execution_epochs' => ['feature_group', 'epoch', 'state', 'revision'],
         ];
@@ -61,7 +61,7 @@ final class WorkspaceAllocation
         $inputs = app(ClientCountingIdentities::class)->inputs($workspaceId, $rows['project_clients'], $lock);
         $fingerprints['client_provenance'] = PlanConfiguration::hash(array_map(fn ($i) => $i['hash'], $inputs));
         $usage = app(WorkspaceUsage::class)->snapshot($workspaceId, $lock);
-        $pinned = app(EntitlementResolver::class)->resolve($workspaceId, current: $lock);
+        $pinned = app(EntitlementResolver::class)->resolve($workspaceId, current: $lock, inspectSuspended: true);
         $fingerprints['pinned'] = PlanConfiguration::hash($pinned);
         $fingerprints['usage'] = PlanConfiguration::hash(array_map(fn ($m) => array_intersect_key($m, array_flip(['state', 'count', 'reason_codes', 'identity_fingerprint'])), $usage));
 

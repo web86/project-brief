@@ -16,6 +16,8 @@ use App\Services\AgentRuns;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use App\Services\ProjectAccess;
 use App\Services\ProjectPermissions;
@@ -76,6 +78,10 @@ class AgentController extends Controller
             $projects = Project::where('workspace_id', $workspace)->whereIn('uuid', $data['projectIds'])->get();
             abort_unless($projects->count() === count($data['projectIds']), 422);
             $previousProjects = DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->pluck('project_id')->all();
+            if (($data['active'] && (! $agent->exists || ! $agent->active)) || array_diff($projects->modelKeys(), $previousProjects)) {
+                app(EffectiveParticipation::class)->requireGrowthAvailable($workspace);
+                app(ExecutionBarrier::class)->require($workspace, 'agent');
+            }
             app(ShadowGuard::class)->observe($workspace, 'agent.change', ['agents.active.max' => $data['active'] && (! $agent->exists || ! $agent->active) ? 1 : 0]);
             $agent->fill(['instructions' => array_key_exists('instructions', $data) ? $data['instructions'] : $agent->instructions, 'name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $uuid ? $agent->kind : 'agent', 'active' => $data['active'], 'permissions' => array_key_exists('permissions', $data) ? AgentPermissions::normalize(array_replace(AgentPermissions::normalize($agent->permissions), $data['permissions'])) : $agent->permissions])->save();
             foreach (Project::withTrashed()->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->whereNotIn('project_id', $projects->modelKeys())->select('project_id'))->get() as $project) {
@@ -193,6 +199,8 @@ class AgentController extends Controller
                 AgentAssignments::removeProject($request, $agent, $project);
             } else {
                 abort_unless($agent->active && DB::table('agent_project_grants')->where('workspace_id', $project->workspace_id)->where('external_agent_id', $agent->id)->where('project_id', $project->id)->exists(), 422);
+                app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
+                app(ExecutionBarrier::class)->require($project->workspace_id, 'agent');
                 app(ShadowGuard::class)->observe($project->workspace_id, 'agent.assign');
                 ProjectMember::firstOrCreate(['project_id' => $project->id, 'external_agent_id' => $agent->id], ['workspace_id' => $project->workspace_id, 'permissions' => []]);
             }
@@ -220,6 +228,8 @@ class AgentController extends Controller
             } else {
                 abort_unless($project->status === 'active' && $agent->active && ProjectMember::where('project_id', $project->id)->where('external_agent_id', $agent->id)->where('workspace_id', $project->workspace_id)->exists()
                     && DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->where('project_id', $project->id)->where('workspace_id', $project->workspace_id)->exists(), 422);
+                app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
+                app(ExecutionBarrier::class)->require($project->workspace_id, 'agent');
                 app(ShadowGuard::class)->observe($project->workspace_id, 'agent.assign');
                 if ($data['replace'] ?? false) {
                     foreach (TaskAgentAssignment::where('task_id', $model->id)->where('external_agent_id', '!=', $agent->id)->whereNull('revoked_at')->get() as $previous) {

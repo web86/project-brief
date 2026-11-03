@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Services\AgentAudit;
 use App\Services\AgentCredentials;
 use App\Services\IntegrationWrites;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use Closure;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -40,6 +41,9 @@ class AuthenticateIntegration
             return $this->agent($request, $next, $token);
         }
         $barrier->require($token->workspace_id, $request->is('api/v1/client-sso/handoffs') ? 'sso' : 'api');
+        if ($request->is('api/v1/project-requests', 'api/v1/project-requests/*', 'api/v1/projects/provision')) {
+            app(EffectiveParticipation::class)->requireGrowthAvailable($token->workspace_id);
+        }
 
         DB::table('integration_tokens')->where('id', $token->id)->update(['last_used_at' => now()]);
 

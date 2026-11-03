@@ -2,13 +2,12 @@
 
 namespace App\Services\Plans;
 
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class ExecutionBarrier
 {
-    private const FEATURES = [
+    public const FEATURES = [
         'agent' => ['agents.enabled', 'api.agents.enabled'],
         'webhook' => ['webhooks.enabled'],
         'api' => ['api.external.enabled'],
@@ -20,11 +19,7 @@ final class ExecutionBarrier
     /** Entry point before acquiring business locks. Recheck with require() at the side effect. */
     public function catchUp(int $workspaceId): void
     {
-        if (DB::table('workspace_subscriptions')->where('workspace_id', $workspaceId)
-            ->where('next_boundary_at', '<=', CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u'))
-            ->where(fn ($query) => $query->where('enforcement_mode', 'enforce')->orWhereExists(
-                DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)
-            ))->exists()) {
+        if (app(EffectiveParticipation::class)->boundaryDue($workspaceId)) {
             $this->lifecycle->catchUp($workspaceId);
         }
     }
@@ -46,7 +41,7 @@ final class ExecutionBarrier
         }
 
         if ($epoch || $subscription?->enforcement_mode === 'enforce') {
-            $resolved = $this->resolver->resolve($workspaceId, current: $current);
+            $resolved = $this->resolver->resolve($workspaceId, current: $current, inspectSuspended: $epoch?->resume_at !== null);
             abort_unless($resolved['state'] === 'available', 403, 'subscription_execution_blocked');
             foreach ($keys as $key) {
                 abort_unless(($resolved['values'][$key]['value'] ?? null) === true, 403, 'subscription_feature_unavailable');
@@ -56,10 +51,10 @@ final class ExecutionBarrier
         return $epoch ? (int) $epoch->epoch : null;
     }
 
-    public function allows(int $workspaceId, string $group, ?object $receipt = null): bool
+    public function allows(int $workspaceId, string $group, ?object $receipt = null, bool $lockReads = true): bool
     {
         try {
-            $this->require($workspaceId, $group, $receipt);
+            $this->require($workspaceId, $group, $receipt, $lockReads);
 
             return true;
         } catch (HttpException $e) {

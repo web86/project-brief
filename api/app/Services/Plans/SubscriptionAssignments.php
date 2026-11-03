@@ -46,7 +46,7 @@ final class SubscriptionAssignments
     }
 
     /** Approve a paid period after a frozen platform review. Existing suspension remains in force. */
-    public function approvePaid(User $actor, int $workspaceId, string $previewId, int $revision, int $days, string $reason, string $key): WorkspaceSubscription
+    public function approvePaid(User $actor, int $workspaceId, string $previewId, int $revision, int $days, string $reason, string $key): array
     {
         app(ExecutionBarrier::class)->catchUp($workspaceId);
         $input = compact('previewId', 'revision', 'days', 'reason');
@@ -114,10 +114,11 @@ final class SubscriptionAssignments
                 $subscription->update(['current_period_id' => $period->id, 'materialized_phase' => 'paid', 'revision' => $revision + 1, 'next_boundary_at' => $period->service_ends_at]);
             }
 
-            return ['type' => 'subscription', 'id' => $subscription->id, 'uuid' => $subscription->uuid, 'before' => $revision, 'after' => $revision + 1];
+            return ['type' => 'subscription', 'id' => $subscription->id, 'uuid' => $subscription->uuid, 'before' => $revision, 'after' => $revision + 1,
+                'state' => $scheduled ? 'scheduled' : 'applied', 'effectiveAt' => $startsAt->toISOString()];
         }, $workspaceId);
 
-        return WorkspaceSubscription::findOrFail($outcome['id']);
+        return ['id' => $outcome['uuid'], 'revision' => (string) $outcome['after'], 'state' => $outcome['state'] ?? 'applied', 'effectiveAt' => $outcome['effectiveAt'] ?? null];
     }
 
     public function override(User $actor, int $workspaceId, int $revision, string $entitlementKey, array $value, CarbonImmutable $startsAt, CarbonImmutable $endsAt, string $reason, string $key): int

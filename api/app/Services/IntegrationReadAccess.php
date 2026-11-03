@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ class IntegrationReadAccess
 
     public static function project(Request $request, string $uuid): Project
     {
-        return Project::where('workspace_id', $request->attributes->get('integration_token')->workspace_id)->where('uuid', $uuid)->firstOrFail();
+        return app(EffectiveParticipation::class)->visibleProjects($request->attributes->get('integration_token')->workspace_id)->where('uuid', $uuid)->firstOrFail();
     }
 
     public static function comments(Project $project): Builder

@@ -11,7 +11,7 @@ final class EntitlementResolver
     public function __construct(private readonly EntitlementRegistry $registry, private readonly SubscriptionClock $clock) {}
 
     /** Metadata only, no authorization grant. Existing object/user permissions remain a separate check. */
-    public function resolve(int $workspaceId, ?CarbonImmutable $at = null, bool $current = false): array
+    public function resolve(int $workspaceId, ?CarbonImmutable $at = null, bool $current = false, bool $inspectSuspended = false): array
     {
         $at = ($at ?? CarbonImmutable::now('UTC'))->utc();
         $row = DB::table('workspace_subscriptions as s')->join('subscription_periods as p', function ($join): void {
@@ -26,7 +26,8 @@ final class EntitlementResolver
             if ($row->superseded_at !== null || ! in_array($phase['phase'], ['free', 'paid', 'trial', 'grace', 'compatibility'], true) || (($row->kind === 'free') !== ($row->access_class === 'free')) || (in_array($row->kind, ['paid', 'trial'], true) && ($row->policy_state !== 'published' || $row->fallback_version_id === null || $row->fallback_version_id !== $row->policy_fallback_version_id))) {
                 return $this->unavailable('lifecycle_adapter_required');
             }
-            if (DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')->exists() || DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->where('state', '<>', 'ready')->exists()) {
+            if (! $inspectSuspended && (DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')->exists()
+                || DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->where('state', '<>', 'ready')->exists())) {
                 return $this->unavailable('participation_adapter_required');
             }
             $values = [];

@@ -2,19 +2,27 @@
 
 namespace Tests\Feature;
 
+use App\Models\DeveloperInvitation;
+use App\Models\ExternalAgent;
 use App\Models\Plans\PlanVersion;
 use App\Models\Plans\PlatformPolicyVersion;
 use App\Models\Plans\SubscriptionPeriod;
 use App\Models\Plans\WorkspaceSubscription;
 use App\Models\Project;
+use App\Models\TaskAgentAssignment;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\AgentAccess;
+use App\Services\AgentRuns;
 use App\Services\AuthOnboarding;
+use App\Services\DeveloperInvitations;
 use App\Services\IntegrationTokens;
+use App\Services\IntegrationWrites;
 use App\Services\Plans\ClientCountingIdentities;
 use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\FrozenTransitions;
+use App\Services\Plans\InvitationOccupancy;
 use App\Services\Plans\PlanCatalog;
 use App\Services\Plans\PlatformPolicyCatalog;
 use App\Services\Plans\SubscriptionClock;
@@ -25,6 +33,7 @@ use App\Services\WebhookProcessor;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PlansFoundationSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -87,6 +96,15 @@ class SubscriptionLifecycleTest extends TestCase
         $projects->first()->members()->create(['workspace_id' => $workspace->id, 'workspace_member_id' => $developer->id]);
         $this->assertSame(1, ProjectAccess::forMember($developer)->count());
         $boundary = $facts['grace_ends_at'] ?? $facts['service_ends_at'];
+        $agent = ExternalAgent::factory()->create(['workspace_id' => $workspace->id]);
+        $first = $projects->first();
+        $first->members()->create(['workspace_id' => $workspace->id, 'external_agent_id' => $agent->id]);
+        DB::table('agent_project_grants')->insert(['workspace_id' => $workspace->id, 'external_agent_id' => $agent->id, 'project_id' => $first->id]);
+        $invitation = DeveloperInvitation::factory()->create(['workspace_id' => $workspace->id, 'invited_by' => $owner->id, 'project_ids' => [$first->id]]);
+        app(DeveloperInvitations::class)->issue($invitation);
+        // Keep the invitation valid just after Trial expiry to exercise restoring an existing reservation.
+        $invitation->forceFill(['expires_at' => $boundary->addDay()])->save();
+        app(InvitationOccupancy::class)->sync($invitation->id);
         $endpoint = DB::table('webhook_endpoints')->insertGetId([
             'uuid' => (string) Str::uuid(),
             'workspace_id' => $workspace->id,
@@ -106,6 +124,19 @@ class SubscriptionLifecycleTest extends TestCase
         $taskHeaders = ['Idempotency-Key' => 'same-task-request'];
         $this->postJson($taskPath, $taskPayload, $taskHeaders)->assertCreated();
         $this->postJson($taskPath, $taskPayload, $taskHeaders)->assertCreated()->assertHeader('Idempotency-Replayed', 'true');
+        $task = $projects->first()->tasks()->firstOrFail();
+        $assignment = TaskAgentAssignment::create(['workspace_id' => $workspace->id, 'task_id' => $task->id, 'external_agent_id' => $agent->id]);
+        $run = DB::transaction(function () use ($assignment): object {
+            IntegrationWrites::lockWorkspace($assignment->workspace_id);
+
+            return AgentRuns::request(Request::create('/'), $assignment, 'Old instruction', 'old-run', false);
+        });
+        $shared = app(IntegrationTokens::class)->create($workspace->id, ['name' => 'Shared executor', 'shared' => true, 'scopes' => AgentAccess::SCOPES]);
+        $sharedId = DB::table('integration_tokens')->where('uuid', $shared['id'])->value('id');
+        DB::table('agent_credential_links')->insert(['uuid' => (string) Str::uuid(), 'workspace_id' => $workspace->id, 'integration_token_id' => $sharedId, 'external_agent_id' => $agent->id, 'created_at' => now()]);
+        $agentPath = '/api/v1/agent/tasks/'.$task->uuid.'/runs/'.$run->uuid;
+        $agentHeaders = ['Authorization' => 'Bearer '.$shared['secret'], 'X-ProjectBrief-Agent-ID' => $agent->uuid];
+        $this->getJson($agentPath, $agentHeaders)->assertOk();
         $this->assertSame($kind, $subscription->fresh()->materialized_phase);
         $this->assertDatabaseCount('workspace_suspension_cycles', 0);
 
@@ -189,12 +220,31 @@ class SubscriptionLifecycleTest extends TestCase
             $restoreSelection = $preview['selection'];
             $restoreSelection['projects'][] = $second->uuid;
             $restoreSelection['developers'][] = (string) $developer->id;
+            $restoreSelection['agents'][] = $agent->uuid;
+            $restoreSelection['invitations'][] = $invitation->uuid;
             $restore = $previewService->create($owner, $workspace->id, false, $paidVersion->uuid, $restoreSelection, $subscription->fresh()->revision, 'restore-preview');
             $headers = ['If-Match' => '"revision:'.$subscription->fresh()->revision.'"', 'Idempotency-Key' => 'paid-restore'];
             $this->actingAs($owner)->postJson('/api/admin/resource-selection/previews/'.$restore['id'].'/restore-paid', [], $headers)->assertOk();
             $this->assertEqualsCanonicalizing([$project->id, $second->id], app(EffectiveParticipation::class)->projects($workspace->id)->pluck('id')->all());
             $this->assertSame(1, ProjectAccess::forMember($developer)->count());
             $this->assertFalse($barrier->allows($workspace->id, 'webhook'));
+            $this->assertDatabaseHas('workspace_entitlement_resource_states', ['resource_kind' => 'external_agent', 'resource_id' => $agent->id, 'state' => 'released']);
+            $cycle = DB::table('workspace_suspension_cycles')->first();
+            $this->assertDatabaseHas('entitlement_capacity_reservations', ['developer_invitation_id' => $invitation->id, 'restored_cycle_id' => $cycle->id]);
+            $rearmRevision = $subscription->fresh()->revision;
+            $rearmHeaders = ['If-Match' => '"revision:'.$rearmRevision.'"', 'Idempotency-Key' => 'explicit-rearm'];
+            $this->postJson('/api/admin/resource-selection/rearm', ['groups' => ['agent', 'api', 'sso', 'webhook']], $rearmHeaders)->assertOk();
+            $this->assertTrue($barrier->allows($workspace->id, 'webhook'));
+            $this->withToken($token['secret'])->getJson('/api/v1/projects')->assertOk()->assertJsonCount(2, 'data');
+            $this->getJson('/api/v1/projects/'.$projects[2]->uuid)->assertNotFound();
+            $this->postJson($taskPath, $taskPayload, $taskHeaders)->assertConflict()->assertHeaderMissing('Idempotency-Replayed');
+            $this->getJson($agentPath, $agentHeaders)->assertConflict()->assertDontSee('Old instruction');
+            $this->postJson($agentPath.'/start', ['assignmentId' => $assignment->uuid, 'runId' => $run->uuid], $agentHeaders + ['Idempotency-Key' => 'stale-claim'])->assertConflict();
+            $this->artisan('plans:reconcile-subscriptions', ['--apply' => true, '--limit' => 1, '--jobs' => 1])->assertSuccessful();
+            $this->assertDatabaseHas('agent_runs', ['id' => $run->id, 'state' => 'cancelled', 'error_code' => 'subscription_execution_stale']);
+            DB::table('webhook_deliveries')->update(['status' => 'pending']);
+            $this->assertSame(1, app(WebhookProcessor::class)->process());
+            Http::assertNothingSent();
 
             $current = $subscription->fresh()->currentPeriod;
             $all = $previewService->options($actor, $workspace->id, true)['resources'];
