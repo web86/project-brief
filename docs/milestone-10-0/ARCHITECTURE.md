@@ -1,5 +1,7 @@
 # Milestone 10.0 — Dynamic Plans & Entitlements
 
+> Implementation status (2026-11-03): Phases 1–4A and local Phase 4B.1 are implemented. This document retains the approved architecture baseline below; current auth/eligibility boundaries, production hard gates and release evidence are in [Phase 4B.1](phase-4b1/README.md). Commercial lifecycle execution remains deferred to Phase 4B.2.
+
 Базовая редакция восьми документов опубликована в `main` коммитом `c95a54e`;
 production-код v0.9.10 не изменён. Эта редакция содержит финальные уточнения
 от 02.11.2026; реализация ещё не начата.

@@ -1,7 +1,9 @@
+import { onboardingMessages } from './onboarding.js'
 import { preparationMessages } from './preparation.js'
 import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  onboarding: onboardingMessages['ru'],
   preparation: preparationMessages.ru,
   inventory: inventoryMessages.ru,
   planManagement: planMessages.ru,

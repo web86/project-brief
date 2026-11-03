@@ -4,7 +4,8 @@ import LoadingButton from '../components/LoadingButton.vue'
 import { t, formatApiError } from '../i18n/index.js'
 import { toast } from '../services/toast.js'
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import SocialSignIn from '../components/SocialSignIn.vue'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from '../api/client'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
@@ -17,6 +18,17 @@ const password = ref('')
 const operatorToken = ref('')
 const pending = ref(false)
 const error = ref('')
+const registrationEnabled = ref(false)
+const socialError = computed(() =>
+  route.query.authError
+    ? t(
+        'onboarding.' +
+          (route.query.authError === 'social_account_link_required'
+            ? 'linkRequired'
+            : 'oauthFailed'),
+      )
+    : '',
+)
 async function login() {
   if (pending.value) return
   pending.value = true
@@ -33,6 +45,11 @@ async function login() {
     operatorToken.value = ''
     api.resetCsrf()
     useAdminNavigationStore().clear()
+    if (result.onboarding) {
+      password.value = ''
+      await router.replace(result.nextPath)
+      return
+    }
     if (
       result.securityRecommended ||
       ['pending_2fa', 'enrollment_required'].includes(result.state)
@@ -135,6 +152,11 @@ async function loginPasskey() {
         {{ t('security.signInPasskey') }}
       </button>
       <p v-else class="small muted">{{ t('security.unsupported') }}</p>
+      <p v-if="socialError" role="alert" class="field-error">{{ socialError }}</p>
+      <SocialSignIn @readiness="registrationEnabled = $event.registrationEnabled" />
+      <RouterLink v-if="registrationEnabled" to="/register">{{
+        t('onboarding.signUp')
+      }}</RouterLink>
       <RouterLink to="/admin/forgot-password">{{ t('account.forgot') }}</RouterLink>
     </form>
   </div>

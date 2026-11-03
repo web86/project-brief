@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureAccountSecurity;
 use App\Http\Middleware\EnsureAccountSession;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClientProjectAccess;
+use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePlanAuthority;
 use App\Http\Middleware\EnsureProjectPermission;
 use App\Http\Middleware\MeasureApiUsage;
@@ -14,6 +15,7 @@ use App\Http\Middleware\SetRequestLocale;
 use App\Http\Middleware\ThrottleBootstrap;
 use App\Services\AccountSecurityDiagnostics;
 use App\Services\SafeExceptionReporter;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -42,7 +44,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(EnsureAccountSecurity::class, EnsureAccountSession::class);
         $middleware->prependToPriorityList(EnsureAccountSecurity::class, SetRequestLocale::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureProjectPermission::class);
-        $middleware->web(append: [EnsureAccountSession::class, SetRequestLocale::class, EnsureAccountSecurity::class]);
+        $middleware->web(append: [EnsureAccountSession::class, SetRequestLocale::class, EnsureOnboarding::class, EnsureAccountSecurity::class]);
+        $middleware->prependToPriorityList(EnsureAccountSecurity::class, EnsureOnboarding::class);
         if (class_exists(DemoReadOnly::class)) {
             $middleware->prepend(DemoReadOnly::class);
             $middleware->web(append: [DemoIdentity::class]);
@@ -63,6 +66,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/security/*')) {
                 return app(AccountSecurityDiagnostics::class)->render($e, $request);
+            }
+            if ($request->is('api/onboarding/*', 'api/auth/*')) {
+                $status = $e instanceof ValidationException ? 422 : ($e instanceof AuthenticationException ? 401 : ($e instanceof HttpExceptionInterface ? $e->getStatusCode() : 503));
+                $known = ['registration_disabled', 'provider_unavailable', 'verification_expired', 'social_attempt_invalid', 'social_last_login_method', 'social_account_link_required', 'social_identity_already_linked', 'social_fresh_proof_required', 'social_sign_out_first', 'onboarding_request_invalid'];
+                $code = $e instanceof HttpExceptionInterface && in_array($e->getMessage(), $known, true) ? $e->getMessage() : 'onboarding_request_invalid';
+
+                return response()->json(['code' => $code, 'message' => trans('onboarding.request_invalid')], $status)->withHeaders($e instanceof HttpExceptionInterface ? $e->getHeaders() : [])->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer');
             }
             if ($request->is('api/platform/plans', 'api/platform/plans/*', 'api/platform/plan-settings*', 'api/platform/plan-previews/*', 'api/platform/plan-transition-rules*', 'api/platform/entitlement-definitions', 'api/platform/published-plan-versions')) {
                 return EnsurePlanAuthority::failure($e);

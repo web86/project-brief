@@ -22,6 +22,7 @@ use App\Http\Controllers\EntryBrandingController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LiveSyncController;
 use App\Http\Controllers\NotificationSettingsController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\PlatformInventoryController;
@@ -36,8 +37,10 @@ use App\Http\Controllers\ProjectSectionController;
 use App\Http\Controllers\ProjectTeamController;
 use App\Http\Controllers\ProjectTrashController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\RegistrationDiagnosticsController;
 use App\Http\Controllers\ResourceSelectionController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\SpaController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskOrderController;
@@ -116,6 +119,22 @@ foreach (['platform', 'admin'] as $persona) {
         }
     });
 }
+
+Route::prefix('/api/onboarding')->controller(OnboardingController::class)->group(function (): void {
+    Route::get('/readiness', 'readiness');
+    Route::get('/state', 'state');
+    Route::post('/register', 'register')->middleware('throttle:onboarding-register');
+    Route::post('/resend', 'resend')->middleware('throttle:onboarding-mail');
+    Route::post('/verify', 'verify')->middleware(['auth', 'throttle:onboarding-verify'])->block();
+    Route::post('/email', 'email')->middleware(['auth', 'throttle:onboarding-mail'])->block();
+});
+Route::post('/api/auth/provider-email', [SocialAuthController::class, 'email'])->middleware('throttle:onboarding-register')->block();
+Route::get('/api/auth/connections', [SocialAuthController::class, 'connections'])->middleware('auth');
+Route::post('/api/auth/{provider}/start', [SocialAuthController::class, 'start'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware('throttle:social-auth')->block();
+Route::post('/api/auth/{provider}/link', [SocialAuthController::class, 'start'])->defaults('socialIntent', 'link')->whereIn('provider', ['google', 'yandex', 'github'])->middleware(['auth', 'throttle:account-security'])->block();
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware('throttle:social-auth')->block();
+Route::delete('/api/auth/{provider}', [SocialAuthController::class, 'disconnect'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware(['auth', 'throttle:account-security'])->block();
+Route::get('/api/platform/registration-diagnostics', RegistrationDiagnosticsController::class)->middleware([EnsurePlatformAdmin::class, EnsurePlanAuthority::class, 'throttle:platform']);
 
 Route::get('/', SpaController::class);
 Route::get('/api/health', fn () => response()->json(['ok' => true])->header('Cache-Control', 'no-store'))

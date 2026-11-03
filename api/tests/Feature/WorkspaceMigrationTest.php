@@ -51,6 +51,7 @@ class WorkspaceMigrationTest extends TestCase
                 (require $migration)->up();
             }
         }
+        (require database_path('migrations/2026_11_03_081230_add_account_onboarding.php'))->up();
     }
 
     private function legacyUser(string $email, string $name, string $created): int
@@ -159,6 +160,8 @@ class WorkspaceMigrationTest extends TestCase
                 }
                 if ($table === 'users') {
                     foreach ($after as &$row) {
+                        $this->assertSame(1, (int) $row['password_login_enabled']);
+                        unset($row['password_login_enabled']);
                         $this->assertSame('initials', $row['avatar_source']);
                         $this->assertSame(0, $row['auth_session_version']);
                         $this->assertSame(0, $row['platform_admin']);

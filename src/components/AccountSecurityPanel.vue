@@ -1,4 +1,5 @@
 <script setup>
+import SocialConnections from './SocialConnections.vue'
 import { STATIC_DEMO } from '../services/demo.js'
 import { isSecurityCancellation } from '../services/stepUp.js'
 import { onMounted, onBeforeUnmount, ref } from 'vue'
@@ -437,6 +438,7 @@ function finish() {
         </button>
       </div>
     </template>
+    <SocialConnections v-if="!props.onboarding && state?.signedIn" />
   </section>
 </template>
 <style scoped>

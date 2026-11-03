@@ -243,6 +243,27 @@ try {
   }
   assert.equal(await client.locator('[data-agent-chat]').count(), 0)
   assert.ok(!(await client.locator('main').innerText()).includes('Implementation Agent'))
+  for (const language of ['en', 'ru', 'tr', 'zh-CN']) {
+    const inert = await browser.newContext({ viewport: { width: 375, height: 844 } })
+    await inert.addInitScript(
+      (language) => localStorage.setItem('projectbrief.locale', language),
+      language,
+    )
+    const entry = await inert.newPage()
+    record(entry)
+    for (const pathname of ['/register', '/admin/verify-email', '/admin/onboarding']) {
+      await check(entry, pathname, `${language}-inert-${pathname.split('/').at(-1)}`, false)
+      assert.equal(
+        await entry
+          .locator(
+            '.social-sign-in button, .onboarding-form input[type=password], .registration-form',
+          )
+          .count(),
+        0,
+      )
+    }
+    await inert.close()
+  }
   assert.deepEqual(apiRequests, [])
   assert.deepEqual(writes, [])
   assert.deepEqual(external, [])

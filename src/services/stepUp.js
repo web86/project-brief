@@ -214,6 +214,7 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
 }
 
 export function isSecurityConfirmationScreen(path) {
+  if (path === '/admin/onboarding') return true
   if (path.startsWith('/admin/settings/resource-preview')) return true
   if (path === '/platform' || path.startsWith('/platform/plans')) return true
   return /^\/admin(?:\/?$|\/administrators(?:\/|$)|\/account(?:\/|$)|\/settings\/(?:integrations|branding|agreement)(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
@@ -223,6 +224,11 @@ export function isSecurityConfirmationScreen(path) {
 
 export function isSensitiveMutation(path, method) {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return false
+  if (
+    (method === 'POST' && /^\/api\/auth\/(?:google|yandex|github)\/link$/.test(path)) ||
+    (method === 'DELETE' && /^\/api\/auth\/(?:google|yandex|github)$/.test(path))
+  )
+    return true
   if (
     /^\/api\/(?:admin\/resource-selection|platform\/workspaces\/[^/]+\/resource-selection)(?:\/|$)/.test(
       path,

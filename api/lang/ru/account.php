@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'registration_verify_heading' => 'Подтвердите email Dev2Done',
+    'registration_verify_message' => 'Войдите в зарегистрированный аккаунт и подтвердите этот адрес. Ссылка действует 60 минут. Если вы не регистрировались, проигнорируйте письмо.',
     'confirm_heading' => 'Подтвердите Email аккаунта',
     'confirm_message' => 'Подтвердите новый адрес. Ссылка действует 60 минут.',
     'changed_heading' => 'Email аккаунта изменён',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureClientProjectAccess;
 use App\Services\AccountSecurity;
+use App\Services\AuthOnboarding;
 use App\Services\CurrentWorkspace;
 use App\Services\WorkspaceAgreements;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,10 @@ class SessionController extends Controller
 {
     public function __invoke(Request $request, EnsureClientProjectAccess $clients): JsonResponse
     {
+        $onboarding = app(AuthOnboarding::class)->state($request);
+        if ($onboarding['onboarding']) {
+            return response()->json(['authenticated' => true, 'type' => 'onboarding', ...$onboarding])->header('Cache-Control', 'no-store');
+        }
         $securityState = app(AccountSecurity::class)->state($request);
         if (in_array($securityState, ['pending_2fa', 'enrollment_required'], true)) {
             return response()->json(['authenticated' => false, 'state' => $securityState])->header('Cache-Control', 'no-store');

@@ -35,8 +35,14 @@ export async function loadEntryBranding(projectUuid) {
   }
 }
 export const isEntryRoute = (route) =>
-  ['/invitation', '/admin/security', '/admin/login'].includes(route.path) ||
-  route.meta.clientLogin === true
+  [
+    '/invitation',
+    '/admin/security',
+    '/admin/login',
+    '/register',
+    '/admin/verify-email',
+    '/admin/onboarding',
+  ].includes(route.path) || route.meta.clientLogin === true
 export function activeWorkspaceBrand(route, admin, project) {
   if (route.meta.adminShell) {
     return route.path !== '/admin/unavailable' && admin.ready && !admin.switching

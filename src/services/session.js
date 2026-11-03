@@ -1,5 +1,10 @@
 export async function appDestination(request) {
   const session = await request('/api/session')
+  if (
+    session.type === 'onboarding' &&
+    ['/admin/verify-email', '/admin/onboarding', '/admin/security'].includes(session.nextPath)
+  )
+    return session.nextPath
   if (['pending_2fa', 'enrollment_required'].includes(session.state)) return '/admin/security'
   if (session.authenticated && session.agreementRequired) return '/admin/agreement'
   if (session.authenticated && session.type === 'platform') return '/platform'

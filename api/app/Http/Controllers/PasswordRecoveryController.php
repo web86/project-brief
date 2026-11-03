@@ -19,7 +19,7 @@ class PasswordRecoveryController extends Controller
 {
     private function staff(string $email): ?User
     {
-        return User::whereRaw('LOWER(TRIM(email)) = ?', [mb_strtolower(trim($email))])->where(fn ($query) => $query->where('platform_admin', true)->orWhereHas('workspaceMembers', fn ($members) => $members->active()))->first();
+        return User::whereRaw('LOWER(TRIM(email)) = ?', [mb_strtolower(trim($email))])->where(fn ($query) => $query->where('platform_admin', true)->orWhereHas('workspaceMembers', fn ($members) => $members->active())->orWhereIn('id', DB::table('account_onboardings')->where('state', '<>', 'invited_developer')->select('user_id')))->first();
     }
 
     public function inspect(Request $request): JsonResponse
@@ -55,7 +55,7 @@ class PasswordRecoveryController extends Controller
         }
         $status = DB::transaction(function () use ($data, $profile, $request): string {
             $locked = User::where('email', $data['email'])->lockForUpdate()->first();
-            abort_unless($locked && ($locked->platform_admin || $locked->workspaceMembers()->active()->exists()), 422, 'Invalid or expired password reset link.');
+            abort_unless($locked && ($locked->platform_admin || $locked->workspaceMembers()->active()->exists() || DB::table('account_onboardings')->where('user_id', $locked->id)->where('state', '<>', 'invited_developer')->exists()), 422, 'Invalid or expired password reset link.');
 
             return Password::broker('users')->reset(Arr::only($data, ['email', 'token', 'password', 'password_confirmation']), function (User $user, string $password) use ($profile, $data, $request): void {
                 $security = app(AccountSecurity::class);
@@ -66,7 +66,7 @@ class PasswordRecoveryController extends Controller
                 if (Hash::check($password, $user->password)) {
                     throw ValidationException::withMessages(['password' => ['Choose a different password.']]);
                 }
-                $user->forceFill(['password' => Hash::make($password), ...$profile->clearEmail()])->save();
+                $user->forceFill(['password' => Hash::make($password), 'password_login_enabled' => true, ...$profile->clearEmail()])->save();
                 $profile->revokeSessions($user);
                 event(new PasswordReset($user));
             });

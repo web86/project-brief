@@ -8,7 +8,13 @@ const router = useRouter()
 async function ready() {
   useAdminNavigationStore().clear()
   const session = await api.request('/api/session')
-  await router.replace(session.type === 'platform' ? '/platform' : '/admin')
+  await router.replace(
+    session.type === 'onboarding'
+      ? session.nextPath
+      : session.type === 'platform'
+        ? '/platform'
+        : '/admin',
+  )
 }
 async function logout() {
   await api.request('/api/admin/logout', { method: 'POST' })

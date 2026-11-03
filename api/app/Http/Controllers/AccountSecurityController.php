@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\AccountSecurityFailure;
 use App\Models\User;
 use App\Services\AccountSecurity;
+use App\Services\AuthOnboarding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,10 +34,12 @@ class AccountSecurityController extends Controller
     {
         $user = $request->user()?->fresh();
         $fresh = $this->security->fresh($request);
+        $onboarding = app(AuthOnboarding::class)->state($request);
 
         return response()->json([
             'state' => $this->security->state($request),
             'signedIn' => (bool) $user,
+            ...($onboarding['onboarding'] ? ['onboardingNext' => $onboarding['nextPath']] : []),
             'platformAdmin' => (bool) $user?->platform_admin,
             'owner' => $user?->isWorkspaceOwner() ?? false,
             'totp' => $user?->hasEnabledTwoFactorAuthentication() ?? false,

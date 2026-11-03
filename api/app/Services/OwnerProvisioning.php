@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Support\Facades\DB;
 
 class OwnerProvisioning
 {
@@ -24,5 +25,21 @@ class OwnerProvisioning
 
             return $user;
         }, 3);
+    }
+
+    /** New self-service owner only: never adopts an imported or legacy workspace. */
+    public function prepareVerifiedOwner(User $user): Workspace
+    {
+        $row = DB::table('account_onboardings')->where('user_id', $user->id)->lockForUpdate()->first();
+        abort_unless($row && $user->email_verified_at, 403);
+        if ($row->workspace_id) {
+            return Workspace::findOrFail($row->workspace_id);
+        }
+        abort_if($user->platform_admin || $user->workspaceMembers()->exists(), 409, 'onboarding_membership_conflict');
+        $workspace = Workspace::create(['name' => config('app.name')]);
+        $workspace->members()->create(['user_id' => $user->id, 'role' => 'owner', 'status' => 'active', 'joined_at' => now()]);
+        DB::table('account_onboardings')->where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
+
+        return $workspace;
     }
 }

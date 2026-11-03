@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
+use App\Services\AuthOnboarding;
 use App\Services\CurrentWorkspace;
 use App\Services\DeveloperInvitations;
 use App\Services\LiveSync;
@@ -15,6 +16,7 @@ use App\Services\ProjectRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AdminAuthController extends Controller
@@ -26,6 +28,7 @@ class AdminAuthController extends Controller
         $credentials['email'] = $registeredEmail ?? $credentials['email'];
         $validCredentials = Auth::validate($credentials);
         $user = Auth::getLastAttempted();
+        $validCredentials = $validCredentials && $user?->password_login_enabled;
         $invited = false;
         if ($user && ($request->filled('invitation_token') || $request->session()->has('invitation_context'))) {
             try {
@@ -37,7 +40,7 @@ class AdminAuthController extends Controller
                 }
             }
         }
-        $eligible = $user && ($user->platform_admin || $user->workspaceMembers()->active()->exists() || $invited);
+        $eligible = $user && ($user->platform_admin || $user->workspaceMembers()->active()->exists() || $invited || DB::table('account_onboardings')->where('user_id', $user->id)->where('state', '<>', 'invited_developer')->exists());
         if (! $validCredentials || ! $eligible) {
             if ($user?->platform_admin) {
                 app(PlatformAudit::class)->record($user->id, 'login_denied', result: 'invalid_credentials');
@@ -53,6 +56,11 @@ class AdminAuthController extends Controller
         }
         if ($state !== 'authenticated') {
             return response()->json(['state' => $state])->header('Cache-Control', 'no-store');
+        }
+
+        $onboarding = app(AuthOnboarding::class)->state($request);
+        if ($onboarding['onboarding']) {
+            return response()->json($onboarding)->header('Cache-Control', 'no-store');
         }
 
         return $request->user()->workspaceMembers()->active()->exists() ? $this->me($request) : response()->json(['user' => app(AccountProfile::class)->state($request->user())]);

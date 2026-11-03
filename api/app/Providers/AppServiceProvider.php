@@ -62,6 +62,10 @@ class AppServiceProvider extends ServiceProvider
             return [Limit::perMinute(5)->by('security:'.$r->ip()), Limit::perMinute(5)->by('security-account:'.($r->user()?->id ?? $pendingUser ?? $r->session()->getId()))];
         });
         RateLimiter::for('browser-pdf', fn (Request $request) => Limit::perMinute(config('browser_pdf.max_per_minute'))->by('browser-pdf:'.$request->session()->getId()));
+        RateLimiter::for('onboarding-register', fn (Request $r) => [Limit::perMinute(5)->by('registration:'.$r->ip()), Limit::perMinutes(15, 3)->by('registration-mail:'.hash('sha256', mb_strtolower(trim((string) $r->input('email')))))]);
+        RateLimiter::for('onboarding-mail', fn (Request $r) => [Limit::perMinute(5)->by('verification:'.$r->ip()), Limit::perMinutes(15, 3)->by('verification-mail:'.hash('sha256', mb_strtolower(trim((string) $r->input('email')))))]);
+        RateLimiter::for('onboarding-verify', fn (Request $r) => Limit::perMinute(10)->by('verification-proof:'.$r->user()?->id.'|'.$r->ip()));
+        RateLimiter::for('social-auth', fn (Request $r) => [Limit::perMinute(20)->by('social:'.$r->ip()), Limit::perMinute(10)->by('social-session:'.$r->session()->getId())]);
         RateLimiter::for('admin-login', fn (Request $r) => [Limit::perMinute(5)->by($r->ip()), Limit::perMinute(5)->by(hash('sha256', strtolower((string) $r->input('email'))))]);
         RateLimiter::for('account-security', fn (Request $r) => [Limit::perMinute(5)->by('account:'.$r->user()?->id), Limit::perMinute(15)->by($r->ip())]);
         RateLimiter::for('account-reset-inspect', fn (Request $r) => Limit::perMinute(10)->by($r->ip()));

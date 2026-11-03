@@ -154,6 +154,7 @@ class DeveloperInvitations
                     $assignment->update(['permissions' => ProjectPermissions::normalize($invitation->project_permissions[$uuid])]);
                 }
             }
+            DB::table('account_onboardings')->where('user_id', $user->id)->whereNull('workspace_id')->update(['state' => 'invited_developer', 'verification_hash' => null, 'consumed_hash' => null, 'expires_at' => null, 'updated_at' => now('UTC')]);
             $invitation->forceFill(['accepted_at' => now()])->save();
             app(InvitationOccupancy::class)->observe($invitation->id);
 

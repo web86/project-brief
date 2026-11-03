@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'registration_verify_heading' => 'Confirm your Dev2Done email',
+    'registration_verify_message' => 'Sign in to the account you registered, then confirm this email address. This link expires in 60 minutes. Ignore it if you did not register.',
     'confirm_heading' => 'Confirm account email',
     'confirm_message' => 'Confirm your new email. This link expires in 60 minutes.',
     'changed_heading' => 'Account email changed',

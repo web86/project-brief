@@ -89,6 +89,35 @@ export function createProjectRouter({
           },
         },
       },
+      {
+        path: '/register',
+        component: () => import('../views/RegistrationView.vue'),
+        meta: {
+          get title() {
+            return t('onboarding.create')
+          },
+        },
+      },
+      ...['/admin/verify-email', '/admin/onboarding'].map((path) => ({
+        path,
+        component: () => import('../views/OnboardingView.vue'),
+        meta: {
+          get title() {
+            return t('onboarding.verification')
+          },
+        },
+      })),
+      {
+        path: '/platform/plans/registration',
+        component: () => import('../views/RegistrationDiagnosticsView.vue'),
+        meta: {
+          platform: true,
+          planManagement: true,
+          get title() {
+            return t('onboarding.diagnostics')
+          },
+        },
+      },
       { path: '/admin/security', component: () => import('../views/AccountEnrollmentView.vue') },
       {
         path: '/admin/agreement',
@@ -493,9 +522,10 @@ export function createProjectRouter({
     }
     if (apiMode && to.path === '/admin/security') {
       const status = await request('/api/security/status')
+      if (status.onboardingNext && status.onboardingNext !== to.path) return status.onboardingNext
       if (status.state === 'guest') return '/admin/login'
       if (status.state === 'authenticated' && status.recommendationsPending === false)
-        return status.platformAdmin ? '/platform' : '/admin'
+        return (await appDestination(request)) || (status.platformAdmin ? '/platform' : '/admin')
     }
     if (to.path === '/app') {
       const store = useProjectStore()
@@ -545,6 +575,11 @@ export function createProjectRouter({
           return false
         store.sessionLost = false
       } catch (error) {
+        if (error.code === 'onboarding_required') {
+          nav.clear()
+          const onboarding = await request('/api/onboarding/state')
+          return onboarding.nextPath || '/admin/verify-email'
+        }
         if (error.code === 'administrator_agreement_required') {
           nav.clear()
           store.admin = null

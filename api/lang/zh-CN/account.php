@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'registration_verify_heading' => '验证您的 Dev2Done 邮箱',
+    'registration_verify_message' => '请登录您注册的账户，然后验证此邮箱地址。链接在60分钟后失效。如果您未注册，请忽略此邮件。',
     'confirm_heading' => '确认账号邮箱',
     'confirm_message' => '请确认您的新邮箱。此链接有效期为 60 分钟。',
     'changed_heading' => '账号邮箱已更改',

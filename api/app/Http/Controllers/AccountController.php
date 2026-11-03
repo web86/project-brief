@@ -7,6 +7,7 @@ use App\Services\AccountMail;
 use App\Services\AccountProfile;
 use App\Services\AccountSecurity;
 use App\Services\SupportedLocales;
+use App\Services\TrialEligibility;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,12 +39,13 @@ class AccountController extends Controller
 
     public function email(Request $request, AccountProfile $profile, AccountMail $mail): JsonResponse
     {
-        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'current_password' => ['required', 'string', 'max:1024', 'current_password:web']]);
+        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:254'], 'current_password' => [$request->user()->password_login_enabled ? 'required' : 'nullable', 'string', 'max:1024', 'current_password:web']]);
         $email = mb_strtolower(trim($data['email']));
         $sent = DB::transaction(function () use ($request, $email, $mail, $data): bool {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             app(AccountSecurity::class)->requireFresh($request);
-            if (! Hash::check($data['current_password'], $user->password)) {
+            abort_if(! $user->password_login_enabled && ! app(AccountSecurity::class)->strong($request, $user), 403);
+            if ($user->password_login_enabled && ! Hash::check($data['current_password'], $user->password)) {
                 throw ValidationException::withMessages(['current_password' => ['Incorrect password.']]);
             }
             if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
@@ -63,6 +65,7 @@ class AccountController extends Controller
         DB::transaction(function () use ($request, $profile): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             app(AccountSecurity::class)->requireFresh($request);
+            abort_if(! $user->password_login_enabled && ! app(AccountSecurity::class)->strong($request, $user), 403);
             $user->forceFill($profile->clearEmail())->save();
         });
 
@@ -76,6 +79,7 @@ class AccountController extends Controller
             $old = DB::transaction(function () use ($request, $data, $profile): string {
                 $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
                 app(AccountSecurity::class)->requireFresh($request);
+                abort_if(! $user->password_login_enabled && ! app(AccountSecurity::class)->strong($request, $user), 403);
                 abort_unless($user->pending_email && $user->email_change_expires_at?->isFuture() && hash_equals((string) $user->email_change_token_hash, hash('sha256', $data['token'])), 410);
                 if (User::whereRaw('LOWER(email) = ?', [$user->pending_email])->where('id', '!=', $user->id)->exists()) {
                     throw ValidationException::withMessages(['email' => ['Email is already in use.']]);
@@ -83,6 +87,7 @@ class AccountController extends Controller
                 $old = $user->email;
                 Password::broker('users')->deleteToken($user);
                 $user->forceFill(['email' => $user->pending_email, 'email_verified_at' => now(), ...$profile->clearEmail()])->save();
+                app(TrialEligibility::class)->rememberVerifiedSubjects($user);
                 $profile->revokeSessions($user, $request);
 
                 return $old;
@@ -97,17 +102,18 @@ class AccountController extends Controller
 
     public function password(Request $request, AccountProfile $profile): JsonResponse
     {
-        $data = $request->validate(['current_password' => ['required', 'string', 'max:1024', 'current_password:web'], 'password' => ['required', 'string', 'min:9', 'max:1024', 'confirmed']]);
+        $data = $request->validate(['current_password' => [$request->user()->password_login_enabled ? 'required' : 'nullable', 'string', 'max:1024', 'current_password:web'], 'password' => ['required', 'string', 'min:9', 'max:1024', 'confirmed']]);
         DB::transaction(function () use ($request, $data, $profile): void {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             app(AccountSecurity::class)->requireFresh($request);
-            if (! Hash::check($data['current_password'], $user->password)) {
+            abort_if(! $user->password_login_enabled && ! app(AccountSecurity::class)->strong($request, $user), 403);
+            if ($user->password_login_enabled && ! Hash::check($data['current_password'], $user->password)) {
                 throw ValidationException::withMessages(['current_password' => ['Incorrect password.']]);
             }
             if (Hash::check($data['password'], $user->password)) {
                 throw ValidationException::withMessages(['password' => ['Choose a different password.']]);
             }
-            $user->forceFill(['password' => Hash::make($data['password'])])->save();
+            $user->forceFill(['password' => Hash::make($data['password']), 'password_login_enabled' => true])->save();
             $profile->revokeSessions($user, $request);
         });
 

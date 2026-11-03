@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'registration_verify_heading' => 'Dev2Done e-postanızı doğrulayın',
+    'registration_verify_message' => 'Kaydettiğiniz hesaba giriş yapın ve bu e-posta adresini doğrulayın. Bağlantı 60 dakika geçerlidir. Kayıt olmadıysanız bu iletiyi yok sayın.',
     'confirm_heading' => 'Hesap e-postasını doğrulayın',
     'confirm_message' => 'Yeni e-posta adresinizi doğrulayın. Bu bağlantı 60 dakika geçerlidir.',
     'changed_heading' => 'Hesap e-postası değiştirildi',
