@@ -163,10 +163,16 @@ try {
     path.join(root, 'deployment/rollback-public.htaccess'),
     path.join(staging, 'deployment/rollback-public.htaccess'),
   )
-  await copyRelease(
-    path.join(root, 'docs/milestone-10-0/phase-4b1-ux-polish/PRODUCTION.md'),
-    path.join(staging, 'PRODUCTION.md'),
-  )
+  for (const [source, target] of [
+    ['JINO.md', 'PRODUCTION.md'],
+    ['CANARY.md', 'CANARY.md'],
+    ['ROLLBACK.md', 'ROLLBACK.md'],
+  ]) {
+    await copyRelease(
+      path.join(root, 'docs/milestone-10-0/phase-4b2', source),
+      path.join(staging, target),
+    )
+  }
   await mkdir(path.join(staging, 'agent-api/examples'), { recursive: true })
   for (const file of [
     'AGENT-API.md',
@@ -240,7 +246,28 @@ try {
   }
   await writeFile(
     path.join(staging, 'release.json'),
-    `${JSON.stringify({ version: '0.9.17', product: 'Dev2Done', commit, builtAt: new Date().toISOString(), phpTarget: '8.4', domain: 'brief.web86.site' }, null, 2)}\n`,
+    JSON.stringify(
+      {
+        version: '0.9.17',
+        product: 'Dev2Done',
+        commit,
+        builtAt: new Date().toISOString(),
+        phpTarget: '8.4',
+        domain: 'brief.web86.site',
+        upgradeFrom: '0.9.16',
+        migrations: [
+          '2026_11_03_151351_add_execution_receipt_to_client_sso_handoffs',
+          '2026_11_03_170505_add_restore_cycle_to_entitlement_capacity_reservations',
+        ],
+        defaults: {
+          publicRegistration: false,
+          trialActivation: false,
+          compatibilityMode: 'observe',
+        },
+      },
+      null,
+      2,
+    ) + '\n',
   )
 
   const productionEnv = { APP_ENV: 'production', APP_DEBUG: 'false' }

@@ -111,7 +111,14 @@ export function forbiddenProductionPath(relative) {
   const name = parts.at(-1).toLowerCase()
   const permitted =
     agentApiFiles.has(relative) ||
-    ['DEPLOY-JINO.md', 'PRODUCTION.md', 'release.json', 'checksums.txt'].includes(relative) ||
+    [
+      'DEPLOY-JINO.md',
+      'PRODUCTION.md',
+      'CANARY.md',
+      'ROLLBACK.md',
+      'release.json',
+      'checksums.txt',
+    ].includes(relative) ||
     parts[0] === 'public' ||
     relative === 'private' ||
     relative === 'private/project-brief-app' ||
@@ -270,6 +277,10 @@ export async function validateRelease(root, localSecrets = []) {
     'private/project-brief-app/app/Services/AttachmentStorage.php',
     'private/project-brief-app/database/migrations/2026_10_25_194153_add_comment_attachments.php',
     'PRODUCTION.md',
+    'CANARY.md',
+    'ROLLBACK.md',
+    'private/project-brief-app/database/migrations/2026_11_03_151351_add_execution_receipt_to_client_sso_handoffs.php',
+    'private/project-brief-app/database/migrations/2026_11_03_170505_add_restore_cycle_to_entitlement_capacity_reservations.php',
     'private/project-brief-app/config/localization.php',
     'private/project-brief-app/app/Services/SupportedLocales.php',
     'private/project-brief-app/app/Http/Middleware/SetRequestLocale.php',

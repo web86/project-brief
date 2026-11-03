@@ -1663,12 +1663,12 @@ echo json_encode(['ok'=>true]);
     JSON.parse(await readFile(path.join(packageRoot, 'release.json'), 'utf8')).version,
     '0.9.17',
   )
-  assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /maintenance/)
-  assert.match(
-    await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'),
-    /additive migration/,
-  )
-  assert.match(await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8'), /operator backfill/)
+  const runbook = await readFile(path.join(packageRoot, 'PRODUCTION.md'), 'utf8')
+  assert.match(runbook, /TRIAL_ACTIVATION_ENABLED=false/)
+  assert.match(runbook, /2026_11_03_151351_add_execution_receipt_to_client_sso_handoffs/)
+  assert.match(runbook, /2026_11_03_170505_add_restore_cycle_to_entitlement_capacity_reservations/)
+  assert.match(await readFile(path.join(packageRoot, 'ROLLBACK.md'), 'utf8'), /Forward fix/)
+  assert.match(await readFile(path.join(packageRoot, 'CANARY.md'), 'utf8'), /registration-canary/)
   for (const demo of [
     '/demo',
     '/demo/developer',

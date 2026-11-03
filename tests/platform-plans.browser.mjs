@@ -685,8 +685,9 @@ require __DIR__.'/../vendor/autoload.php';
     const response = await call(ownerContext, '/api/admin/projects/' + first.id)
     assert.equal(response.status(), 200, await response.text())
     assert.equal(
-      (await call(ownerContext, '/api/admin/projects', 'POST', { title: 'Still over capacity' }))
-        .status(),
+      (
+        await call(ownerContext, '/api/admin/projects', 'POST', { title: 'Still over capacity' })
+      ).status(),
       403,
     )
   }

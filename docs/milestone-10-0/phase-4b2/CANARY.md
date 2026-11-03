@@ -15,7 +15,7 @@
 
 Перед допуском зафиксировать commit и checksums проверенного production ZIP, текущие revisions опубликованных тарифов и policy, итоги MariaDB race tests и тестовой доставки. Отдельно записать результат репетиции закрытия прямого origin и остановки cron по [процедуре карантина](ROLLBACK.md). После появления первого cycle откат одного кода на старый runtime закрыт.
 
-На Jino действия выполняются только после согласования [окна обслуживания](JINO.md).
+На Jino действия выполняются только после согласования окна обслуживания из основного runbook Jino.
 
 ## Серверные действия оператора
 
@@ -24,3 +24,5 @@
 3. Вызвать `approve` с `claims` и объектом `evidence`. Передать реальные SHA-256 документов или логов по пяти ключам `lifecycle`, `execution_barriers`, `rollback`, `notification_delivery`, `trial_claim_policy`. Хэши фиксируют операторское подтверждение. Сервер отдельно проверяет опубликованные контракты, legacy cohort, незавершённый accounting review, конфигурацию почты и retention.
 4. Только после отдельного разрешения для canary включить `TRIAL_ACTIVATION_ENABLED=true` в согласованном контуре. Вызвать `admit` с `{"claimId":"<uuid>"}` и ревизией из ответа `approve`. Для каждого владельца требуется отдельное действие. Сервер повторно проверяет permit, allowlist, текущие версии и срок. Срок Trial отсчитывается от verified timestamp.
 5. Для остановки вызвать `stop` с `{}` и текущей ревизией. Затем вернуть `TRIAL_ACTIVATION_ENABLED=false` и перестроить config cache. Остановка разрешения сохраняет уже созданные Trial, периоды, ограничения, cycles и epochs. Действия approve, admit и stop фиксируются в `plan_events`.
+
+Для read-only сверки ревизии запросить `SELECT revision FROM plan_settings WHERE id = 1` в согласованной БД. Проверить последние действия по `plan_events.action IN ('canary.approve', 'canary.admit', 'canary.stop')` и их `before_revision` / `after_revision`. UUID claims сверять по утверждённому списку отдельно от отчётов QA.
