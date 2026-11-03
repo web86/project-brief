@@ -2,10 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Models\Plans\PlanVersion;
+use App\Models\Plans\PlatformPolicyVersion;
+use App\Models\Plans\SubscriptionPeriod;
+use App\Models\Plans\WorkspaceSubscription;
 use App\Models\Project;
 use App\Models\ProjectClient;
+use App\Models\User;
+use App\Models\Workspace;
 use App\Services\Plans\LegacyInventory;
+use App\Services\Plans\PlanCatalog;
+use App\Services\Plans\PlatformPolicyCatalog;
+use App\Services\Plans\SubscriptionClock;
 use App\Services\Plans\WorkspaceUsage;
+use Carbon\CarbonImmutable;
+use Database\Seeders\PlansFoundationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -66,9 +77,48 @@ class PlansInventoryConcurrencyTest extends TestCase
             $plan = DB::select('EXPLAIN SELECT id FROM projects WHERE workspace_id = ? AND deleted_at IS NULL AND status = ? ORDER BY id', [$project->workspace_id, 'active']);
             $this->assertNotEmpty($plan[0]->possible_keys);
             $this->assertStringContainsString('pf_projects_usage_idx', $plan[0]->possible_keys);
+            $this->assertConcurrentExpiry();
         } finally {
             RefreshDatabaseState::$migrated = false;
         }
+    }
+
+    private function assertConcurrentExpiry(): void
+    {
+        $workspace = Workspace::factory()->create();
+        Project::factory()->create(['workspace_id' => $workspace->id, 'status' => 'active']);
+        $actor = User::factory()->create(['platform_admin' => true]);
+        DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $actor->id, 'revision' => 1]);
+        $this->seed(PlansFoundationSeeder::class);
+        foreach (['basic', 'studio'] as $code) {
+            $draft = PlanVersion::whereHas('plan', fn ($q) => $q->where('code', $code))->firstOrFail();
+            app(PlanCatalog::class)->publish($actor, $draft->id, 1, 'race-'.$code);
+        }
+        $policy = app(PlatformPolicyCatalog::class)->publish($actor, PlatformPolicyVersion::firstOrFail()->id, 1, 'race-policy');
+        $facts = app(SubscriptionClock::class)->period('trial', CarbonImmutable::now('UTC')->subDays(8), 7);
+        $subscription = WorkspaceSubscription::create([
+            'workspace_id' => $workspace->id,
+            'materialized_phase' => 'trial',
+            'enforcement_mode' => 'enforce',
+            'revision' => 1,
+            'next_boundary_at' => $facts['service_ends_at'],
+        ]);
+        $period = SubscriptionPeriod::create($facts + [
+            'workspace_id' => $workspace->id,
+            'subscription_id' => $subscription->id,
+            'entitlement_version_id' => $policy->trial_version_id,
+            'policy_version_id' => $policy->id,
+            'fallback_version_id' => $policy->fallback_version_id,
+            'approval_kind' => 'trial_verification',
+        ]);
+        $subscription->update(['current_period_id' => $period->id]);
+
+        $this->assertSame(['applied', 'applied', 'applied'], $this->race($workspace->id, 0, ['expiry', 'expiry', 'change'], ['one', 'two', 'three']));
+        $this->assertSame('free', $subscription->fresh()->materialized_phase);
+        $this->assertSame(2, $subscription->fresh()->revision);
+        $this->assertSame(2, SubscriptionPeriod::where('workspace_id', $workspace->id)->count());
+        $this->assertSame(1, DB::table('workspace_suspension_cycles')->where('workspace_id', $workspace->id)->count());
+        $this->assertSame(4, DB::table('workspace_execution_epochs')->where('workspace_id', $workspace->id)->where('state', 'blocked')->count());
     }
 
     private function race(int $workspaceId, int $versionId, array $actions, array $keys): array
@@ -87,6 +137,8 @@ $deadline = microtime(true) + 10;
 while (! is_file($argv[6].'/go')) { if (microtime(true) > $deadline) { exit(91); } usleep(10000); }
 if ($argv[4] === 'inventory') {
     $inventory->process($workspaceId);
+} elseif ($argv[4] === 'expiry') {
+    $app->make(App\Services\Plans\SubscriptionLifecycle::class)->catchUp($workspaceId);
 } elseif ($argv[4] === 'invite') {
     Illuminate\Support\Facades\DB::transaction(function () use ($workspaceId, $app): void {
         App\Services\IntegrationWrites::lockWorkspace($workspaceId);

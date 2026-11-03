@@ -20,6 +20,16 @@ final class EffectiveParticipation
                 ->join('workspace_suspension_cycles as cycle', 'cycle.id', '=', 'held.cycle_id')
                 ->where('held.workspace_id', $workspaceId)->where('cycle.workspace_id', $workspaceId)
                 ->where('cycle.state', 'open')->where('held.resource_kind', $kind)->where('held.state', 'held')->whereColumn('held.resource_id', $idColumn);
+        })->whereNotExists(function (Builder $cycle) use ($workspaceId, $kind, $idColumn): void {
+            $cycle->selectRaw('1')->from('workspace_suspension_cycles as marker')
+                ->where('marker.workspace_id', $workspaceId)->where('marker.state', 'open')
+                ->whereRaw('CAST(JSON_EXTRACT(marker.resource_high_watermarks_json, ?) AS DECIMAL(20,0)) >= '.$cycle->getGrammar()->wrap($idColumn), ['$.'.$kind])
+                ->whereNotExists(function (Builder $release) use ($kind, $idColumn): void {
+                    $release->selectRaw('1')->from('workspace_entitlement_resource_states as released')
+                        ->whereColumn('released.workspace_id', 'marker.workspace_id')
+                        ->whereColumn('released.cycle_id', 'marker.id')->whereColumn('released.resource_id', $idColumn)
+                        ->where('released.resource_kind', $kind)->where('released.state', 'released');
+                });
         });
     }
 
