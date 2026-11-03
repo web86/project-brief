@@ -41,12 +41,15 @@
 
 ## Текущий runtime `57653eb`
 
-- Целевой тест canary после проверки owner-only Basic seats — один тест, 13 утверждений. Pint прошёл. Полный PHP 8.4.26/MariaDB 11.8.9 повтор запущен.
+- Целевой тест canary после проверки owner-only Basic seats — один тест, 13 утверждений. Pint прошёл.
+- Полный PHP 8.4.26/MariaDB 11.8.9 на `57653eb` — 1185 тестов и 17317 утверждений, включая concurrency и native MariaDB legacy upgrade. `Innodb_deadlocks = 0` после прогона. Код приложения, routes, config и migrations совпадают с текущим checkpoint.
+- Chromium на исходниках `9e458a0` с тем же runtime прошёл семь сценариев без page errors, включая Basic capacity, manual paid, restore и rearm.
 
 ## Изолированная репетиция до канонической сборки
 
 - Временный public/private стенд со свежим кодом, Vite assets и production vendor прошёл Chromium E2E с копией SQLite. После остановки origin и восстановления БД совпали хэши одного suspension cycle и четырёх epochs. После explicit rearm старые External API replay и shared Agent run получили HTTP 409, неистёкший SSO handoff перенаправлен на страницу отказа, ручной Webhook retry получил HTTP 409. Независимый worker отменил старый delivery без внешнего вызова.
-- Эта репетиция выполнялась до канонической сборки. MariaDB и проверки самого ZIP ведутся отдельно.
+- Повтор на MariaDB 11.8.9 прошёл семь браузерных сценариев без page errors. После остановки origin дамп импортирован в отдельную БД. SHA-256 строк cycles и epochs совпали. Разрешённый Basic проект остался доступен, создание второго проекта получило HTTP 403. После paid/restore/rearm подтверждены отказы старого API replay, Agent run, SSO handoff, ручного Webhook retry и отмена независимой delivery без отправки.
+- Оба прогона выполнены на временном стенде до канонической сборки. Проверки самого ZIP ведутся отдельно.
 
 ## Финальный production ZIP
 
