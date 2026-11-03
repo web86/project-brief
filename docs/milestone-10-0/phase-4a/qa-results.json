@@ -53,5 +53,55 @@
     "merge": false,
     "jinoCommands": false,
     "commercialEnforcement": false
-  }
+  },
+  "canonicalBuilder": {
+    "sourceCommit": "ba216f663b0294c1ca4eb988380ac0c2b72fd63b",
+    "backend": {
+      "runtime": "PHP 8.5.10 / SQLite",
+      "tests": 1141,
+      "passed": 1136,
+      "skippedMariaDbOnly": 5,
+      "assertions": 16446,
+      "failures": 0
+    },
+    "frontendTests": 450,
+    "productionVendor": true,
+    "secretsAndSlimScan": true,
+    "zipChecksums": true
+  },
+  "extractedArchives": {
+    "production": {
+      "php": "8.4.26",
+      "mariaDb": "11.8.9",
+      "security": true,
+      "plansFrozenAndAccounting": true,
+      "uxAndClientPrivacy": true,
+      "fullHttpRuntime": true,
+      "compiledBrowserMatrix": 6,
+      "ownerFreezeVerify": true,
+      "browserErrors": 0
+    },
+    "static": {
+      "screens": 75,
+      "apiRequests": 0,
+      "writes": 0,
+      "externalRequests": 0,
+      "errors": 0,
+      "datasetAndSchemaFilesIdenticalToV2": 143
+    }
+  },
+  "artifacts": [
+    {
+      "filename": "dev2done-v0.9.14-ba216f6.zip",
+      "bytes": 39757945,
+      "files": 8991,
+      "sha256": "ea25b1786c4d34dd28e9951289e9087a4086b18d4ff48fa62a599747cb9cf9cc"
+    },
+    {
+      "filename": "dev2done-static-demo-v3-ba216f6.zip",
+      "bytes": 2928884,
+      "files": 262,
+      "sha256": "60f5348b2db899168436f7e3ede3d48e2553f29010c4fb2a1840293106db161c"
+    }
+  ]
 }

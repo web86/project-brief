@@ -1,3 +1,33 @@
-# Phase 4A artifacts
+# Phase 4A — verified release artifacts
 
-Canonical production and Static Demo artifacts will be pinned here after the clean-source build and extracted package checks. Previous v0.9.13 production and Static Demo v2 archives are preserved. No production deployment or Git remote mutation is part of this task.
+Branch `codex/milestone-10-0-phase-4a`. Exact source commit **`ba216f663b0294c1ca4eb988380ac0c2b72fd63b`**. Production ZIP built by the ordinary `bin/build-release` from a clean tree; later documentation-only commit does not change archive code. No push/merge, deployment, Jino access/operator commands or commercial activation occurred.
+
+| Artifact                                                                     | Bytes / files     | SHA-256                                                            |
+| ---------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------ |
+| [Dev2Done v0.9.14 production](../../../release/dev2done-v0.9.14-ba216f6.zip) | 39,757,945 / 8991 | `ea25b1786c4d34dd28e9951289e9087a4086b18d4ff48fa62a599747cb9cf9cc` |
+| [Static Demo v3](../../../release/dev2done-static-demo-v3-ba216f6.zip)       | 2,928,884 / 262   | `60f5348b2db899168436f7e3ede3d48e2553f29010c4fb2a1840293106db161c` |
+
+[Production SHA sidecar](../../../release/dev2done-v0.9.14-ba216f6.zip.sha256) · [exact release.json](../../../release/dev2done-v0.9.14-ba216f6.release.json). Production built UTC `2026-11-03T07:05:16.605Z`, PHP target8.4, existing domain brief.web86.site. Canonical builder counts8990 before checksums.txt; ZIP contains8991 files. Slim/secret/fixture scan and all internal checksums passed after actual extraction. No `.env`, credentials, demo database/dataset, test factories/Faker, QA logs or Docker runtime is included.
+
+[Static SHA sidecar](../../../release/dev2done-static-demo-v3-ba216f6.zip.sha256) · [exact static release.json](../../../release/dev2done-static-demo-v3-ba216f6.release.json). Static built UTC `2026-11-03T07:06:02.632Z`, preview=false, schemaVersion1. All143 dataset/schema files compare byte-for-byte with preserved v2; data manifest SHA remains **`8f42d433b5f9f467877ee36d89a24b02a538afa2da8ac28cb83698cc4b9ae42c`**. 314 developer/26 client contracts, 10 projects/150 tasks/client15; Core experience order retained. Contains static assets only, no PHP/database/auth server. Historical v0.9.13 production and Static v2 ZIPs and their SHA were rechecked and remain unchanged.
+
+## Validation evidence
+
+| Check                                         | Result                                                                                                                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Full PHP8.4.26/MariaDB11.8.9                  | **1140 passed / 16567 assertions**, no skip/error/failure; independent worker races and migration/query-plan checks included                                                                                                         |
+| Final focused PHP8.4/MariaDB preparation      | **16 passed / 77 assertions**, including final catalog-archive drift case and complete metadata fingerprints; full run preceded these last narrow additions                                                                          |
+| Final canonical source PHP8.5.10/SQLite       | **1141 tests / 1136 passed / 16446 assertions**, 5 explicit MariaDB-only skips, no failures                                                                                                                                          |
+| Frontend canonical build                      | **450 passed**, production build and brand:check passed                                                                                                                                                                              |
+| Actual extracted ZIP, standard builder        | Signed WebAuthn, complete HTTP/runtime/API/SSO/privacy/files/quiet cron/upgrade, plan frozen/accounting and UX/no-demo checks passed using production vendor                                                                         |
+| Actual extracted ZIP, PHP8.4.26               | Same security/plans/UX and **full HTTP/runtime suite passed**; production vendor, no Faker/factory fallback                                                                                                                          |
+| Actual extracted ZIP, PHP8.4.26/MariaDB11.8.9 | Existing package contract against exclusive disposable DB passed: migration/seed idempotency, immutable publication, compatibility inventory, distinct counts, frozen/replay/verify/stale accounting, no execution/cycle/epoch/Trial |
+| Actual compiled ZIP browser, PHP8.4           | **6 RU/EN × light/dark/system**, 375/390 mobile and desktop; required owner, private metadata filtering, owner freeze/verify, target retained on reload; errors=[]                                                                   |
+| Branding browser                              | 9 scenario groups, including computed fallback/custom-color priority on developer/client/login in all3 themes                                                                                                                        |
+| Actual extracted Static v3 browser            | **75 screens**, 0 API requests, writes, external connections and JS/console errors                                                                                                                                                   |
+
+Query fixture measured core0 SQL/28µs and API-feature5 SQL/3544µs, no client scan; timings are local illustrative samples, not production throughput guarantees. MariaDB older-snapshot1020 returns unknown/recalculate rather than a stale allow. Test boundaries, failure semantics and remaining staging/performance work are in [QA](QA.md) and [protocol](PROTOCOL.md). [Machine summary](qa-results.json).
+
+Ignored local evidence: `artifacts/milestone-10-0-phase-4a/logs/`, `browser/`, `archive-browser/`, `branding/`, `static-archive/`. Extracted packages: `/tmp/dev2done-phase4a-production-ba216f6` and `/tmp/dev2done-phase4a-static-ba216f6`. Only Phase4A temporary QA MariaDB/PHP containers were removed; persistent professional demo containers/data and old releases retained. Production/Jino, hardware TouchID and Safari/WebKit were not tested. Existing Vite >500kB chunk warning remains; dependencies unchanged.
+
+For an installed Phase3 update: **no new migration, mandatory env key or operator backfill**. Follow [Jino update/rollback runbook](PRODUCTION.md). Accounting review remains an explicit evidence-based action, not a release auto-step. Phase4B is not started.
