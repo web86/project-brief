@@ -554,11 +554,6 @@ require __DIR__.'/../vendor/autoload.php';
       assert.equal((await call(context, '/api/platform/workspace-inventory')).status(), 200)
       if (language === 'en' && theme === 'light') {
         php(['artisan', 'cache:clear', '--no-interaction'])
-        await page.goto(origin + '/admin/settings/resource-preview')
-        await page
-          .locator('.breadcrumbs [aria-current="page"]')
-          .getByText('Plan and subscription')
-          .waitFor()
         await page.goto(origin + '/admin/settings/subscription')
         await page
           .locator('.owner-resource-preview select option')
@@ -588,6 +583,12 @@ require __DIR__.'/../vendor/autoload.php';
         await ownerPanel.locator('[role=status]').waitFor()
         assert.equal(await ownerPanel.locator('[role=alert]').count(), 0)
         await capture(page, 'owner-resource-selection.png')
+        php(['artisan', 'cache:clear', '--no-interaction'])
+        await page.goto(origin + '/admin/settings/resource-preview')
+        await page
+          .locator('.breadcrumbs [aria-current="page"]')
+          .getByText('Plan and subscription')
+          .waitFor()
       }
       results.push({ language, theme, mobile })
       await context.close()
