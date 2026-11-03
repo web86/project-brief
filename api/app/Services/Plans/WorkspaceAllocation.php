@@ -39,6 +39,7 @@ final class WorkspaceAllocation
             'subscription_periods' => ['id', 'uuid', 'entitlement_version_id', 'policy_version_id', 'fallback_version_id', 'starts_at', 'service_ends_at', 'grace_ends_at', 'superseded_at'],
             'workspace_entitlement_overrides' => ['id', 'revision', 'value_json', 'starts_at', 'ends_at'],
             'workspace_suspension_cycles' => ['id', 'revision', 'state'],
+            'workspace_entitlement_resource_states' => ['id', 'cycle_id', 'resource_kind', 'resource_id', 'state', 'reviewed_revision'],
             'workspace_execution_epochs' => ['feature_group', 'epoch', 'state', 'revision'],
         ];
         $rows = [];

@@ -9,8 +9,10 @@ use App\Services\AccountSecurity;
 use App\Services\CurrentWorkspace;
 use App\Services\IntegrationWrites;
 use App\Services\Plans\AccountingReview;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\FrozenTransitions;
 use App\Services\Plans\PlanInput;
+use App\Services\Plans\SubscriptionAssignments;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,6 +47,7 @@ class ResourceSelectionController extends Controller
             $workspace = $request->route('workspace');
             $preview = $request->route('preview');
             [$id, $platform] = $this->context($request, $workspace);
+            app(ExecutionBarrier::class)->catchUp($id);
             $service = app(FrozenTransitions::class);
             $kind = $request->route()->defaults['preparationKind'];
             if ($kind === 'versions') {
@@ -67,6 +70,18 @@ class ResourceSelectionController extends Controller
 
                     return response()->json(['data' => app(AccountingReview::class)->listing($id)]);
                 });
+            }
+            if ($kind === 'approve-paid') {
+                PlanInput::only($request->all(), ['serviceDays', 'reason']);
+                $data = $request->validate(['serviceDays' => ['required', 'integer', 'min:1', 'max:36600'], 'reason' => ['required', 'regex:/^[a-z][a-z0-9_]{0,59}$/D']]);
+                $subscription = app(SubscriptionAssignments::class)->approvePaid($request->user(), $id, $preview, PlanInput::revision($request), (int) $data['serviceDays'], $data['reason'], PlanInput::key($request));
+
+                return response()->json(['data' => ['id' => $subscription->uuid, 'revision' => (string) $subscription->revision]]);
+            }
+            if (in_array($kind, ['apply-basic', 'restore-paid'], true)) {
+                PlanInput::only($request->all(), []);
+
+                return response()->json(['data' => $service->applySelection($request->user(), $id, $preview, PlanInput::revision($request), PlanInput::key($request), $kind === 'restore-paid')]);
             }
             if ($kind === 'read') {
                 return response()->json(['data' => $service->read($request->user(), $id, $platform, $preview)]);

@@ -50,7 +50,7 @@ final class RegistrationReadiness
     {
         $id = DB::table('plan_settings')->where('id', 1)->value('current_policy_version_id');
         $policy = $id ? PlatformPolicyVersion::find($id) : null;
-        if (! $policy || $policy->state !== 'published' || $policy->trial_days !== 7) {
+        if (! $policy || $policy->state !== 'published' || $policy->trial_days !== 7 || $policy->grace_days !== 7) {
             return null;
         }
         $studio = PlanVersion::with('plan')->find($policy->trial_version_id);
@@ -70,6 +70,37 @@ final class RegistrationReadiness
         }
 
         return ['policy' => $policy, 'studio' => $studio, 'basic' => $basic];
+    }
+
+    /** Primary-only diagnostics. Configuration checks are separate from verified operational evidence. */
+    public function commercialBlockers(bool $targetsReady): array
+    {
+        $reasons = [
+            'phase_4b2_lifecycle_required',
+            'execution_rearm_review_required',
+            'rollback_verification_required',
+            'notification_delivery_verification_required',
+        ];
+        if (! $targetsReady) {
+            $reasons[] = 'published_targets_required';
+        }
+
+        $settings = DB::table('plan_settings')->where('id', 1)->first();
+        $cohort = DB::table('plan_inventory_cohorts')->where('id', 1)->first();
+        $legacy = $settings?->legacy_version_id ? PlanVersion::find($settings->legacy_version_id) : null;
+        if (! $cohort || $legacy?->state !== 'published' || $legacy->access_class !== 'compatibility') {
+            $reasons[] = 'legacy_cohort_required';
+        } elseif (DB::table('workspaces')->where('workspaces.id', '<=', $cohort->workspace_cutoff_id)
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('plan_inventory_items')
+                ->whereColumn('plan_inventory_items.workspace_id', 'workspaces.id')->where('state', 'processed'))->exists()) {
+            $reasons[] = 'legacy_accounting_review_required';
+        }
+
+        if (! app(ProjectNotificationService::class)->mailAvailable()) {
+            $reasons[] = 'smtp_configuration_required';
+        }
+
+        return $reasons;
     }
 
     public function publicState(): array

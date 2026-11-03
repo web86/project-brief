@@ -11,8 +11,10 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\AuthOnboarding;
 use App\Services\IntegrationTokens;
+use App\Services\Plans\ClientCountingIdentities;
 use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
+use App\Services\Plans\FrozenTransitions;
 use App\Services\Plans\PlanCatalog;
 use App\Services\Plans\PlatformPolicyCatalog;
 use App\Services\Plans\SubscriptionClock;
@@ -43,7 +45,7 @@ class SubscriptionLifecycleTest extends TestCase
     {
         $verified = CarbonImmutable::parse('2026-10-24T22:10:11.123456Z');
         $this->travelTo($verified);
-        $actor = User::factory()->create(['platform_admin' => true]);
+        $actor = User::factory()->owner()->create(['platform_admin' => true]);
         DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $actor->id, 'revision' => 1]);
         $this->seed(PlansFoundationSeeder::class);
         foreach (['basic', 'studio'] as $code) {
@@ -51,6 +53,7 @@ class SubscriptionLifecycleTest extends TestCase
             app(PlanCatalog::class)->publish($actor, $draft->id, 1, 'target-'.$code);
         }
         $policy = app(PlatformPolicyCatalog::class)->publish($actor, PlatformPolicyVersion::firstOrFail()->id, 1, 'policy');
+        DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
         $facts = app(SubscriptionClock::class)->period($kind, $verified, 7, 7);
         $lifecycle = app(SubscriptionLifecycle::class);
         if ($kind === 'trial') {
@@ -58,7 +61,6 @@ class SubscriptionLifecycleTest extends TestCase
             $owner = User::factory()->create();
             app(AuthOnboarding::class)->pending($owner);
             $workspace = app(AuthOnboarding::class)->prepare($owner);
-            DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
             $this->assertDatabaseCount('subscription_periods', 0);
             $period = $lifecycle->startVerifiedTrial($workspace->id, $owner->id);
             $this->assertSame($period->id, $lifecycle->startVerifiedTrial($workspace->id, $owner->id)->id);
@@ -73,7 +75,7 @@ class SubscriptionLifecycleTest extends TestCase
             $period = SubscriptionPeriod::create($facts + ['workspace_id' => $workspace->id, 'subscription_id' => $subscription->id, 'entitlement_version_id' => $policy->trial_version_id, 'policy_version_id' => $policy->id, 'fallback_version_id' => $policy->fallback_version_id, 'approval_kind' => 'manual']);
             $subscription->update(['current_period_id' => $period->id]);
         }
-        $projects = Project::factory()->count(100)->create(['workspace_id' => $workspace->id, 'status' => 'active']);
+        $projects = Project::factory()->count(100)->sequence(fn ($sequence) => ['client_email' => 'client-'.$sequence->index.'@example.test'])->create(['workspace_id' => $workspace->id, 'status' => 'active']);
         $developer = User::factory()->memberOf($workspace)->create()->workspaceMembers()->firstOrFail();
         $projects->first()->members()->create(['workspace_id' => $workspace->id, 'workspace_member_id' => $developer->id]);
         $this->assertSame(1, ProjectAccess::forMember($developer)->count());
@@ -129,5 +131,73 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => null]));
         $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => 1, 'execution_feature_group' => 'agent']));
         $this->assertFalse($barrier->allows($workspace->id, 'agent', (object) ['execution_epoch' => 2, 'execution_feature_group' => 'agent']));
+
+        if ($kind === 'paid') {
+            $project = $projects->first();
+            DB::transaction(fn () => app(ClientCountingIdentities::class)->reconcile($workspace->id, 0, (int) DB::table('project_clients')->max('id')));
+            $client = $project->clients()->firstOrFail();
+            $identity = DB::table('entitlement_client_identities')->where('id', $client->entitlement_identity_id)->value('uuid');
+            $previewService = app(FrozenTransitions::class);
+            $version = $subscription->currentPeriod->version;
+            $revision = $subscription->revision;
+            $preview = $previewService->create($owner, $workspace->id, false, $version->uuid, [
+                'projects' => [$project->uuid],
+                'developers' => [(string) $owner->workspaceMembers()->firstOrFail()->id],
+                'clients' => [$identity],
+                'agents' => [],
+                'invitations' => [],
+            ], $revision, 'selection-preview');
+            $this->assertSame([], array_values(array_diff($preview['reasonCodes'], ['subscription_missing_or_incomplete', 'participation_cycle_adapter_required'])));
+            $headers = ['If-Match' => '"revision:'.$revision.'"', 'Idempotency-Key' => 'basic-selection'];
+            $path = '/api/admin/resource-selection/previews/'.$preview['id'].'/apply-basic';
+            $this->actingAs($owner)->postJson($path, [], $headers)->assertOk()->assertJsonPath('data.subscriptionRevision', (string) ($revision + 1));
+            $this->postJson($path, [], $headers)->assertOk()->assertJsonPath('data.subscriptionRevision', (string) ($revision + 1));
+            $this->assertSame([$project->id], app(EffectiveParticipation::class)->projects($workspace->id)->pluck('id')->all());
+            $this->assertDatabaseCount('workspace_entitlement_resource_states', 2);
+            $this->assertDatabaseHas('workspace_entitlement_resource_states', ['resource_kind' => 'project_client', 'resource_id' => $client->id, 'state' => 'released']);
+            $this->assertFalse($barrier->allows($workspace->id, 'webhook'));
+
+            $subscription->refresh()->update(['enforcement_mode' => 'enforce']);
+            $paidVersion = PlanVersion::findOrFail($policy->trial_version_id);
+            $approval = $previewService->create($actor, $workspace->id, true, $paidVersion->uuid, $preview['selection'], $subscription->revision, 'paid-preview');
+            $headers = ['If-Match' => '"revision:'.$subscription->revision.'"', 'Idempotency-Key' => 'paid-approval'];
+            $path = '/api/platform/workspaces/'.$workspace->uuid.'/resource-selection/previews/'.$approval['id'].'/approve-paid';
+            $payload = ['serviceDays' => 30, 'reason' => 'synthetic_manual_approval'];
+            $this->postJson($path, $payload, $headers)->assertForbidden();
+            $this->actingAs($actor)->postJson($path, $payload, $headers)->assertOk();
+            $this->postJson($path, $payload, $headers)->assertOk();
+            $this->assertSame('paid', $subscription->fresh()->materialized_phase);
+            $this->assertDatabaseCount('subscription_periods', 3);
+            $this->assertDatabaseCount('workspace_suspension_cycles', 1);
+            $this->assertFalse($barrier->allows($workspace->id, 'webhook'));
+
+            $second = $projects[1];
+            $restoreSelection = $preview['selection'];
+            $restoreSelection['projects'][] = $second->uuid;
+            $restoreSelection['developers'][] = (string) $developer->id;
+            $restore = $previewService->create($owner, $workspace->id, false, $paidVersion->uuid, $restoreSelection, $subscription->fresh()->revision, 'restore-preview');
+            $headers = ['If-Match' => '"revision:'.$subscription->fresh()->revision.'"', 'Idempotency-Key' => 'paid-restore'];
+            $this->actingAs($owner)->postJson('/api/admin/resource-selection/previews/'.$restore['id'].'/restore-paid', [], $headers)->assertOk();
+            $this->assertEqualsCanonicalizing([$project->id, $second->id], app(EffectiveParticipation::class)->projects($workspace->id)->pluck('id')->all());
+            $this->assertSame(1, ProjectAccess::forMember($developer)->count());
+            $this->assertFalse($barrier->allows($workspace->id, 'webhook'));
+
+            $current = $subscription->fresh()->currentPeriod;
+            $all = $previewService->options($actor, $workspace->id, true)['resources'];
+            $retain = array_map(fn (array $rows): array => array_column($rows, 'id'), $all);
+            $revision = $subscription->fresh()->revision;
+            $renew = $previewService->create($actor, $workspace->id, true, $paidVersion->uuid, $retain, $revision, 'renewal-preview');
+            $headers = ['If-Match' => '"revision:'.$revision.'"', 'Idempotency-Key' => 'paid-renewal'];
+            $path = '/api/platform/workspaces/'.$workspace->uuid.'/resource-selection/previews/'.$renew['id'].'/approve-paid';
+            $this->actingAs($actor)->postJson($path, $payload, $headers)->assertOk();
+            $this->assertSame($current->id, $subscription->fresh()->current_period_id);
+            $this->assertDatabaseHas('subscription_changes', ['kind' => 'renew', 'state' => 'scheduled']);
+            $this->travelTo($current->service_ends_at);
+            $lifecycle->catchUp($workspace->id);
+            $this->assertSame('paid', $subscription->fresh()->materialized_phase);
+            $this->assertTrue($current->service_ends_at->equalTo($subscription->fresh()->currentPeriod->starts_at));
+            $this->assertDatabaseCount('workspace_suspension_cycles', 1);
+            $this->assertDatabaseHas('subscription_changes', ['kind' => 'renew', 'state' => 'applied']);
+        }
     }
 }

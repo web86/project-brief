@@ -8,6 +8,7 @@ use App\Models\TaskAgentAssignment;
 use App\Models\User;
 use App\Models\WorkspaceMember;
 use App\Services\AgentAccess;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\WebhookDestination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -20,6 +21,21 @@ class PlansFoundationMigrationTest extends TestCase
     public function test_populated_v0910_upgrade_and_repeat_preserve_every_legacy_column(): void
     {
         $this->isolatedUpgrade(function (object $migration): void {
+            // The HTTP fixture represents the pre-foundation runtime, before subscription tables or receipts existed.
+            $this->app->instance(ExecutionBarrier::class, new class
+            {
+                public function catchUp(int $workspaceId): void {}
+
+                public function require(int $workspaceId, string $group, ?object $receipt = null, bool $lockReads = true): ?int
+                {
+                    return null;
+                }
+
+                public function receipt(string $group, ?int $epoch): array
+                {
+                    return [];
+                }
+            });
             Http::preventStrayRequests();
             $this->mock(WebhookDestination::class)->shouldReceive('resolve')->andReturn(['host' => 'receiver.example.test', 'ip' => '93.184.216.34']);
             $project = Project::factory()->create();
@@ -46,6 +62,7 @@ class PlansFoundationMigrationTest extends TestCase
                     $tables[$table['name']] = ['columns' => $columns, 'fingerprint' => $this->fingerprint($table['name'], $columns)];
                 }
             }
+            $this->app->forgetInstance(ExecutionBarrier::class);
             $migration->up();
             $migration->up();
             foreach ($tables as $table => $before) {
@@ -125,7 +142,7 @@ class PlansFoundationMigrationTest extends TestCase
         try {
             Schema::dropAllTables();
             foreach (glob(database_path('migrations/*.php')) as $path) {
-                if (str_contains($path, 'add_plan_inventory_accounting')) {
+                if (str_contains($path, 'add_plan_inventory_accounting') || str_contains($path, 'add_execution_receipt_to_client_sso_handoffs')) {
                     continue; // The pre-foundation upgrade fixture excludes later implementation phases.
                 }
                 if (str_contains($path, 'create_plans_foundation')) {

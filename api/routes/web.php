@@ -113,7 +113,16 @@ Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(func
 foreach (['platform', 'admin'] as $persona) {
     $middleware = $persona === 'platform' ? [EnsurePlatformAdmin::class, 'throttle:platform'] : ['admin', 'throttle:account-security'];
     $prefix = $persona === 'platform' ? '/api/platform/workspaces/{workspace}/resource-selection' : '/api/admin/resource-selection';
-    Route::middleware($middleware)->prefix($prefix)->group(function (): void {
+    Route::middleware($middleware)->prefix($prefix)->group(function () use ($persona): void {
+        if ($persona === 'admin') {
+            Route::post('/previews/{preview}/apply-basic', [ResourceSelectionController::class, 'handle'])
+                ->defaults('preparationKind', 'apply-basic')->whereUuid('preview');
+            Route::post('/previews/{preview}/restore-paid', [ResourceSelectionController::class, 'handle'])
+                ->defaults('preparationKind', 'restore-paid')->whereUuid('preview');
+        } else {
+            Route::post('/previews/{preview}/approve-paid', [ResourceSelectionController::class, 'handle'])
+                ->defaults('preparationKind', 'approve-paid')->whereUuid(['workspace', 'preview']);
+        }
         foreach ([['get', '', 'options'], ['get', '/versions', 'versions'], ['post', '/previews', 'create'], ['get', '/previews/{preview}', 'read'], ['get', '/accounting-review', 'review-list'], ['post', '/accounting-review', 'review']] as [$method, $path, $kind]) {
             Route::{$method}($path, [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', $kind)->whereUuid(['workspace', 'preview']);
         }

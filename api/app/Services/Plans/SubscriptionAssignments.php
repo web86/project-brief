@@ -45,6 +45,81 @@ final class SubscriptionAssignments
         return WorkspaceSubscription::findOrFail($outcome['id']);
     }
 
+    /** Approve a paid period after a frozen platform review. Existing suspension remains in force. */
+    public function approvePaid(User $actor, int $workspaceId, string $previewId, int $revision, int $days, string $reason, string $key): WorkspaceSubscription
+    {
+        app(ExecutionBarrier::class)->catchUp($workspaceId);
+        $input = compact('previewId', 'revision', 'days', 'reason');
+        $outcome = $this->commands->run($actor, 'subscription.approve_paid', $key, $input, function (object $authority) use ($actor, $workspaceId, $previewId, $revision, $days, $reason, $key, $input): array {
+            abort_unless(preg_match('/^[a-z][a-z0-9_]{0,59}$/D', $reason), 422);
+            $subscription = WorkspaceSubscription::where('workspace_id', $workspaceId)->lockForUpdate()->firstOrFail();
+            abort_unless($subscription->revision === $revision && $subscription->enforcement_mode === 'enforce', 409, 'subscription_revision_conflict');
+            $current = $subscription->currentPeriod()->firstOrFail();
+            $now = CarbonImmutable::now('UTC');
+            $phase = $this->clock->phase($current->only(['kind', 'starts_at', 'service_ends_at', 'grace_ends_at']), $now)['phase'];
+            abort_unless(in_array($phase, ['free', 'paid', 'grace'], true) && ($phase !== 'free' || $current->approval_kind === 'system'), 409, 'paid_approval_unavailable');
+
+            abort_if(DB::table('subscription_changes')->where('workspace_id', $workspaceId)->where('state', 'scheduled')->exists(), 409, 'subscription_renewal_already_scheduled');
+            $preview = app(FrozenTransitions::class)->read($actor, $workspaceId, true, $previewId);
+            abort_unless((int) $preview['subscriptionRevision'] === $revision
+                && ! array_diff($preview['reasonCodes'], ['subscription_missing_or_incomplete', 'participation_cycle_adapter_required']), 409, 'transition_preview_stale');
+            $target = PlanVersion::where('uuid', $preview['target']['id'])->where('state', 'published')->where('access_class', 'paid')->firstOrFail();
+            abort_if($phase !== 'free' && ((int) $target->id !== (int) $current->entitlement_version_id
+                || array_filter($preview['wouldHold'])), 409, 'renewal_version_conflict');
+            $policyId = DB::table('plan_settings')->where('id', 1)->sharedLock()->value('current_policy_version_id');
+            $policy = PlatformPolicyVersion::where('state', 'published')->findOrFail($policyId);
+            $fallback = PlanVersion::where('state', 'published')->where('access_class', 'free')->findOrFail($policy->fallback_version_id);
+            abort_unless($policy->grace_days === 7 && $policy->trial_days === 7
+                && hash_equals($policy->content_hash, PlanConfiguration::hash(app(PlatformPolicyCatalog::class)->configuration($policy))), 409, 'commercial_policy_required');
+
+            $previewRow = DB::table('plan_previews')->where('uuid', $previewId)->firstOrFail();
+            $now = CarbonImmutable::now('UTC');
+            abort_unless($phase === $this->clock->phase($current->only(['kind', 'starts_at', 'service_ends_at', 'grace_ends_at']), $now)['phase'], 409, 'subscription_revision_conflict');
+            $scheduled = $phase === 'paid';
+            $startsAt = $scheduled ? $current->service_ends_at : $now;
+            $facts = $this->clock->period('paid', $startsAt, $days, $policy->grace_days);
+            $change = DB::table('subscription_changes')->insertGetId([
+                'uuid' => (string) Str::uuid(),
+                'workspace_id' => $workspaceId,
+                'subscription_id' => $subscription->id,
+                'kind' => $phase === 'free' ? 'assign' : 'renew',
+                'target_version_id' => $target->id,
+                'expected_revision' => $revision,
+                'payload_json' => json_encode(['reason' => $reason, 'selectionHash' => $preview['selectionHash']], JSON_THROW_ON_ERROR),
+                'policy_snapshot_json' => json_encode(['id' => $policy->id, 'hash' => $policy->content_hash], JSON_THROW_ON_ERROR),
+                'preview_id' => $previewRow->id,
+                'requested_by' => $actor->id,
+                'approved_by' => $actor->id,
+                'authority_revision' => $authority->revision,
+                'state' => $scheduled ? 'scheduled' : 'applied',
+                'effective_at' => $startsAt->format('Y-m-d H:i:s.u'),
+                'operation_key_hash' => hash('sha256', $actor->id.'|'.$key),
+                'request_hash' => PlanConfiguration::hash($input),
+                'applied_at' => $scheduled ? null : $now->format('Y-m-d H:i:s.u'),
+                'created_at' => $now->format('Y-m-d H:i:s.u'),
+            ]);
+            $period = SubscriptionPeriod::create($facts + [
+                'workspace_id' => $workspaceId,
+                'subscription_id' => $subscription->id,
+                'entitlement_version_id' => $target->id,
+                'policy_version_id' => $policy->id,
+                'fallback_version_id' => $fallback->id,
+                'approval_kind' => 'manual',
+                'approved_by' => $actor->id,
+                'approval_change_id' => $change,
+            ]);
+            if ($scheduled) {
+                $subscription->increment('revision');
+            } else {
+                $subscription->update(['current_period_id' => $period->id, 'materialized_phase' => 'paid', 'revision' => $revision + 1, 'next_boundary_at' => $period->service_ends_at]);
+            }
+
+            return ['type' => 'subscription', 'id' => $subscription->id, 'uuid' => $subscription->uuid, 'before' => $revision, 'after' => $revision + 1];
+        }, $workspaceId);
+
+        return WorkspaceSubscription::findOrFail($outcome['id']);
+    }
+
     public function override(User $actor, int $workspaceId, int $revision, string $entitlementKey, array $value, CarbonImmutable $startsAt, CarbonImmutable $endsAt, string $reason, string $key): int
     {
         $input = ['revision' => $revision, 'entitlementKey' => $entitlementKey, 'value' => $value, 'startsAt' => $startsAt->utc()->format('Y-m-d H:i:s.u'), 'endsAt' => $endsAt->utc()->format('Y-m-d H:i:s.u'), 'reason' => $reason];

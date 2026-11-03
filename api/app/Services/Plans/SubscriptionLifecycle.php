@@ -89,6 +89,9 @@ final class SubscriptionLifecycle
             }
 
             $now = CarbonImmutable::now('UTC');
+            if ($period->kind === 'paid' && $now >= $period->service_ends_at) {
+                $period = $this->continuePaid($subscription, $period, $now);
+            }
             $phase = $this->clock->phase($period->only(['kind', 'starts_at', 'service_ends_at', 'grace_ends_at']), $now)['phase'];
             if ($period->kind === 'paid' && in_array($phase, ['grace', 'fallback_required'], true) && $subscription->materialized_phase === 'paid') {
                 $this->advance($subscription, 'grace', $period, $period->service_ends_at, $period->grace_ends_at);
@@ -98,6 +101,25 @@ final class SubscriptionLifecycle
                 $this->fallback($subscription, $period);
             }
         }, 3);
+    }
+
+    private function continuePaid(WorkspaceSubscription $subscription, SubscriptionPeriod $source, CarbonImmutable $now): SubscriptionPeriod
+    {
+        $boundary = $source->service_ends_at->utc()->format('Y-m-d H:i:s.u');
+        $change = DB::table('subscription_changes')->where('workspace_id', $subscription->workspace_id)
+            ->where('subscription_id', $subscription->id)->where('kind', 'renew')
+            ->where('state', 'scheduled')->where('effective_at', $boundary)->lockForUpdate()->first();
+        if (! $change) {
+            return $source;
+        }
+        $period = SubscriptionPeriod::where('workspace_id', $subscription->workspace_id)->where('subscription_id', $subscription->id)
+            ->where('approval_change_id', $change->id)->where('kind', 'paid')->firstOrFail();
+        abort_unless($period->starts_at->equalTo($source->service_ends_at)
+            && (int) $period->entitlement_version_id === (int) $source->entitlement_version_id, 409, 'renewal_pin_invalid');
+        DB::table('subscription_changes')->where('id', $change->id)->update(['state' => 'applied', 'applied_at' => $now->format('Y-m-d H:i:s.u')]);
+        $this->advance($subscription, 'paid', $period, $period->starts_at, $period->service_ends_at);
+
+        return $period;
     }
 
     private function fallback(WorkspaceSubscription $subscription, SubscriptionPeriod $source): void
@@ -117,6 +139,8 @@ final class SubscriptionLifecycle
 
         $boundary = $at->utc()->format('Y-m-d H:i:s.u');
         $cycle = (string) Str::uuid();
+        DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')
+            ->where('reason_code', 'subscription_expired')->update(['state' => 'resolved', 'revision' => DB::raw('revision + 1')]);
         DB::table('workspace_suspension_cycles')->insert([
             'uuid' => $cycle,
             'workspace_id' => $workspaceId,
