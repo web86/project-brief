@@ -94,6 +94,21 @@ final class CommercialCanary
         ]);
         $retention = filter_var(config('onboarding.subject_retention_days'), FILTER_VALIDATE_INT);
         abort_unless($targets && ! $machineBlockers && $retention !== false && $retention >= 1 && $retention <= 3650, 409, 'commercial_readiness_required');
+        abort_unless($targets['studio']->plan->code === 'studio' && $targets['basic']->plan->code === 'basic', 409, 'commercial_targets_required');
+        $basic = app(PlanCatalog::class)->configuration($targets['basic'])['entitlements'];
+        $required = [
+            'projects.active.max' => 1,
+            'clients.max' => 3,
+            'agents.active.max' => 0,
+            'agents.enabled' => false,
+            'api.agents.enabled' => false,
+            'api.external.enabled' => false,
+            'webhooks.enabled' => false,
+            'sso.enabled' => false,
+        ];
+        foreach ($required as $key => $value) {
+            abort_unless(($basic[$key]['value'] ?? null) === $value, 409, 'commercial_basic_contract_required');
+        }
 
         return array_map(fn ($target) => ['id' => (int) $target->id, 'hash' => $target->content_hash], $targets);
     }

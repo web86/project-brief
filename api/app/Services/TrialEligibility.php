@@ -90,7 +90,7 @@ final class TrialEligibility
         }
     }
 
-    /** Pure proposal, not an activation gate. Production has no caller that writes a trial period. */
+    /** Pure proposal. The lifecycle executor validates eligibility inside the admission transaction. */
     public function proposedTrial(object $claim): array
     {
         abort_unless($claim->state === 'pending' && $claim->reason_code === 'activation_unavailable' && $claim->verified_at !== null && $claim->period_id === null, 409, 'trial_eligibility_unavailable');
