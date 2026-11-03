@@ -46,12 +46,11 @@ class WorkspaceMigrationTest extends TestCase
 
     private function migrateWorkspace(): void
     {
-        foreach (glob(database_path('migrations/2026_10_*.php')) as $migration) {
+        foreach (glob(database_path('migrations/*.php')) as $migration) {
             if (basename($migration) >= '2026_10_08') {
                 (require $migration)->up();
             }
         }
-        (require database_path('migrations/2026_11_03_081230_add_account_onboarding.php'))->up();
     }
 
     private function legacyUser(string $email, string $name, string $created): int
@@ -124,7 +123,8 @@ class WorkspaceMigrationTest extends TestCase
                     if ($table === 'project_clients') {
                         $this->assertNull($data['notification_preferences']);
                         $this->assertNull($data['workspace_client_id']);
-                        unset($data['notification_preferences'], $data['workspace_client_id']);
+                        $this->assertNull($data['entitlement_identity_id']);
+                        unset($data['notification_preferences'], $data['workspace_client_id'], $data['entitlement_identity_id']);
                     }
                     if ($table === 'project_notification_settings') {
                         $this->assertSame('legacy', $data['delivery_mode']);
@@ -143,7 +143,9 @@ class WorkspaceMigrationTest extends TestCase
                     }
                     if ($table === 'tasks') {
                         $this->assertNull($data['deleted_at']);
-                        unset($data['deleted_at']);
+                        $this->assertNull($data['description_html']);
+                        $this->assertNull($data['description_html_hash']);
+                        unset($data['deleted_at'], $data['description_html'], $data['description_html_hash']);
                     }
                     if ($table === 'projects') {
                         unset($data['workspace_id']);
@@ -177,7 +179,8 @@ class WorkspaceMigrationTest extends TestCase
                         $this->assertNull($row['status_before_trash']);
                         $this->assertNull($row['description']);
                         $this->assertNull($row['language']);
-                        unset($row['deleted_at'], $row['status_before_trash'], $row['description'], $row['language']);
+                        $this->assertNull($row['agent_instructions']);
+                        unset($row['deleted_at'], $row['status_before_trash'], $row['description'], $row['language'], $row['agent_instructions']);
                     }
                     unset($row);
                 }
