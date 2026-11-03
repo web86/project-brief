@@ -11,6 +11,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-platform-plans-'))
 const packageRoot = process.env.UX_PACKAGE_ROOT
+const rehearseMariaDb = packageRoot && process.env.UX_REHEARSE_MARIADB === '1'
 const phpBin = process.env.PHP_BIN || 'php'
 const publicRoot = path.join(scratch, 'domains/brief.web86.site')
 const app = path.join(scratch, packageRoot ? 'project-brief-app' : 'app'),
@@ -58,9 +59,92 @@ function php(args) {
 let backend,
   vite,
   browser,
+  databaseContainer,
   counter = 0
 const errors = [],
   results = []
+function docker(args, input) {
+  const result = spawnSync('docker', args, { input, maxBuffer: 16 * 1024 * 1024 })
+  assert.equal(result.status, 0, result.stderr?.toString() || 'Disposable MariaDB command failed')
+  return result.stdout
+}
+async function startMariaDb() {
+  const password = randomBytes(24).toString('hex')
+  const settings = { ...process.env, MARIADB_ROOT_PASSWORD: password }
+  const container = spawnSync(
+    'docker',
+    [
+      'run',
+      '-d',
+      '--label',
+      'dev2done.phase4b2.rehearsal=1',
+      '-e',
+      'MARIADB_ROOT_PASSWORD',
+      '-e',
+      'MARIADB_DATABASE=brief_phase4b2_browser',
+      '-p',
+      '127.0.0.1::3306',
+      'mariadb:11.8.9',
+    ],
+    { env: settings, encoding: 'utf8' },
+  )
+  assert.equal(container.status, 0, container.stderr)
+  databaseContainer = container.stdout.trim()
+  const endpoint = docker(['port', databaseContainer, '3306/tcp']).toString().trim()
+  assert.match(endpoint, /^127\.0\.0\.1:\d+$/)
+  Object.assign(env, {
+    DB_CONNECTION: 'mysql',
+    DB_DATABASE: 'brief_phase4b2_browser',
+    DB_HOST: '127.0.0.1',
+    DB_PORT: endpoint.split(':').at(-1),
+    DB_USERNAME: 'root',
+    DB_PASSWORD: password,
+  })
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const ready = spawnSync('docker', [
+      'exec',
+      databaseContainer,
+      'sh',
+      '-c',
+      'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb-admin ping -h 127.0.0.1 -uroot --silent',
+    ])
+    if (ready.status === 0) return
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+  throw new Error('Disposable MariaDB did not start')
+}
+async function restoreSnapshot() {
+  if (!databaseContainer) {
+    const recovered = path.join(scratch, 'recovered.sqlite')
+    await cp(env.DB_DATABASE, recovered)
+    env.DB_DATABASE = recovered
+    return
+  }
+  const recovered = 'brief_phase4b2_browser_restored'
+  const dump = docker([
+    'exec',
+    databaseContainer,
+    'sh',
+    '-c',
+    'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb-dump -uroot --single-transaction --hex-blob brief_phase4b2_browser',
+  ])
+  const restored = Buffer.concat([
+    Buffer.from(`CREATE DATABASE ${recovered}; USE ${recovered};\n`),
+    dump,
+  ])
+  docker(
+    [
+      'exec',
+      '-i',
+      databaseContainer,
+      'sh',
+      '-c',
+      'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb -uroot',
+    ],
+    restored,
+  )
+  env.DB_DATABASE = recovered
+}
 function startBackend(args) {
   return spawn(phpBin, args, { cwd: app, env, stdio: 'ignore' })
 }
@@ -139,7 +223,8 @@ try {
   ])
     await mkdir(path.join(app, dir), { recursive: true })
   await writeFile(path.join(app, '.env'), '')
-  await writeFile(env.DB_DATABASE, '')
+  if (rehearseMariaDb) await startMariaDb()
+  else await writeFile(env.DB_DATABASE, '')
   php(['artisan', 'migrate', '--force', '--no-interaction'])
   if (packageRoot) {
     const loader = String.raw`<?php
@@ -596,7 +681,9 @@ require __DIR__.'/../vendor/autoload.php';
       await context.close()
       php(['artisan', 'cache:clear', '--no-interaction'])
     }
-  const lifecycle = JSON.parse(php(['tests/platform-plans-fixture.php', 'lifecycle']))
+  const lifecycle = JSON.parse(
+    php(['tests/platform-plans-fixture.php', 'lifecycle', ...(packageRoot ? ['rehearsal'] : [])]),
+  )
   const ownerContext = await browser.newContext()
   const operatorContext = await browser.newContext()
   await login(ownerContext, lifecycle, true)
@@ -637,6 +724,7 @@ require __DIR__.'/../vendor/autoload.php';
   let ownerPanel = await openOwnerPanel(lifecycle.basic)
   await ownerPanel.getByText('Free', { exact: true }).waitFor()
   await ownerPanel.getByLabel('Second synthetic lifecycle project').uncheck()
+  if (lifecycle.probes) await ownerPanel.getByLabel('Synthetic rehearsal agent').uncheck()
   await freezeSelection(ownerPanel)
   await apply(ownerPanel, 'Apply Basic selection', '/apply-basic')
   php(['artisan', 'cache:clear', '--no-interaction'])
@@ -676,9 +764,8 @@ require __DIR__.'/../vendor/autoload.php';
     await exit
     await assert.rejects(fetch(`http://127.0.0.1:${backendPort}/api/health`))
     const snapshot = php(['tests/platform-plans-fixture.php', 'snapshot'])
-    const recovered = path.join(scratch, 'recovered.sqlite')
-    await cp(env.DB_DATABASE, recovered)
-    env.DB_DATABASE = recovered
+    assert.match(snapshot, /^[a-f0-9]{64}$/)
+    await restoreSnapshot()
     assert.equal(php(['tests/platform-plans-fixture.php', 'snapshot']), snapshot)
     backend = startBackend(backendArgs)
     await waitForBackend()
@@ -705,6 +792,41 @@ require __DIR__.'/../vendor/autoload.php';
   await apply(ownerPanel, 'Restore paid participation', '/restore-paid')
   php(['artisan', 'cache:clear', '--no-interaction'])
   await apply(ownerPanel, 'Rearm integrations', '/rearm')
+  if (lifecycle.probes) {
+    const probe = lifecycle.probes
+    const external = await ownerContext.request.post(origin + probe.taskPath, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer ' + probe.externalToken,
+        'Idempotency-Key': probe.taskKey,
+      },
+      data: probe.taskPayload,
+    })
+    assert.equal(external.status(), 409, await external.text())
+    assert.equal(external.headers()['idempotency-replayed'], undefined)
+    const agent = await ownerContext.request.get(origin + probe.agentPath, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer ' + probe.agentToken,
+        'X-ProjectBrief-Agent-ID': probe.agentId,
+      },
+    })
+    assert.equal(agent.status(), 409, await agent.text())
+    assert.doesNotMatch(await agent.text(), /Old rehearsal instruction/)
+    const sso = await ownerContext.request.post(origin + '/client-sso/enter', {
+      headers: { Origin: probe.ssoOrigin },
+      form: { code: probe.ssoCode },
+      maxRedirects: 0,
+    })
+    assert.equal(sso.status(), 303)
+    assert.match(sso.headers().location, /\/access-error\?reason=sso/)
+    const webhook = await call(ownerContext, probe.retryPath, 'POST')
+    assert.equal(webhook.status(), 409, await webhook.text())
+    assert.equal(
+      php(['tests/platform-plans-fixture.php', 'stale-webhook', probe.delivery]),
+      'cancelled',
+    )
+  }
   await capture(ownerPage, 'lifecycle-rearmed.png')
   await ownerContext.close()
   await operatorContext.close()
@@ -718,5 +840,6 @@ require __DIR__.'/../vendor/autoload.php';
   await browser?.close()
   await vite?.close()
   backend?.kill()
+  if (databaseContainer) docker(['rm', '-fv', databaseContainer])
   await rm(scratch, { recursive: true, force: true })
 }

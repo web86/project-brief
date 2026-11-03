@@ -1,4 +1,4 @@
-# Phase 4B.2 — локальный этап интерфейса
+# Phase 4B.2 — lifecycle, capacity и подготовка выпуска
 
 База `1f939fd`, runtime v0.9.16 `ab6af9a`. Ветка `codex/milestone-10-0-phase-4b2`.
 
@@ -11,9 +11,9 @@
 
 ## Состояние выпуска
 
-Изменения схемы отсутствуют. Compatibility остаётся в Observe. Production registration и Trial остаются выключены. Действия оператора для этого локального изменения отсутствуют. Google, Яндекс ID и GitHub по-прежнему необязательны.
+Ветка содержит lifecycle, suspension, execution epochs, frozen Basic selection, manual paid, selective restore, rearm и effective capacity. Controlled canary допускает отдельные подготовленные claims только после подтверждения primary PlanAuthority. Compatibility сохраняет Observe, production registration и Trial по умолчанию выключены.
 
-Материализация Trial/Grace/Basic, suspension и fencing, применение выборок и paid restoration, управление периодами в Platform, commercial activation и пакет Phase 4B.2 остаются открытыми. Preview не выдаёт право на применение или продление. Приёмка end-to-end цикла и MariaDB race gate ещё не пройдены.
+Обе additive migrations и операторские действия перечислены в [Jino checklist](JINO.md). Готовность проверяется по [QA.md](QA.md), где результаты разделены по runtime и артефакту.
 
 ## Продолжение backend
 

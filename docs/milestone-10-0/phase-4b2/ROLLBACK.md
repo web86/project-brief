@@ -17,4 +17,8 @@
 
 ## Изолированная браузерная проверка архива
 
-`tests/platform-plans.browser.mjs` с `UX_PACKAGE_ROOT` останавливает временный HTTP origin после Basic, проверяет недоступность origin, копирует SQLite БД и сравнивает SHA-256 строк suspension cycles и execution epochs до и после копирования. Затем поднимает тот же runtime с восстановленной БД, проверяет доступ к выбранному проекту и запрет превысить Basic capacity, продолжает manual paid, restore и rearm. Cron и внешние workers в этом процессе отсутствуют. Отдельная репетиция с MariaDB и проверкой stale запросов после перезапуска остаётся условием canary. Результаты записываются в QA.md репозитория после выполнения.
+`tests/platform-plans.browser.mjs` с `UX_PACKAGE_ROOT` и `UX_REHEARSE_MARIADB=1` использует одноразовую MariaDB 11.8.9 с портом на loopback. После Basic останавливает HTTP origin, проверяет его недоступность, загружает дамп в отдельную БД и сверяет SHA-256 строк suspension cycles и execution epochs. Затем поднимает тот же runtime с восстановленной БД, проверяет доступ к выбранному проекту и запрет превысить Basic capacity, продолжает manual paid, restore и rearm.
+
+До expiry создаются синтетические receipts для Agent, Webhook, External API и SSO. После восстановления и rearm проверяются отказ по API idempotency key, отказ по shared Agent run без выдачи инструкции, отказ по неистёкшему SSO handoff и отказ ручного Webhook retry. Независимый worker проверяется с перехваченным HTTP transport. Cron в сценарии выключен. Запуск без `UX_REHEARSE_MARIADB=1` использует копию SQLite.
+
+Результаты прогона фиксируются в QA.md репозитория. Временные тестовые данные и access receipts не включаются в отчёт и production ZIP.
