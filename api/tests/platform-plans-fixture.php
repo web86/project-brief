@@ -20,6 +20,17 @@ $app->make(Kernel::class)->bootstrap();
 if (! app()->environment('testing') || ! str_contains((string) config('database.connections.sqlite.database'), 'brief-platform-plans-')) {
     throw new RuntimeException('Disposable plan-management browser fixture only.');
 }
+if (($argv[1] ?? null) === 'snapshot') {
+    DB::statement('PRAGMA wal_checkpoint(TRUNCATE)');
+    $cycles = DB::table('workspace_suspension_cycles')->orderBy('id')->get();
+    $epochs = DB::table('workspace_execution_epochs')->orderBy('id')->get();
+    if ($cycles->count() !== 1 || $epochs->count() !== 4) {
+        throw new RuntimeException('Expected the Basic suspension cycle and four execution epochs.');
+    }
+    echo hash('sha256', json_encode([$cycles, $epochs], JSON_THROW_ON_ERROR));
+
+    return;
+}
 if (($argv[1] ?? null) === 'lifecycle') {
     $policy = PlatformPolicyVersion::where('state', 'published')->latest('id')->firstOrFail();
     DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);

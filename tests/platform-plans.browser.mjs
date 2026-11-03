@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
+import { once } from 'node:events'
 import { mkdtemp, mkdir, writeFile, cp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -60,6 +61,18 @@ let backend,
   counter = 0
 const errors = [],
   results = []
+function startBackend(args) {
+  return spawn(phpBin, args, { cwd: app, env, stdio: 'ignore' })
+}
+async function waitForBackend() {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    try {
+      if ((await fetch(`http://127.0.0.1:${backendPort}/api/health`)).ok) return
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  throw new Error('QA backend did not start')
+}
 async function call(context, url, method = 'GET', data) {
   let headers = { Accept: 'application/json' }
   if (method !== 'GET')
@@ -85,6 +98,7 @@ async function login(context, fixture, owner = false) {
   assert.equal(challenge.status(), 200, await challenge.text())
 }
 try {
+  let backendArgs
   if (packageRoot) {
     await cp(path.join(packageRoot, 'private/project-brief-app'), app, { recursive: true })
     await cp(path.join(packageRoot, 'public'), publicRoot, { recursive: true })
@@ -150,17 +164,9 @@ require __DIR__.'/../vendor/autoload.php';
       routerFile,
       `<?php $public=__DIR__.'/domains/brief.web86.site'; $uri=urldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)??'/'); if($uri!=='/' && is_file($public.$uri)) { return false; } require $public.'/index.php';`,
     )
-    backend = spawn(phpBin, ['-S', `127.0.0.1:${backendPort}`, '-t', publicRoot, routerFile], {
-      cwd: app,
-      env,
-      stdio: 'ignore',
-    })
+    backendArgs = ['-S', `127.0.0.1:${backendPort}`, '-t', publicRoot, routerFile]
   } else {
-    backend = spawn(
-      phpBin,
-      ['artisan', 'serve', '--host=127.0.0.1', `--port=${backendPort}`, '--no-reload'],
-      { cwd: app, env, stdio: 'ignore' },
-    )
+    backendArgs = ['artisan', 'serve', '--host=127.0.0.1', `--port=${backendPort}`, '--no-reload']
     vite = await createServer({
       root,
       mode: 'test',
@@ -180,12 +186,8 @@ require __DIR__.'/../vendor/autoload.php';
     })
     await vite.listen()
   }
-  for (let i = 0; i < 100; i++) {
-    try {
-      if ((await fetch(`http://127.0.0.1:${backendPort}/api/health`)).ok) break
-    } catch {}
-    await new Promise((r) => setTimeout(r, 100))
-  }
+  backend = startBackend(backendArgs)
+  await waitForBackend()
   browser = await chromium.launch({ headless: true })
 
   const guest = await browser.newContext()
@@ -667,6 +669,27 @@ require __DIR__.'/../vendor/autoload.php';
   )
 
   await capture(ownerPage, 'lifecycle-basic.png')
+  if (packageRoot) {
+    // No scheduler or external workers are started in this isolated browser run.
+    const exit = once(backend, 'exit')
+    backend.kill()
+    await exit
+    await assert.rejects(fetch(`http://127.0.0.1:${backendPort}/api/health`))
+    const snapshot = php(['tests/platform-plans-fixture.php', 'snapshot'])
+    const recovered = path.join(scratch, 'recovered.sqlite')
+    await cp(env.DB_DATABASE, recovered)
+    env.DB_DATABASE = recovered
+    assert.equal(php(['tests/platform-plans-fixture.php', 'snapshot']), snapshot)
+    backend = startBackend(backendArgs)
+    await waitForBackend()
+    const response = await call(ownerContext, '/api/admin/projects/' + first.id)
+    assert.equal(response.status(), 200, await response.text())
+    assert.equal(
+      (await call(ownerContext, '/api/admin/projects', 'POST', { title: 'Still over capacity' }))
+        .status(),
+      403,
+    )
+  }
   await operatorPage.goto(
     origin + '/platform/plans/inventory/' + lifecycle.workspace + '?versionId=' + lifecycle.paid,
   )
