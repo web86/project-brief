@@ -14,3 +14,7 @@
 Изменения схемы отсутствуют. Compatibility остаётся в Observe. Production registration и Trial остаются выключены. Действия оператора для этого локального изменения отсутствуют. Google, Яндекс ID и GitHub по-прежнему необязательны.
 
 Материализация Trial/Grace/Basic, suspension и fencing, применение выборок и paid restoration, управление периодами в Platform, commercial activation и пакет Phase 4B.2 остаются открытыми. Preview не выдаёт право на применение или продление. Приёмка end-to-end цикла и MariaDB race gate ещё не пройдены.
+
+## Продолжение backend
+
+Актуальное состояние реализации описано в [backend checkpoint](BACKEND.md). Отдельные [Jino checklist](JINO.md), [карантин и forward fix](ROLLBACK.md) и [canary gates](CANARY.md) применяются после проверки релизного артефакта. Исходники v0.9.16 подтверждают, что возврат старого кода с рабочей базой после suspension не сохраняет действующие барьеры.
