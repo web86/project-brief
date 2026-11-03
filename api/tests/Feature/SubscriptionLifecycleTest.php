@@ -17,10 +17,15 @@ use App\Services\Plans\PlanCatalog;
 use App\Services\Plans\PlatformPolicyCatalog;
 use App\Services\Plans\SubscriptionClock;
 use App\Services\Plans\SubscriptionLifecycle;
+use App\Services\ProjectAccess;
+use App\Services\WebhookEvents;
+use App\Services\WebhookProcessor;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PlansFoundationSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -63,12 +68,26 @@ class SubscriptionLifecycleTest extends TestCase
             $subscription = WorkspaceSubscription::findOrFail($period->subscription_id);
         } else {
             $workspace = Workspace::factory()->create();
+            $owner = User::factory()->owner($workspace)->create();
             $subscription = WorkspaceSubscription::create(['workspace_id' => $workspace->id, 'materialized_phase' => $kind, 'enforcement_mode' => 'enforce', 'revision' => 1, 'next_boundary_at' => $facts['service_ends_at']]);
             $period = SubscriptionPeriod::create($facts + ['workspace_id' => $workspace->id, 'subscription_id' => $subscription->id, 'entitlement_version_id' => $policy->trial_version_id, 'policy_version_id' => $policy->id, 'fallback_version_id' => $policy->fallback_version_id, 'approval_kind' => 'manual']);
             $subscription->update(['current_period_id' => $period->id]);
         }
-        Project::factory()->count(100)->create(['workspace_id' => $workspace->id, 'status' => 'active']);
+        $projects = Project::factory()->count(100)->create(['workspace_id' => $workspace->id, 'status' => 'active']);
+        $developer = User::factory()->memberOf($workspace)->create()->workspaceMembers()->firstOrFail();
+        $projects->first()->members()->create(['workspace_id' => $workspace->id, 'workspace_member_id' => $developer->id]);
+        $this->assertSame(1, ProjectAccess::forMember($developer)->count());
         $boundary = $facts['grace_ends_at'] ?? $facts['service_ends_at'];
+        $endpoint = DB::table('webhook_endpoints')->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'workspace_id' => $workspace->id,
+            'name' => 'Independent retry',
+            'url' => 'https://example.test/events',
+            'events' => '[]',
+            'secret' => 'unused-synthetic-fixture',
+        ]);
+        $this->assertNotNull(app(WebhookEvents::class)->enqueue($workspace->id, 'webhook.test', [], $endpoint));
+        DB::table('webhook_deliveries')->update(['attempts' => 1]);
 
         $token = app(IntegrationTokens::class)->create($workspace->id, ['name' => 'Boundary test', 'scopes' => ['projects:read']]);
         $this->travelTo($facts['service_ends_at']->subMicrosecond());
@@ -92,6 +111,14 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertDatabaseCount('plan_notification_outbox', $transitionCount + ($kind === 'trial' ? 1 : 0));
         $this->assertSame(0, app(EffectiveParticipation::class)->projects($workspace->id)->count());
         $this->assertSame(100, Project::where('workspace_id', $workspace->id)->where('status', 'active')->count());
+        $this->assertSame(0, ProjectAccess::forMember($developer)->count());
+        $this->assertSame('active', $developer->fresh()->status);
+        $this->assertSame(100, ProjectAccess::forMember($owner->workspaceMembers()->firstOrFail())->count());
+
+        Http::fake();
+        $this->assertSame(1, app(WebhookProcessor::class)->process());
+        $this->assertDatabaseHas('webhook_deliveries', ['webhook_endpoint_id' => $endpoint, 'attempts' => 1, 'status' => 'cancelled', 'error_code' => 'subscription_execution_blocked']);
+        Http::assertNothingSent();
 
         $barrier = app(ExecutionBarrier::class);
         $subscription->update(['enforcement_mode' => 'observe']);

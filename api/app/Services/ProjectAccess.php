@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\WorkspaceMember;
+use App\Services\Plans\EffectiveParticipation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProjectAccess
 {
@@ -17,7 +19,11 @@ class ProjectAccess
             return $query->whereRaw('1 = 0');
         }
         if ($member->role !== 'owner') {
-            $query->whereHas('members', fn ($query) => $query->where('workspace_member_id', $member->id));
+            $activity = app(EffectiveParticipation::class);
+            $membership = DB::table('workspace_members')->where('id', $member->id)->where('workspace_id', $member->workspace_id);
+            $query->whereExists($activity->excludeHeld($membership, $member->workspace_id, 'workspace_member', 'workspace_members.id'))
+                ->whereHas('members', fn ($query) => $query->where('workspace_member_id', $member->id));
+            $activity->excludeHeld($query->getQuery(), $member->workspace_id, 'project', 'projects.id');
         }
 
         return $query;

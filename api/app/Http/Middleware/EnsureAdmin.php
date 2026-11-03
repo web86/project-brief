@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Project;
 use App\Services\CurrentWorkspace;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\ProjectAccess;
 use App\Services\WorkspaceAgreements;
 use Closure;
@@ -27,6 +28,7 @@ class EnsureAdmin
             }
             if (! $request->is('api/admin/workspaces', 'api/admin/workspaces/*/select', 'api/admin/me/locale', 'api/admin/account', 'api/admin/account/*', 'api/admin/avatars/*', 'api/admin/notifications', 'api/admin/notifications/*', 'api/admin/push/*', 'api/admin/telegram', 'api/admin/telegram/*')) {
                 $agreementMember = $context->resolve($request);
+                app(ExecutionBarrier::class)->catchUp($agreementMember->workspace_id);
                 if ($project = $request->route('project')) {
                     $request->route()->setParameter('project', ProjectAccess::project($request, $project instanceof Project ? $project->uuid : $project));
                 }

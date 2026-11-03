@@ -4,9 +4,12 @@ namespace App\Http\Middleware;
 
 use App\Models\Project;
 use App\Models\ProjectAccessToken;
+use App\Services\Plans\EffectiveParticipation;
+use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\ShadowGuard;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureClientProjectAccess
@@ -20,6 +23,17 @@ class EnsureClientProjectAccess
 
             return null;
         }
+        $workspaceId = $access->project->workspace_id;
+        if (DB::transactionLevel() === 0) {
+            app(ExecutionBarrier::class)->catchUp($workspaceId);
+        }
+        $activity = app(EffectiveParticipation::class);
+        $participation = DB::table('project_clients')->where('id', $access->project_client_id)->where('project_id', $access->project_id)->where('active', true);
+        if (! $activity->projects($workspaceId)->where('projects.id', $access->project_id)->exists()
+            || ! $activity->excludeHeld($participation, $workspaceId, 'project_client', 'project_clients.id')->exists()) {
+            return null;
+        }
+
         $request->attributes->set('client_project', $access->project);
         // Upgrade an existing signed session only after validating its migrated token/project.
         $request->session()->put('project_client_id', $access->project_client_id);

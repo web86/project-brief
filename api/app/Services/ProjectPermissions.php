@@ -42,7 +42,9 @@ class ProjectPermissions
                 'owner' => $member->role === 'owner',
                 'superadmin' => (bool) $member->is_project_superadmin,
                 'projects' => $member->role === 'owner' ? [] : ProjectMember::where('workspace_id', $member->workspace_id)
-                    ->where('workspace_member_id', $member->id)->when($lock, fn ($query) => $query->lockForUpdate())->get()->keyBy('project_id'),
+                    ->where('workspace_member_id', $member->id)
+                    ->whereIn('project_id', ProjectAccess::forMember($member)->withTrashed()->select('projects.id'))
+                    ->when($lock, fn ($query) => $query->lockForUpdate())->get()->keyBy('project_id'),
             ];
             $request->attributes->set(self::class, $context);
         }
