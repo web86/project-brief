@@ -176,6 +176,32 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertDatabaseHas('webhook_deliveries', ['webhook_endpoint_id' => $endpoint, 'attempts' => 1, 'status' => 'cancelled', 'error_code' => 'subscription_execution_blocked']);
         Http::assertNothingSent();
 
+        if ($kind === 'paid') {
+            $created = $this->actingAs($owner)->postJson('/api/admin/projects', ['title' => 'First effective project'])->assertCreated()->json('data.id');
+            $this->postJson('/api/admin/projects', ['title' => 'Over capacity'])->assertForbidden();
+            $route = '/api/admin/projects/'.$created.'/clients';
+            foreach (range(1, 3) as $index) {
+                $this->postJson($route, ['name' => 'Client '.$index, 'email' => 'basic-'.$index.'@example.test'])->assertCreated();
+            }
+            $this->postJson($route, ['name' => 'Client duplicate', 'email' => 'basic-1@example.test'])->assertOk();
+            $this->postJson($route, ['name' => 'Fourth client', 'email' => 'basic-4@example.test'])->assertForbidden();
+            $this->assertSame(1, app(EffectiveParticipation::class)->projects($workspace->id)->count());
+            $this->assertSame(3, Project::where('uuid', $created)->firstOrFail()->clients()->count());
+            $this->postJson('/api/admin/administrators/invitations', [
+                'email' => 'blocked-developer@example.test', 'sendEmail' => false, 'generateLink' => false,
+            ])->assertForbidden();
+            $this->assertDatabaseMissing('developer_invitations', ['email' => 'blocked-developer@example.test']);
+            $replacement = $projects->first();
+            DB::transaction(fn () => app(ClientCountingIdentities::class)->reconcile($workspace->id, 0, (int) DB::table('project_clients')->max('id')));
+            $preview = app(FrozenTransitions::class)->create($owner, $workspace->id, false, $subscription->currentPeriod->version->uuid, [
+                'projects' => [$replacement->uuid],
+                'developers' => [(string) $owner->workspaceMembers()->firstOrFail()->id],
+                'clients' => [], 'agents' => [], 'invitations' => [],
+            ], $subscription->revision, 'switch-created-preview');
+            app(FrozenTransitions::class)->applySelection($owner, $workspace->id, $preview['id'], $subscription->revision, 'switch-created');
+            $this->assertSame([$replacement->id], app(EffectiveParticipation::class)->projects($workspace->id)->pluck('id')->all());
+        }
+
         $barrier = app(ExecutionBarrier::class);
         $subscription->update(['enforcement_mode' => 'observe']);
         $this->assertFalse($barrier->allows($workspace->id, 'agent'));

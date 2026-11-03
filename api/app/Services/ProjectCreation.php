@@ -14,15 +14,16 @@ class ProjectCreation
     {
         return DB::transaction(function () use ($workspaceId, $data, $input, $member, $emitEvent): Project {
             IntegrationWrites::lockWorkspace($workspaceId);
-            app(EffectiveParticipation::class)->requireGrowthAvailable($workspaceId);
             app(ShadowGuard::class)->observe($workspaceId, 'project.create', ['projects.active.max' => ($data['status'] ?? 'active') === 'active' ? 1 : 0, 'clients.max' => empty($input['clientEmail']) ? 0 : null]);
             $project = Project::create([...$data, 'workspace_id' => $workspaceId]);
             if ($member && $member->role !== 'owner') {
                 $project->members()->create(['workspace_id' => $workspaceId, 'workspace_member_id' => $member->id]);
             }
+            $client = null;
             if (! empty($input['clientName']) || ! empty($input['clientEmail'])) {
-                $project->clients()->create(['name' => ($input['clientName'] ?? null) ?: trans('interface.client'), 'email' => $input['clientEmail'] ?? null]);
+                $client = $project->clients()->create(['name' => ($input['clientName'] ?? null) ?: trans('interface.client'), 'email' => $input['clientEmail'] ?? null]);
             }
+            app(EffectiveParticipation::class)->checkAllocation($workspaceId, $client ? ['projects.active.max', 'clients.max'] : ['projects.active.max'], $client?->id);
             $project->refresh();
             if ($emitEvent) {
                 app(WebhookEvents::class)->project($project, 'project.created', array_intersect_key($project->getAttributes(), array_flip(['title', 'website_url', 'currency', 'status'])));

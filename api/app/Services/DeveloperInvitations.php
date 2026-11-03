@@ -55,14 +55,36 @@ class DeveloperInvitations
         return DB::transaction(function () use ($invitation): string {
             IntegrationWrites::lockWorkspace($invitation->workspace_id);
             $invitation->refresh();
-            app(EffectiveParticipation::class)->requireGrowthAvailable($invitation->workspace_id);
             app(ShadowGuard::class)->observe($invitation->workspace_id, 'developer.invite', []);
             $token = bin2hex(random_bytes(32));
             $invitation->forceFill(['token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7), 'revoked_at' => null, 'sent_at' => null])->save();
-            app(InvitationOccupancy::class)->observe($invitation->id);
+            $this->reserve($invitation);
 
             return rtrim(config('app.url'), '/').'/invitation#token='.$token;
         }, 3);
+    }
+
+    /** Caller owns the workspace mutex and the invitation write transaction. */
+    public function reserve(DeveloperInvitation $invitation): void
+    {
+        $activity = app(EffectiveParticipation::class);
+        $cycle = DB::table('workspace_suspension_cycles')->where('workspace_id', $invitation->workspace_id)
+            ->where('state', 'open')->orderByDesc('id')->sharedLock()->first();
+        if ($cycle) {
+            foreach ($invitation->project_ids ?? [] as $projectId) {
+                $activity->requireProjectWritable($invitation->workspace_id, $projectId);
+            }
+        }
+        app(InvitationOccupancy::class)->observe($invitation->id);
+        if ($cycle) {
+            $updated = DB::table('entitlement_capacity_reservations')->where('workspace_id', $invitation->workspace_id)
+                ->where('developer_invitation_id', $invitation->id)->where('key', 'developers.max')->where('state', 'held')
+                ->update(['restored_cycle_id' => $cycle->id]);
+            abort_unless($updated === 1 || DB::table('entitlement_capacity_reservations')
+                ->where('developer_invitation_id', $invitation->id)->where('key', 'developers.max')->where('state', 'held')
+                ->where('restored_cycle_id', $cycle->id)->exists(), 409, 'subscription_capacity_unavailable');
+        }
+        $activity->checkAllocation($invitation->workspace_id, ['developers.max']);
     }
 
     public function deliver(DeveloperInvitation $invitation): bool
@@ -163,6 +185,7 @@ class DeveloperInvitations
             DB::table('account_onboardings')->where('user_id', $user->id)->whereNull('workspace_id')->update(['state' => 'invited_developer', 'verification_hash' => null, 'consumed_hash' => null, 'expires_at' => null, 'updated_at' => now('UTC')]);
             $invitation->forceFill(['accepted_at' => now()])->save();
             app(InvitationOccupancy::class)->observe($invitation->id);
+            app(EffectiveParticipation::class)->checkAllocation($invitation->workspace_id, ['developers.max']);
 
             return $user;
         }, 5);

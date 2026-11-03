@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use App\Models\DeveloperInvitation;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ShadowGuard;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,9 @@ class ProjectLifecycle
         app(ShadowGuard::class)->observe($project->workspace_id, 'project.restore', ['projects.active.max' => $project->status_before_trash === 'active' ? 1 : 0, 'clients.max' => null]);
         $project->forceFill(['status' => $project->status_before_trash ?? 'inactive', 'status_before_trash' => null]);
         $project->restore();
+        if ($project->status === 'active') {
+            app(EffectiveParticipation::class)->checkAllocation($project->workspace_id, ['projects.active.max', 'clients.max']);
+        }
     }
 
     public function purge(Project $project): void

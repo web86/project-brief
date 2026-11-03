@@ -261,7 +261,16 @@ final class FrozenTransitions
                 DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->where('state', 'ready')
                     ->update(['state' => 'blocked', 'epoch' => DB::raw('epoch + 1'), 'revision' => DB::raw('revision + 1'), 'blocked_at' => $now, 'resume_at' => null]);
             }
-            DB::table('workspace_suspension_cycles')->where('id', $cycle->id)->increment('revision');
+            $watermarks = json_decode($cycle->resource_high_watermarks_json, true, 16, JSON_THROW_ON_ERROR);
+            $watermarks['project'] = max($watermarks['project'] ?? 0, (int) DB::table('projects')->where('workspace_id', $workspaceId)->orderByDesc('id')->lockForUpdate()->value('id'));
+            foreach (['workspace_member' => 'workspace_members', 'external_agent' => 'external_agents'] as $kind => $table) {
+                $watermarks[$kind] = max($watermarks[$kind] ?? 0, (int) DB::table($table)->where('workspace_id', $workspaceId)->orderByDesc('id')->lockForUpdate()->value('id'));
+            }
+            $watermarks['project_client'] = max($watermarks['project_client'] ?? 0, (int) DB::table('project_clients')
+                ->whereIn('project_id', DB::table('projects')->where('workspace_id', $workspaceId)->select('id'))->max('id'));
+            DB::table('workspace_suspension_cycles')->where('id', $cycle->id)->increment('revision', 1, [
+                'resource_high_watermarks_json' => json_encode($watermarks, JSON_THROW_ON_ERROR),
+            ]);
             $subscription->increment('revision');
             $result = ['previewId' => $previewId, 'selectionHash' => $preview['selectionHash'], 'cycleId' => $cycle->uuid, 'subscriptionRevision' => (string) $subscription->revision];
             $this->audit($actor, $workspaceId, false, $restorePaid ? 'transition.paid_restored' : 'transition.basic_selected', $result, $operationHash, $requestHash);

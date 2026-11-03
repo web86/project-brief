@@ -79,11 +79,16 @@ class AgentController extends Controller
             abort_unless($projects->count() === count($data['projectIds']), 422);
             $previousProjects = DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->pluck('project_id')->all();
             if (($data['active'] && (! $agent->exists || ! $agent->active)) || array_diff($projects->modelKeys(), $previousProjects)) {
-                app(EffectiveParticipation::class)->requireGrowthAvailable($workspace);
+                foreach ($projects->whereNotIn('id', $previousProjects) as $project) {
+                    app(EffectiveParticipation::class)->requireProjectWritable($workspace, $project->id);
+                }
                 app(ExecutionBarrier::class)->require($workspace, 'agent');
             }
             app(ShadowGuard::class)->observe($workspace, 'agent.change', ['agents.active.max' => $data['active'] && (! $agent->exists || ! $agent->active) ? 1 : 0]);
             $agent->fill(['instructions' => array_key_exists('instructions', $data) ? $data['instructions'] : $agent->instructions, 'name' => trim($data['name']), 'description' => $data['description'] ?? null, 'kind' => $uuid ? $agent->kind : 'agent', 'active' => $data['active'], 'permissions' => array_key_exists('permissions', $data) ? AgentPermissions::normalize(array_replace(AgentPermissions::normalize($agent->permissions), $data['permissions'])) : $agent->permissions])->save();
+            if ($agent->active) {
+                app(EffectiveParticipation::class)->checkAllocation($workspace, ['agents.active.max']);
+            }
             foreach (Project::withTrashed()->whereIn('id', DB::table('agent_project_grants')->where('external_agent_id', $agent->id)->whereNotIn('project_id', $projects->modelKeys())->select('project_id'))->get() as $project) {
                 AgentAssignments::removeProject($request, $agent, $project);
             }

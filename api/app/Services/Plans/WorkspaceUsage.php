@@ -17,16 +17,17 @@ final class WorkspaceUsage
     }
 
     /** Authoritative current facts, separate from limits and authorization. No writes, reservations or permits. */
-    public function snapshot(int $workspaceId, bool $current = false, ?array $keys = null): array
+    public function snapshot(int $workspaceId, bool $current = false, ?array $keys = null, bool $effective = false): array
     {
         abort_unless(DB::table('workspaces')->where('id', $workspaceId)->exists(), 404);
         $at = CarbonImmutable::now('UTC');
         $base = ['state' => 'ready', 'count' => null, 'as_of' => $at->format('Y-m-d\TH:i:s.u\Z'), 'reason' => null, 'reason_codes' => [], 'provenance' => 'authoritative_rows_v1'];
-        $cycleReasons = $this->activity->reasons($workspaceId, $current);
+        $cycleReasons = $effective ? [] : $this->activity->reasons($workspaceId, $current);
         $result = [];
         $currentProjects = null;
         if ($current && ($keys === null || array_intersect($keys, ['projects.active.max', 'clients.max']))) {
-            $currentProjects = DB::table('projects')->where('workspace_id', $workspaceId)->orderBy('id')->limit(20001)->lockForUpdate()->get(['id', 'status', 'deleted_at']);
+            $projects = $effective ? $this->activity->projects($workspaceId) : DB::table('projects')->where('workspace_id', $workspaceId);
+            $currentProjects = $projects->orderBy('id')->limit(20001)->lockForUpdate()->get(['id', 'status', 'deleted_at']);
         }
         $activeIds = $currentProjects?->filter(fn ($p) => $p->status === 'active' && $p->deleted_at === null)->pluck('id')->all();
         if ($keys === null || in_array('projects.active.max', $keys, true)) {
@@ -35,6 +36,9 @@ final class WorkspaceUsage
         if ($keys === null || in_array('agents.active.max', $keys, true)) {
             $agents = DB::table('external_agents')->where('workspace_id', $workspaceId);
             if ($current) {
+                if ($effective) {
+                    $this->activity->excludeHeld($agents, $workspaceId, 'external_agent', 'external_agents.id');
+                }
                 $currentAgents = $agents->orderBy('id')->limit(20001)->lockForUpdate()->get(['id', 'active', 'deleted_at']);
                 $count = $currentAgents->count() > 20000 ? 20001 : $currentAgents->filter(fn ($a) => $a->active && ! $a->deleted_at)->count();
             } else {
@@ -43,11 +47,11 @@ final class WorkspaceUsage
             $result['agents.active.max'] = array_replace($base, ['count' => $count]);
         }
         if ($keys === null || in_array('developers.max', $keys, true)) {
-            $result['developers.max'] = array_replace($base, $this->invitations->measure($workspaceId, $at, $current));
+            $result['developers.max'] = array_replace($base, $this->invitations->measure($workspaceId, $at, $current, $effective));
         }
         if ($keys === null || in_array('clients.max', $keys, true)) {
             $rows = DB::table('project_clients as c')->whereIn('c.project_id', $current ? $activeIds : $this->activity->projects($workspaceId)->select('projects.id'))->where('c.active', true);
-            if (! $current) {
+            if (! $current || $effective) {
                 $rows = $this->activity->excludeHeld($rows, $workspaceId, 'project_client', 'c.id');
             }
             $identities = [];

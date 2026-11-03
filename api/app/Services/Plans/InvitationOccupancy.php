@@ -98,9 +98,15 @@ final class InvitationOccupancy
     }
 
     /** Current invitation facts, not stale reservation hashes, define the union after email edits. */
-    public function measure(int $workspaceId, CarbonImmutable $at, bool $current = false): array
+    public function measure(int $workspaceId, CarbonImmutable $at, bool $current = false, bool $effective = false): array
     {
         $members = DB::table('workspace_members')->when($current, fn ($q) => $q->lockForUpdate())->where('workspace_id', $workspaceId)->where('status', 'active')->whereIn('role', ['owner', 'admin']);
+        $cycle = $effective ? DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)
+            ->where('state', 'open')->orderByDesc('id')->sharedLock()->first() : null;
+        if ($effective) {
+            $members->where(fn ($query) => $query->where('role', 'owner')->orWhere(fn ($admins) => app(EffectiveParticipation::class)
+                ->excludeHeld($admins->where('role', 'admin'), $workspaceId, 'workspace_member', 'workspace_members.id')));
+        }
         $humans = [];
         foreach ((clone $members)->orderBy('id')->limit(20001)->get(['user_id']) as $member) {
             $humans[$this->identity('', $member->user_id)] = true;
@@ -111,42 +117,46 @@ final class InvitationOccupancy
         $occupied = $humans;
         $count = 0;
         $refresh = false;
-        DB::table('developer_invitations')->where('workspace_id', $workspaceId)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', $at->format('Y-m-d H:i:s.u'))->when($current, fn ($q) => $q->lockForUpdate())->orderBy('id')->chunkById(200, function ($rows) use ($current, $workspaceId, &$occupied, &$count, &$refresh): bool {
-            $validity = $this->managerValidity($rows, $workspaceId, $current);
-            $emails = $rows->map(fn ($i) => DeveloperInvitations::normalizeEmail($i->email))->unique()->all();
-            $users = DB::table('users')->whereIn(DB::raw('LOWER(TRIM(email))'), $emails)->when($current, fn ($q) => $q->sharedLock())->orderBy('id')->get(['id', 'email'])->groupBy(fn ($u) => DeveloperInvitations::normalizeEmail($u->email));
-            $holds = DB::table('entitlement_capacity_reservations')->where('key', 'developers.max')->whereIn('developer_invitation_id', $rows->pluck('id'))->when($current, fn ($q) => $q->lockForUpdate())->get()->keyBy('developer_invitation_id');
-            foreach ($rows as $i) {
-                if ($validity[$i->id] === false) {
-                    continue;
-                }
-                if ($validity[$i->id] === null) {
-                    $count = 20001;
+        DB::table('developer_invitations')->when($cycle, fn ($query) => $query->whereExists(fn ($hold) => $hold
+            ->selectRaw('1')->from('entitlement_capacity_reservations')->where('workspace_id', $workspaceId)
+            ->whereColumn('developer_invitation_id', 'developer_invitations.id')->where('key', 'developers.max')
+            ->where('state', 'held')->where('restored_cycle_id', $cycle->id)))
+            ->where('workspace_id', $workspaceId)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', $at->format('Y-m-d H:i:s.u'))->when($current, fn ($q) => $q->lockForUpdate())->orderBy('id')->chunkById(200, function ($rows) use ($current, $workspaceId, &$occupied, &$count, &$refresh): bool {
+                $validity = $this->managerValidity($rows, $workspaceId, $current);
+                $emails = $rows->map(fn ($i) => DeveloperInvitations::normalizeEmail($i->email))->unique()->all();
+                $users = DB::table('users')->whereIn(DB::raw('LOWER(TRIM(email))'), $emails)->when($current, fn ($q) => $q->sharedLock())->orderBy('id')->get(['id', 'email'])->groupBy(fn ($u) => DeveloperInvitations::normalizeEmail($u->email));
+                $holds = DB::table('entitlement_capacity_reservations')->where('key', 'developers.max')->whereIn('developer_invitation_id', $rows->pluck('id'))->when($current, fn ($q) => $q->lockForUpdate())->get()->keyBy('developer_invitation_id');
+                foreach ($rows as $i) {
+                    if ($validity[$i->id] === false) {
+                        continue;
+                    }
+                    if ($validity[$i->id] === null) {
+                        $count = 20001;
 
-                    return false;
-                }
-                if (++$count > 20000) {
-                    return false;
-                }
-                $known = $users->get(DeveloperInvitations::normalizeEmail($i->email));
-                if ($known && $known->count() > 1) {
-                    $count = 20001;
+                        return false;
+                    }
+                    if (++$count > 20000) {
+                        return false;
+                    }
+                    $known = $users->get(DeveloperInvitations::normalizeEmail($i->email));
+                    if ($known && $known->count() > 1) {
+                        $count = 20001;
 
-                    return false;
-                }
-                $identity = $this->identity($i->email, $known?->first()?->id);
-                $hold = $holds->get($i->id);
-                if ($hold?->state === 'suspended') {
-                    $count = 20001;
+                        return false;
+                    }
+                    $identity = $this->identity($i->email, $known?->first()?->id);
+                    $hold = $holds->get($i->id);
+                    if ($hold?->state === 'suspended') {
+                        $count = 20001;
 
-                    return false;
+                        return false;
+                    }
+                    $refresh = $refresh || ! $hold || $hold->state !== 'held' || $hold->identity_hash !== $identity || $hold->expires_at !== $i->expires_at;
+                    $occupied[$identity] = true;
                 }
-                $refresh = $refresh || ! $hold || $hold->state !== 'held' || $hold->identity_hash !== $identity || $hold->expires_at !== $i->expires_at;
-                $occupied[$identity] = true;
-            }
 
-            return true;
-        });
+                return true;
+            });
         $owners = (clone $members)->where('role', 'owner')->get(['user_id'])->unique('user_id')->count();
         $reasons = $owners === 1 ? [] : ['ownership_review_required'];
         if ($count > 20000) {

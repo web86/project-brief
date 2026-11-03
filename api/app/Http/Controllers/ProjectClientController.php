@@ -48,9 +48,10 @@ class ProjectClientController extends Controller
             if ($existing) {
                 return [$existing, null, true];
             }
-            app(EffectiveParticipation::class)->requireGrowthAvailable($project->workspace_id);
+            app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
             app(ShadowGuard::class)->observe($project->workspace_id, 'client.change', ['clients.max' => null]);
             $client = $project->clients()->create([...$data, 'name' => trim($data['name']), 'preferred_locale' => SupportedLocales::storage(app()->getLocale())])->refresh();
+            app(EffectiveParticipation::class)->checkAllocation($project->workspace_id, ['clients.max'], $client->id);
             $link = $send ? app(ClientInvitations::class)->issue($project, $client, now()->addDays(7)) : null;
 
             return [$client, $link, false];
@@ -94,11 +95,15 @@ class ProjectClientController extends Controller
             ProjectPermissions::authorize($request, $project, 'manage_clients', true);
             app(AccountSecurity::class)->requireFresh($request);
             $client->refresh();
-            if (($data['active'] ?? $client->active) && (! $client->active || (array_key_exists('email', $data) && $data['email'] !== $client->email))) {
-                app(EffectiveParticipation::class)->requireGrowthAvailable($project->workspace_id);
+            $allocating = ($data['active'] ?? $client->active) && (! $client->active || (array_key_exists('email', $data) && $data['email'] !== $client->email));
+            if ($allocating) {
+                app(EffectiveParticipation::class)->requireProjectWritable($project->workspace_id, $project->id);
             }
             app(ShadowGuard::class)->observe($project->workspace_id, 'client.change', ['clients.max' => null]);
             $client->update($data);
+            if ($allocating) {
+                app(EffectiveParticipation::class)->checkAllocation($project->workspace_id, ['clients.max'], $client->id);
+            }
             if (! $client->active) {
                 // Re-enabling cannot resurrect a link or an already revoked session.
                 $client->accessTokens()->whereNull('revoked_at')->update(['revoked_at' => now()]);

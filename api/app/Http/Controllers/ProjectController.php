@@ -75,13 +75,14 @@ class ProjectController extends Controller
         DB::transaction(function () use ($request, $project): void {
             app(CurrentWorkspace::class)->resolve($request, true);
             $project = ProjectAccess::query($request)->whereKey($project->id)->lockForUpdate()->firstOrFail();
-            if ($project->status !== 'active' && $request->input('status') === 'active') {
-                app(EffectiveParticipation::class)->requireGrowthAvailable($project->workspace_id);
-            }
+            $activating = $project->status !== 'active' && $request->input('status') === 'active';
             app(ShadowGuard::class)->observe($project->workspace_id, 'project.activate', ['projects.active.max' => $project->status !== 'active' && $request->input('status') === 'active' ? 1 : 0, 'clients.max' => null]);
             $project->fill($request->projectData());
             $changes = $project->getDirty();
             $project->save();
+            if ($activating) {
+                app(EffectiveParticipation::class)->checkAllocation($project->workspace_id, ['projects.active.max', 'clients.max']);
+            }
             app(WebhookEvents::class)->project($project, 'project.updated', $changes);
         });
 

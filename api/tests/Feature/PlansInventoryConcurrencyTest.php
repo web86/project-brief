@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\ProjectClient;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\LegacyInventory;
 use App\Services\Plans\PlanCatalog;
 use App\Services\Plans\PlatformPolicyCatalog;
@@ -119,6 +120,10 @@ class PlansInventoryConcurrencyTest extends TestCase
         $this->assertSame(2, SubscriptionPeriod::where('workspace_id', $workspace->id)->count());
         $this->assertSame(1, DB::table('workspace_suspension_cycles')->where('workspace_id', $workspace->id)->count());
         $this->assertSame(4, DB::table('workspace_execution_epochs')->where('workspace_id', $workspace->id)->where('state', 'blocked')->count());
+        $results = $this->race($workspace->id, 0, ['allocate-project', 'allocate-project'], ['one', 'two']);
+        sort($results);
+        $this->assertSame(['applied', 'denied'], $results);
+        $this->assertSame(1, app(EffectiveParticipation::class)->projects($workspace->id)->count());
     }
 
     private function race(int $workspaceId, int $versionId, array $actions, array $keys): array
@@ -139,6 +144,16 @@ if ($argv[4] === 'inventory') {
     $inventory->process($workspaceId);
 } elseif ($argv[4] === 'expiry') {
     $app->make(App\Services\Plans\SubscriptionLifecycle::class)->catchUp($workspaceId);
+} elseif ($argv[4] === 'allocate-project') {
+    try {
+        $app->make(App\Services\ProjectCreation::class)->create($workspaceId, ['title' => 'Concurrent capacity fixture'], []);
+    } catch (Symfony\Component\HttpKernel\Exception\HttpException $error) {
+        if ($error->getStatusCode() !== 403 || $error->getMessage() !== 'subscription_capacity_exceeded') {
+            throw $error;
+        }
+        echo 'denied';
+        exit;
+    }
 } elseif ($argv[4] === 'invite') {
     Illuminate\Support\Facades\DB::transaction(function () use ($workspaceId, $app): void {
         App\Services\IntegrationWrites::lockWorkspace($workspaceId);

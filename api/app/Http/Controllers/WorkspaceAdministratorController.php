@@ -81,7 +81,7 @@ class WorkspaceAdministratorController extends Controller
             }
             app(ShadowGuard::class)->observe($owner->workspace_id, 'developer.invite', ['developers.max' => app(InvitationOccupancy::class)->invitationDelta($owner->workspace_id, $email)]);
             $invitation = DeveloperInvitation::create(['workspace_id' => $owner->workspace_id, 'invited_by' => $owner->user_id, 'email' => $email, 'name' => $data['name'] ?? null, 'project_ids' => $ids, 'locale' => $owner->user->preferred_locale ?? 'ru', 'token_hash' => hash('sha256', random_bytes(32)), 'expires_at' => now()->addDays(7), 'is_project_superadmin' => $data['isProjectSuperadmin'] ?? false, 'can_create_projects' => false, 'project_permissions' => $data['projectPermissions'] ?? null]);
-            app(InvitationOccupancy::class)->observe($invitation->id);
+            $invitations->reserve($invitation);
             $sent = ($data['sendEmail'] ?? true) ? $invitations->deliver($invitation) : false;
             $link = ($data['generateLink'] ?? false) ? $invitations->issue($invitation) : null;
             $failed = ($data['sendEmail'] ?? true) && ! $sent;
@@ -204,9 +204,7 @@ class WorkspaceAdministratorController extends Controller
             app(DeveloperInvitations::class)->owner($request);
             $target = WorkspaceMember::where('workspace_id', $owner->workspace_id)->whereIn('role', ['admin', 'owner'])->whereKey($member)->lockForUpdate()->firstOrFail();
             abort_if($target->role === 'owner', 403);
-            if ($target->status !== 'active' && ($data['status'] ?? null) === 'active') {
-                app(EffectiveParticipation::class)->requireGrowthAvailable($owner->workspace_id);
-            }
+            $activating = $target->status !== 'active' && ($data['status'] ?? null) === 'active';
             app(ShadowGuard::class)->observe($owner->workspace_id, ($data['status'] ?? null) === 'inactive' ? 'safe.reduce' : 'developer.change', ['developers.max' => $target->status !== 'active' && ($data['status'] ?? null) === 'active' ? null : 0]);
             if (isset($data['status'])) {
                 $target->update(['status' => $data['status']]);
@@ -214,6 +212,9 @@ class WorkspaceAdministratorController extends Controller
                     DeveloperInvitation::where('workspace_id', $owner->workspace_id)->whereRaw('LOWER(TRIM(email)) = ?', [DeveloperInvitations::normalizeEmail($target->user->email)])->whereNull('accepted_at')->update(['revoked_at' => now()]);
                     app(InvitationOccupancy::class)->observeRevocations($owner->workspace_id);
                 }
+            }
+            if ($activating) {
+                app(EffectiveParticipation::class)->checkAllocation($owner->workspace_id, ['developers.max']);
             }
             if (array_key_exists('name', $data)) {
                 $target->update(['display_name' => $data['name']]);

@@ -77,6 +77,29 @@ final class EffectiveParticipation
             ->where('state', 'open')->exists(), 403, 'subscription_selection_required');
     }
 
+    /** Caller owns the workspace mutex. A failed check rolls back the proposed allocation. */
+    public function checkAllocation(int $workspaceId, array $keys, ?int $clientId = null): void
+    {
+        $subscription = DB::table('workspace_subscriptions')->where('workspace_id', $workspaceId)->sharedLock()->first();
+        if ($subscription?->enforcement_mode !== 'enforce'
+            && ! DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->sharedLock()->first()) {
+            return;
+        }
+        abort_if($this->boundaryDue($workspaceId), 409, 'subscription_boundary_pending');
+        $plan = app(EntitlementResolver::class)->resolve($workspaceId, current: true, inspectSuspended: true);
+        abort_unless($plan['state'] === 'available', 409, 'subscription_capacity_unavailable');
+        if ($clientId !== null) {
+            app(ClientCountingIdentities::class)->reconcile($workspaceId, $clientId - 1, $clientId, 1);
+        }
+        $usage = app(WorkspaceUsage::class)->snapshot($workspaceId, true, $keys, effective: true);
+        foreach ($keys as $key) {
+            $limit = $plan['values'][$key] ?? null;
+            abort_unless($limit && $usage[$key]['state'] === 'ready', 409, 'subscription_capacity_unavailable');
+            abort_if($limit['kind'] !== 'unlimited' && $usage[$key]['count'] > $limit['value'], 403, 'subscription_capacity_exceeded');
+        }
+        abort_if($this->boundaryDue($workspaceId), 409, 'subscription_boundary_pending');
+    }
+
     public function requireInvitationSeat(int $workspaceId, int $invitationId): void
     {
         abort_if($this->boundaryDue($workspaceId), 409, 'subscription_boundary_pending');
@@ -85,7 +108,12 @@ final class EffectiveParticipation
             return;
         }
 
-        $email = DB::table('developer_invitations')->where('workspace_id', $workspaceId)->where('id', $invitationId)->value('email');
+        $invitation = DB::table('developer_invitations')->where('workspace_id', $workspaceId)->where('id', $invitationId)->sharedLock()->first();
+        abort_unless($invitation, 409, 'subscription_capacity_unavailable');
+        foreach (json_decode($invitation->project_ids ?? '[]', true, 16, JSON_THROW_ON_ERROR) as $projectId) {
+            $this->requireProjectWritable($workspaceId, $projectId);
+        }
+        $email = $invitation->email;
         $user = DB::table('users')->whereRaw('LOWER(TRIM(email)) = ?', [DeveloperInvitations::normalizeEmail((string) $email)])->value('id');
         $identity = app(InvitationOccupancy::class)->identity((string) $email, $user);
         abort_unless(DB::table('entitlement_capacity_reservations')->where('workspace_id', $workspaceId)

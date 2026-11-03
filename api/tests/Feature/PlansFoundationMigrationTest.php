@@ -42,6 +42,8 @@ class PlansFoundationMigrationTest extends TestCase
             {
                 public function requireGrowthAvailable(int $workspaceId): void {}
 
+                public function checkAllocation(int $workspaceId, array $keys, ?int $clientId = null): void {}
+
                 public function requireProjectWritable(int $workspaceId, int $projectId): void {}
 
                 public function visibleProjects(int $workspaceId): Builder
