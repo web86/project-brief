@@ -33,13 +33,15 @@ test('platform-only navigation never bootstraps a workspace or reads project con
     apiMode: true,
     request: async (path) => {
       calls.push(path)
+      if (path === '/api/platform/plan-access') return { canManage: false }
       assert.equal(path, '/api/security/status')
       return { signedIn: true, state: 'authenticated', platformAdmin: true }
     },
   })
   await router.push('/platform')
   assert.equal(router.currentRoute.value.path, '/platform')
-  assert.deepEqual(calls, ['/api/security/status'])
+  assert.deepEqual(calls, ['/api/security/status', '/api/platform/plan-access'])
+  assert.equal(router.currentRoute.value.meta.canManagePlans, false)
 })
 test('an unauthenticated direct platform navigation ends at existing login', async () => {
   setActivePinia(createPinia())

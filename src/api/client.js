@@ -217,7 +217,7 @@ export function createApiClient({
       !/^\/api\/security\/(?:confirm|challenge|passkey\/(?:login|confirm)(?:\/|$))/.test(path)
     ) {
       onSecurityRequired?.()
-      if (await waitForRequest(securityFlow.ensure(true), externalSignal)) {
+      if (await waitForRequest(securityFlow.ensure(true, method !== 'GET'), externalSignal)) {
         csrf = null
         if (
           data.mutationNotStarted === true &&

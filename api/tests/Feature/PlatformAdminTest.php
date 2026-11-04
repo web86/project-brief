@@ -45,7 +45,11 @@ class PlatformAdminTest extends TestCase
         $admin = $this->administrator();
         $this->actingAs($admin)->getJson('/api/platform/overview')->assertOk();
         $this->travel(301)->seconds();
-        $this->getJson('/api/platform/overview')->assertStatus(423)->assertJsonPath('mutationNotStarted', true);
+        foreach (['overview', 'plan-access'] as $endpoint) {
+            $this->getJson('/api/platform/'.$endpoint)->assertStatus(423)
+                ->assertJsonPath('code', 'security_step_up_required')
+                ->assertJsonPath('mutationNotStarted', true);
+        }
         $this->assertDatabaseHas('platform_audit', ['result' => 'step_up_required']);
         $this->withSession(['security.method' => 'password']);
         $this->getJson('/api/platform/overview')->assertForbidden()->assertJsonPath('code', 'account_security_required');

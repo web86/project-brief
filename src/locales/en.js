@@ -763,6 +763,7 @@ export default {
   },
   security: {
     confirmPasskey: 'Confirm with Passkey',
+    passkeyPrepared: 'Passkey is ready. Click the button again to continue.',
     retryPasskey: 'Retry with Passkey',
     otherMethod: 'Another confirmation method',
     confirmUnavailable: 'Identity confirmation did not finish',

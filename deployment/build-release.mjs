@@ -248,13 +248,13 @@ try {
     path.join(staging, 'release.json'),
     JSON.stringify(
       {
-        version: '0.9.19',
+        version: '0.9.20',
         product: 'Dev2Done',
         commit,
         builtAt: new Date().toISOString(),
         phpTarget: '8.4',
         domain: 'brief.web86.site',
-        upgradeFrom: '0.9.18',
+        upgradeFrom: '0.9.19',
         migrations: [],
         defaults: {
           publicRegistration: false,
@@ -293,7 +293,7 @@ try {
   const secrets = await knownLocalSecrets()
   const fileCount = await validateRelease(staging, secrets)
   await writeFile(path.join(staging, 'checksums.txt'), await checksums(staging))
-  const archive = path.join(releaseRoot, `dev2done-v0.9.19-${commit.slice(0, 7)}.zip`)
+  const archive = path.join(releaseRoot, `dev2done-v0.9.20-${commit.slice(0, 7)}.zip`)
   archiveTemporary = `${archive}.partial`
   run(php, ['deployment/archive.php', staging, archiveTemporary])
   // Test the actual ZIP in a fresh directory, never an existing installation.

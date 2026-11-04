@@ -47,6 +47,7 @@ const router = useRouter()
 const workspace = useTaskWorkspaceStore()
 const task = computed(() => route.meta.taskDetail && store.findTask(route.params.id))
 const navigationPending = router.navigationPending
+const platformEntryError = router.platformEntryError
 const personal = usePersonalNotificationsStore()
 const appearance = useWorkspaceAppearance()
 watch(
@@ -268,6 +269,7 @@ watch(
 </script>
 <template>
   <div
+    v-if="route.matched.length"
     :inert="navigationPending || undefined"
     :aria-busy="navigationPending"
     :style="appearance.tokens.value"
@@ -278,7 +280,22 @@ watch(
       ><a href="/demo">Demo · View only</a><span>{{ appearance.brand.value?.companyName }}</span>
     </div>
     <a class="skip-link" href="#main-content">{{ t('ui.skipToContent') }}</a>
-    <PlatformShell v-if="route.meta.platform"><RouterView /></PlatformShell>
+    <main
+      v-if="route.meta.platform && platformEntryError?.path === route.fullPath"
+      id="main-content"
+      tabindex="-1"
+      class="empty-state page-empty"
+    >
+      <h1>{{ t('platform.title') }}</h1>
+      <p role="alert">{{ platformEntryError.message }}</p>
+      <p>
+        <code>{{ platformEntryError.code }}</code>
+      </p>
+      <button type="button" class="button primary" @click="router.go(0)">
+        {{ t('bootstrap.retry') }}
+      </button>
+    </main>
+    <PlatformShell v-else-if="route.meta.platform"><RouterView /></PlatformShell>
     <RouterView v-else-if="route.meta.adminShell" />
     <div
       v-else

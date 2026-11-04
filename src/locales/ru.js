@@ -779,6 +779,7 @@ export default {
   },
   security: {
     confirmPasskey: 'Подтвердить через Passkey',
+    passkeyPrepared: 'Passkey готов. Нажмите кнопку ещё раз, чтобы продолжить.',
     retryPasskey: 'Повторить через Passkey',
     otherMethod: 'Другой способ подтверждения',
     confirmUnavailable: 'Не удалось подтвердить личность',

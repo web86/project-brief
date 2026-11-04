@@ -8,7 +8,10 @@ import net from 'node:net'
 import https from 'node:https'
 import http from 'node:http'
 import { createServer } from 'vite'
-const { chromium, webkit, devices } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
+import { platformStepUpScenario } from './platform-step-up.scenario.mjs'
+const { chromium, firefox, webkit, devices } = await import(
+  process.env.PLAYWRIGHT_MODULE || 'playwright'
+)
 const root = new URL('..', import.meta.url).pathname
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-platform-plans-'))
 const packageRoot = process.env.UX_PACKAGE_ROOT
@@ -109,7 +112,7 @@ async function login(context, fixture, owner = false) {
   })
   assert.equal(challenge.status(), 200, await challenge.text())
 }
-try {
+suite: try {
   if (packageRoot) {
     await cp(path.join(packageRoot, 'private/project-brief-app'), app, { recursive: true })
     await cp(path.join(packageRoot, 'public'), publicRoot, { recursive: true })
@@ -333,6 +336,27 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
       if ((await fetch(`http://127.0.0.1:${backendPort}/api/health`)).ok) break
     } catch {}
     await new Promise((r) => setTimeout(r, 100))
+  }
+  const engine = process.env.UX_PLATFORM_STEP_UP
+  if (engine) {
+    const browserType = { chromium, firefox, webkit }[engine]
+    const endpoint = process.env.UX_WEBKIT_ENDPOINT
+    browser =
+      engine === 'webkit' && endpoint
+        ? await browserType.connect(endpoint, { exposeNetwork: '<loopback>' })
+        : await browserType.launch({ headless: true })
+    const result = await platformStepUpScenario({
+      browser,
+      engine,
+      origin,
+      call,
+      login,
+      fixture,
+      php,
+      packaged: !!packageRoot,
+    })
+    console.log(JSON.stringify(result))
+    break suite
   }
   if (process.env.UX_SELECT_WEBKIT === '1') {
     php([

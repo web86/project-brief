@@ -12,7 +12,11 @@ import {
   isSecurityConfirmationScreen,
 } from '../services/stepUp.js'
 import { api } from '../api/client.js'
-import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
+import {
+  cancelPasskeyCeremony,
+  passkeyCeremony,
+  passkeysSupported,
+} from '../services/accountSecurity.js'
 import { useProjectStore } from '../stores/project'
 import { toast } from '../services/toast.js'
 import { t, formatApiError } from '../i18n/index.js'
@@ -23,6 +27,7 @@ stepUp.configure({
   options: () => api.request('/api/security/passkey/confirm/options', { securityRetry: false }),
   passkey: (options) => passkeyCeremony('confirm', undefined, options),
   supported: passkeysSupported,
+  abortPasskey: cancelPasskeyCeremony,
   activated: () => navigator.userActivation?.isActive !== false,
   error: (cause) => toast.error(() => formatApiError(cause)),
   changed: () => toast.info(() => t('security.contextChanged')),
@@ -66,17 +71,28 @@ onBeforeUnmount(() => {
     @close="stepUp.cancel()"
   >
     <template v-if="stepUpRequest">
-      <template v-if="stepUpState?.mode === 'retry'">
-        <p>{{ t('security.passkeyUnavailable') }}</p>
+      <template v-if="['passkey', 'retry'].includes(stepUpState?.mode)">
+        <p v-if="stepUpState.mode === 'retry'">{{ t('security.passkeyUnavailable') }}</p>
         <SecurityError :error="stepUpState.error" />
+        <p v-if="stepUpState.passkeyPrepared" role="status">{{ t('security.passkeyPrepared') }}</p>
         <div class="security-actions">
           <LoadingButton
-            v-if="passkeysSupported()"
+            v-if="
+              stepUpState.status?.signedIn &&
+              stepUpState.status?.passkeys?.length &&
+              passkeysSupported()
+            "
             class="button primary"
             :busy="stepUpState.busy"
             :disabled="stepUpState.busy"
             @click="stepUp.retry()"
-            >{{ t('security.retryPasskey') }}</LoadingButton
+            >{{
+              t(
+                stepUpState.mode === 'passkey'
+                  ? 'security.confirmPasskey'
+                  : 'security.retryPasskey',
+              )
+            }}</LoadingButton
           >
           <button v-if="available" class="button secondary" @click="stepUp.alternative()">
             {{ t('security.otherMethod') }}

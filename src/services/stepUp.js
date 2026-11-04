@@ -25,6 +25,7 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
   function finish(accepted) {
     const previous = active
     active = null
+    if (!accepted && previous?.authenticating) adapters?.abortPasskey?.()
     request.value = null
     state.value = null
     previous?.resolve(accepted)
@@ -87,7 +88,8 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
     const options = prepared.options
     prepared = null
     const operation = active
-    update({ mode: 'native', busy: true, error: null })
+    operation.authenticating = true
+    update({ mode: 'native', busy: true, error: null, passkeyPrepared: false })
     // This invocation must remain synchronous with the original click (no await first).
     adapters.passkey(options).then(
       (result) => {
@@ -95,6 +97,7 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
       },
       (cause) => {
         if (active !== operation) return
+        operation.authenticating = false
         update({
           mode: 'retry',
           busy: false,
@@ -105,15 +108,17 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
       },
     )
   }
-  async function warmRetry(operation = active) {
+  async function warmRetry(operation = active, requested = false) {
     if (!operation || prepared?.until > now()) return
     if (retrying?.operation === operation) return retrying.promise
     const task = (async () => {
       update({ busy: true })
       try {
         const { options, attemptId } = await adapters.options()
-        if (active === operation)
+        if (active === operation) {
           prepared = { options: attemptId ? { options, attemptId } : options, until: now() + 90000 }
+          if (requested) update({ error: null, passkeyPrepared: true })
+        }
       } catch (cause) {
         if (active === operation) {
           update({ error: cause })
@@ -132,10 +137,13 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
   }
   async function start(operation) {
     try {
-      if (preparing) await preparing
+      if (preparing) await preparing.catch(() => {})
       if (active !== operation) return
-      if (!status) remember(await adapters.status())
-      if (active !== operation) return
+      if (!status) {
+        const result = await adapters.status()
+        if (active !== operation) return
+        remember(result)
+      }
       operation.context ||= status.confirmationContext
       update({ status })
       if (!status.signedIn) {
@@ -146,7 +154,10 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
         update({ mode: 'retry' })
       } else if (status.passkeys?.length) {
         await warmRetry(operation)
-        if (active === operation) native()
+        if (active === operation) {
+          if (operation.allowNative) native()
+          else update({ mode: prepared?.until > now() ? 'passkey' : 'retry' })
+        }
       } else update({ mode: 'alternative' })
     } catch (cause) {
       if (active === operation) {
@@ -155,12 +166,12 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
       }
     }
   }
-  function ensure(force = false) {
+  function ensure(force = false, allowNative = true) {
     if (!adapters) {
       if (active) return active.promise
     } else if (!force && fresh()) return null
     if (active) return active.promise
-    const operation = { context: status?.confirmationContext }
+    const operation = { context: status?.confirmationContext, allowNative }
     operation.promise = new Promise((resolve) => {
       operation.resolve = resolve
     })
@@ -168,7 +179,8 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
     request.value = (accepted) => finish(accepted === true)
     state.value = { status, mode: 'native', busy: false, error: null }
     if (!adapters) update({ mode: 'alternative' })
-    else if (status?.signedIn && status.passkeys?.length && prepared?.until > now()) native()
+    else if (allowNative && status?.signedIn && status.passkeys?.length && prepared?.until > now())
+      native()
     else start(operation)
     return operation.promise
   }
@@ -208,7 +220,18 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
       if (active) adapters?.cancelled?.()
       finish(false)
     },
-    retry: native,
+    retry: () => {
+      if (
+        !active ||
+        state.value?.busy ||
+        !status?.signedIn ||
+        !status.passkeys?.length ||
+        !adapters?.supported()
+      )
+        return
+      if (prepared?.until > now()) native()
+      else void warmRetry(active, true)
+    },
     alternative: () => update({ mode: 'alternative', error: null }),
   }
 }
@@ -217,7 +240,7 @@ export function isSecurityConfirmationScreen(path) {
   if (path === '/admin/onboarding') return true
   if (path === '/admin/settings/subscription' || path === '/admin/settings/resource-preview')
     return true
-  if (path === '/platform' || path.startsWith('/platform/plans')) return true
+  if (/^\/platform(?:\/|$)/.test(path)) return true
   return /^\/admin(?:\/?$|\/administrators(?:\/|$)|\/account(?:\/|$)|\/settings\/(?:integrations|branding|agreement)(?:\/|$)|\/projects\/[^/]+\/(?:team|clients)(?:\/|$))/.test(
     path,
   )

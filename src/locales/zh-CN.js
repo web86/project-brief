@@ -719,6 +719,7 @@ export default {
   },
   security: {
     confirmPasskey: '使用 Passkey 确认',
+    passkeyPrepared: '通行密钥已就绪。请点击重试以继续。',
     retryPasskey: '重新使用 Passkey',
     otherMethod: '其他确认方式',
     confirmUnavailable: '身份确认未完成',

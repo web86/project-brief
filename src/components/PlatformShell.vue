@@ -1,7 +1,6 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { computed, ref, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { api } from '../api/client.js'
 import { t } from '../i18n/index.js'
 import { createAdminDrawer } from '../utils/adminDrawer.js'
 import PlatformNavigation from './PlatformNavigation.vue'
@@ -9,20 +8,14 @@ import AppIcon from './AppIcon.vue'
 import BrandLogo from './BrandLogo.vue'
 const route = useRoute(),
   dialog = ref(null),
-  trigger = ref(null),
-  canManagePlans = ref(!!route.meta.planManagement)
+  trigger = ref(null)
+const canManagePlans = computed(() => route.meta.canManagePlans === true)
 const drawer = createAdminDrawer({ dialog: () => dialog.value, trigger: () => trigger.value })
 const collapsed = ref(false)
 watch(
   () => route.fullPath,
   () => drawer.close(false),
 )
-onMounted(async () => {
-  if (route.meta.planManagement) return
-  try {
-    canManagePlans.value = (await api.request('/api/platform/plan-access')).canManage
-  } catch {}
-})
 onBeforeUnmount(() => drawer.close(false))
 </script>
 <template>

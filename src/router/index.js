@@ -477,7 +477,9 @@ export function createProjectRouter({
   })
 
   const navigationPending = ref(false)
+  const platformEntryError = ref(null)
   router.navigationPending = navigationPending
+  router.platformEntryError = platformEntryError
   let revision = 0
   const attempts = new WeakMap(),
     commits = new WeakMap()
@@ -514,14 +516,37 @@ export function createProjectRouter({
         if (!status.signedIn || status.state === 'pending_2fa') return '/admin/security'
         if (status.state === 'enrollment_required') return '/admin/security'
         if (!status.platformAdmin) return '/admin/unavailable?reason=permission'
-        if (to.meta.planManagement) {
-          const access = await request('/api/platform/plan-access')
-          if (current !== revision) return false
-          if (!access.canManage) return '/admin/unavailable?reason=permission'
-        }
+        const access = await request('/api/platform/plan-access')
+        if (current !== revision) return false
+        if (to.meta.planManagement && !access.canManage)
+          return '/admin/unavailable?reason=permission'
+        to.meta.canManagePlans = access.canManage
       } catch (error) {
         if (current !== revision) return false
-        toast.error(() => formatApiError(error))
+        if (error.status === 401) return '/admin/login'
+        if (error.status === 403) return '/admin/unavailable?reason=permission'
+        const diagnostic = [
+          'security_confirmation_cancelled',
+          'security_step_up_required',
+        ].includes(error.code)
+          ? error.code
+          : { 423: 'platform_locked', 429: 'platform_rate_limited', 500: 'platform_server_error' }[
+              error.status
+            ] || 'platform_entry_failed'
+        console.warn('[Dev2Done] Platform entry', diagnostic)
+        const message = () =>
+          diagnostic === 'platform_locked'
+            ? t('ui.weCouldNotCompleteThisActionPleaseTry')
+            : formatApiError(error)
+        if (!from.matched.length) {
+          platformEntryError.value = {
+            path: to.fullPath,
+            message: message(),
+            code: diagnostic,
+          }
+          return true
+        }
+        if (diagnostic !== 'security_confirmation_cancelled') toast.error(message)
         return false
       }
       return true
@@ -791,6 +816,7 @@ export function createProjectRouter({
     if (attempts.get(to) === revision) navigationPending.value = false
     if (!failure && to.meta.apiProject && to.meta.admin && !reusedProject.has(to))
       void useAdminNavigationStore().markRead(to.params.uuid, request)
+    if (!failure && platformEntryError.value?.path !== to.fullPath) platformEntryError.value = null
     if (!failure && to.path !== from.path) useProjectStore().discardDeveloperChanges()
   })
   return router

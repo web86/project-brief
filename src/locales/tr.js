@@ -770,6 +770,7 @@ export default {
   },
   security: {
     confirmPasskey: 'Passkey ile doğrula',
+    passkeyPrepared: 'Geçiş anahtarı hazır. Devam etmek için tekrar deneyin.',
     retryPasskey: 'Passkey ile yeniden dene',
     otherMethod: 'Başka bir doğrulama yöntemi',
     confirmUnavailable: 'Kimlik doğrulaması tamamlanamadı',

@@ -438,3 +438,44 @@ test('independent tab flows retain their own prepared attempts and duplicate war
   await b.flow.ensure()
   assert.equal(seen[1].attemptId, 'B-id')
 })
+
+test('retry refreshes expired Passkey options and uses the next click for WebAuthn', async () => {
+  let options = 0
+  const f = fixture({
+    options: async () => ({ options: { challenge: String(++options) } }),
+  })
+  await f.flow.prepare()
+  f.deactivate()
+  const result = f.flow.ensure(true)
+  f.advance(90001)
+  f.flow.retry()
+  assert.equal(f.flow.state.value.busy, true)
+  await tick()
+  assert.equal(options, 2)
+  assert.equal(f.native, 0)
+  assert.equal(f.flow.state.value.passkeyPrepared, true)
+  assert.equal(f.flow.state.value.busy, false)
+  f.flow.cancel()
+  assert.equal(await result, false)
+})
+
+test('a stalled confirmation times out without submitting a late credential', async () => {
+  const authenticator = deferred()
+  let submitted = false
+  const ceremony = createPasskeyClient({
+    client: {
+      resetCsrf() {},
+      async request() {
+        submitted = true
+      },
+    },
+    authenticate: () => authenticator.promise,
+  })
+  await assert.rejects(ceremony('confirm', undefined, { challenge: 'synthetic', timeout: 10 }), {
+    code: 'timeout',
+    stage: 'authenticator',
+  })
+  authenticator.resolve({ rawId: 'late' })
+  await tick()
+  assert.equal(submitted, false)
+})
