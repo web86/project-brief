@@ -384,10 +384,10 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
           }
           const heights = new Map()
           for (const theme of ['light', 'dark', 'system']) {
-            const themeSelect = page
-              .locator('.theme-switcher select')
-              .filter({ visible: true })
-              .first()
+            const themeSelect = page.locator('.theme-switcher select:visible').first()
+            const openPlatformMenu =
+              !(await themeSelect.isVisible()) && pathname.startsWith('/platform')
+            if (openPlatformMenu) await page.locator('.platform-mobile-bar button').click()
             await themeSelect.selectOption(theme)
             const resolved = theme === 'light' ? 'light' : 'dark'
             await page.locator('html[data-theme="' + resolved + '"]').waitFor()
@@ -416,7 +416,7 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
               assert.ok(
                 selects.some((row) => row.key === 'All statuses' && row.brand === '#0f766e'),
               )
-              assert.ok(selects.some((row) => row.key === 'Workspace'))
+              if (device === 'desktop') assert.ok(selects.some((row) => row.key === 'Workspace'))
             }
             for (const [index, select] of selects.entries()) {
               assert.equal(select.appearance, 'none', JSON.stringify(select))
@@ -438,10 +438,26 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
             const filename = `webkit-${device}-${screen}-${theme}.png`
             await page.screenshot({ path: path.join(output, filename), timeout: 15_000 })
             captures.push(filename)
+            if (openPlatformMenu) await page.locator('.platform-drawer[open] > button').click()
           }
           if (screen === 'projects') {
             await page.locator('.project-filters-extra select').first().selectOption('active')
             await page.waitForURL('**/admin?status=active')
+            if (await page.locator('.admin-menu-trigger').isVisible()) {
+              await page.locator('.admin-menu-trigger').click()
+              const workspace = page.locator('.admin-drawer[open] .sidebar-workspace select')
+              await workspace.waitFor()
+              assert.equal(
+                await workspace.evaluate((el) =>
+                  getComputedStyle(el).getPropertyValue('-webkit-appearance'),
+                ),
+                'none',
+              )
+              assert.match(
+                await workspace.evaluate((el) => getComputedStyle(el).backgroundImage),
+                /^url\(/,
+              )
+            }
           }
         }
         await context.close()
