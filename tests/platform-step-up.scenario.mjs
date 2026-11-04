@@ -195,7 +195,17 @@ App\Models\User::where('email', $argv[1])->firstOrFail()->passkeys()->delete();
       stale()
       await page.goto(origin + '/platform/plans/registration', { waitUntil: 'domcontentloaded' })
       const retry = dialog.getByRole('button', { name: 'Retry with Passkey', exact: true })
-      await dialog.getByRole('button', { name: 'Confirm with Passkey', exact: true }).click()
+      const passkey = dialog.getByRole('button', { name: 'Confirm with Passkey', exact: true })
+      const alternative = dialog.getByRole('button', { name: 'Another confirmation method' })
+      await passkey.waitFor()
+      for (const width of [1200, 360]) {
+        await page.setViewportSize({ width, height: 800 })
+        const [a, b] = await Promise.all([passkey.boundingBox(), alternative.boundingBox()])
+        assert.ok(a && b)
+        assert.ok(b.x - (a.x + a.width) >= 8 || b.y - (a.y + a.height) >= 8)
+        assert.ok(a.x >= 0 && b.x >= 0 && a.x + a.width <= width && b.x + b.width <= width)
+      }
+      await passkey.click()
       await page.waitForFunction(() => window.qaPasskeyGestures.length === 1)
       await retry.click({ noWaitAfter: true })
       await page.locator('.registration-diagnostics dl').first().waitFor()

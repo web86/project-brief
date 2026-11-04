@@ -113,3 +113,11 @@ onBeforeUnmount(() => {
     </template>
   </BaseDialog>
 </template>
+<style scoped>
+.security-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 0.75rem;
+}
+</style>
