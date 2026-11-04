@@ -473,6 +473,8 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
     } finally {
       await webkitBrowser.close()
     }
+    // Separate engine runs use distinct rate-limit windows in the disposable fixture.
+    php(['artisan', 'cache:clear', '--no-interaction'])
   }
   browser = await chromium.launch({ headless: true })
   const password = 'Browser-registration-only!2026'
