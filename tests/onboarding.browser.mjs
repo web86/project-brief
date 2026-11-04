@@ -397,6 +397,8 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
                 const rect = el.getBoundingClientRect()
                 return {
                   key: el.getAttribute('aria-label') || el.id || el.parentElement.className,
+                  projectFilter: !!el.closest('.project-filters-extra'),
+                  workspace: !!el.closest('.sidebar-workspace'),
                   brand: css.getPropertyValue('--action').trim(),
                   appearance: css.getPropertyValue('-webkit-appearance'),
                   padding: parseFloat(css.paddingRight),
@@ -414,9 +416,10 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
             assert.ok(selects.length >= 2, device + ' ' + screen)
             if (screen === 'projects') {
               assert.ok(
-                selects.some((row) => row.key === 'All statuses' && row.brand === '#0f766e'),
+                selects.some((row) => row.projectFilter && row.brand === '#0f766e'),
+                JSON.stringify(selects),
               )
-              if (device === 'desktop') assert.ok(selects.some((row) => row.key === 'Workspace'))
+              if (device === 'desktop') assert.ok(selects.some((row) => row.workspace))
             }
             for (const [index, select] of selects.entries()) {
               assert.equal(select.appearance, 'none', JSON.stringify(select))
