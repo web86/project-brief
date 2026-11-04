@@ -5,6 +5,7 @@ namespace App\Services\Plans;
 use App\Models\Plans\PlanVersion;
 use App\Models\Plans\PlatformPolicyVersion;
 use App\Models\User;
+use App\Services\CanaryRegistration;
 use App\Services\RegistrationReadiness;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -17,13 +18,17 @@ final class CommercialCanary
 
     private const EVIDENCE = ['lifecycle', 'execution_barriers', 'rollback', 'notification_delivery', 'trial_claim_policy'];
 
+    private const CLAIM_LIMIT = 10;
+
+    private const PERMIT_HOURS = 24;
+
     public function __construct(private readonly PlanCommands $commands, private readonly RegistrationReadiness $readiness) {}
 
     /** Approval is an explicit, short-lived allowlist of prepared claims. It does not open registration. */
     public function approve(User $actor, int $revision, array $claims, array $evidence, string $key): array
     {
         sort($claims);
-        abort_unless(count($claims) >= 1 && count($claims) <= 10 && count(array_unique($claims)) === count($claims), 422);
+        abort_unless(count($claims) >= 1 && count($claims) <= self::CLAIM_LIMIT && count(array_unique($claims)) === count($claims), 422);
         abort_unless(count($evidence) === count(self::EVIDENCE) && ! array_diff(self::EVIDENCE, array_keys($evidence)), 422);
         foreach ($evidence as $digest) {
             abort_unless(is_string($digest) && preg_match('/^[a-f0-9]{64}$/D', $digest), 422);
@@ -39,7 +44,7 @@ final class CommercialCanary
             return $this->outcome($revision, $after) + [
                 'state' => 'approved', 'authorityRevision' => (int) $authority->revision,
                 'claims' => $claims, 'pins' => $pins, 'evidence' => $evidence,
-                'expiresAt' => CarbonImmutable::now('UTC')->addHours(24)->toISOString(),
+                'expiresAt' => CarbonImmutable::now('UTC')->addHours(self::PERMIT_HOURS)->toISOString(),
             ];
         });
     }
@@ -127,6 +132,66 @@ final class CommercialCanary
             'approvedPendingClaims' => $approval === 'approved' ? $this->pendingClaims()->whereIn('uuid', $permit['claims'])->count() : 0,
             'admissionEnabled' => config('onboarding.trial_activation_requested') === true && ! config('demo.enabled', false),
             'reasonCodes' => $blockers,
+        ];
+    }
+
+    /** Private projection for the primary operator. The write paths revalidate each candidate. */
+    public function management(array $diagnostics, int $page): array
+    {
+        $now = CarbonImmutable::now('UTC');
+        $permit = $this->latestPermit();
+        $allowlist = $diagnostics['operatorApproval'] === 'approved' ? $permit['claims'] : [];
+        $revision = DB::table('plan_settings')->where('id', 1)->value('revision');
+        $claims = DB::table('owner_trial_claims as claim')
+            ->join('workspaces as workspace', 'workspace.id', '=', 'claim.workspace_id')
+            ->leftJoin('subscription_periods as period', 'period.id', '=', 'claim.period_id')
+            ->leftJoin('workspace_subscriptions as subscription', 'subscription.workspace_id', '=', 'claim.workspace_id')
+            ->whereNotNull('claim.verified_at')
+            ->select('claim.uuid', 'claim.owner_user_id', 'claim.workspace_id', 'claim.verified_at', 'claim.state', 'workspace.name as workspace_name',
+                'workspace.uuid as workspace_uuid', 'period.uuid as period_uuid', 'period.starts_at', 'period.service_ends_at', 'subscription.id as subscription_id')
+            ->orderByDesc('claim.id')->simplePaginate(20, page: $page);
+        $owners = User::whereIn('id', $claims->getCollection()->pluck('owner_user_id')->filter())
+            ->get(['id', 'name', 'email', 'email_verified_at', 'two_factor_secret', 'two_factor_confirmed_at', 'recovery_codes_acknowledged_at'])
+            ->keyBy('id');
+        $pending = $this->pendingClaims()->whereIn('uuid', $claims->getCollection()->pluck('uuid'))->pluck('uuid')->flip();
+        $lifecycle = app(SubscriptionLifecycle::class);
+        $clock = app(SubscriptionClock::class);
+
+        return [
+            'revision' => $revision ? (string) $revision : null,
+            'serverTime' => $now->toISOString(),
+            'inviteEnabled' => app(CanaryRegistration::class)->canIssue(),
+            'permitExpiresAt' => $permit['expiresAt'] ?? null,
+            'claimLimit' => self::CLAIM_LIMIT,
+            'permitHours' => self::PERMIT_HOURS,
+            'admittedOwners' => DB::table('owner_trial_claims')->whereNotNull('period_id')->count(),
+            'page' => $claims->currentPage(),
+            'hasMore' => $claims->hasMorePages(),
+            'owners' => $claims->getCollection()->map(function (object $claim) use ($owners, $pending, $lifecycle, $clock, $now, $allowlist): array {
+                $owner = $owners->get($claim->owner_user_id);
+                $verified = CarbonImmutable::parse($claim->verified_at, 'UTC');
+                $end = $clock->period('trial', $verified, 7)['service_ends_at'];
+                $eligible = $pending->has($claim->uuid) && ! $claim->subscription_id
+                    && $owner && $lifecycle->verifiedTrialOwnerReady($owner, $claim->workspace_id);
+
+                return [
+                    'claimId' => $claim->uuid,
+                    'ownerName' => $owner?->name,
+                    'email' => $owner?->email_verified_at ? $owner->email : null,
+                    'workspace' => ['id' => $claim->workspace_uuid, 'name' => $claim->workspace_name],
+                    'verifiedAt' => $verified->toISOString(),
+                    'state' => $claim->state,
+                    'eligible' => $eligible,
+                    'allowlisted' => in_array($claim->uuid, $allowlist, true),
+                    'trialEndsAt' => $end->toISOString(),
+                    'windowClosed' => $verified > $now || $end <= $now,
+                    'period' => $claim->period_uuid ? [
+                        'id' => $claim->period_uuid,
+                        'startsAt' => CarbonImmutable::parse($claim->starts_at, 'UTC')->toISOString(),
+                        'endsAt' => CarbonImmutable::parse($claim->service_ends_at, 'UTC')->toISOString(),
+                    ] : null,
+                ];
+            })->all(),
         ];
     }
 

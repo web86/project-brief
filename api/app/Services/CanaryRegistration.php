@@ -72,8 +72,12 @@ final class CanaryRegistration
 
     private function requireAvailable(): void
     {
-        $days = filter_var(config('onboarding.subject_retention_days'), FILTER_VALIDATE_INT);
-        abort_unless(! config('demo.enabled', false) && $days !== false && $days >= 1 && $days <= 3650
-            && app(ProjectNotificationService::class)->mailAvailable(), 403, 'canary_registration_unavailable');
+        abort_unless($this->canIssue(), 403, 'canary_registration_unavailable');
+    }
+
+    public function canIssue(): bool
+    {
+        return ! config('demo.enabled', false) && app(RegistrationReadiness::class)->retentionDays() !== null
+            && app(ProjectNotificationService::class)->mailAvailable();
     }
 }

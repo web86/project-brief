@@ -1,8 +1,10 @@
+import { canaryMessages } from './canary.js'
 import { onboardingMessages } from './onboarding.js'
 import { preparationMessages } from './preparation.js'
 import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  canary: canaryMessages['en'],
   onboarding: onboardingMessages['en'],
   preparation: preparationMessages.en,
   inventory: inventoryMessages.en,

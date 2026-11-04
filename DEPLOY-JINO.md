@@ -1,4 +1,4 @@
-> Dev2Done v0.9.20 / Platform Admin Direct Navigation & MFA Step-Up Fix. Используйте `PRODUCTION.md`, `ROLLBACK.md` и `CANARY.md` из того же ZIP. После появления suspension cycle или execution epoch старый runtime допустим только в изолированной диагностике.
+> Dev2Done v0.9.21 / Platform Canary Management UI. Используйте `PRODUCTION.md`, `ROLLBACK.md` и `CANARY.md` из того же ZIP. После появления suspension cycle или execution epoch старый runtime допустим только в изолированной диагностике.
 
 > Dev2Done v0.9.12 — rebranding only, before Phase 3. Update/rollback without new migrations, required env keys or plan reinitialization: [current runbook](docs/releases/dev2done/PRODUCTION.md). Existing private runtime path remains `project-brief-app`.
 

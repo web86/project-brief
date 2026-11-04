@@ -259,7 +259,7 @@ export function isSensitiveMutation(path, method) {
     )
   )
     return true
-  if (/^\/api\/platform\/(?:plans|plan-settings|plan-transition-rules)(?:\/|$)/.test(path))
+  if (/^\/api\/platform\/(?:plans|plan-settings|plan-transition-rules|registration-canary)(?:\/|$)/.test(path))
     return true
   if (path === '/api/admin/settings/agreement') return true
   if (

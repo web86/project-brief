@@ -29,9 +29,10 @@ class PlatformAdminTest extends TestCase
     public function test_guests_and_workspace_owners_cannot_read_platform_or_audit_even_directly(): void
     {
         $this->getJson('/api/platform/overview')->assertUnauthorized();
+        $this->getJson('/api/platform/registration-canary/owners')->assertUnauthorized();
         $owner = User::factory()->owner()->create();
         $this->actingAs($owner);
-        foreach (['/platform', '/api/platform/overview', '/api/platform/workspaces', '/api/platform/workspaces/'.Str::uuid(), '/api/platform/usage', '/api/platform/audit'] as $url) {
+        foreach (['/platform', '/api/platform/overview', '/api/platform/workspaces', '/api/platform/workspaces/'.Str::uuid(), '/api/platform/usage', '/api/platform/audit', '/api/platform/registration-canary/owners'] as $url) {
             $this->getJson($url)->assertForbidden();
         }
         $this->assertDatabaseHas('platform_audit', ['administrator_id' => $owner->id, 'action' => 'access_denied', 'result' => 'forbidden']);
@@ -45,7 +46,7 @@ class PlatformAdminTest extends TestCase
         $admin = $this->administrator();
         $this->actingAs($admin)->getJson('/api/platform/overview')->assertOk();
         $this->travel(301)->seconds();
-        foreach (['overview', 'plan-access'] as $endpoint) {
+        foreach (['overview', 'plan-access', 'registration-canary/owners'] as $endpoint) {
             $this->getJson('/api/platform/'.$endpoint)->assertStatus(423)
                 ->assertJsonPath('code', 'security_step_up_required')
                 ->assertJsonPath('mutationNotStarted', true);

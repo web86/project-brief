@@ -357,6 +357,7 @@ class SubscriptionLifecycleTest extends TestCase
             $inventory->process($operator->workspaceMembers()->firstOrFail()->workspace_id);
         }
         $claimIds = [];
+        $ownerEmails = [];
         foreach (range(1, 3) as $index) {
             $owner = User::factory()->create();
             app(AuthOnboarding::class)->pending($owner);
@@ -367,12 +368,14 @@ class SubscriptionLifecycleTest extends TestCase
                 'recovery_codes_acknowledged_at' => now(),
             ])->save();
             $claimIds[] = DB::table('owner_trial_claims')->where('owner_user_id', $owner->id)->value('uuid');
+            $ownerEmails[] = $owner->email;
         }
         $revision = (int) DB::table('plan_settings')->where('id', 1)->value('revision');
         $headers = fn (int $at, string $key): array => ['If-Match' => '"revision:'.$at.'"', 'Idempotency-Key' => $key];
         $endpoint = '/api/platform/registration-canary/';
         $evidence = array_fill_keys(['lifecycle', 'execution_barriers', 'rollback', 'notification_delivery', 'trial_claim_policy'], hash('sha256', 'synthetic operator attestation'));
         $approval = ['claims' => array_slice($claimIds, 0, 2), 'evidence' => $evidence];
+        $this->actingAs($secondary)->getJson($endpoint.'owners')->assertForbidden()->assertDontSee($ownerEmails[0]);
         $this->actingAs($secondary)->postJson($endpoint.'approve', $approval, $headers($revision, 'secondary'))->assertForbidden();
         $this->actingAs($primary)->postJson($endpoint.'approve', $approval, $headers($revision - 1, 'stale'))->assertConflict();
         $diagnostics = '/api/platform/registration-diagnostics';
@@ -386,6 +389,20 @@ class SubscriptionLifecycleTest extends TestCase
             ->assertJsonPath('data.canary.operatorApproval', 'missing')
             ->assertJsonPath('data.canary.admissionEnabled', false)
             ->assertDontSee($claimIds[0]);
+        $this->getJson($endpoint.'owners')->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertHeader('Referrer-Policy', 'no-referrer')
+            ->assertJsonPath('data.management.revision', (string) $revision)
+            ->assertJsonPath('data.management.claimLimit', 10)
+            ->assertJsonPath('data.management.permitHours', 24)
+            ->assertJsonPath('data.management.owners.2.email', $ownerEmails[0])
+            ->assertJsonPath('data.management.owners.2.claimId', $claimIds[0])
+            ->assertJsonPath('data.management.owners.2.eligible', true)
+            ->assertJsonPath('data.management.owners.2.allowlisted', false)
+            ->assertJsonPath('data.management.owners.2.period', null)
+            ->assertDontSee('two_factor')
+            ->assertDontSee('content_hash');
+        $this->getJson($endpoint.'owners?page=2')->assertOk()->assertJsonCount(0, 'data.management.owners');
         config(['onboarding.trial_activation_requested' => true]);
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision, 'env-only'))->assertConflict();
         $this->postJson($endpoint.'approve', $approval, $headers($revision, 'permit'))->assertOk()->assertJsonPath('data.revision', (string) ($revision + 1));
@@ -400,6 +417,14 @@ class SubscriptionLifecycleTest extends TestCase
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'disabled'))->assertForbidden();
         config(['onboarding.trial_activation_requested' => true]);
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'admission'))->assertOk();
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'admission'))->assertOk();
+        $this->getJson($endpoint.'owners')->assertOk()
+            ->assertJsonPath('data.management.admittedOwners', 1)
+            ->assertJsonPath('data.management.owners.2.eligible', false)
+            ->assertJsonPath('data.management.owners.2.allowlisted', true)
+            ->assertJsonPath('data.management.owners.2.state', 'active')
+            ->assertJsonStructure(['data' => ['management' => ['owners' => [2 => ['period' => ['id', 'startsAt', 'endsAt']]]]]])
+            ->assertDontSee($evidence['lifecycle']);
         $this->postJson($endpoint.'stop', [], $headers($revision + 1, 'stop'))->assertOk();
         $this->getJson($diagnostics)->assertOk()
             ->assertJsonPath('data.canary.operatorApproval', 'stopped')
@@ -409,5 +434,6 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertSame(1, SubscriptionPeriod::where('kind', 'trial')->count());
         $this->assertSame(2, WorkspaceSubscription::where('enforcement_mode', 'observe')->count());
         $this->assertDatabaseHas('plan_events', ['action' => 'canary.admit', 'actor_user_id' => $primary->id]);
+        $this->assertSame(1, DB::table('plan_events')->where('action', 'canary.admit')->count());
     }
 }

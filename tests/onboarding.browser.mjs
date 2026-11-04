@@ -8,6 +8,7 @@ import net from 'node:net'
 import https from 'node:https'
 import http from 'node:http'
 import { createServer } from 'vite'
+import { canaryManagementScenario } from './canary-management.scenario.mjs'
 import { platformStepUpScenario } from './platform-step-up.scenario.mjs'
 const { chromium, firefox, webkit, devices } = await import(
   process.env.PLAYWRIGHT_MODULE || 'playwright'
@@ -207,6 +208,7 @@ class BrowserOnboardingFixture extends \Illuminate\Support\ServiceProvider {
    }
   });
   $overrides = is_file(getenv('QA_STATE_FILE')) ? json_decode(file_get_contents(getenv('QA_STATE_FILE')),true) : [];
+  if (isset($overrides['trialActivation'])) config(['onboarding.trial_activation_requested'=>$overrides['trialActivation']]);
   if (isset($overrides['registrationEnabled'])) config(['onboarding.registration_enabled'=>$overrides['registrationEnabled']]);
   if (isset($overrides['providers'])) foreach (['google','yandex','github'] as $provider) if (!in_array($provider,$overrides['providers'],true)) config(['onboarding.providers.'.$provider.'.client_secret'=>null]);
   \Illuminate\Support\Facades\Http::preventStrayRequests();
@@ -501,6 +503,27 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
     php(['artisan', 'cache:clear', '--no-interaction'])
   }
   browser = await chromium.launch({ headless: true })
+  if (process.env.UX_CANARY_MANAGEMENT === '1') {
+    console.log(
+      JSON.stringify(
+        await canaryManagementScenario({
+          browser,
+          origin,
+          fixture,
+          login,
+          call,
+          php,
+          readMail: async () => JSON.parse(await readFile(env.QA_MAIL_FILE, 'utf8')),
+          configure: (trialActivation) =>
+            writeFile(
+              env.QA_STATE_FILE,
+              JSON.stringify({ registrationEnabled: false, trialActivation }),
+            ),
+        }),
+      ),
+    )
+    break suite
+  }
   const password = 'Browser-registration-only!2026'
   await writeFile(env.QA_STATE_FILE, JSON.stringify({ registrationEnabled: false }))
   const issuer = await createContext()
