@@ -18,7 +18,7 @@ export async function platformStepUpScenario({
   const dialog = page
     .locator('dialog[open]')
     .filter({ has: page.locator('#security-step-up-title') })
-  const stale = () =>
+  const stale = (resetPlatformBudget = false) =>
     php([
       '-r',
       String.raw`
@@ -27,12 +27,16 @@ $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 if (! $app->environment('testing') || ! str_contains(Illuminate\Support\Facades\DB::getDatabaseName(), 'brief-platform-plans-')) exit(90);
 $user = App\Models\User::where('email', $argv[1])->firstOrFail();
+if ($argv[2] === 'fresh-budget') {
+    Illuminate\Support\Facades\RateLimiter::clear(md5('platformuser:'.$user->id));
+}
 Illuminate\Support\Facades\DB::table('account_security_challenges')->where('user_id', $user->id)->where('purpose', 'step_up')->update(['expires_at' => now()->subMinute()]);
 $user->forceFill(['last_totp_step' => null])->save();
 $secret = Laravel\Fortify\Fortify::currentEncrypter()->decrypt($user->two_factor_secret);
 echo app(PragmaRX\Google2FA\Google2FA::class)->getCurrentOtp($secret);
 `,
       fixture.admin,
+      resetPlatformBudget ? 'fresh-budget' : '',
     ]).trim()
   const noFallback = () => page.locator('#bootstrap-fallback').waitFor({ state: 'hidden' })
   const waitForCatalog = () =>
@@ -192,7 +196,23 @@ App\Models\User::where('email', $argv[1])->firstOrFail()->passkeys()->delete();
           return get(options)
         }
       })
-      stale()
+      const confirmation = []
+      page.on('response', async (response) => {
+        const path = new URL(response.url()).pathname
+        if (
+          ![
+            '/api/platform/plan-access',
+            '/api/security/passkey/confirm',
+            '/api/security/passkey/confirm/options',
+          ].includes(path)
+        )
+          return
+        const status = response.status()
+        const payload = status >= 400 ? await response.json().catch(() => ({})) : {}
+        confirmation.push({ path, status, code: payload.code })
+      })
+      // The rapid TOTP/reload scenarios can consume the operator's minute budget.
+      stale(true)
       await page.goto(origin + '/platform/plans/registration', { waitUntil: 'domcontentloaded' })
       const retry = dialog.getByRole('button', { name: 'Retry with Passkey', exact: true })
       const passkey = dialog.getByRole('button', { name: 'Confirm with Passkey', exact: true })
@@ -208,7 +228,22 @@ App\Models\User::where('email', $argv[1])->firstOrFail()->passkeys()->delete();
       await passkey.click()
       await page.waitForFunction(() => window.qaPasskeyGestures.length === 1)
       await retry.click({ noWaitAfter: true })
-      await page.locator('.registration-diagnostics dl').first().waitFor()
+      await page
+        .locator('.registration-diagnostics dl')
+        .first()
+        .waitFor()
+        .catch(async (error) => {
+          console.log(
+            JSON.stringify({
+              confirmation,
+              gestures: await page.evaluate(() => window.qaPasskeyGestures),
+              dialog: await dialog.allTextContents(),
+              diagnostics: await page.locator('main code').allTextContents(),
+              errors,
+            }),
+          )
+          throw error
+        })
       assert.deepEqual(await page.evaluate(() => window.qaPasskeyGestures), [true, true])
       const status = await (await call(context, '/api/security/status')).json()
       assert.equal(status.confirmationMethod, 'passkey_uv')
