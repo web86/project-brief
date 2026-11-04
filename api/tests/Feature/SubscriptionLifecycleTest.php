@@ -20,6 +20,7 @@ use App\Services\DeveloperInvitations;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
 use App\Services\Plans\ClientCountingIdentities;
+use App\Services\Plans\CommercialCanary;
 use App\Services\Plans\EffectiveParticipation;
 use App\Services\Plans\ExecutionBarrier;
 use App\Services\Plans\FrozenTransitions;
@@ -332,8 +333,9 @@ class SubscriptionLifecycleTest extends TestCase
         }
     }
 
-    public function test_canary_requires_explicit_primary_approval_and_stop_preserves_admitted_trial(): void
+    public function test_canary_activates_atomically_and_preserves_trials_when_stopped(): void
     {
+        $this->freezeSecond();
         config([
             'onboarding.subject_retention_days' => 365,
             'onboarding.trial_activation_requested' => false,
@@ -358,7 +360,7 @@ class SubscriptionLifecycleTest extends TestCase
         }
         $claimIds = [];
         $ownerEmails = [];
-        foreach (range(1, 3) as $index) {
+        foreach (range(1, 11) as $index) {
             $owner = User::factory()->create();
             app(AuthOnboarding::class)->pending($owner);
             app(AuthOnboarding::class)->prepare($owner);
@@ -373,67 +375,62 @@ class SubscriptionLifecycleTest extends TestCase
         $revision = (int) DB::table('plan_settings')->where('id', 1)->value('revision');
         $headers = fn (int $at, string $key): array => ['If-Match' => '"revision:'.$at.'"', 'Idempotency-Key' => $key];
         $endpoint = '/api/platform/registration-canary/';
-        $evidence = array_fill_keys(['lifecycle', 'execution_barriers', 'rollback', 'notification_delivery', 'trial_claim_policy'], hash('sha256', 'synthetic operator attestation'));
-        $approval = ['claims' => array_slice($claimIds, 0, 2), 'evidence' => $evidence];
+        $payload = ['claimId' => $claimIds[0]];
         $this->actingAs($secondary)->getJson($endpoint.'owners')->assertForbidden()->assertDontSee($ownerEmails[0]);
-        $this->actingAs($secondary)->postJson($endpoint.'approve', $approval, $headers($revision, 'secondary'))->assertForbidden();
-        $this->actingAs($primary)->postJson($endpoint.'approve', $approval, $headers($revision - 1, 'stale'))->assertConflict();
-        $diagnostics = '/api/platform/registration-diagnostics';
-        $this->getJson($diagnostics)->assertOk()
-            ->assertJsonPath('data.canary.studioVersion', 1)
-            ->assertJsonPath('data.canary.basicVersion', 1)
-            ->assertJsonPath('data.canary.policyVersion', $policy->number)
-            ->assertJsonPath('data.canary.configurationReady', true)
-            ->assertJsonPath('data.canary.retentionDays', 365)
-            ->assertJsonPath('data.canary.pendingVerifiedClaims', 3)
-            ->assertJsonPath('data.canary.operatorApproval', 'missing')
-            ->assertJsonPath('data.canary.admissionEnabled', false)
-            ->assertDontSee($claimIds[0]);
+        $this->postJson($endpoint.'admit', $payload, $headers($revision, 'secondary'))->assertForbidden();
+        $this->actingAs($primary)->postJson($endpoint.'admit', $payload, $headers($revision, 'disabled'))
+            ->assertForbidden()->assertJsonPath('code', 'canary_disabled');
         $this->getJson($endpoint.'owners')->assertOk()
-            ->assertHeader('Cache-Control', 'no-store, private')
-            ->assertHeader('Referrer-Policy', 'no-referrer')
+            ->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer')
             ->assertJsonPath('data.management.revision', (string) $revision)
             ->assertJsonPath('data.management.claimLimit', 10)
-            ->assertJsonPath('data.management.permitHours', 24)
-            ->assertJsonPath('data.management.owners.2.email', $ownerEmails[0])
-            ->assertJsonPath('data.management.owners.2.claimId', $claimIds[0])
-            ->assertJsonPath('data.management.owners.2.eligible', true)
-            ->assertJsonPath('data.management.owners.2.allowlisted', false)
-            ->assertJsonPath('data.management.owners.2.period', null)
-            ->assertDontSee('two_factor')
-            ->assertDontSee('content_hash');
+            ->assertJsonPath('data.management.windowHours', 24)
+            ->assertJsonPath('data.management.owners.10.email', $ownerEmails[0])
+            ->assertJsonPath('data.management.owners.10.eligible', true)
+            ->assertJsonPath('data.canary.admissionEnabled', false)
+            ->assertDontSee('two_factor')->assertDontSee('content_hash');
         $this->getJson($endpoint.'owners?page=2')->assertOk()->assertJsonCount(0, 'data.management.owners');
+        $this->getJson('/api/platform/registration-diagnostics')->assertOk()->assertDontSee($claimIds[0]);
+
         config(['onboarding.trial_activation_requested' => true]);
-        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision, 'env-only'))->assertConflict();
-        $this->postJson($endpoint.'approve', $approval, $headers($revision, 'permit'))->assertOk()->assertJsonPath('data.revision', (string) ($revision + 1));
-        $this->getJson($diagnostics)->assertOk()
-            ->assertJsonPath('data.canary.operatorApproval', 'approved')
-            ->assertJsonPath('data.canary.approvedPendingClaims', 2)
-            ->assertJsonPath('data.canary.admissionEnabled', true)
-            ->assertJsonPath('data.trialActivation', false)
-            ->assertDontSee($evidence['lifecycle']);
-        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[2]], $headers($revision + 1, 'outside'))->assertConflict();
-        config(['onboarding.trial_activation_requested' => false]);
-        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'disabled'))->assertForbidden();
-        config(['onboarding.trial_activation_requested' => true]);
-        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'admission'))->assertOk();
-        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'admission'))->assertOk();
+        $this->travel(301)->seconds();
+        $this->postJson($endpoint.'admit', $payload, $headers($revision, 'stale-mfa'))
+            ->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
+        $this->actingAs($primary)->postJson($endpoint.'admit', $payload, $headers($revision - 1, 'stale'))
+            ->assertConflict()->assertJsonPath('code', 'plan_revision_conflict');
+        $this->assertSame(0, SubscriptionPeriod::where('kind', 'trial')->count());
+        $this->assertSame(0, DB::table('plan_events')->where('action', 'canary.admit')->count());
+        $this->postJson($endpoint.'admit', $payload, $headers($revision, 'admission'))
+            ->assertOk()->assertJsonPath('data.revision', (string) ($revision + 1));
+        $this->postJson($endpoint.'admit', $payload, $headers($revision, 'admission'))->assertOk();
+        $revision++;
+        $this->postJson($endpoint.'admit', $payload, $headers($revision, 'new-key'))->assertConflict()
+            ->assertJsonPath('code', 'canary_claim_unavailable');
         $this->getJson($endpoint.'owners')->assertOk()
             ->assertJsonPath('data.management.admittedOwners', 1)
-            ->assertJsonPath('data.management.owners.2.eligible', false)
-            ->assertJsonPath('data.management.owners.2.allowlisted', true)
-            ->assertJsonPath('data.management.owners.2.state', 'active')
-            ->assertJsonStructure(['data' => ['management' => ['owners' => [2 => ['period' => ['id', 'startsAt', 'endsAt']]]]]])
-            ->assertDontSee($evidence['lifecycle']);
-        $this->postJson($endpoint.'stop', [], $headers($revision + 1, 'stop'))->assertOk();
-        $this->getJson($diagnostics)->assertOk()
-            ->assertJsonPath('data.canary.operatorApproval', 'stopped')
-            ->assertJsonPath('data.canary.approvedPendingClaims', 0)
-            ->assertJsonPath('data.canary.pendingVerifiedClaims', 2);
-        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[1]], $headers($revision + 2, 'stopped'))->assertConflict();
+            ->assertJsonPath('data.management.owners.10.state', 'active');
+
+        $this->postJson($endpoint.'stop', [], $headers($revision++, 'stop'))->assertOk();
+        $this->getJson('/api/platform/registration-diagnostics')->assertOk()->assertJsonPath('data.canary.activationStopped', true);
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[1]], $headers($revision, 'stopped'))
+            ->assertConflict()->assertJsonPath('code', 'canary_stopped');
         $this->assertSame(1, SubscriptionPeriod::where('kind', 'trial')->count());
+        config(['onboarding.trial_activation_requested' => false]);
+        $this->postJson($endpoint.'resume', [], $headers($revision, 'resume-disabled'))->assertForbidden();
+        config(['onboarding.trial_activation_requested' => true]);
+        $this->postJson($endpoint.'resume', [], $headers($revision++, 'resume'))->assertOk();
+        $service = app(CommercialCanary::class);
+        foreach (array_slice($claimIds, 1, 9) as $index => $claimId) {
+            $service->admit($primary, $revision++, $claimId, 'quota-'.$index);
+        }
+        $this->postJson($endpoint.'admit', ['claimId' => $claimIds[10]], $headers($revision, 'quota-full'))
+            ->assertConflict()->assertJsonPath('code', 'canary_limit_reached');
+        $this->assertSame(10, SubscriptionPeriod::where('kind', 'trial')->count());
+        $this->assertSame(0, DB::table('plan_events')->where('action', 'canary.approve')->count());
+        $this->assertSame(10, DB::table('plan_events')->where('action', 'canary.admit')->count());
+        $this->travel(24)->hours();
+        $this->actingAs($primary)->postJson($endpoint.'admit', ['claimId' => $claimIds[10]], $headers($revision, 'quota-reset'))->assertOk();
+        $this->assertSame(11, SubscriptionPeriod::where('kind', 'trial')->count());
         $this->assertSame(2, WorkspaceSubscription::where('enforcement_mode', 'observe')->count());
-        $this->assertDatabaseHas('plan_events', ['action' => 'canary.admit', 'actor_user_id' => $primary->id]);
-        $this->assertSame(1, DB::table('plan_events')->where('action', 'canary.admit')->count());
     }
 }

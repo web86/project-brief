@@ -27,7 +27,7 @@ class RegistrationDiagnosticsController extends Controller
         $page = (int) ($request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:10000']])['page'] ?? 1);
         $data = $this->diagnostics($readiness, $canary);
 
-        return $this->response($data + ['management' => $canary->management($data['canary'], $page)]);
+        return $this->response($data + ['management' => $canary->management($page)]);
     }
 
     private function diagnostics(RegistrationReadiness $readiness, CommercialCanary $canary): array
@@ -64,22 +64,20 @@ class RegistrationDiagnosticsController extends Controller
             $revision = PlanInput::revision($request);
             $key = PlanInput::key($request);
             $data = match ($operation) {
-                'approve' => $request->validate(['claims' => ['required', 'array', 'list', 'min:1', 'max:10'], 'claims.*' => ['required', 'uuid', 'distinct'], 'evidence' => ['required', 'array']]),
                 'admit' => $request->validate(['claimId' => ['required', 'uuid']]),
                 default => [],
             };
             PlanInput::only($request->all(), array_keys($data));
             $result = match ($operation) {
-                'approve' => $canary->approve($actor, $revision, $data['claims'], $data['evidence'], $key),
                 'admit' => $canary->admit($actor, $revision, $data['claimId'], $key),
-                'stop' => $canary->stop($actor, $revision, $key),
+                'stop', 'resume' => $canary->setStopped($actor, $revision, $operation === 'stop', $key),
             };
 
-            return response()->json(['data' => ['revision' => (string) ($operation === 'admit' ? $revision : $result['after']), 'state' => $result['state'] ?? 'admitted']])->header('Cache-Control', 'no-store');
+            return response()->json(['data' => ['revision' => (string) ($result['revision'] ?? ($operation === 'admit' ? $revision : $result['after'])), 'state' => $result['state'] ?? 'admitted']])->header('Cache-Control', 'no-store');
         } catch (\Throwable $error) {
             $codes = [
                 403 => ['canary_disabled', 'canary_registration_unavailable', 'canary_owner_onboarding_required'],
-                409 => ['canary_registration_unavailable', 'canary_registration_link_already_issued', 'canary_claim_unavailable', 'canary_permit_unavailable', 'commercial_readiness_required', 'commercial_targets_required', 'commercial_basic_contract_required', 'trial_activation_window_closed', 'trial_eligibility_unavailable', 'subscription_already_exists', 'published_targets_required'],
+                409 => ['canary_registration_unavailable', 'canary_registration_link_already_issued', 'canary_claim_unavailable', 'canary_stopped', 'canary_limit_reached', 'commercial_readiness_required', 'commercial_targets_required', 'commercial_basic_contract_required', 'trial_activation_window_closed', 'trial_eligibility_unavailable', 'subscription_already_exists', 'published_targets_required'],
             ];
             if ($error instanceof HttpExceptionInterface && in_array($error->getMessage(), $codes[$error->getStatusCode()] ?? [], true)) {
                 return response()->json(['code' => $error->getMessage()], $error->getStatusCode())->header('Cache-Control', 'no-store');

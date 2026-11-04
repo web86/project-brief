@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 
 export async function canaryManagementScenario({
   browser,
@@ -86,26 +85,6 @@ switch ($argv[1]) {
     await trigger()
     return response
   }
-  const fillEvidence = async () => {
-    const payload = Buffer.from('Synthetic browser fixture only')
-    const digest = createHash('sha256').update(payload).digest('hex')
-    const fields = dialog.locator('fieldset')
-    assert.equal(await fields.count(), 5)
-    await fields
-      .first()
-      .locator('input[type=file]')
-      .setInputFiles({ name: 'fixture.txt', mimeType: 'text/plain', buffer: payload })
-    await page.waitForFunction(
-      (value) => document.querySelector('#canary-digest-lifecycle')?.value === value,
-      digest,
-    )
-    for (let index = 0; index < 5; index++) {
-      const field = fields.nth(index)
-      if (index) await field.locator('input[type=text]').fill(digest)
-      await field.getByRole('checkbox').check()
-    }
-    return digest
-  }
   const replay = async (action, original) => {
     const request = original.request()
     const headers = await request.allHeaders()
@@ -159,6 +138,9 @@ switch ($argv[1]) {
     await signup.locator('.registration-form button[type=submit]').click()
     await signup.waitForURL('**/admin/verify-email')
     await signup.getByRole('heading', { name: 'Check your email' }).waitFor()
+    await button('Refresh').click()
+    await ownerCard.getByText('Email confirmation pending').waitFor()
+    assert.equal(await button('Activate Studio Trial', ownerCard).count(), 0)
     const mail = await readMail()
     assert.equal(mail.email, email)
     await signup.goto(mail.url)
@@ -188,43 +170,30 @@ switch ($argv[1]) {
     const claim = (await snapshot()).management.owners.find((item) => item.email === email)
     assert.equal(claim.state, 'pending')
     assert.equal(claim.eligible, true)
-    await ownerCard.getByRole('checkbox').check()
-    await button('Prepare approval').click()
-    assert.equal(await button('Prepare approval', dialog).isDisabled(), true)
-    await fillEvidence()
-    const code = setup('expire')
-    setup('conflict')
-    const conflict = await mutation('approve', async () => {
-      await button('Prepare approval', dialog).click()
-      await mfa.locator('#security-code').fill(code)
-      await button('Confirm identity', mfa).click()
-    })
-    assert.equal(conflict.status(), 409)
-    await dialog.getByText(/settings revision changed/).waitFor()
-    assert.deepEqual(JSON.parse(setup('counts')), [0, 0, 0, 0, 1])
-    await button('Refresh', dialog).click()
-    await ownerCard.getByRole('checkbox').check()
-    await button('Prepare approval').click()
-    const digest = await fillEvidence()
-    const approved = await mutation('approve', () => button('Prepare approval', dialog).click())
-    assert.equal(approved.status(), 200)
-    const submitted = approved.request().postDataJSON()
-    assert.deepEqual(submitted.claims, [claim.claimId])
-    assert.deepEqual(Object.values(submitted.evidence), Array(5).fill(digest))
-    await page.getByText('Approval saved. Activation requires a separate confirmation.').waitFor()
-    await ownerCard.getByText('Approved · server switch off').waitFor()
     assert.equal(await button('Activate Studio Trial', ownerCard).isDisabled(), true)
-    assert.deepEqual(JSON.parse(setup('counts')), [0, 1, 0, 0, 1])
+    assert.deepEqual(JSON.parse(setup('counts')), [0, 0, 0, 0, 1])
 
     setup('budget')
     await configure(true)
     await button('Refresh').click()
     await button('Activate Studio Trial', ownerCard).click()
     await dialog.getByText(/Time since verification already counts/).waitFor()
-    assert.equal(await button('Activate Studio Trial', dialog).isDisabled(), true)
-    await dialog.getByRole('checkbox').check()
+    assert.equal(await dialog.locator('input').count(), 0)
+    const code = setup('expire')
+    setup('conflict')
+    const conflict = await mutation('admit', async () => {
+      await button('Activate Studio Trial', dialog).click()
+      await mfa.locator('#security-code').fill(code)
+      await button('Confirm identity', mfa).click()
+    })
+    assert.equal(conflict.status(), 409)
+    await dialog.getByText(/Settings changed/).waitFor()
+    assert.deepEqual(JSON.parse(setup('counts')), [0, 0, 0, 0, 1])
+    await button('Refresh', dialog).click()
+    await button('Activate Studio Trial', ownerCard).click()
     const admitted = await mutation('admit', () => button('Activate Studio Trial', dialog).click())
     assert.equal(admitted.status(), 200)
+    assert.deepEqual(admitted.request().postDataJSON(), { claimId: claim.claimId })
     assert.equal((await replay('admit', admitted)).status(), 200)
     await ownerCard.getByText('Trial assigned', { exact: true }).first().waitFor()
     assert.equal(await button('Activate Studio Trial', ownerCard).count(), 0)
@@ -235,16 +204,20 @@ switch ($argv[1]) {
     assert.equal(Date.parse(admittedClaim.period.endsAt) - Date.parse(claim.verifiedAt), 604800000)
 
     await button('Stop new activations').click()
-    await dialog.getByRole('checkbox').check()
     const stopped = await mutation('stop', () => button('Stop new activations', dialog).click())
     assert.equal(stopped.status(), 200)
     await page.getByText('New activations stopped.').waitFor()
-    await page.getByText(/Return TRIAL_ACTIVATION_ENABLED to false/).waitFor()
+    await page.reload()
+    await page.getByText('New activations are paused.').waitFor()
     const after = await snapshot()
-    assert.equal(after.canary.operatorApproval, 'stopped')
+    assert.equal(after.canary.activationStopped, true)
     assert.equal(after.management.admittedOwners, 1)
     assert.equal(after.publicRegistration, false)
-    assert.deepEqual(JSON.parse(setup('counts')), [1, 1, 1, 1, 1])
+    assert.deepEqual(JSON.parse(setup('counts')), [1, 0, 1, 1, 1])
+    await button('Resume new activations').click()
+    const resumed = await mutation('resume', () => button('Resume new activations', dialog).click())
+    assert.equal(resumed.status(), 200)
+    await page.getByText('New activations resumed.').waitFor()
     await configure(false)
     for (const [locale, mode, color, width, heading] of [
       ['ru', 'light', 'light', 1200, 'Тестовый запуск / Canary'],
@@ -278,7 +251,6 @@ switch ($argv[1]) {
       passed: true,
       isolated: true,
       invited: 1,
-      approved: 1,
       trials: 1,
       stopped: 1,
       localeThemeChecks: 3,

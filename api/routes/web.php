@@ -146,7 +146,7 @@ Route::post('/api/auth/{provider}/link', [SocialAuthController::class, 'start'])
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware('throttle:social-auth')->block();
 Route::delete('/api/auth/{provider}', [SocialAuthController::class, 'disconnect'])->whereIn('provider', ['google', 'yandex', 'github'])->middleware(['auth', 'throttle:account-security'])->block();
 Route::post('/api/platform/registration-canary/{operation}', [RegistrationDiagnosticsController::class, 'canary'])
-    ->whereIn('operation', ['approve', 'admit', 'stop', 'invite'])->middleware([EnsurePlatformAdmin::class, 'throttle:platform']);
+    ->whereIn('operation', ['admit', 'stop', 'resume', 'invite'])->middleware([EnsurePlatformAdmin::class, 'throttle:platform']);
 Route::get('/api/platform/registration-diagnostics', RegistrationDiagnosticsController::class)->middleware([EnsurePlatformAdmin::class, EnsurePlanAuthority::class, 'throttle:platform']);
 Route::get('/api/platform/registration-canary/owners', [RegistrationDiagnosticsController::class, 'owners'])
     ->middleware([EnsurePlatformAdmin::class, EnsurePlanAuthority::class, 'throttle:platform'])->name('platform.canary.owners');

@@ -14,28 +14,9 @@ const emit = defineEmits(['close', 'completed', 'refresh'])
 const l = (key, params) => t('canary.' + key, params)
 const endpoint = '/api/platform/registration-canary/'
 const send = createPlanRequests(api.request)
-const evidenceKeys = [
-  'lifecycle',
-  'execution_barriers',
-  'rollback',
-  'notification_delivery',
-  'trial_claim_policy',
-]
-const evidence = ref(
-  Object.fromEntries(
-    evidenceKeys.map((key) => [key, { digest: '', checked: false, hashing: false, failed: false }]),
-  ),
-)
-const digestValid = (digest) => /^[a-f0-9]{64}$/i.test(digest.trim())
-const evidenceReady = computed(() =>
-  Object.values(evidence.value).every(
-    ({ digest, checked, hashing }) => digestValid(digest) && checked && !hashing,
-  ),
-)
 const email = ref('')
 const busy = ref(false)
 const error = ref('')
-const confirmed = ref(false)
 const refreshRequired = ref(false)
 const link = ref(null)
 const copyStatus = ref('')
@@ -58,40 +39,9 @@ const canSubmit = computed(
   () =>
     !busy.value &&
     !refreshRequired.value &&
-    (props.action.kind === 'invite'
-      ? !!email.value.trim()
-      : props.action.kind === 'approve'
-        ? evidenceReady.value
-        : confirmed.value && (props.action.kind !== 'admit' || props.remainingSeconds > 0)),
+    (props.action.kind !== 'invite' || !!email.value.trim()) &&
+    (props.action.kind !== 'admit' || props.remainingSeconds > 0),
 )
-
-function setDigest(row, value) {
-  row.digest = value
-  row.checked = false
-  row.failed = false
-}
-
-async function hashFile(row, event) {
-  const file = event.target.files?.[0]
-  event.target.value = ''
-  if (!file) return
-  row.digest = ''
-  row.checked = false
-  row.failed = false
-  row.hashing = true
-  try {
-    if (file.size > 32 * 1024 * 1024 || !globalThis.crypto?.subtle) throw new Error()
-    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
-    setDigest(
-      row,
-      Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(''),
-    )
-  } catch {
-    row.failed = true
-  } finally {
-    row.hashing = false
-  }
-}
 
 function close() {
   if (!busy.value) emit('close')
@@ -109,7 +59,7 @@ async function copy() {
 
 async function submit() {
   if (!canSubmit.value) return
-  const { kind, revision, owners } = props.action
+  const { kind, revision, owner } = props.action
   error.value = ''
   busy.value = true
   try {
@@ -123,17 +73,7 @@ async function submit() {
       if (!deadline.signal.aborted) link.value = result.data
       return
     }
-    const body =
-      kind === 'approve'
-        ? {
-            claims: owners.map((owner) => owner.claimId),
-            evidence: Object.fromEntries(
-              evidenceKeys.map((key) => [key, evidence.value[key].digest.trim().toLowerCase()]),
-            ),
-          }
-        : kind === 'admit'
-          ? { claimId: owners[0].claimId }
-          : {}
+    const body = kind === 'admit' ? { claimId: owner.claimId } : {}
     await send(endpoint + kind, 'POST', body, revision)
     if (!deadline.signal.aborted) emit('completed', kind)
   } catch (cause) {
@@ -154,7 +94,11 @@ async function submit() {
     } else if (kind !== 'invite' && [409, 428].includes(cause.status)) {
       refreshRequired.value = true
       error.value = l(
-        cause.code === 'plan_revision_conflict' ? 'revisionConflict' : 'conditionsChanged',
+        cause.code === 'plan_revision_conflict'
+          ? 'revisionConflict'
+          : cause.code === 'canary_limit_reached'
+            ? 'limitReached'
+            : 'conditionsChanged',
       )
     } else if (cause.status === 429) {
       error.value = t('ui.tooManyRequestsPleaseWaitALittle')
@@ -215,70 +159,23 @@ onBeforeUnmount(() => {
           :disabled="busy || refreshRequired"
         />
       </template>
-      <template v-else-if="action.kind === 'approve'">
-        <p>{{ l('approveIntro') }}</p>
-        <ul class="canary-review-list">
-          <li v-for="owner in action.owners" :key="owner.claimId">
-            {{ owner.ownerName || owner.email }} · {{ owner.workspace.name }}
-          </li>
-        </ul>
-        <fieldset v-for="(row, key) in evidence" :key="key" :disabled="busy || refreshRequired">
-          <legend>{{ l(key) }}</legend>
-          <p>{{ l(row.checked && digestValid(row.digest) ? 'attested' : 'unattested') }}</p>
-          <label :for="'canary-digest-' + key">{{ l('digest') }}</label>
-          <input
-            :id="'canary-digest-' + key"
-            :value="row.digest"
-            type="text"
-            maxlength="64"
-            spellcheck="false"
-            autocomplete="off"
-            :disabled="row.hashing"
-            @input="setDigest(row, $event.target.value)"
-          />
-          <label :for="'canary-file-' + key">{{ l('localFile') }}</label>
-          <input
-            :id="'canary-file-' + key"
-            type="file"
-            :disabled="row.hashing"
-            @change="hashFile(row, $event)"
-          />
-          <p v-if="row.failed" role="alert">{{ l('hashFailed') }}</p>
-          <label class="canary-check"
-            ><input
-              v-model="row.checked"
-              type="checkbox"
-              :disabled="!digestValid(row.digest) || row.hashing"
-            />
-            {{ l('attest') }}</label
-          >
-        </fieldset>
-      </template>
       <template v-else-if="action.kind === 'admit'">
         <dl class="canary-review">
           <div>
             <dt>{{ l('owner') }}</dt>
-            <dd>{{ action.owners[0].ownerName }} · {{ action.owners[0].email }}</dd>
+            <dd>{{ action.owner.ownerName }} · {{ action.owner.email }}</dd>
           </div>
           <div>
             <dt>{{ l('workspace') }}</dt>
-            <dd>{{ action.owners[0].workspace.name }}</dd>
-          </div>
-          <div v-for="key in ['studioVersion', 'basicVersion', 'policyVersion']" :key="key">
-            <dt>{{ t('onboarding.' + key) }}</dt>
-            <dd>{{ action.versions[key] }}</dd>
-          </div>
-          <div>
-            <dt>{{ l('verified') }}</dt>
-            <dd>{{ date(action.owners[0].verifiedAt) }}</dd>
+            <dd>{{ action.owner.workspace.name }}</dd>
           </div>
           <div>
             <dt>{{ l('trialStart') }}</dt>
-            <dd>{{ date(action.owners[0].verifiedAt) }}</dd>
+            <dd>{{ date(action.owner.verifiedAt) }}</dd>
           </div>
           <div>
             <dt>{{ l('trialEnd') }}</dt>
-            <dd>{{ date(action.owners[0].trialEndsAt) }}</dd>
+            <dd>{{ date(action.owner.trialEndsAt) }}</dd>
           </div>
           <div>
             <dt>{{ l('remaining') }}</dt>
@@ -287,11 +184,7 @@ onBeforeUnmount(() => {
         </dl>
         <p>{{ l('elapsed') }}</p>
       </template>
-      <p v-else>{{ l('stopIntro') }}</p>
-      <label v-if="['admit', 'stop'].includes(action.kind)" class="canary-check">
-        <input v-model="confirmed" type="checkbox" :disabled="busy || refreshRequired" />
-        {{ l(action.kind + 'Confirm') }}
-      </label>
+      <p v-else>{{ l(action.kind + 'Intro') }}</p>
       <p v-if="error" role="alert">{{ error }}</p>
       <div class="canary-action-buttons">
         <button
@@ -319,23 +212,16 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.canary-action-form,
-fieldset {
+.canary-action-form {
   display: grid;
   gap: 0.75rem;
   min-width: 0;
-}
-fieldset {
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
 }
 .canary-action-form input:not([type='checkbox']) {
   min-width: 0;
   width: 100%;
 }
-.canary-action-buttons,
-.canary-check {
+.canary-action-buttons {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -346,9 +232,6 @@ fieldset {
 .canary-review > div {
   padding: 0.4rem 0;
   border-bottom: 1px solid var(--border);
-}
-.canary-review-list {
-  padding-inline-start: 1.25rem;
 }
 dd {
   margin: 0;
