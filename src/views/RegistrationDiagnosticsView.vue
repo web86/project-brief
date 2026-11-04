@@ -3,6 +3,13 @@ import { ref, onMounted } from 'vue'
 import { api } from '../api/client.js'
 import { t, formatApiError } from '../i18n/index.js'
 import LoadingButton from '../components/LoadingButton.vue'
+const approvalLabels = {
+  missing: 'approvalMissing',
+  approved: 'approvalApproved',
+  expired: 'approvalExpired',
+  stopped: 'approvalStopped',
+  stale: 'approvalStale',
+}
 const state = ref(null),
   busy = ref(false),
   error = ref('')
@@ -58,7 +65,7 @@ onMounted(load)
         </div>
         <div>
           <dt>{{ t('onboarding.operatorApproval') }}</dt>
-          <dd>{{ t('onboarding.approval.' + state.canary.operatorApproval) }}</dd>
+          <dd>{{ t('onboarding.' + approvalLabels[state.canary.operatorApproval]) }}</dd>
         </div>
         <div>
           <dt>{{ t('onboarding.approvedPendingClaims') }}</dt>
