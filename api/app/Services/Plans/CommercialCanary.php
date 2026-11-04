@@ -2,10 +2,14 @@
 
 namespace App\Services\Plans;
 
+use App\Models\Plans\PlanVersion;
+use App\Models\Plans\PlatformPolicyVersion;
 use App\Models\User;
 use App\Services\RegistrationReadiness;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class CommercialCanary
 {
@@ -28,12 +32,7 @@ final class CommercialCanary
         return $this->commands->run($actor, 'canary.approve', $key, compact('revision', 'claims', 'evidence'), function (object $authority) use ($revision, $claims, $evidence): array {
             $settings = $this->settings($revision);
             $pins = $this->pins();
-            $cutoff = DB::table('plan_inventory_cohorts')->where('id', 1)->value('workspace_cutoff_id');
-            $now = CarbonImmutable::now('UTC');
-            $eligible = DB::table('owner_trial_claims')->whereIn('uuid', $claims)->where('state', 'pending')
-                ->where('verified_at', '>', $now->subSeconds(604800)->format('Y-m-d H:i:s.u'))
-                ->where('verified_at', '<=', $now->format('Y-m-d H:i:s.u'))
-                ->whereNull('period_id')->where('workspace_id', '>', $cutoff)->where('reason_code', 'activation_unavailable')->count();
+            $eligible = $this->pendingClaims()->whereIn('uuid', $claims)->count();
             abort_unless($eligible === count($claims), 409, 'canary_claim_unavailable');
             $after = $this->advance($settings->revision);
 
@@ -62,9 +61,7 @@ final class CommercialCanary
 
         return $this->commands->run($actor, 'canary.admit', $key, compact('revision', 'claimUuid'), function (object $authority) use ($revision, $claimUuid, $candidate): array {
             $this->settings($revision);
-            $row = DB::table('plan_events')->where('aggregate_type', 'commercial_canary')
-                ->whereIn('action', ['canary.approve', 'canary.stop'])->latest('id')->first();
-            $permit = $row ? json_decode($row->result_json, true, 16, JSON_THROW_ON_ERROR) : [];
+            $permit = $this->latestPermit();
             abort_unless(($permit['state'] ?? null) === 'approved' && $permit['after'] === $revision
                 && $permit['authorityRevision'] === (int) $authority->revision
                 && in_array($claimUuid, $permit['claims'], true)
@@ -78,6 +75,80 @@ final class CommercialCanary
         }, $candidate->workspace_id);
     }
 
+    /** Read-only projection. Claim identities, evidence and configuration hashes stay server-side. */
+    public function diagnostics(?array $targets): array
+    {
+        $settings = DB::table('plan_settings')->where('id', 1)->first();
+        $authority = DB::table('platform_plan_authority')->where('id', 1)->value('revision');
+        $retention = $this->readiness->retentionDays();
+        $blockers = $this->readiness->commercialBlockers($targets !== null);
+        if ($retention === null) {
+            $blockers[] = 'claim_retention_unconfigured';
+        }
+        $pins = null;
+        if (! $blockers) {
+            try {
+                $pins = $this->pins($targets);
+            } catch (HttpException $exception) {
+                $blockers[] = $exception->getMessage();
+            }
+        }
+
+        $versions = [];
+        foreach (['studio', 'basic'] as $code) {
+            $version = $targets[$code] ?? null;
+            if ($version?->plan->code !== $code) {
+                $version = PlanVersion::where('state', 'published')->whereHas('plan', fn ($query) => $query
+                    ->where('code', $code)->where('status', '<>', 'archived'))->latest('number')->first();
+            }
+            $versions[$code] = $version?->number;
+        }
+        $policy = $targets['policy'] ?? PlatformPolicyVersion::where('state', 'published')->find($settings?->current_policy_version_id);
+
+        $permit = $this->latestPermit();
+        $approval = match (true) {
+            ($permit['state'] ?? null) === 'stopped' => 'stopped',
+            ($permit['state'] ?? null) !== 'approved' => 'missing',
+            ! CarbonImmutable::parse($permit['expiresAt'], 'UTC')->isFuture() => 'expired',
+            ! $pins || $permit['pins'] !== $pins || $permit['after'] !== (int) $settings?->revision
+                || $permit['authorityRevision'] !== (int) $authority => 'stale',
+            default => 'approved',
+        };
+
+        return [
+            'studioVersion' => $versions['studio'],
+            'basicVersion' => $versions['basic'],
+            'policyVersion' => $policy?->number,
+            'targetsReady' => $targets !== null,
+            'configurationReady' => $pins !== null,
+            'retentionDays' => $retention,
+            'pendingVerifiedClaims' => DB::table('owner_trial_claims')->where('state', 'pending')->whereNotNull('verified_at')->whereNull('period_id')->count(),
+            'operatorApproval' => $approval,
+            'approvedPendingClaims' => $approval === 'approved' ? $this->pendingClaims()->whereIn('uuid', $permit['claims'])->count() : 0,
+            'admissionEnabled' => config('onboarding.trial_activation_requested') === true && ! config('demo.enabled', false),
+            'reasonCodes' => $blockers,
+        ];
+    }
+
+    private function latestPermit(): array
+    {
+        $row = DB::table('plan_events')->where('aggregate_type', 'commercial_canary')
+            ->whereIn('action', ['canary.approve', 'canary.stop'])->latest('id')->first();
+
+        return $row ? json_decode($row->result_json, true, 16, JSON_THROW_ON_ERROR) : [];
+    }
+
+    private function pendingClaims(): Builder
+    {
+        $cutoff = DB::table('plan_inventory_cohorts')->where('id', 1)->value('workspace_cutoff_id');
+        $now = CarbonImmutable::now('UTC');
+
+        return DB::table('owner_trial_claims')->where('state', 'pending')
+            ->where('verified_at', '>', $now->subSeconds(604800)->format('Y-m-d H:i:s.u'))
+            ->where('verified_at', '<=', $now->format('Y-m-d H:i:s.u'))
+            ->whereNull('period_id')->where('workspace_id', '>', $cutoff)->where('reason_code', 'activation_unavailable');
+    }
+
     private function settings(int $revision): object
     {
         $settings = DB::table('plan_settings')->where('id', 1)->lockForUpdate()->first();
@@ -86,14 +157,11 @@ final class CommercialCanary
         return $settings;
     }
 
-    private function pins(): array
+    private function pins(?array $targets = null): array
     {
-        $targets = $this->readiness->targets();
-        $machineBlockers = array_diff($this->readiness->commercialBlockers($targets !== null), [
-            'phase_4b2_lifecycle_required', 'execution_rearm_review_required', 'rollback_verification_required', 'notification_delivery_verification_required',
-        ]);
-        $retention = filter_var(config('onboarding.subject_retention_days'), FILTER_VALIDATE_INT);
-        abort_unless($targets && ! $machineBlockers && $retention !== false && $retention >= 1 && $retention <= 3650, 409, 'commercial_readiness_required');
+        $targets ??= $this->readiness->targets();
+        $machineBlockers = $this->readiness->commercialBlockers($targets !== null);
+        abort_unless($targets && ! $machineBlockers && $this->readiness->retentionDays() !== null, 409, 'commercial_readiness_required');
         abort_unless($targets['studio']->plan->code === 'studio' && $targets['basic']->plan->code === 'basic', 409, 'commercial_targets_required');
         $basic = app(PlanCatalog::class)->configuration($targets['basic']);
         abort_unless($basic['developer_seats']['hard_max'] === 1, 409, 'commercial_basic_contract_required');

@@ -375,15 +375,36 @@ class SubscriptionLifecycleTest extends TestCase
         $approval = ['claims' => array_slice($claimIds, 0, 2), 'evidence' => $evidence];
         $this->actingAs($secondary)->postJson($endpoint.'approve', $approval, $headers($revision, 'secondary'))->assertForbidden();
         $this->actingAs($primary)->postJson($endpoint.'approve', $approval, $headers($revision - 1, 'stale'))->assertConflict();
+        $diagnostics = '/api/platform/registration-diagnostics';
+        $this->getJson($diagnostics)->assertOk()
+            ->assertJsonPath('data.canary.studioVersion', 1)
+            ->assertJsonPath('data.canary.basicVersion', 1)
+            ->assertJsonPath('data.canary.policyVersion', $policy->number)
+            ->assertJsonPath('data.canary.configurationReady', true)
+            ->assertJsonPath('data.canary.retentionDays', 365)
+            ->assertJsonPath('data.canary.pendingVerifiedClaims', 3)
+            ->assertJsonPath('data.canary.operatorApproval', 'missing')
+            ->assertJsonPath('data.canary.admissionEnabled', false)
+            ->assertDontSee($claimIds[0]);
         config(['onboarding.trial_activation_requested' => true]);
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision, 'env-only'))->assertConflict();
         $this->postJson($endpoint.'approve', $approval, $headers($revision, 'permit'))->assertOk()->assertJsonPath('data.revision', (string) ($revision + 1));
+        $this->getJson($diagnostics)->assertOk()
+            ->assertJsonPath('data.canary.operatorApproval', 'approved')
+            ->assertJsonPath('data.canary.approvedPendingClaims', 2)
+            ->assertJsonPath('data.canary.admissionEnabled', true)
+            ->assertJsonPath('data.trialActivation', false)
+            ->assertDontSee($evidence['lifecycle']);
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[2]], $headers($revision + 1, 'outside'))->assertConflict();
         config(['onboarding.trial_activation_requested' => false]);
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'disabled'))->assertForbidden();
         config(['onboarding.trial_activation_requested' => true]);
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[0]], $headers($revision + 1, 'admission'))->assertOk();
         $this->postJson($endpoint.'stop', [], $headers($revision + 1, 'stop'))->assertOk();
+        $this->getJson($diagnostics)->assertOk()
+            ->assertJsonPath('data.canary.operatorApproval', 'stopped')
+            ->assertJsonPath('data.canary.approvedPendingClaims', 0)
+            ->assertJsonPath('data.canary.pendingVerifiedClaims', 2);
         $this->postJson($endpoint.'admit', ['claimId' => $claimIds[1]], $headers($revision + 2, 'stopped'))->assertConflict();
         $this->assertSame(1, SubscriptionPeriod::where('kind', 'trial')->count());
         $this->assertSame(2, WorkspaceSubscription::where('enforcement_mode', 'observe')->count());

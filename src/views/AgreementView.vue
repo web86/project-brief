@@ -156,12 +156,13 @@ watch(
 .agreement-document-language select {
   width: auto;
   min-width: 140px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem var(--select-end) 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--surface);
+  background-color: var(--surface);
   color: var(--text);
   font: inherit;
+  line-height: var(--select-line-height);
 }
 .legal-layout {
   display: flex;

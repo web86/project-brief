@@ -75,12 +75,7 @@ final class RegistrationReadiness
     /** Primary-only diagnostics. Configuration checks are separate from verified operational evidence. */
     public function commercialBlockers(bool $targetsReady): array
     {
-        $reasons = [
-            'phase_4b2_lifecycle_required',
-            'execution_rearm_review_required',
-            'rollback_verification_required',
-            'notification_delivery_verification_required',
-        ];
+        $reasons = [];
         if (! $targetsReady) {
             $reasons[] = 'published_targets_required';
         }
@@ -101,6 +96,13 @@ final class RegistrationReadiness
         }
 
         return $reasons;
+    }
+
+    public function retentionDays(): ?int
+    {
+        $days = filter_var(config('onboarding.subject_retention_days'), FILTER_VALIDATE_INT);
+
+        return $days !== false && $days >= 1 && $days <= 3650 ? $days : null;
     }
 
     public function publicState(): array

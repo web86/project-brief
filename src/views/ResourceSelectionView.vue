@@ -57,12 +57,13 @@ onMounted(loadVersions)
   max-width: 100%;
 }
 .owner-resource-preview select {
-  padding: 12px;
+  padding: 12px var(--select-end) 12px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface);
+  background-color: var(--surface);
   color: var(--text);
   max-width: 100%;
   font: inherit;
+  line-height: var(--select-line-height);
 }
 </style>

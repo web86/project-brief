@@ -356,12 +356,13 @@ loadVersions()
 .inventory-controls select {
   max-width: 100%;
   min-height: 42px;
-  padding: 10px 12px;
+  padding: 10px var(--select-end) 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface);
+  background-color: var(--surface);
   color: var(--text);
   font: inherit;
+  line-height: var(--select-line-height);
 }
 .inventory-summary {
   display: grid;

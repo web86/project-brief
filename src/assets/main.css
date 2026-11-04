@@ -75,6 +75,9 @@
   --on-danger: #fff;
   --input-bg: #fff;
   --input-border: #d0d5dd;
+  --select-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23475467' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --select-end: 34px;
+  --select-line-height: 1.25;
   color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--text);
@@ -85,6 +88,7 @@
   -webkit-font-smoothing: antialiased;
 }
 :root[data-theme='dark'] {
+  --select-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23a7b2c3' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --page: #15191f;
   --text: #e4e9f0;
   --muted: #a7b2c3;
@@ -285,6 +289,34 @@ input,
 textarea,
 select {
   font: inherit;
+}
+/* Native options and keyboard interaction, with one decorative caret on the closed control. */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px var(--select-end) 8px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background-color: var(--input-bg);
+  background-image: var(--select-caret);
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  color: var(--text);
+  -webkit-text-fill-color: currentColor;
+  line-height: var(--select-line-height);
+  text-overflow: ellipsis;
+}
+select:enabled {
+  cursor: pointer;
+}
+select:focus-visible {
+  border-color: var(--focus);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
 }
 button,
 a,
@@ -657,10 +689,10 @@ h2 {
   width: 100%;
   min-width: 0;
   min-height: 38px;
-  padding: 7px 25px 7px 9px;
+  padding: 7px var(--select-end) 7px 9px;
   border: 1px solid var(--input-border);
   border-radius: 5px;
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   color: var(--text-subtle);
   font-size: 14px;
   text-overflow: ellipsis;
@@ -1011,7 +1043,7 @@ textarea,
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   border-color: var(--input-border);
   color: var(--text);
   padding: 10px 12px;
@@ -1021,6 +1053,10 @@ textarea,
 input:not([type='radio']):not([type='file']),
 .field select {
   min-height: 44px;
+}
+.field select {
+  padding-inline-end: var(--select-end);
+  line-height: var(--select-line-height);
 }
 input::placeholder,
 textarea::placeholder {
@@ -1670,6 +1706,9 @@ button.attachment-item:hover {
 .developer-panel select {
   min-height: 40px;
   padding: 8px 10px;
+}
+.developer-panel select {
+  padding-inline-end: var(--select-end);
 }
 .number-with-unit {
   display: flex;
@@ -2457,10 +2496,10 @@ button.attachment-item:hover {
 .theme-switcher select {
   max-width: 100%;
   min-height: 44px;
-  padding: 8px;
+  padding: 8px var(--select-end) 8px 8px;
   border: 1px solid var(--input-border);
   border-radius: 6px;
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   color: var(--text);
   font-size: 14px;
   cursor: pointer;
@@ -2470,7 +2509,7 @@ button.attachment-item:hover {
 }
 .language-switcher select:hover,
 .theme-switcher select:hover {
-  background: var(--control-hover);
+  background-color: var(--control-hover);
 }
 .topbar-inner .admin-nav,
 .topbar-inner > .current-client-name,
@@ -2683,12 +2722,13 @@ button.attachment-item:hover {
 }
 .sidebar-workspace select {
   width: 100%;
-  background: var(--surface);
+  background-color: var(--surface);
   min-height: 40px;
   border: 1px solid var(--control-border);
   border-radius: 7px;
-  padding: 8px 10px;
+  padding: 8px var(--select-end) 8px 10px;
   font: inherit;
+  line-height: var(--select-line-height);
   font-size: 13px;
   color: var(--text);
 }
@@ -4456,12 +4496,13 @@ button.attachment-item:hover {
 }
 .notification-event-recipients select {
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 10px var(--select-end) 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
-  background: var(--surface);
+  background-color: var(--surface);
   font: inherit;
+  line-height: var(--select-line-height);
 }
 .notification-event-recipients select:focus-visible {
   outline: 2px solid var(--focus);
@@ -4767,12 +4808,13 @@ button.attachment-item:hover {
   .mobile-status-filter select {
     width: 100%;
     min-height: 44px;
-    padding: 10px 12px;
+    padding: 10px var(--select-end) 10px 12px;
     border: 1px solid var(--control-border);
     border-radius: 7px;
-    background: var(--surface);
+    background-color: var(--surface);
     color: var(--text);
     font: inherit;
+    line-height: var(--select-line-height);
     font-size: 14px;
   }
 }

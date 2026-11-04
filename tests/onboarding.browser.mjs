@@ -8,7 +8,7 @@ import net from 'node:net'
 import https from 'node:https'
 import http from 'node:http'
 import { createServer } from 'vite'
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const { chromium, webkit, devices } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = new URL('..', import.meta.url).pathname
 const scratch = await mkdtemp(path.join(tmpdir(), 'brief-platform-plans-'))
 const packageRoot = process.env.UX_PACKAGE_ROOT
@@ -333,6 +333,127 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
       if ((await fetch(`http://127.0.0.1:${backendPort}/api/health`)).ok) break
     } catch {}
     await new Promise((r) => setTimeout(r, 100))
+  }
+  if (process.env.UX_SELECT_WEBKIT === '1') {
+    php([
+      '-r',
+      String.raw`
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+if (! $app->environment('testing') || ! str_contains(Illuminate\Support\Facades\DB::getDatabaseName(), 'brief-platform-plans-')) exit(90);
+$user = App\Models\User::where('email', $argv[1])->firstOrFail();
+$workspace = $user->workspaceMembers()->firstOrFail()->workspace;
+$workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
+`,
+      fixture.admin,
+    ])
+    const webkitBrowser = process.env.UX_WEBKIT_ENDPOINT
+      ? await webkit.connect(process.env.UX_WEBKIT_ENDPOINT, { exposeNetwork: '<loopback>' })
+      : await webkit.launch({ headless: true })
+    try {
+      await writeFile(env.QA_STATE_FILE, JSON.stringify({ registrationEnabled: true }))
+      for (const [device, options] of [
+        ['desktop', { viewport: { width: 1440, height: 900 } }],
+        ['ipad', devices['iPad (gen 11)']],
+      ]) {
+        const context = await webkitBrowser.newContext({
+          ...options,
+          ignoreHTTPSErrors: true,
+          colorScheme: 'dark',
+        })
+        await context.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+        await login(context, fixture)
+        const page = await context.newPage()
+        page.on('pageerror', (error) => errors.push(String(error)))
+        for (const [screen, pathname, marker] of [
+          ['projects', '/admin', '.project-list-controls'],
+          ['workspaces', '/platform?section=workspaces', '#platform-period'],
+          ['inventory', '/platform/plans/inventory', '.inventory-controls select'],
+          ['registration', '/platform/plans/registration', '.registration-diagnostics dl'],
+          ['register', '/register', '.registration-form'],
+          ['security', '/admin/account/security', '.account-security-panel'],
+        ]) {
+          await page.goto(origin + pathname)
+          await page.locator(marker).first().waitFor({ timeout: 15_000 })
+          if (screen === 'projects' && (await page.locator('.project-filter-trigger').isVisible()))
+            await page.locator('.project-filter-trigger').click()
+          if (screen === 'registration') {
+            await page.getByText('Operator approval', { exact: true }).waitFor()
+            assert.equal(await page.getByText(/Phase 4B\.2 lifecycle/).count(), 0)
+          }
+          const heights = new Map()
+          for (const theme of ['light', 'dark', 'system']) {
+            const themeSelect = page
+              .locator('.theme-switcher select')
+              .filter({ visible: true })
+              .first()
+            await themeSelect.selectOption(theme)
+            const resolved = theme === 'light' ? 'light' : 'dark'
+            await page.locator('html[data-theme="' + resolved + '"]').waitFor()
+            const selects = await page.locator('select:visible').evaluateAll((elements) =>
+              elements.map((el) => {
+                const css = getComputedStyle(el)
+                const rect = el.getBoundingClientRect()
+                return {
+                  key: el.getAttribute('aria-label') || el.id || el.parentElement.className,
+                  brand: css.getPropertyValue('--action').trim(),
+                  appearance: css.getPropertyValue('-webkit-appearance'),
+                  padding: parseFloat(css.paddingRight),
+                  caret: css.backgroundImage,
+                  lineHeight: parseFloat(css.lineHeight),
+                  height: rect.height,
+                  width: rect.width,
+                  opacity: Number(css.opacity),
+                  decorativePointer: el.parentElement.querySelector('svg')
+                    ? getComputedStyle(el.parentElement.querySelector('svg')).pointerEvents
+                    : null,
+                }
+              }),
+            )
+            assert.ok(selects.length >= 2, device + ' ' + screen)
+            if (screen === 'projects') {
+              assert.ok(
+                selects.some((row) => row.key === 'All statuses' && row.brand === '#0f766e'),
+              )
+              assert.ok(selects.some((row) => row.key === 'Workspace'))
+            }
+            for (const [index, select] of selects.entries()) {
+              assert.equal(select.appearance, 'none', JSON.stringify(select))
+              if (!select.opacity) {
+                assert.equal(select.caret, 'none')
+                assert.equal(select.decorativePointer, 'none')
+              } else {
+                assert.ok(
+                  select.padding >= 30 && select.width > select.padding,
+                  JSON.stringify(select),
+                )
+                assert.match(select.caret, /^url\(/)
+                assert.ok(Number.isFinite(select.lineHeight) && select.lineHeight < select.height)
+              }
+              if (heights.has(index))
+                assert.equal(select.height, heights.get(index), device + ' ' + screen)
+              else heights.set(index, select.height)
+            }
+            const filename = `webkit-${device}-${screen}-${theme}.png`
+            await page.screenshot({ path: path.join(output, filename), timeout: 15_000 })
+            captures.push(filename)
+          }
+          if (screen === 'projects') {
+            await page.locator('.project-filters-extra select').first().selectOption('active')
+            await page.waitForURL('**/admin?status=active')
+          }
+        }
+        await context.close()
+        results.push({
+          scenario:
+            'WebKit ' + device + ' native select appearance and stable heights in three themes',
+          passed: true,
+        })
+      }
+    } finally {
+      await webkitBrowser.close()
+    }
   }
   browser = await chromium.launch({ headless: true })
   const password = 'Browser-registration-only!2026'

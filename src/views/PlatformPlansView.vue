@@ -1192,12 +1192,12 @@ onBeforeUnmount(() => {
 }
 .plans-page select {
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 10px var(--select-end) 10px 12px;
   border: 1px solid var(--input-border);
   border-radius: 6px;
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   color: var(--text);
-  line-height: 1.5;
+  line-height: var(--select-line-height);
 }
 .plans-page fieldset > label {
   margin-block: 0.8rem;

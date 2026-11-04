@@ -22,7 +22,6 @@ onMounted(load)
 <template>
   <section class="platform-page registration-diagnostics">
     <h1>{{ t('onboarding.diagnostics') }}</h1>
-    <p class="notice">{{ t('onboarding.lifecycleWarning') }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
     <LoadingButton class="button secondary" :busy="busy" @click="load">{{
       t('onboarding.refresh')
@@ -34,12 +33,44 @@ onMounted(load)
       </div>
       <div>
         <dt>{{ t('onboarding.activationStatus') }}</dt>
-        <dd>{{ t('onboarding.disabled') }}</dd>
+        <dd>{{ t('onboarding.' + (state.trialActivation ? 'yes' : 'disabled')) }}</dd>
       </div>
-      <div v-for="key in ['emailReady', 'studioReady', 'basicReady', 'policyReady']" :key="key">
-        <dt>{{ t('onboarding.' + key) }}</dt>
-        <dd>{{ t('onboarding.' + (state[key] ? 'yes' : 'no')) }}</dd>
+      <div>
+        <dt>{{ t('onboarding.emailReady') }}</dt>
+        <dd>{{ t('onboarding.' + (state.emailReady ? 'yes' : 'no')) }}</dd>
       </div>
+      <template v-if="state.canary">
+        <div v-for="key in ['studioVersion', 'basicVersion', 'policyVersion']" :key="key">
+          <dt>{{ t('onboarding.' + key) }}</dt>
+          <dd>{{ state.canary[key] ?? t('onboarding.notPublished') }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('onboarding.canaryConfiguration') }}</dt>
+          <dd>{{ t('onboarding.' + (state.canary.configurationReady ? 'yes' : 'no')) }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('onboarding.retention') }}</dt>
+          <dd>{{ state.canary.retentionDays ?? t('onboarding.no') }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('onboarding.pendingVerifiedClaims') }}</dt>
+          <dd>{{ state.canary.pendingVerifiedClaims }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('onboarding.operatorApproval') }}</dt>
+          <dd>{{ t('onboarding.approval.' + state.canary.operatorApproval) }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('onboarding.approvedPendingClaims') }}</dt>
+          <dd>{{ state.canary.approvedPendingClaims }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('onboarding.canaryAdmission') }}</dt>
+          <dd>
+            {{ t('onboarding.' + (state.canary.admissionEnabled ? 'switchOn' : 'disabled')) }}
+          </dd>
+        </div>
+      </template>
       <div v-for="(ready, provider) in state.providers" :key="provider">
         <dt>{{ t('onboarding.' + provider) }}</dt>
         <dd>{{ t('onboarding.' + (ready ? 'yes' : 'no')) }}</dd>
@@ -65,7 +96,7 @@ onMounted(load)
     <details v-if="state">
       <summary>{{ t('onboarding.reasons') }}</summary>
       <ul>
-        <li v-for="code in state.reasonCodes" :key="code">
+        <li v-for="code in state.canary?.reasonCodes" :key="code">
           <code>{{ code }}</code>
         </li>
         <li v-for="(count, code) in state.claimReasons" :key="code">
@@ -80,12 +111,6 @@ onMounted(load)
   max-width: 1000px;
   display: grid;
   gap: 20px;
-}
-.notice {
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--selected-bg);
 }
 dl {
   display: grid;
