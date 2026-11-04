@@ -4,7 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { demo, STATIC_DEMO } from '../services/demo.js'
 import { t, locale } from '../i18n/index.js'
-import { onboardingError, pendingRegistrationEmail } from '../services/onboarding.js'
+import {
+  onboardingError,
+  pendingRegistrationEmail,
+  verificationResendAfter,
+} from '../services/onboarding.js'
 import LoadingButton from '../components/LoadingButton.vue'
 import SocialSignIn from '../components/SocialSignIn.vue'
 import AppIcon from '../components/AppIcon.vue'
@@ -92,6 +96,7 @@ async function submit(event) {
         },
       })
       pendingRegistrationEmail.value = email.value.trim()
+      verificationResendAfter.value = Date.now() + 60_000
       password.value = ''
       confirmation.value = ''
       if (current) await router.replace('/admin/verify-email')

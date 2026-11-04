@@ -381,19 +381,85 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
   await retryPage.locator('.registration-closed').waitFor()
   await retryContext.close()
   await writeFile(env.QA_STATE_FILE, JSON.stringify({ registrationEnabled: true }))
+  await ownerPage.getByRole('heading', { name: 'Check your email' }).waitFor()
+  assert.equal(
+    await ownerPage.locator('.verification-address').textContent(),
+    'browser-owner@example.test',
+  )
+  assert.equal(await ownerPage.locator('.onboarding-page input').count(), 0)
+  assert.equal(await ownerPage.getByRole('button', { name: 'Resend email' }).isDisabled(), true)
   await capture(ownerPage, 'en-email-pending.png')
   const mail = JSON.parse(await readFile(env.QA_MAIL_FILE, 'utf8'))
   assert.equal(mail.email, 'browser-owner@example.test')
+  const wrongContext = await createContext()
+  await login(wrongContext, fixture)
+  const wrongPage = await wrongContext.newPage()
+  await wrongPage.goto(mail.url)
+  await wrongPage.getByRole('heading', { name: 'This link could not be confirmed' }).waitFor()
+  await wrongPage.getByRole('button', { name: 'Use another account' }).click()
+  await wrongPage.getByRole('heading', { name: 'Sign in to confirm your email' }).waitFor()
+  assert.equal(new URL(wrongPage.url()).hash, new URL(mail.url).hash)
+  await wrongContext.close()
+
+  // Only the fragment changes, on the same SPA route.
   await ownerPage.goto(mail.url)
-  await ownerPage.locator('.onboarding-form input[type=email]').first().fill(mail.email)
+  await ownerPage.getByRole('heading', { name: 'Sign in to confirm your email' }).waitFor()
+  assert.equal(await ownerPage.getByRole('button', { name: 'Resend email' }).count(), 0)
+  await ownerPage.reload()
+  await ownerPage.getByRole('heading', { name: 'Sign in to confirm your email' }).waitFor()
+  await ownerPage.locator('.onboarding-form input[type=email]').fill(mail.email)
   await ownerPage.locator('.onboarding-form input[type=password]').fill(password)
-  await ownerPage.locator('.onboarding-form button[type=submit]').first().click()
+  await ownerPage.getByRole('button', { name: 'Sign in', exact: true }).click()
   await ownerPage.waitForURL('**/admin/security')
   assert.equal(new URL(ownerPage.url()).hash, '')
   assert.equal(
     await ownerPage.locator('.passkeys-section, .social-connections, .recovery-section').count(),
     0,
   )
+  const replayPage = await ownerContext.newPage()
+  await replayPage.goto(mail.url)
+  await replayPage.getByRole('heading', { name: 'Email confirmed', exact: true }).waitFor()
+  assert.equal(new URL(replayPage.url()).hash, '')
+  assert.equal(await replayPage.locator('.onboarding-page form').count(), 0)
+  await replayPage.getByRole('button', { name: 'Continue', exact: true }).click()
+  await replayPage.waitForURL('**/admin/security')
+  await replayPage.close()
+
+  const tabContext = await createContext()
+  await tabContext.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+  const tabEmail = 'tab-owner@example.test'
+  assert.equal(
+    (
+      await call(tabContext, '/api/onboarding/register', 'POST', {
+        email: tabEmail,
+        password,
+        password_confirmation: password,
+      })
+    ).status(),
+    202,
+  )
+  const tabMail = JSON.parse(await readFile(env.QA_MAIL_FILE, 'utf8'))
+  assert.equal(tabMail.email, tabEmail)
+  assert.equal(
+    (await call(tabContext, '/api/admin/login', 'POST', { email: tabEmail, password })).status(),
+    200,
+  )
+  const waitingPage = await tabContext.newPage()
+  await waitingPage.goto(origin + '/admin/verify-email#token=' + 'a'.repeat(64))
+  await waitingPage.getByRole('heading', { name: 'This link could not be confirmed' }).waitFor()
+  await waitingPage.getByRole('button', { name: 'Request a new link' }).click()
+  await waitingPage.getByRole('heading', { name: 'Check your email' }).waitFor()
+  assert.equal(await waitingPage.getByRole('button', { name: 'Resend email' }).count(), 1)
+  const tabPage = await tabContext.newPage()
+  await tabPage.goto(tabMail.url)
+  await tabPage.waitForURL('**/admin/security')
+  assert.equal(await tabPage.locator('.onboarding-form').count(), 0)
+  await tabContext.close()
+  results.push({
+    scenario:
+      'verification fragment, reload, wrong session, replay and automatic confirmation in another tab',
+    passed: true,
+  })
   await capture(ownerPage, 'en-authenticator-step.png')
   await ownerPage.getByRole('button', { name: 'Set up authenticator', exact: true }).click()
   const uri = await ownerPage.locator('#totp-uri').inputValue()
@@ -437,6 +503,21 @@ app(\App\Services\AuthOnboarding::class)->pending($user);$user->forceFill(['emai
       .count(),
     0,
   )
+  const mfaReplay = await createContext()
+  await mfaReplay.addInitScript(() => localStorage.setItem('projectbrief.locale', 'en'))
+  const mfaReplayPage = await mfaReplay.newPage()
+  await mfaReplayPage.goto(mail.url)
+  await mfaReplayPage.locator('.onboarding-form input[type=email]').fill(mail.email)
+  await mfaReplayPage.locator('.onboarding-form input[type=password]').fill(password)
+  await mfaReplayPage.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await mfaReplayPage.locator('#security-code').waitFor()
+  await mfaReplayPage.reload()
+  await mfaReplayPage.getByRole('button', { name: 'Use a recovery code' }).click()
+  await mfaReplayPage.locator('#security-code').fill(recoveryCodes[3])
+  await mfaReplayPage.getByRole('button', { name: 'Confirm identity' }).click()
+  await mfaReplayPage.getByRole('heading', { name: 'Email confirmed', exact: true }).waitFor()
+  assert.equal(await mfaReplayPage.locator('.onboarding-page form').count(), 0)
+  await mfaReplay.close()
   await capture(ownerPage, 'en-completion.png')
   await ownerPage.reload()
   await ownerPage.locator('.readiness-checks').waitFor()
