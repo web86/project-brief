@@ -18,7 +18,7 @@ export async function platformStepUpScenario({
   const dialog = page
     .locator('dialog[open]')
     .filter({ has: page.locator('#security-step-up-title') })
-  const stale = (resetPlatformBudget = false) =>
+  const platformProofFixture = (mode = 'otp') =>
     php([
       '-r',
       String.raw`
@@ -27,16 +27,17 @@ $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 if (! $app->environment('testing') || ! str_contains(Illuminate\Support\Facades\DB::getDatabaseName(), 'brief-platform-plans-')) exit(90);
 $user = App\Models\User::where('email', $argv[1])->firstOrFail();
-if ($argv[2] === 'fresh-budget') {
+if ($argv[2] !== 'otp') {
     Illuminate\Support\Facades\RateLimiter::clear(md5('platformuser:'.$user->id));
 }
+if ($argv[2] === 'budget-only') exit;
 Illuminate\Support\Facades\DB::table('account_security_challenges')->where('user_id', $user->id)->where('purpose', 'step_up')->update(['expires_at' => now()->subMinute()]);
 $user->forceFill(['last_totp_step' => null])->save();
 $secret = Laravel\Fortify\Fortify::currentEncrypter()->decrypt($user->two_factor_secret);
 echo app(PragmaRX\Google2FA\Google2FA::class)->getCurrentOtp($secret);
 `,
       fixture.admin,
-      resetPlatformBudget ? 'fresh-budget' : '',
+      mode,
     ]).trim()
   const noFallback = () => page.locator('#bootstrap-fallback').waitFor({ state: 'hidden' })
   const waitForCatalog = () =>
@@ -65,7 +66,7 @@ $actor->passkeys()->delete();
     ])
     const manual = JSON.parse(php(['tests/platform-plans-fixture.php', 'manual-ux']))
     await login(context, fixture)
-    stale()
+    platformProofFixture()
     assert.equal((await call(context, '/api/security/status')).status(), 200)
     for (const endpoint of ['overview', 'plan-access'])
       assert.equal((await call(context, '/api/platform/' + endpoint)).status(), 200)
@@ -98,7 +99,7 @@ $actor->passkeys()->delete();
       await card.locator('summary').click()
       await card.getByRole('button', { name: 'Create a new draft' }).click({ noWaitAfter: true })
     }
-    const otp = stale(true)
+    const otp = platformProofFixture('fresh-budget')
     await draftAction('studio')
     await dialog.locator('#security-code').fill(otp)
     await dialog.getByRole('button', { name: 'Confirm identity', exact: true }).click()
@@ -263,7 +264,7 @@ $actor->passkeys()->delete();
     await wizard.getByRole('checkbox', { name: 'Design project 10' }).uncheck()
     await wizard.getByRole('checkbox', { name: 'Design project 12' }).check()
 
-    const previewOtp = stale(true)
+    const previewOtp = platformProofFixture('fresh-budget')
     await wizard.getByRole('button', { name: 'Review assignment', exact: true }).click()
     await dialog.getByText('Confirm your identity. Confirmation lasts for 10 minutes.').waitFor()
     await dialog.locator('#security-code').fill(previewOtp)
@@ -302,6 +303,7 @@ $actor->passkeys()->delete();
     assert.equal(resulting.usage['projects.active.max'].count, 10)
     assert.equal(resulting.usage['agents.active.max'].count, 1)
 
+    platformProofFixture('budget-only')
     const subscriptionLink = (workspace) =>
       origin + '/platform?section=workspaces&workspace=' + workspace + '&view=subscription'
     const current = page.locator('.subscription-current')
@@ -346,6 +348,7 @@ $actor->passkeys()->delete();
       assert.equal(subscription.endsAt === null, plan === 'Basic')
     }
 
+    platformProofFixture('budget-only')
     for (const [status, diagnostic] of [
       [401, '/admin/login'],
       [403, '/admin/unavailable?reason=permission'],
@@ -417,7 +420,7 @@ $actor->passkeys()->delete();
         confirmation.push({ path, status, code: payload.code })
       })
       // The rapid TOTP/reload scenarios can consume the operator's minute budget.
-      stale(true)
+      platformProofFixture('fresh-budget')
       await page.goto(origin + '/platform/plans', { waitUntil: 'domcontentloaded' })
       await draftAction('basic')
       const retry = dialog.getByRole('button', { name: 'Retry with Passkey', exact: true })
