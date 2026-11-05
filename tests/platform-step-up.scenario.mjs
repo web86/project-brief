@@ -200,6 +200,22 @@ $actor->passkeys()->delete();
       .locator('.subscription-current')
       .getByRole('heading', { name: 'Studio', exact: true })
       .waitFor()
+    await page.route(
+      '**/api/platform/workspaces/*?view=resources',
+      (route) =>
+        route.fulfill({
+          status: 429,
+          headers: { 'Retry-After': '2' },
+          json: { code: 'rate_limited' },
+        }),
+      { times: 1 },
+    )
+    await page.locator('.workspace-tabs').getByRole('link', { name: 'Resources' }).click()
+    await page.getByText(/Try again in [12] s/).waitFor()
+    await page.locator('.workspace-tabs').getByRole('link', { name: 'Diagnostics' }).click()
+    await page.getByRole('button', { name: 'Try again', exact: true }).click()
+    await page.locator('.workspace-diagnostics').waitFor()
+    await page.locator('.workspace-tabs').getByRole('link', { name: 'Subscription' }).click()
     await page.getByRole('button', { name: 'Change plan', exact: true }).click()
     const wizard = page.locator('dialog[aria-labelledby="subscription-change-title"]')
     for (const plan of ['Basic', 'Freelancer', 'Studio'])

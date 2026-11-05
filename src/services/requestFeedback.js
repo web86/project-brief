@@ -27,7 +27,7 @@ export function useRequestFeedback() {
     active?.abort()
     active = null
     busy.value = false
-    error.value = null
+    if (!retrySeconds.value) error.value = null
   }
 
   async function run(operation) {

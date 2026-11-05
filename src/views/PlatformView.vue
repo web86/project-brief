@@ -23,6 +23,7 @@ const period = ref('24h')
 const search = ref('')
 const page = ref(1)
 const data = ref(null)
+const displayedPage = computed(() => data.value?.current_page ?? page.value)
 const { busy, error, retrySeconds, run, cancel } = useRequestFeedback()
 const number = (value) =>
   new Intl.NumberFormat(intlLocale(), { maximumFractionDigits: 2 }).format(Number(value || 0))
@@ -291,15 +292,15 @@ watch(period, () => paginate(1))
       >
         <button
           class="button secondary"
-          :disabled="busy || retrySeconds > 0 || page <= 1"
-          @click="paginate(page - 1)"
+          :disabled="busy || retrySeconds > 0 || displayedPage <= 1"
+          @click="paginate(displayedPage - 1)"
         >
           {{ t('platform.previous') }}</button
-        ><span>{{ page }} / {{ data.last_page }}</span
+        ><span>{{ displayedPage }} / {{ data.last_page }}</span
         ><button
           class="button secondary"
-          :disabled="busy || retrySeconds > 0 || page >= data.last_page"
-          @click="paginate(page + 1)"
+          :disabled="busy || retrySeconds > 0 || displayedPage >= data.last_page"
+          @click="paginate(displayedPage + 1)"
         >
           {{ t('platform.next') }}
         </button>

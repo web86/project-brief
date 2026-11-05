@@ -698,7 +698,9 @@ require __DIR__.'/../vendor/autoload.php';
     return panel
   }
   const freezeSelection = async (panel) => {
-    await panel.getByRole('button', { name: 'Preview resource selection', exact: true }).click()
+    await panel
+      .getByRole('button', { name: /^(Preview resource selection|Freeze preview)$/ })
+      .click()
     await panel.locator('.frozen-summary').waitFor()
   }
   const apply = async (panel, title, expectedPath) => {
