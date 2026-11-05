@@ -3207,6 +3207,7 @@ button.attachment-item:hover {
     width: 44px;
     height: 44px;
     border-radius: 6px;
+    overflow: hidden;
   }
   .theme-switcher > svg,
   .language-switcher > svg {

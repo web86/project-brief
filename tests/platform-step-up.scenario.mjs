@@ -180,9 +180,39 @@ $actor->passkeys()->delete();
           await ownerPage.locator('html').getAttribute('data-theme'),
           theme === 'system' ? 'dark' : theme,
         )
-        assert.ok(
-          await ownerPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
-        )
+        const overflow = await ownerPage.evaluate(() => {
+          if (document.documentElement.scrollWidth <= innerWidth + 1) return null
+          const elements = Array.from(document.querySelectorAll('body *'))
+            .map((element) => {
+              const box = element.getBoundingClientRect()
+              return {
+                element: element.tagName,
+                classes: element.getAttribute('class'),
+                right: box.right,
+                left: box.left,
+                width: box.width,
+                scrollWidth: element.scrollWidth,
+                clientWidth: element.clientWidth,
+                overflowX: getComputedStyle(element).overflowX,
+                text:
+                  element.childElementCount === 0 ? element.textContent?.slice(0, 90) : undefined,
+              }
+            })
+            .filter(
+              (row) =>
+                row.width &&
+                (row.right > innerWidth + 1 ||
+                  (row.overflowX === 'visible' &&
+                    row.left + row.scrollWidth > innerWidth + 1 &&
+                    row.scrollWidth > row.clientWidth)),
+            )
+          return {
+            viewport: innerWidth,
+            document: document.documentElement.scrollWidth,
+            elements: elements.slice(-16),
+          }
+        })
+        assert.equal(overflow, null, locale + '/' + theme + ' ' + JSON.stringify(overflow))
       }
     } finally {
       await ownerContext.close()
