@@ -111,15 +111,16 @@ Route::middleware([EnsurePlatformAdmin::class, 'throttle:platform'])->group(func
 });
 
 foreach (['platform', 'admin'] as $persona) {
-    $middleware = $persona === 'platform' ? [EnsurePlatformAdmin::class, 'throttle:platform'] : ['admin', 'throttle:account-security'];
+    $middleware = $persona === 'platform' ? [EnsurePlatformAdmin::class, 'throttle:platform'] : ['admin'];
     $prefix = $persona === 'platform' ? '/api/platform/workspaces/{workspace}/resource-selection' : '/api/admin/resource-selection';
     Route::middleware($middleware)->prefix($prefix)->group(function () use ($persona): void {
         if ($persona === 'admin') {
-            Route::post('/rearm', [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', 'rearm');
+            Route::get('/summary', [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', 'summary')->middleware('throttle:subscription-read');
+            Route::post('/rearm', [ResourceSelectionController::class, 'handle'])->middleware('throttle:account-security')->defaults('preparationKind', 'rearm');
             Route::post('/previews/{preview}/apply-basic', [ResourceSelectionController::class, 'handle'])
-                ->defaults('preparationKind', 'apply-basic')->whereUuid('preview');
+                ->middleware('throttle:account-security')->defaults('preparationKind', 'apply-basic')->whereUuid('preview');
             Route::post('/previews/{preview}/restore-paid', [ResourceSelectionController::class, 'handle'])
-                ->defaults('preparationKind', 'restore-paid')->whereUuid('preview');
+                ->middleware('throttle:account-security')->defaults('preparationKind', 'restore-paid')->whereUuid('preview');
         } else {
             Route::get('/manual', [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', 'manual-options');
             Route::post('/manual/previews', [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', 'manual-preview');
@@ -129,7 +130,10 @@ foreach (['platform', 'admin'] as $persona) {
                 ->defaults('preparationKind', 'approve-paid')->whereUuid(['workspace', 'preview']);
         }
         foreach ([['get', '', 'options'], ['get', '/versions', 'versions'], ['post', '/previews', 'create'], ['get', '/previews/{preview}', 'read'], ['get', '/accounting-review', 'review-list'], ['post', '/accounting-review', 'review']] as [$method, $path, $kind]) {
-            Route::{$method}($path, [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', $kind)->whereUuid(['workspace', 'preview']);
+            $route = Route::{$method}($path, [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', $kind)->whereUuid(['workspace', 'preview']);
+            if ($persona === 'admin') {
+                $route->middleware($method === 'get' ? 'throttle:subscription-read' : 'throttle:account-security');
+            }
         }
     });
 }

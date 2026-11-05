@@ -121,10 +121,10 @@ final class SubscriptionAssignments
         return ['id' => $outcome['uuid'], 'revision' => (string) $outcome['after'], 'state' => $outcome['state'] ?? 'applied', 'effectiveAt' => $outcome['effectiveAt'] ?? null];
     }
 
-    public function manualVersions(): array
+    public function manualVersions(bool $public = false, bool $includeLimits = false): array
     {
         return PlanVersion::where('state', 'published')->with('plan')
-            ->whereHas('plan', fn ($query) => $query->whereIn('code', ['basic', 'freelancer', 'studio'])->where('status', 'published')->whereColumn('plans.published_version_id', 'plan_versions.id'))
+            ->whereHas('plan', fn ($query) => $query->whereIn('code', ['basic', 'freelancer', 'studio'])->where('status', 'published')->whereColumn('plans.published_version_id', 'plan_versions.id')->when($public, fn ($plan) => $plan->where('visibility', 'public')))
             ->where(fn ($query) => $query->where(fn ($free) => $free->where('access_class', 'free')->whereHas('plan', fn ($plan) => $plan->where('code', 'basic')))
                 ->orWhere(fn ($paid) => $paid->where('access_class', 'paid')->whereHas('plan', fn ($plan) => $plan->whereIn('code', ['freelancer', 'studio']))))
             ->sharedLock()->get()->map(fn (PlanVersion $version): array => [
@@ -132,6 +132,7 @@ final class SubscriptionAssignments
                 'code' => $version->plan->code,
                 'translations' => $version->translations_json,
                 'accessClass' => $version->access_class,
+                ...($includeLimits ? ['limits' => app(ResourceSelections::class)->target($version->uuid, $public)['limits']] : []),
             ])->sortBy('code')->values()->all();
     }
 

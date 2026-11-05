@@ -46,6 +46,7 @@ class AccountSecurityController extends Controller
             'totp' => $user?->hasEnabledTwoFactorAuthentication() ?? false,
             'recoverySaved' => (bool) $user?->recovery_codes_acknowledged_at,
             'fresh' => $fresh,
+            'stepUpMinutes' => $this->security->stepUpMinutes($user),
             'freshFor' => $fresh ? max(0, min($ttl, (int) $request->session()->get('security.step_up.at') + $ttl - now()->timestamp)) : 0,
             'confirmationContext' => $this->security->confirmationContext($request),
             'setupFresh' => $this->security->setupFresh($request),

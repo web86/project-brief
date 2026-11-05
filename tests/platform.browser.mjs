@@ -174,7 +174,7 @@ try {
       await page.goto(origin + '/platform')
       await page.locator('.platform-stats').waitFor()
       if (locale === 'en' && theme === 'light') await capture(page, 'en-light-overview.png')
-      await page.locator('.platform-tabs button').nth(1).click()
+      await page.goto(origin + '/platform?section=workspaces')
       await page.locator('.platform-table tbody tr').first().waitFor()
       assert.equal(await page.locator('.platform-table tbody tr').count(), 25)
       await page.locator('.platform-pagination button').last().click()
@@ -186,13 +186,13 @@ try {
       await page.waitForFunction(
         () => document.querySelectorAll('.platform-table tbody tr').length === 1,
       )
-      await page.locator('.platform-table tbody button').click()
+      await page.locator('.platform-table tbody a').click()
       await page.locator('#workspace-details').waitFor()
       if (locale === 'en' && theme === 'light') await capture(page, 'en-light-detail.png')
       assert.ok(
         !(await page.locator('.platform-page').innerText()).includes('PRIVATE PROJECT BODY'),
       )
-      await page.locator('.platform-tabs button').nth(2).click()
+      await page.goto(origin + '/platform?section=usage')
       await page.locator('.platform-table code').waitFor()
       assert.ok(
         (await page.locator('.platform-table').innerText()).includes('/api/v1/projects/{uuid}'),
@@ -205,19 +205,16 @@ try {
         `${locale}/${theme}: horizontal page overflow`,
       )
       await capture(page, `${locale}-${theme}-usage.png`)
-      await page.locator('.platform-tabs button').nth(3).click()
+      await page.goto(origin + '/platform?section=audit')
       await page.locator('.platform-table tbody tr').first().waitFor()
       results.push({ locale, theme, viewport: mobile ? 'mobile' : 'desktop', passed: true })
       if (locale === 'en' && theme === 'light') {
         php(['tests/platform-fixture.php', 'expire'])
-        assert.equal((await call(context, '/api/platform/overview')).status(), 423)
-        // A stale proof invokes the existing shared confirmation dialog for GET diagnostics.
-        await page.locator('.platform-tabs button').nth(0).click()
-        await page
-          .locator('.security-step-up-dialog, .security-step-up, dialog[open]')
-          .first()
-          .waitFor()
-        results.push({ expiredProofDialog: true })
+        assert.equal((await call(context, '/api/platform/overview')).status(), 200)
+        await page.goto(origin + '/platform')
+        await page.locator('.platform-stats').waitFor()
+        assert.equal(await page.locator('dialog[open]').count(), 0)
+        results.push({ expiredProofRead: true })
       }
       await context.close()
       // Existing login throttle is deliberately preserved: reset only disposable QA cache.

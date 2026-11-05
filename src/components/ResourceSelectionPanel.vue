@@ -1,16 +1,33 @@
 <script setup>
 import { ref, watch, computed, onBeforeUnmount } from 'vue'
 import { api } from '../api/client.js'
-import { t, i18n, locale, formatApiError } from '../i18n/index.js'
+import { t, i18n, formatApiError } from '../i18n/index.js'
 import LoadingButton from './LoadingButton.vue'
+import SubscriptionLoadError from './SubscriptionLoadError.vue'
+import { useRequestFeedback } from '../services/requestFeedback.js'
 const props = defineProps({
   workspaceId: String,
   platform: Boolean,
   targetId: String,
-  manual: Boolean,
+  embedded: Boolean,
 })
 const l = (k) => t('preparation.' + k)
-const m = (k) => t('manualSubscription.' + k)
+const emit = defineEmits(['changed'])
+const { error: rateError, retrySeconds, failed } = useRequestFeedback()
+const retryAction = ref(null)
+function handleError(cause, retry, message = () => formatApiError(cause)) {
+  if (cause.status === 429) {
+    failed(cause)
+    retryAction.value = retry
+  } else if (cause.code !== 'security_confirmation_cancelled') {
+    error.value = message()
+  }
+}
+function clearError() {
+  error.value = ''
+  rateError.value = null
+  retryAction.value = null
+}
 const reasonLabel = (code) => {
   for (const prefix of ['preparation.reasons.', 'inventory.reasons.'])
     if (i18n.global.te(prefix + code, 'en')) return t(prefix + code)
@@ -32,21 +49,14 @@ const options = ref(null),
   reason = ref('operator_verified'),
   confirmed = ref(false),
   serviceDays = ref(30),
-  paidReason = ref(''),
-  manualTarget = ref(''),
-  endDate = ref(''),
-  replaceActivePeriod = ref(false)
-const targetId = computed(() => (props.manual ? manualTarget.value : props.targetId))
-const manualVersion = computed(() =>
-  options.value?.assignableVersions?.find((version) => version.id === targetId.value),
-)
-const canSelect = computed(() => options.value && (!props.manual || manualVersion.value))
-const paidTarget = computed(() => manualVersion.value?.accessClass === 'paid')
-const today = () => new Date().toISOString().slice(0, 10)
+  paidReason = ref('')
+const targetId = computed(() => props.targetId)
+const canSelect = computed(() => !!options.value)
 const approval = computed(() => frozen.value?.availableAction || null)
 const rearmGroups = computed(() => options.value?.rearmGroups || [])
 const featureNames = { agent: 'AI Agent API', api: 'External API', sso: 'SSO', webhook: 'Webhooks' }
 let approvalIntent = null
+let controller
 let epoch = 0,
   intent = null,
   targetEpoch = 0,
@@ -62,32 +72,29 @@ function rows(group) {
   return group === 'clients' ? clients.value : options.value.resources[group]
 }
 async function load() {
+  if (retrySeconds.value) return
   const current = ++epoch
+  controller?.abort()
+  controller = new AbortController()
   busy.value = true
-  error.value = ''
+  clearError()
   frozen.value = null
   reviews.value = []
   confirmation.value = ''
   reviewIntents.clear()
   notice.value = ''
-  options.value = null
   intent = null
   approvalIntent = null
   confirmed.value = false
   try {
-    const r = await api.request(prefix.value + (props.manual ? '/manual' : ''))
+    const r = await api.request(prefix.value, { signal: controller.signal })
     if (epoch !== current) return
     options.value = r.data
-    if (props.manual) {
-      manualTarget.value = ''
-      endDate.value = ''
-      replaceActivePeriod.value = false
-    }
     selection.value = Object.fromEntries(
       groups.map((g) => [g, r.data.resources[g].map((v) => v.id).filter(Boolean)]),
     )
   } catch (e) {
-    if (epoch === current) error.value = formatApiError(e)
+    if (epoch === current) handleError(e, load)
   } finally {
     if (epoch === current) busy.value = false
   }
@@ -101,12 +108,13 @@ function changed() {
   )
 }
 async function freeze() {
+  if (busy.value || retrySeconds.value || !options.value || !targetId.value) return
   confirmed.value = false
   const current = epoch
   const target = targetEpoch
   const url = prefix.value
   busy.value = true
-  error.value = ''
+  clearError()
   notice.value = ''
   const body = {
     targetVersionId: targetId.value,
@@ -115,7 +123,7 @@ async function freeze() {
   const hash = JSON.stringify(body)
   if (!intent || intent.hash !== hash) intent = { hash, key: crypto.randomUUID() }
   try {
-    const r = await api.request(url + (props.manual ? '/manual/previews' : '/previews'), {
+    const r = await api.request(url + '/previews', {
       method: 'POST',
       body,
       headers: {
@@ -128,30 +136,31 @@ async function freeze() {
     intent = null
   } catch (e) {
     if (current === epoch && target === targetEpoch)
-      error.value = e.status === 409 ? l('expired') : formatApiError(e)
+      handleError(e, freeze, () => (e.status === 409 ? l('expired') : formatApiError(e)))
   } finally {
     if (current === epoch) busy.value = false
   }
 }
 async function verify() {
+  if (busy.value || retrySeconds.value) return
   const current = epoch
   const target = targetEpoch
   busy.value = true
-  error.value = ''
+  clearError()
   try {
     await api.request(prefix.value + '/previews/' + frozen.value.id)
     if (current !== epoch || target !== targetEpoch) return
     notice.value = l(approval.value ? 'approvalVerified' : 'verified')
   } catch (e) {
     if (current !== epoch || target !== targetEpoch) return
-    error.value = e.status === 409 ? l('expired') : formatApiError(e)
-    frozen.value = null
+    handleError(e, verify, () => (e.status === 409 ? l('expired') : formatApiError(e)))
+    if (e.status === 409) frozen.value = null
   } finally {
     if (current === epoch) busy.value = false
   }
 }
 async function apply(action) {
-  if (!confirmed.value || busy.value) return
+  if (!confirmed.value || busy.value || retrySeconds.value) return
   const current = epoch
   const preview = frozen.value
   const isRearm = action === 'rearm'
@@ -159,19 +168,14 @@ async function apply(action) {
   const revision = isRearm ? options.value.subscriptionRevision : preview.subscriptionRevision
   const body = isRearm
     ? { groups: rearmGroups.value }
-    : action === 'assign-manual'
-      ? {
-          endDate: paidTarget.value ? endDate.value : null,
-          replaceActivePeriod: replaceActivePeriod.value,
-        }
-      : action === 'approve-paid'
-        ? { serviceDays: serviceDays.value, reason: paidReason.value }
-        : {}
+    : action === 'approve-paid'
+      ? { serviceDays: serviceDays.value, reason: paidReason.value }
+      : {}
   const fingerprint = JSON.stringify([url, revision, body])
   if (approvalIntent?.fingerprint !== fingerprint)
     approvalIntent = { fingerprint, key: crypto.randomUUID() }
   busy.value = true
-  error.value = ''
+  clearError()
   notice.value = ''
   try {
     const result = await api.request(url, {
@@ -183,6 +187,7 @@ async function apply(action) {
       },
     })
     if (epoch !== current) return
+    emit('changed')
     await load()
     if (epoch === current + 1)
       notice.value =
@@ -191,12 +196,11 @@ async function apply(action) {
           : l('approvalSaved')
   } catch (cause) {
     if (epoch !== current) return
-    const manualError = props.manual && i18n.global.te('manualSubscription.' + cause.code, 'en')
-    error.value = manualError
-      ? m(cause.code)
-      : cause.status === 409
-        ? l('expired')
-        : formatApiError(cause)
+    handleError(
+      cause,
+      () => apply(action),
+      () => (cause.status === 409 ? l('expired') : formatApiError(cause)),
+    )
     if (cause.status === 409) {
       frozen.value = null
       confirmed.value = false
@@ -206,18 +210,20 @@ async function apply(action) {
   }
 }
 async function reviewList() {
+  if (retrySeconds.value) return
   const current = epoch
   try {
     const response = await api.request(prefix.value + '/accounting-review')
     if (current === epoch) reviews.value = response.data
   } catch (e) {
-    if (current === epoch) error.value = formatApiError(e)
+    if (current === epoch) handleError(e, reviewList)
   }
 }
 async function review(row, action) {
+  if (busy.value || retrySeconds.value) return
   const current = epoch
   busy.value = true
-  error.value = ''
+  clearError()
   const body = {
     clientId: row.clientId,
     action,
@@ -242,76 +248,42 @@ async function review(row, action) {
     notice.value = l('reviewSaved')
     await reviewList()
   } catch (e) {
-    if (current === epoch) error.value = e.status === 409 ? l('inputChanged') : formatApiError(e)
+    if (current === epoch)
+      handleError(
+        e,
+        () => review(row, action),
+        () => (e.status === 409 ? l('inputChanged') : formatApiError(e)),
+      )
   } finally {
     if (current === epoch) busy.value = false
   }
 }
 onBeforeUnmount(() => {
+  controller?.abort()
   epoch++
 })
-watch(() => [props.workspaceId, props.platform], load, { immediate: true })
+watch(
+  () => [props.workspaceId, props.platform],
+  () => {
+    options.value = null
+    load()
+  },
+  { immediate: true },
+)
 watch(targetId, () => {
   targetEpoch++
   confirmed.value = false
-  replaceActivePeriod.value = false
   frozen.value = null
   intent = null
 })
 </script>
 <template>
   <section class="resource-selection" :aria-busy="busy">
-    <section v-if="(!props.platform || props.manual) && options" class="subscription-overview">
-      <template v-if="options.subscription">
-        <h2>
-          {{
-            options.subscription.translations[locale]?.name ||
-            options.subscription.translations.en.name
-          }}
-        </h2>
-        <p>{{ t('account.subscriptionPhase.' + options.subscription.phase) }}</p>
-        <p v-if="props.manual">
-          {{ m('started') }} ·
-          <time :datetime="options.subscription.startsAt">{{ options.subscription.startsAt }}</time>
-        </p>
-        <p v-if="options.subscription.endsAt">
-          {{ l('expires') }} ·
-          <time :datetime="options.subscription.endsAt">{{ options.subscription.endsAt }}</time>
-        </p>
-        <p v-else-if="props.manual">{{ m('noEnd') }}</p>
-        <dl>
-          <div v-for="(limit, key) in options.subscription.limits" :key="key">
-            <dt>{{ t('inventory.resources.' + key) }}</dt>
-            <dd>
-              {{ options.usage[key]?.state === 'ready' ? options.usage[key].count : '—' }} /
-              {{ limit.kind === 'unlimited' ? l('unlimited') : limit.value }}
-            </dd>
-          </div>
-        </dl>
-      </template>
-      <p v-else>{{ l('reasons.subscription_missing_or_incomplete') }}</p>
-    </section>
-    <template v-if="props.manual">
-      <p>{{ m('intro') }}</p>
-      <label v-if="options?.assignableVersions?.length">
-        {{ m('target') }}
-        <select v-model="manualTarget" :disabled="busy">
-          <option value="">{{ m('choose') }}</option>
-          <option
-            v-for="version in options.assignableVersions"
-            :key="version.id"
-            :value="version.id"
-          >
-            {{ version.translations[locale]?.name || version.translations.en.name }}
-          </option>
-        </select>
-      </label>
-      <p v-else-if="options">{{ m('unavailable') }}</p>
-    </template>
-    <template v-else>
+    <template v-if="!embedded">
       <h2>{{ l('title') }}</h2>
       <p>{{ l('intro') }}</p>
     </template>
+    <SubscriptionLoadError :error="rateError" :seconds="retrySeconds" :retry="retryAction" />
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <LoadingButton v-if="error" class="button secondary" :busy="busy" @click="load">{{
       t('inventory.refresh')
@@ -329,10 +301,19 @@ watch(targetId, () => {
             :disabled="busy || !row.id || row.owner"
             @change="changed"
           /><span
-            >{{ row.label && row.label !== row.id ? row.label : short(row.id)
+            >{{
+              row.label && row.label !== row.id
+                ? row.label
+                : embedded
+                  ? t('subscriptionUx.unnamed')
+                  : short(row.id)
             }}<small
               v-if="
-                row.label && row.label !== row.id && ['clients', 'agents'].includes(group) && row.id
+                !embedded &&
+                row.label &&
+                row.label !== row.id &&
+                ['clients', 'agents'].includes(group) &&
+                row.id
               "
             >
               {{ row.id }} </small
@@ -346,12 +327,11 @@ watch(targetId, () => {
       class="button primary"
       :busy="busy"
       v-if="canSelect"
-      :disabled="!targetId"
+      :disabled="!targetId || retrySeconds > 0"
       @click="freeze"
-      >{{ l('freeze') }}</LoadingButton
+      >{{ embedded ? t('subscriptionUx.previewResources') : l('freeze') }}</LoadingButton
     >
     <div v-if="frozen" class="frozen-summary">
-      <p v-if="props.manual">{{ m('holds') }}</p>
       <h3>{{ frozen.state === 'ready' ? l('ready') : l('unknown') }}</h3>
       <ul v-if="frozen.reasonCodes.length">
         <li v-for="code in frozen.reasonCodes" :key="code">{{ reasonLabel(code) }}</li>
@@ -373,7 +353,6 @@ watch(targetId, () => {
       </dl>
       <p v-for="(ids, group) in frozen.wouldHold" :key="group">
         {{ l(group) }} · {{ l('held') }}: {{ ids.length }}
-        <small v-if="props.manual && ids.length">{{ ids.map(short).join(', ') }}</small>
       </p>
       <ul>
         <li v-for="(state, key) in frozen.premium" :key="key">
@@ -397,24 +376,7 @@ watch(targetId, () => {
       class="surface admin-form"
       @submit.prevent="apply(approval || 'rearm')"
     >
-      <h3>{{ props.manual ? m('apply') : l('actions.' + (approval || 'rearm')) }}</h3>
-      <template v-if="approval === 'assign-manual'">
-        <label v-if="paidTarget">
-          {{ m('endDate') }}
-          <input
-            v-model="endDate"
-            type="date"
-            :min="today()"
-            required
-            @change="confirmed = false"
-          />
-        </label>
-        <p v-else>{{ m('noEnd') }}</p>
-        <label v-if="options.replacementRequired" class="resource-option">
-          <input v-model="replaceActivePeriod" type="checkbox" required />
-          {{ m('replace') }}
-        </label>
-      </template>
+      <h3>{{ l('actions.' + (approval || 'rearm')) }}</h3>
       <p v-if="!approval">{{ rearmGroups.map((group) => featureNames[group]).join(' · ') }}</p>
       <template v-if="approval === 'approve-paid'">
         <label
@@ -429,11 +391,16 @@ watch(targetId, () => {
       <label class="resource-option"
         ><input v-model="confirmed" type="checkbox" />{{ l('approveConfirmation') }}</label
       >
-      <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="!confirmed">
-        {{ props.manual ? m('apply') : l('actions.' + (approval || 'rearm')) }}
+      <LoadingButton
+        class="button primary"
+        type="submit"
+        :busy="busy"
+        :disabled="!confirmed || retrySeconds > 0"
+      >
+        {{ l('actions.' + (approval || 'rearm')) }}
       </LoadingButton>
     </form>
-    <details v-if="!props.manual" @toggle="$event.target.open && reviewList()">
+    <details @toggle="$event.target.open && reviewList()">
       <summary>{{ l('review') }}</summary>
       <p>{{ l('reviewNotice') }}</p>
       <p v-if="!reviews.length">{{ l('empty') }}</p>

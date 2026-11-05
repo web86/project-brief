@@ -5,6 +5,8 @@ import { t, formatApiError } from '../i18n/index.js'
 import { passkeyCeremony, passkeysSupported } from '../services/accountSecurity.js'
 import LoadingButton from './LoadingButton.vue'
 import SecurityError from './SecurityError.vue'
+import SubscriptionLoadError from './SubscriptionLoadError.vue'
+import { useRequestFeedback } from '../services/requestFeedback.js'
 import { toast } from '../services/toast.js'
 const props = defineProps({
   pending: Boolean,
@@ -13,6 +15,7 @@ const props = defineProps({
   quietSuccess: Boolean,
 })
 const emit = defineEmits(['confirmed'])
+const { error: rateError, retrySeconds, failed } = useRequestFeedback()
 const status = ref(props.initialStatus || null),
   password = ref(''),
   code = ref(''),
@@ -33,9 +36,9 @@ function switchRecovery() {
   code.value = ''
 }
 async function confirm(passkey = false) {
-  if (busy.value) return
+  if (busy.value || retrySeconds.value) return
   busy.value = true
-  error.value = null
+  error.value = rateError.value = null
   try {
     const result = passkey
       ? await passkeyCeremony(status.value?.signedIn ? 'confirm' : 'login')
@@ -58,8 +61,11 @@ async function confirm(passkey = false) {
     if (!props.quietSuccess) toast.success(() => t('security.identityConfirmed'))
     emit('confirmed', result)
   } catch (cause) {
-    error.value = cause
-    toast.error(() => formatApiError(cause))
+    if (cause.status === 429) failed(cause)
+    else {
+      error.value = cause
+      toast.error(() => formatApiError(cause))
+    }
   } finally {
     busy.value = false
   }
@@ -67,7 +73,18 @@ async function confirm(passkey = false) {
 </script>
 <template>
   <form class="admin-form" @submit.prevent="confirm()">
-    <p>{{ t(pending ? 'security.challengeHelp' : 'security.stepUpHelp') }}</p>
+    <p>
+      {{
+        t(
+          pending
+            ? 'security.challengeHelp'
+            : status?.stepUpMinutes
+              ? 'security.stepUpDuration'
+              : 'security.stepUpHelp',
+          { minutes: status?.stepUpMinutes },
+        )
+      }}
+    </p>
     <div
       v-if="
         status &&
@@ -107,16 +124,21 @@ async function confirm(passkey = false) {
       </button>
     </template>
     <SecurityError :error="error" />
-    <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="busy || !status">{{
-      t('security.confirm')
-    }}</LoadingButton>
+    <SubscriptionLoadError :error="rateError" :seconds="retrySeconds" />
+    <LoadingButton
+      class="button primary"
+      type="submit"
+      :busy="busy"
+      :disabled="busy || !status || retrySeconds > 0"
+      >{{ t('security.confirm') }}</LoadingButton
+    >
     <button
       v-if="
         !compact && status && passkeysSupported() && (!status.signedIn || status.passkeys?.length)
       "
       class="button secondary"
       type="button"
-      :disabled="busy || !status"
+      :disabled="busy || !status || retrySeconds > 0"
       @click="confirm(true)"
     >
       {{ t(pending && !status?.signedIn ? 'security.signInPasskey' : 'security.confirmPasskey') }}

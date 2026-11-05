@@ -510,6 +510,11 @@ export function createProjectRouter({
     useTaskWorkspaceStore().closePanel()
 
     if (to.meta.platform) {
+      if (to.path === '/platform' && from.path === to.path && from.meta.platformAuthorized) {
+        to.meta.canManagePlans = from.meta.canManagePlans
+        to.meta.platformAuthorized = true
+        return true
+      }
       try {
         const status = await request('/api/security/status')
         if (current !== revision) return false
@@ -521,6 +526,7 @@ export function createProjectRouter({
         if (to.meta.planManagement && !access.canManage)
           return '/admin/unavailable?reason=permission'
         to.meta.canManagePlans = access.canManage
+        to.meta.platformAuthorized = true
       } catch (error) {
         if (current !== revision) return false
         if (error.status === 401) return '/admin/login'

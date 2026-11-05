@@ -3,6 +3,7 @@
 namespace App\Services\Plans;
 
 use App\Models\Plans\PlanVersion;
+use App\Models\Plans\SubscriptionPeriod;
 use App\Models\Plans\WorkspaceSubscription;
 use App\Models\User;
 use App\Services\IntegrationWrites;
@@ -36,10 +37,10 @@ final class FrozenTransitions
 
             $subscription = $platform && ! $manual ? null : $this->subscriptionSummary($snapshot);
 
-            return ['workspaceId' => $snapshot['workspaceId'], 'subscriptionRevision' => $snapshot['subscriptionRevision'], 'resources' => $this->selections->options($snapshot, ! $platform), 'usage' => $snapshot['usage'], 'resourceFingerprint' => $snapshot['hash'], 'previewOnly' => true, 'executorAvailable' => false, ...($platform && ! $manual ? [] : ['subscription' => $subscription, 'rearmGroups' => $platform ? [] : $this->rearmGroups($snapshot)]),
+            return ['workspaceId' => $snapshot['workspaceId'], 'subscriptionRevision' => $snapshot['subscriptionRevision'], 'resources' => $this->selections->options($snapshot, ! $platform || $manual, $manual), 'usage' => $snapshot['usage'], 'resourceFingerprint' => $snapshot['hash'], 'previewOnly' => true, 'executorAvailable' => false, ...($platform && ! $manual ? [] : ['subscription' => $subscription, 'rearmGroups' => $platform ? [] : $this->rearmGroups($snapshot)]),
                 ...($manual ? [
                     'assignableVersions' => ($subscription && $subscription['phase'] !== 'compatibility' && $snapshot['rows']['workspace_subscriptions']->first()?->enforcement_mode === 'enforce')
-                        ? app(SubscriptionAssignments::class)->manualVersions() : [],
+                        ? app(SubscriptionAssignments::class)->manualVersions(includeLimits: true) : [],
                     'replacementRequired' => in_array($subscription['phase'] ?? null, ['trial', 'paid', 'grace'], true),
                 ] : []), ];
         }, 3);
@@ -92,22 +93,60 @@ final class FrozenTransitions
         };
     }
 
+    public function describePeriod(?SubscriptionPeriod $period): ?array
+    {
+        if (! $period?->version) {
+            return null;
+        }
+        $clock = app(SubscriptionClock::class)->phase($period->only(['kind', 'starts_at', 'service_ends_at', 'grace_ends_at']), CarbonImmutable::now('UTC'));
+        $end = $clock['phase'] === 'grace' ? $period->grace_ends_at : $period->service_ends_at;
+
+        return [
+            'translations' => $period->version->translations_json,
+            'phase' => $clock['phase'],
+            'assignment' => $period->approval_kind,
+            'startsAt' => $period->starts_at->toISOString(),
+            'endsAt' => $end?->toISOString(),
+        ];
+    }
+
+    public function summary(int $workspaceId): array
+    {
+        return DB::transaction(function () use ($workspaceId): array {
+            DB::table('workspaces')->where('id', $workspaceId)->sharedLock()->firstOrFail();
+            $subscription = WorkspaceSubscription::with('currentPeriod.version')->where('workspace_id', $workspaceId)->first();
+            $period = $subscription?->currentPeriod;
+            $summary = $this->describePeriod($period);
+            $resolved = app(EntitlementResolver::class)->resolve($workspaceId, inspectSuspended: true);
+            $limits = array_intersect_key($resolved['values'], array_flip(['projects.active.max', 'developers.max', 'clients.max', 'agents.active.max']));
+            $openCycle = DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')->exists();
+            $selectionTarget = $period && ($openCycle || in_array($period->kind, ['trial', 'paid'], true))
+                ? PlanVersion::whereKey($openCycle ? $period->entitlement_version_id : $period->fallback_version_id)
+                    ->where('state', 'published')->whereHas('plan', fn ($q) => $q->where('status', '<>', 'archived')->where('visibility', 'public'))->value('uuid') : null;
+
+            if ($period?->kind === 'compatibility') {
+                $selectionTarget = PlanVersion::where('state', 'published')->where('access_class', 'free')
+                    ->whereHas('plan', fn ($plan) => $plan->where('code', 'basic')->where('status', 'published')->where('visibility', 'public')
+                        ->whereColumn('plans.published_version_id', 'plan_versions.id'))->value('uuid');
+            }
+
+            return [
+                'subscription' => $summary ? $summary + ['limits' => $limits] : null,
+                'usage' => $limits ? app(WorkspaceUsage::class)->snapshot($workspaceId, keys: array_keys($limits), effective: true) : [],
+                'selectionTarget' => $selectionTarget,
+            ];
+        }, 3);
+    }
+
     private function subscriptionSummary(array $snapshot): ?array
     {
         $pinned = $snapshot['pinned'];
         if ($pinned['state'] !== 'available') {
             return null;
         }
+        $period = SubscriptionPeriod::with('version')->findOrFail($pinned['period_id']);
 
-        $period = $snapshot['rows']['subscription_periods']->firstWhere('id', $pinned['period_id']);
-        $version = PlanVersion::findOrFail($pinned['version_id']);
-        $end = $pinned['phase'] === 'grace' ? $period->grace_ends_at : $period->service_ends_at;
-
-        return [
-            'translations' => $version->translations_json,
-            'phase' => $pinned['phase'],
-            'startsAt' => CarbonImmutable::parse($period->starts_at, 'UTC')->toISOString(),
-            'endsAt' => $end === null ? null : CarbonImmutable::parse($end, 'UTC')->toISOString(),
+        return $this->describePeriod($period) + [
             'limits' => array_intersect_key($pinned['values'], array_flip(['projects.active.max', 'developers.max', 'clients.max', 'agents.active.max'])),
         ];
     }

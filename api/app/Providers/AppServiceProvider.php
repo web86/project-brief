@@ -69,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('social-auth', fn (Request $r) => [Limit::perMinute(20)->by('social:'.$r->ip()), Limit::perMinute(10)->by('social-session:'.$r->session()->getId())]);
         RateLimiter::for('admin-login', fn (Request $r) => [Limit::perMinute(5)->by($r->ip()), Limit::perMinute(5)->by(hash('sha256', strtolower((string) $r->input('email'))))]);
         RateLimiter::for('account-security', fn (Request $r) => [Limit::perMinute(5)->by('account:'.$r->user()?->id), Limit::perMinute(15)->by($r->ip())]);
+        RateLimiter::for('subscription-read', fn (Request $r) => [Limit::perMinute(30)->by('subscription:'.$r->user()?->id), Limit::perMinute(90)->by($r->ip())]);
         RateLimiter::for('account-reset-inspect', fn (Request $r) => Limit::perMinute(10)->by($r->ip()));
         RateLimiter::for('account-recovery', fn (Request $r) => [Limit::perMinute(5)->by($r->ip()), Limit::perMinute(3)->by('recovery:'.hash('sha256', mb_strtolower(trim((string) $r->input('email')))))]);
         RateLimiter::for('client-project-login', fn (Request $r) => [

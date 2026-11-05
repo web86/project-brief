@@ -30,7 +30,7 @@ async function logout() {
     <nav class="personal-settings-nav" :aria-label="t('platform.title')">
       <h2>{{ t('platform.title') }}</h2>
       <RouterLink
-        v-for="section in ['overview', 'workspaces', 'usage', 'audit']"
+        v-for="section in ['overview', 'workspaces']"
         :key="section"
         :to="{ path: '/platform', query: { section } }"
         :aria-current="active(section) ? 'page' : undefined"
@@ -66,6 +66,16 @@ async function logout() {
           }}</RouterLink
         >
       </template>
+      <h2>{{ t('subscriptionUx.diagnostics') }}</h2>
+      <RouterLink
+        v-for="section in ['usage', 'audit']"
+        :key="section"
+        :to="{ path: '/platform', query: { section } }"
+        :aria-current="active(section) ? 'page' : undefined"
+        @click="emit('navigate')"
+      >
+        {{ t('platform.' + section) }}
+      </RouterLink>
     </nav>
     <div class="platform-nav-footer">
       <RouterLink to="/admin" class="sidebar-all-projects" @click="emit('navigate')">{{

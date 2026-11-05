@@ -24,7 +24,7 @@ class ResourceSelectionController extends Controller
     private function context(Request $request, ?string $workspace): array
     {
         $platform = $request->is('api/platform/*');
-        if (! $platform || ! $request->isMethodSafe()) {
+        if (! $request->isMethodSafe() || (! $platform && $request->route()->defaults['preparationKind'] !== 'summary')) {
             app(AccountSecurity::class)->requireFresh($request);
         }
         if ($platform) {
@@ -52,6 +52,12 @@ class ResourceSelectionController extends Controller
             app(ExecutionBarrier::class)->catchUp($id);
             $service = app(FrozenTransitions::class);
             $kind = $request->route()->defaults['preparationKind'];
+            if ($kind === 'summary') {
+                $summary = $service->summary($id);
+                $summary['catalog'] = array_map(fn (array $version): array => array_diff_key($version, ['id' => true]), app(SubscriptionAssignments::class)->manualVersions(public: true, includeLimits: true));
+
+                return response()->json(['data' => $summary]);
+            }
             if ($kind === 'versions') {
                 return DB::transaction(function () use ($id, $platform, $request, $service): JsonResponse {
                     IntegrationWrites::lockWorkspace($id);

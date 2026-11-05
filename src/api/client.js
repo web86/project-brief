@@ -12,6 +12,12 @@ export class ApiError extends Error {
   }
 }
 
+export function retryAfterTime(value, now = Date.now()) {
+  const seconds = /^\d+$/.test(value || '') ? Number(value) : null
+  const until = seconds === null ? Date.parse(value || '') : now + seconds * 1000
+  return Number.isFinite(until) ? Math.max(now, until) : now + 60000
+}
+
 function waitForRequest(promise, signal) {
   if (!signal) return promise
   signal.throwIfAborted()
@@ -270,6 +276,8 @@ export function createApiClient({
         error.diagnosticId = data.diagnosticId
       if (typeof data.stage === 'string' && /^[a-z_]{1,32}$/.test(data.stage))
         error.stage = data.stage
+      if (response.status === 429)
+        error.retryAt = retryAfterTime(response.headers?.get('Retry-After'))
       showPlanRestriction(error, data.planRestriction)
       throw error
     }

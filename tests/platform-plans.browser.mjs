@@ -642,20 +642,17 @@ require __DIR__.'/../vendor/autoload.php';
       if (language === 'en' && theme === 'light') {
         php(['artisan', 'cache:clear', '--no-interaction'])
         await page.goto(origin + '/admin/settings/subscription')
-        await page
-          .locator('.owner-resource-preview select option')
-          .filter({ hasText: /Basic · v1/ })
-          .waitFor({ state: 'attached' })
-        await page.locator('.owner-resource-preview > label select').selectOption(basic)
+        await page.getByText('What will stay active', { exact: true }).click()
         const ownerPanel = page.locator('.resource-selection')
         await ownerPanel.locator('fieldset').first().waitFor()
         assert.ok((await ownerPanel.innerText()).includes('Private fixture title'))
         assert.match(
-          await ownerPanel.locator('.subscription-overview').innerText(),
+          await page.locator('.subscription-current').innerText(),
           /Compatibility · Observe/,
         )
-        assert.equal(await ownerPanel.locator('.subscription-overview time').count(), 0)
-        await ownerPanel.getByRole('button', { name: 'Freeze preview', exact: true }).click()
+        await ownerPanel
+          .getByRole('button', { name: 'Preview resource selection', exact: true })
+          .click()
         await ownerPanel.locator('.frozen-summary').waitFor()
         const verifiedResponse = page.waitForResponse((response) =>
           /\/api\/admin\/resource-selection\/previews\/[^/]+$/.test(
@@ -692,18 +689,16 @@ require __DIR__.'/../vendor/autoload.php';
   const operatorPage = await operatorContext.newPage()
   for (const page of [ownerPage, operatorPage])
     page.on('pageerror', (error) => errors.push(String(error)))
-  const openOwnerPanel = async (version) => {
+  const openOwnerPanel = async () => {
     php(['artisan', 'cache:clear', '--no-interaction'])
     await ownerPage.goto(origin + '/admin/settings/subscription')
-    const picker = ownerPage.locator('.owner-resource-preview select')
-    await picker.locator(`option[value="${version}"]`).waitFor({ state: 'attached' })
-    await picker.selectOption(version)
+    await ownerPage.getByText('What will stay active', { exact: true }).click()
     const panel = ownerPage.locator('.resource-selection')
     await panel.locator('fieldset').first().waitFor()
     return panel
   }
   const freezeSelection = async (panel) => {
-    await panel.getByRole('button', { name: 'Freeze preview', exact: true }).click()
+    await panel.getByRole('button', { name: 'Preview resource selection', exact: true }).click()
     await panel.locator('.frozen-summary').waitFor()
   }
   const apply = async (panel, title, expectedPath) => {
@@ -721,8 +716,8 @@ require __DIR__.'/../vendor/autoload.php';
     assert.equal(result.status(), 200, await result.text())
     await panel.getByText('Change applied.', { exact: true }).waitFor()
   }
-  let ownerPanel = await openOwnerPanel(lifecycle.basic)
-  await ownerPanel.getByText('Free', { exact: true }).waitFor()
+  let ownerPanel = await openOwnerPanel()
+  await ownerPage.locator('.subscription-current').getByText(/Free/).waitFor()
   await ownerPanel.getByLabel('Second synthetic lifecycle project').uncheck()
   if (lifecycle.probes) await ownerPanel.getByLabel('Synthetic rehearsal agent').uncheck()
   await freezeSelection(ownerPanel)
@@ -787,7 +782,7 @@ require __DIR__.'/../vendor/autoload.php';
   await freezeSelection(operatorPanel)
   await operatorPanel.getByLabel('Review reason code').first().fill('synthetic_browser_approval')
   await apply(operatorPanel, 'Approve paid service', '/approve-paid')
-  ownerPanel = await openOwnerPanel(lifecycle.paid)
+  ownerPanel = await openOwnerPanel()
   await freezeSelection(ownerPanel)
   await apply(ownerPanel, 'Restore paid participation', '/restore-paid')
   php(['artisan', 'cache:clear', '--no-interaction'])

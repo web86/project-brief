@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\DeveloperInvitation;
 use App\Models\ExternalAgent;
 use App\Models\Plans\PlanVersion;
 use App\Models\Plans\PlatformPolicyVersion;
@@ -11,6 +12,7 @@ use App\Services\AgentAccess;
 use App\Services\AgentRuns;
 use App\Services\AuthOnboarding;
 use App\Services\ClientSso;
+use App\Services\DeveloperInvitations;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
 use App\Services\Plans\ClientCountingIdentities;
@@ -50,14 +52,29 @@ if (($argv[1] ?? null) === 'manual-ux') {
     }
     $policy = app(PlatformPolicyCatalog::class)->publish($operator, PlatformPolicyVersion::firstOrFail()->id, 1, 'manual-ux-policy');
     DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
-    $owner = User::factory()->create(['email' => 'manual-ux@example.test']);
+    $owner = User::factory()->create(['email' => 'manual-ux@example.test', 'password' => 'Plans-QA-only!84']);
     app(AuthOnboarding::class)->pending($owner);
     $workspace = app(AuthOnboarding::class)->prepare($owner);
     $workspace->update(['name' => 'Manual subscription QA']);
     $owner->forceFill(['two_factor_secret' => Fortify::currentEncrypter()->encrypt(app(Google2FA::class)->generateSecretKey()),
+        'two_factor_recovery_codes' => Fortify::currentEncrypter()->encrypt(json_encode(['test-recovery-code'])),
         'two_factor_confirmed_at' => now(), 'recovery_codes_acknowledged_at' => now()])->save();
-    app(SubscriptionLifecycle::class)->startVerifiedTrial($workspace->id, $owner->id);
-    echo json_encode(['workspace' => $workspace->uuid, 'name' => $workspace->name]);
+    $trial = app(SubscriptionLifecycle::class)->startVerifiedTrial($workspace->id, $owner->id);
+    $developer = User::factory()->memberOf($workspace)->create();
+    for ($i = 1; $i <= 12; $i++) {
+        $project = Project::create(['workspace_id' => $workspace->id, 'title' => 'Design project '.sprintf('%02d', $i), 'status' => 'active', 'currency' => 'USD']);
+        if ($i <= 7) {
+            $agent = ExternalAgent::factory()->create(['workspace_id' => $workspace->id, 'name' => 'QA agent '.$i]);
+            $project->members()->create(['workspace_id' => $workspace->id, 'external_agent_id' => $agent->id]);
+            DB::table('agent_project_grants')->insert(['workspace_id' => $workspace->id, 'external_agent_id' => $agent->id, 'project_id' => $project->id]);
+        }
+    }
+    for ($i = 1; $i <= 9; $i++) {
+        $invitation = DeveloperInvitation::factory()->create(['workspace_id' => $workspace->id, 'invited_by' => $owner->id,
+            'email' => $i === 9 ? $developer->email : 'manual-invite-'.$i.'@example.test', 'project_ids' => []]);
+        app(DeveloperInvitations::class)->issue($invitation);
+    }
+    echo json_encode(['workspace' => $workspace->uuid, 'name' => $workspace->name, 'owner' => $owner->email, 'trial' => $trial->uuid]);
 
     return;
 }

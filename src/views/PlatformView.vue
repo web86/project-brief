@@ -1,33 +1,29 @@
 <script setup>
-import { ref, onBeforeUnmount, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
-import { t, formatApiError, intlLocale } from '../i18n/index.js'
+import { t, intlLocale } from '../i18n/index.js'
+import { useRequestFeedback } from '../services/requestFeedback.js'
+import { planName, subscriptionDate } from '../services/subscription.js'
 import LoadingButton from '../components/LoadingButton.vue'
-import ResourceSelectionPanel from '../components/ResourceSelectionPanel.vue'
-const router = useRouter(),
-  route = useRoute()
-const usageWorkspace = ref('')
-const subscriptionOpen = ref(false)
-const tab = ref(
-    ['overview', 'workspaces', 'usage', 'audit'].includes(route.query.section)
-      ? route.query.section
-      : 'overview',
-  ),
-  period = ref('24h'),
-  search = ref(''),
-  page = ref(1)
-const data = ref(null),
-  detail = ref(null),
-  busy = ref(false),
-  error = ref(null)
-watch(
-  () => detail.value?.workspace.uuid,
-  () => (subscriptionOpen.value = false),
-)
-let revision = 0,
-  controller
+import SubscriptionLoadError from '../components/SubscriptionLoadError.vue'
+import PlatformWorkspaceView from './PlatformWorkspaceView.vue'
+
+const route = useRoute()
+const router = useRouter()
 const tabs = ['overview', 'workspaces', 'usage', 'audit']
+const tab = computed(() => (tabs.includes(route.query.section) ? route.query.section : 'overview'))
+const workspaceId = computed(() =>
+  tab.value === 'workspaces' && /^[a-f0-9-]{36}$/i.test(route.query.workspace || '')
+    ? route.query.workspace
+    : null,
+)
+const usageWorkspace = ref('')
+const period = ref('24h')
+const search = ref('')
+const page = ref(1)
+const data = ref(null)
+const { busy, error, retrySeconds, run, cancel } = useRequestFeedback()
 const number = (value) =>
   new Intl.NumberFormat(intlLocale(), { maximumFractionDigits: 2 }).format(Number(value || 0))
 const date = (value) =>
@@ -39,338 +35,276 @@ const date = (value) =>
       }).format(new Date(value.replace(' ', 'T').replace(/Z?$/, 'Z')))
     : '—'
 async function load() {
-  const current = ++revision
-  controller?.abort()
-  controller = new AbortController()
-  busy.value = true
-  error.value = null
-  data.value = null
-  detail.value = null
-  try {
-    const query = new URLSearchParams({ period: period.value, page: String(page.value) })
-    if (tab.value === 'workspaces') query.set('q', search.value)
-    if (tab.value === 'usage' && usageWorkspace.value) query.set('workspace', usageWorkspace.value)
-    const result = await api.request(`/api/platform/${tab.value}?${query}`, {
-      signal: controller.signal,
-    })
-    if (current === revision) data.value = result
-  } catch (cause) {
-    if (current === revision) error.value = cause
-  } finally {
-    if (current === revision) busy.value = false
-  }
-}
-function select(value) {
-  if (tab.value !== value) {
-    tab.value = value
-    page.value = 1
-    load()
-  }
+  if (workspaceId.value) return
+  const query = new URLSearchParams({ period: period.value, page: String(page.value) })
+  if (tab.value === 'workspaces') query.set('q', search.value)
+  if (tab.value === 'usage' && usageWorkspace.value) query.set('workspace', usageWorkspace.value)
+  if (tab.value === 'audit' && typeof route.query.workspaceFilter === 'string')
+    query.set('workspace', route.query.workspaceFilter)
+  const result = await run((signal) =>
+    api.request('/api/platform/' + tab.value + '?' + query, { signal }),
+  )
+  if (result) data.value = result
+  else if (error.value?.status === 401) router.replace('/admin/login')
 }
 function paginate(value) {
   page.value = value
   load()
 }
-async function inspect(workspace) {
-  const current = ++revision
-  controller?.abort()
-  controller = new AbortController()
-  busy.value = true
-  error.value = null
-  detail.value = null
-  try {
-    const result = await api.request(
-      `/api/platform/workspaces/${workspace.uuid}?period=${period.value}`,
-      { signal: controller.signal },
-    )
-    if (current === revision) detail.value = result
-  } catch (cause) {
-    if (current === revision) error.value = cause
-  } finally {
-    if (current === revision) busy.value = false
-  }
-}
-function workspaceUsage(id) {
-  usageWorkspace.value = String(id)
-  router.push({ path: '/platform', query: { section: 'usage' } })
-}
 watch(
-  () => route.query.section,
-  (section) => select(tabs.includes(section) ? section : 'overview'),
+  [tab, workspaceId, () => route.query.workspaceFilter],
+  ([section], [previous] = []) => {
+    cancel()
+    if (section !== previous) {
+      data.value = null
+      page.value = 1
+    }
+    if (section === 'usage') usageWorkspace.value = String(route.query.workspaceFilter || '')
+    load()
+  },
+  { immediate: true },
 )
-watch(period, () => {
-  page.value = 1
-  load()
-})
-onBeforeUnmount(() => {
-  revision++
-  controller?.abort()
-  data.value = detail.value = null
-})
-load()
+watch(period, () => paginate(1))
 </script>
 <template>
   <section class="platform-page">
-    <div class="page-heading platform-heading">
-      <div>
-        <h1>{{ t('platform.title') }}</h1>
-        <p>{{ t('platform.intro') }}</p>
+    <PlatformWorkspaceView v-if="workspaceId" :key="workspaceId" :workspace-id="workspaceId" />
+    <template v-else>
+      <div class="page-heading platform-heading">
+        <div>
+          <h1>{{ t('platform.title') }}</h1>
+          <p>{{ t('platform.intro') }}</p>
+        </div>
       </div>
-    </div>
-    <div class="surface platform-controls">
-      <label for="platform-period">{{ t('platform.period') }}</label
-      ><select id="platform-period" v-model="period">
-        <option value="24h">{{ t('platform.day') }}</option>
-        <option value="7d">{{ t('platform.week') }}</option>
-        <option value="30d">{{ t('platform.month') }}</option></select
-      ><LoadingButton class="button secondary" :busy="busy" @click="load">{{
-        t('platform.refresh')
-      }}</LoadingButton>
-      <form v-if="tab === 'workspaces'" @submit.prevent="paginate(1)">
-        <label class="sr-only" for="platform-search">{{ t('platform.search') }}</label
-        ><input
-          id="platform-search"
-          v-model="search"
-          maxlength="100"
-          :placeholder="t('platform.search')"
-          type="search"
-        /><button class="button secondary">{{ t('platform.find') }}</button>
-      </form>
-    </div>
-    <form v-if="tab === 'usage'" class="platform-controls surface" @submit.prevent="paginate(1)">
-      <label for="usage-workspace">{{ t('platform.workspaceId') }}</label
-      ><input id="usage-workspace" v-model="usageWorkspace" type="number" min="1" /><button
-        class="button secondary"
-      >
-        {{ t('platform.find') }}
-      </button>
-    </form>
-    <p class="platform-note">{{ t('platform.diagnostic') }}</p>
-    <p v-if="error" role="alert">{{ formatApiError(error) }}</p>
-    <p v-if="busy" role="status">{{ t('flow.busy') }}</p>
-    <template v-if="data && tab === 'overview'">
-      <p v-if="!data.metricsEnabled" role="status">{{ t('platform.disabled') }}</p>
-      <div class="platform-stats">
-        <article
-          v-for="key in ['workspaces', 'owners', 'projects', 'clients', 'tasks']"
-          :key="key"
-          class="surface"
+      <div class="surface platform-controls">
+        <template v-if="tab !== 'workspaces'"
+          ><label for="platform-period">{{ t('platform.period') }}</label
+          ><select id="platform-period" v-model="period">
+            <option value="24h">{{ t('platform.day') }}</option>
+            <option value="7d">{{ t('platform.week') }}</option>
+            <option value="30d">{{ t('platform.month') }}</option>
+          </select></template
+        ><LoadingButton
+          class="button secondary"
+          :busy="busy"
+          :disabled="retrySeconds > 0"
+          @click="load"
+          >{{ t('platform.refresh') }}</LoadingButton
         >
-          <h2>{{ t('platform.' + (key === 'owners' ? 'owner' : key)) }}</h2>
-          <strong>{{ number(key === 'workspaces' ? data.workspaces.total : data[key]) }}</strong>
-        </article>
+        <form v-if="tab === 'workspaces'" @submit.prevent="paginate(1)">
+          <label class="sr-only" for="platform-search">{{ t('platform.search') }}</label
+          ><input
+            id="platform-search"
+            v-model="search"
+            maxlength="100"
+            :placeholder="t('platform.search')"
+            type="search"
+          /><button class="button secondary" :disabled="busy || retrySeconds > 0">
+            {{ t('platform.find') }}
+          </button>
+        </form>
       </div>
-      <p>
-        {{ t('platform.active') }}: {{ number(data.workspaces.active) }} ·
-        {{ t('platform.inactive') }}: {{ number(data.workspaces.inactive) }}
-      </p>
-      <p class="platform-note">{{ t('platform.activityNote') }}</p>
-      <section class="surface platform-block">
-        <h2>{{ t('platform.usage') }}</h2>
-        <dl>
-          <template
-            v-for="key in [
-              'requests',
-              'responses_2xx',
-              'responses_4xx',
-              'responses_5xx',
-              'responses_429',
-              'average_ms',
-              'maximum_ms',
-            ]"
+      <form v-if="tab === 'usage'" class="platform-controls surface" @submit.prevent="paginate(1)">
+        <label for="usage-workspace">{{ t('platform.workspaceId') }}</label
+        ><input id="usage-workspace" v-model="usageWorkspace" type="number" min="1" /><button
+          class="button secondary"
+        >
+          {{ t('platform.find') }}
+        </button>
+      </form>
+      <p class="platform-note">{{ t('platform.diagnostic') }}</p>
+      <SubscriptionLoadError :error="error" :seconds="retrySeconds" :retry="load" />
+      <p v-if="busy" role="status">{{ t('flow.busy') }}</p>
+      <template v-if="data && tab === 'overview'">
+        <p v-if="!data.metricsEnabled" role="status">{{ t('platform.disabled') }}</p>
+        <div class="platform-stats">
+          <article
+            v-for="key in ['workspaces', 'owners', 'projects', 'clients', 'tasks']"
             :key="key"
-            ><dt>
-              {{
-                key === 'requests'
-                  ? 'API'
-                  : key.startsWith('responses_')
-                    ? key.replace('responses_', '')
-                    : t('platform.' + (key === 'average_ms' ? 'average' : 'maximum'))
-              }}
-            </dt>
-            <dd>{{ number(data.api[key]) }}</dd></template
+            class="surface"
+          >
+            <h2>{{ t('platform.' + (key === 'owners' ? 'owner' : key)) }}</h2>
+            <strong>{{ number(key === 'workspaces' ? data.workspaces.total : data[key]) }}</strong>
+          </article>
+        </div>
+        <p>
+          {{ t('platform.active') }}: {{ number(data.workspaces.active) }} ·
+          {{ t('platform.inactive') }}: {{ number(data.workspaces.inactive) }}
+        </p>
+        <p class="platform-note">{{ t('platform.activityNote') }}</p>
+        <section class="surface platform-block">
+          <h2>{{ t('platform.usage') }}</h2>
+          <dl>
+            <template
+              v-for="key in [
+                'requests',
+                'responses_2xx',
+                'responses_4xx',
+                'responses_5xx',
+                'responses_429',
+                'average_ms',
+                'maximum_ms',
+              ]"
+              :key="key"
+              ><dt>
+                {{
+                  key === 'requests'
+                    ? 'API'
+                    : key.startsWith('responses_')
+                      ? key.replace('responses_', '')
+                      : t('platform.' + (key === 'average_ms' ? 'average' : 'maximum'))
+                }}
+              </dt>
+              <dd>{{ number(data.api[key]) }}</dd></template
+            >
+          </dl>
+        </section>
+      </template>
+      <section v-if="tab === 'overview' && data" class="surface platform-block">
+        <h2>Webhooks</h2>
+        <dl>
+          <template v-for="(value, key) in data.webhooks" :key="key"
+            ><dt>{{ t('platform.' + key) }}</dt>
+            <dd v-if="typeof value !== 'object'">{{ number(value) }}</dd>
+            <dd v-else>
+              <span v-for="(count, label) in value" :key="label" class="platform-count"
+                >{{ t('platform.' + label) }}: {{ number(count) }}</span
+              >
+            </dd></template
           >
         </dl>
       </section>
-    </template>
-    <section v-if="detail" class="surface platform-block" aria-labelledby="workspace-details">
-      <div class="platform-heading">
-        <h2 id="workspace-details">{{ detail.workspace.name }} — {{ t('platform.details') }}</h2>
-        <button class="text-button" @click="detail = null">{{ t('platform.close') }}</button>
+      <div v-if="data?.data" class="surface platform-table" :aria-busy="busy" tabindex="0">
+        <table v-if="tab === 'workspaces'" class="workspace-list-table">
+          <caption class="sr-only">
+            {{
+              t('platform.workspaces')
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th>{{ t('platform.workspaces') }}</th>
+              <th>{{ t('platform.owner') }}</th>
+              <th>{{ t('subscriptionUx.subscription') }}</th>
+              <th>{{ t('subscriptionUx.ends') }}</th>
+              <th>{{ t('platform.projects') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in data.data" :key="item.id">
+              <td>
+                <RouterLink
+                  class="text-button"
+                  :to="{
+                    path: '/platform',
+                    query: { section: 'workspaces', workspace: item.uuid },
+                  }"
+                  :aria-label="t('subscriptionUx.openWorkspace', { name: item.name })"
+                  >{{ item.name }}</RouterLink
+                >
+              </td>
+              <td>
+                <p v-for="owner in item.owners" :key="owner.id">
+                  {{ owner.name }}<small>{{ owner.email }}</small>
+                </p>
+              </td>
+              <td>
+                {{ planName(item.subscription)
+                }}<small v-if="item.subscription">{{
+                  t('account.subscriptionPhase.' + item.subscription.phase)
+                }}</small>
+              </td>
+              <td>{{ item.subscription ? subscriptionDate(item.subscription.endsAt) : '—' }}</td>
+              <td>{{ number(item.projectCount) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table v-else-if="tab === 'usage'">
+          <caption class="sr-only">
+            {{
+              t('platform.usage')
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th>{{ t('platform.hour') }}</th>
+              <th>
+                {{ t('platform.workspaceId') }} / {{ t('platform.source') }} /
+                {{ t('platform.token') }}
+              </th>
+              <th>{{ t('platform.route') }}</th>
+              <th>API</th>
+              <th>2xx / 4xx / 5xx / 429</th>
+              <th>{{ t('platform.average') }} / {{ t('platform.maximum') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in data.data" :key="item.dimension_key">
+              <td>{{ date(item.hour) }}</td>
+              <td>
+                {{ item.workspace_id ?? t('platform.unknown') }} /
+                {{ item.integration_source_id ?? '—' }} / {{ item.integration_token_id ?? '—' }}
+              </td>
+              <td>
+                <code>{{ item.method }} {{ item.route }}</code>
+              </td>
+              <td>{{ number(item.requests) }}</td>
+              <td>
+                {{ item.responses_2xx }} / {{ item.responses_4xx }} / {{ item.responses_5xx }} /
+                {{ item.responses_429 }}
+              </td>
+              <td>{{ number(item.average_ms) }} / {{ number(item.maximum_ms) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table v-else>
+          <caption class="sr-only">
+            {{
+              t('platform.audit')
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th>UTC</th>
+              <th>{{ t('platform.administrator') }}</th>
+              <th>{{ t('platform.action') }}</th>
+              <th>{{ t('platform.object') }}</th>
+              <th>{{ t('platform.result') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in data.data" :key="item.id">
+              <td>{{ date(item.created_at) }}</td>
+              <td>{{ item.administrator_id ?? 'CLI / guest' }}</td>
+              <td>{{ item.action }}</td>
+              <td>{{ item.object_type }} {{ item.object_id }}</td>
+              <td>{{ item.result }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="!data.data.length">{{ t('platform.empty') }}</p>
       </div>
-      <p v-for="owner in detail.owners" :key="owner.id">
-        {{ t('platform.owner') }}: {{ owner.name }} · {{ owner.email }}
-      </p>
-      <p>
-        {{ t('platform.created') }}: {{ date(detail.workspace.created_at) }} ·
-        {{ t('platform.activity') }}: {{ date(detail.workspace.last_activity_at) }}
-      </p>
-      <dl>
-        <template v-for="(value, key) in detail.counts" :key="key"
-          ><dt>{{ t('platform.' + key) }}</dt>
-          <dd>{{ number(value) }}</dd></template
-        >
-        <dt>{{ t('platform.tokens') }} ({{ t('platform.active') }} / {{ t('platform.total') }})</dt>
-        <dd>{{ number(detail.tokens.active) }} / {{ number(detail.tokens.total) }}</dd>
-        <dt>{{ t('platform.endpoints') }}</dt>
-        <dd>{{ number(detail.webhookEndpoints) }}</dd>
-      </dl>
-      <details v-if="route.meta.canManagePlans" @toggle="subscriptionOpen = $event.target.open">
-        <summary>{{ t('manualSubscription.title') }}</summary>
-        <ResourceSelectionPanel
-          v-if="subscriptionOpen"
-          :workspace-id="detail.workspace.uuid"
-          platform
-          manual
-        />
-      </details>
-      <h3>{{ t('platform.integrations') }}</h3>
-      <p v-for="source in detail.integrations" :key="source.id">
-        #{{ source.id }} · {{ source.name }}
-      </p>
-      <p v-if="!detail.integrations.length">—</p>
-      <h3>{{ t('platform.limits') }}</h3>
-      <dl>
-        <template v-for="(value, key) in detail.limits" :key="key"
-          ><dt>{{ t('platform.' + key) }}</dt>
-          <dd>{{ typeof value === 'boolean' ? String(value) : number(value) }}</dd></template
-        >
-      </dl>
-      <h3>{{ t('platform.usage') }}</h3>
-      <button class="text-button" @click="workspaceUsage(detail.workspace.id)">
-        {{ t('platform.usage') }} #{{ detail.workspace.id }}
-      </button>
-      <dl>
-        <template v-for="(value, key) in detail.api" :key="key"
-          ><dt>{{ key }}</dt>
-          <dd>{{ number(value) }}</dd></template
-        >
-      </dl>
-    </section>
-    <section v-if="(tab === 'overview' && data) || detail" class="surface platform-block">
-      <h2>Webhooks</h2>
-      <dl>
-        <template v-for="(value, key) in (detail || data).webhooks" :key="key"
-          ><dt>{{ t('platform.' + key) }}</dt>
-          <dd v-if="typeof value !== 'object'">{{ number(value) }}</dd>
-          <dd v-else>
-            <span v-for="(count, label) in value" :key="label" class="platform-count"
-              >{{ t('platform.' + label) }}: {{ number(count) }}</span
-            >
-          </dd></template
-        >
-      </dl>
-    </section>
-    <div v-if="data?.data" class="surface platform-table" :aria-busy="busy" tabindex="0">
-      <table v-if="tab === 'workspaces'">
-        <caption class="sr-only">
-          {{
-            t('platform.workspaces')
-          }}
-        </caption>
-        <thead>
-          <tr>
-            <th>{{ t('platform.workspaces') }}</th>
-            <th>{{ t('platform.owner') }}</th>
-            <th>{{ t('platform.activity') }} (UTC)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in data.data" :key="item.id">
-            <td>
-              <button class="text-button" @click="inspect(item)">{{ item.name }}</button
-              ><small>#{{ item.id }}</small>
-            </td>
-            <td>
-              <p v-for="owner in item.owners" :key="owner.id">
-                {{ owner.name }}<small>{{ owner.email }}</small>
-              </p>
-            </td>
-            <td>{{ date(item.last_activity_at) }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <table v-else-if="tab === 'usage'">
-        <caption class="sr-only">
-          {{
-            t('platform.usage')
-          }}
-        </caption>
-        <thead>
-          <tr>
-            <th>{{ t('platform.hour') }}</th>
-            <th>
-              {{ t('platform.workspaceId') }} / {{ t('platform.source') }} /
-              {{ t('platform.token') }}
-            </th>
-            <th>{{ t('platform.route') }}</th>
-            <th>API</th>
-            <th>2xx / 4xx / 5xx / 429</th>
-            <th>{{ t('platform.average') }} / {{ t('platform.maximum') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in data.data" :key="item.dimension_key">
-            <td>{{ date(item.hour) }}</td>
-            <td>
-              {{ item.workspace_id ?? t('platform.unknown') }} /
-              {{ item.integration_source_id ?? '—' }} / {{ item.integration_token_id ?? '—' }}
-            </td>
-            <td>
-              <code>{{ item.method }} {{ item.route }}</code>
-            </td>
-            <td>{{ number(item.requests) }}</td>
-            <td>
-              {{ item.responses_2xx }} / {{ item.responses_4xx }} / {{ item.responses_5xx }} /
-              {{ item.responses_429 }}
-            </td>
-            <td>{{ number(item.average_ms) }} / {{ number(item.maximum_ms) }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <table v-else>
-        <caption class="sr-only">
-          {{
-            t('platform.audit')
-          }}
-        </caption>
-        <thead>
-          <tr>
-            <th>UTC</th>
-            <th>{{ t('platform.administrator') }}</th>
-            <th>{{ t('platform.action') }}</th>
-            <th>{{ t('platform.object') }}</th>
-            <th>{{ t('platform.result') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in data.data" :key="item.id">
-            <td>{{ date(item.created_at) }}</td>
-            <td>{{ item.administrator_id ?? 'CLI / guest' }}</td>
-            <td>{{ item.action }}</td>
-            <td>{{ item.object_type }} {{ item.object_id }}</td>
-            <td>{{ item.result }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-if="!data.data.length">{{ t('platform.empty') }}</p>
-    </div>
-    <nav
-      v-if="data?.last_page > 1"
-      class="platform-pagination"
-      :aria-label="t('platform.workspaces')"
-    >
-      <button class="button secondary" :disabled="busy || page <= 1" @click="paginate(page - 1)">
-        {{ t('platform.previous') }}</button
-      ><span>{{ page }} / {{ data.last_page }}</span
-      ><button
-        class="button secondary"
-        :disabled="busy || page >= data.last_page"
-        @click="paginate(page + 1)"
+      <nav
+        v-if="data?.last_page > 1"
+        class="platform-pagination"
+        :aria-label="t('platform.workspaces')"
       >
-        {{ t('platform.next') }}
-      </button>
-    </nav>
+        <button
+          class="button secondary"
+          :disabled="busy || retrySeconds > 0 || page <= 1"
+          @click="paginate(page - 1)"
+        >
+          {{ t('platform.previous') }}</button
+        ><span>{{ page }} / {{ data.last_page }}</span
+        ><button
+          class="button secondary"
+          :disabled="busy || retrySeconds > 0 || page >= data.last_page"
+          @click="paginate(page + 1)"
+        >
+          {{ t('platform.next') }}
+        </button>
+      </nav>
+    </template>
   </section>
 </template>
 <style scoped>
@@ -406,6 +340,9 @@ form {
 .platform-controls input {
   min-width: 0;
   width: min(280px, 100%);
+}
+.workspace-list-table td {
+  overflow-wrap: anywhere;
 }
 .platform-note,
 small {

@@ -51,6 +51,23 @@ class SubscriptionLifecycleTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    public function test_owner_subscription_summary_does_not_consume_the_mfa_budget(): void
+    {
+        $owner = User::factory()->owner()->create();
+        $this->actingAs($owner);
+        $this->travel(301)->seconds();
+        $this->getJson('/api/security/status')->assertOk()->assertJsonPath('fresh', false)->assertJsonPath('stepUpMinutes', 5);
+        for ($attempt = 0; $attempt < 6; $attempt++) {
+            $this->getJson('/api/admin/resource-selection/summary')->assertOk();
+        }
+        $this->getJson('/api/admin/resource-selection')->assertStatus(423);
+        $this->postJson('/api/security/confirm', ['recovery_code' => 'test-recovery-code'])
+            ->assertOk()->assertJsonPath('stepUpMinutes', 5)->assertJsonPath('freshFor', 300);
+        $this->postJson('/api/admin/resource-selection/previews')->assertUnprocessable();
+        $this->actingAs(User::factory()->memberOf($owner->workspaceMembers()->firstOrFail()->workspace)->create())
+            ->getJson('/api/admin/resource-selection/summary')->assertForbidden();
+    }
+
     public function test_primary_manual_assignments_preserve_trial_history_and_restore_selected_resources(): void
     {
         config(['onboarding.subject_retention_days' => 365]);
@@ -87,6 +104,11 @@ class SubscriptionLifecycleTest extends TestCase
         $branding = app(WorkspaceBranding::class);
         $this->assertSame('Synthetic Studio', $branding->email($workspace)['name']);
         $this->assertFalse($branding->document($workspace, 'en')['platform']);
+
+        $summary = $this->actingAs($owner)->getJson('/api/admin/resource-selection/summary')
+            ->assertOk()->assertJsonPath('data.subscription.phase', 'trial')
+            ->assertJsonCount(3, 'data.catalog')->assertJsonMissingPath('data.catalog.0.id')->json('data');
+        $this->assertSame(10, $summary['usage']['developers.max']['count']);
 
         $invite = '/api/admin/administrators/invitations';
         $inviteBody = ['email' => 'extra@example.test', 'sendEmail' => false, 'generateLink' => true];

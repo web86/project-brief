@@ -105,22 +105,156 @@ $actor->passkeys()->delete();
     await page.locator('.plans-editor').first().waitFor()
     await noFallback()
 
+    const ownerContext = await browser.newContext({
+      ignoreHTTPSErrors: true,
+      viewport: { width: 390, height: 844 },
+      colorScheme: 'dark',
+    })
+    try {
+      await ownerContext.addInitScript(() => {
+        if (!localStorage.getItem('projectbrief.locale'))
+          localStorage.setItem('projectbrief.locale', 'en')
+        if (!localStorage.getItem('projectbrief.theme'))
+          localStorage.setItem('projectbrief.theme', 'system')
+      })
+      await login(ownerContext, { ...fixture, owner: manual.owner }, true)
+      const ownerPage = await ownerContext.newPage()
+      ownerPage.on('pageerror', (error) => errors.push(error.message))
+      const ownerPath = '/admin/settings/subscription'
+      const ownerCalls = []
+      ownerPage.on('request', (request) => {
+        if (request.url().includes('/api/admin/resource-selection')) ownerCalls.push(request.url())
+      })
+      await ownerPage.goto(origin + ownerPath)
+      const current = ownerPage.locator('.subscription-current')
+      await current.getByRole('heading', { name: 'Studio', exact: true }).waitFor()
+      await current
+        .getByText('Active members: 2 · Reserved by invitations: 8', { exact: true })
+        .waitFor()
+      assert.equal(
+        (await (await call(ownerContext, '/api/security/status')).json()).stepUpMinutes,
+        5,
+      )
+      assert.equal(ownerCalls.length, 1)
+      assert.equal(await ownerPage.locator('dialog[open]').count(), 0)
+      assert.ok(
+        await ownerPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      )
+
+      await ownerPage.route(
+        '**/api/admin/resource-selection/summary',
+        (route) =>
+          route.fulfill({
+            status: 429,
+            headers: { 'Retry-After': '2' },
+            json: { code: 'rate_limited' },
+          }),
+        { times: 1 },
+      )
+      await ownerPage.getByRole('button', { name: 'Refresh', exact: true }).click()
+      await ownerPage.getByText(/Try again in [12] s/).waitFor()
+      assert.ok(await current.getByRole('heading', { name: 'Studio', exact: true }).isVisible())
+      assert.ok(
+        await ownerPage.getByRole('button', { name: 'Try again', exact: true }).isDisabled(),
+      )
+      await ownerPage.getByRole('button', { name: 'Try again', exact: true }).click()
+      await ownerPage.waitForFunction(() => !document.querySelector('.subscription-load-error'))
+      assert.equal(ownerCalls.length, 3)
+      assert.ok(ownerCalls.every((url) => url.endsWith('/summary')))
+      for (const [locale, theme] of [
+        ['ru', 'dark'],
+        ['tr', 'light'],
+        ['zh-CN', 'system'],
+      ]) {
+        await ownerPage.evaluate(
+          ([locale, theme]) => {
+            localStorage.setItem('projectbrief.locale', locale)
+            localStorage.setItem('projectbrief.theme', theme)
+          },
+          [locale, theme],
+        )
+        await ownerPage.reload({ waitUntil: 'domcontentloaded' })
+        await current.getByRole('heading', { name: 'Studio', exact: true }).waitFor()
+        assert.equal(await ownerPage.locator('html').getAttribute('lang'), locale)
+        assert.equal(
+          await ownerPage.locator('html').getAttribute('data-theme'),
+          theme === 'system' ? 'dark' : theme,
+        )
+        assert.ok(
+          await ownerPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+        )
+      }
+    } finally {
+      await ownerContext.close()
+    }
+
     await page.goto(origin + '/platform?section=workspaces', { waitUntil: 'domcontentloaded' })
-    await page.getByRole('button', { name: manual.name, exact: true }).click()
-    await page.getByText('Manage subscription', { exact: true }).click()
-    const subscription = page.locator('.resource-selection')
-    await subscription.getByText('Trial', { exact: true }).waitFor()
-    await subscription.getByLabel('New plan').selectOption({ label: 'Freelancer' })
-    await subscription.getByRole('button', { name: 'Freeze preview' }).click()
-    await subscription.getByText('Snapshot ready').waitFor()
-    await subscription
+    await page.getByRole('link', { name: 'Open workspace ' + manual.name, exact: true }).click()
+    await page.locator('#workspace-details').getByText(manual.name).waitFor()
+    await page.locator('.workspace-tabs').getByRole('link', { name: 'Subscription' }).click()
+    const deepLink =
+      origin + '/platform?section=workspaces&workspace=' + manual.workspace + '&view=subscription'
+    assert.equal(page.url(), deepLink)
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page
+      .locator('.subscription-current')
+      .getByRole('heading', { name: 'Studio', exact: true })
+      .waitFor()
+    await page.getByRole('button', { name: 'Change plan', exact: true }).click()
+    const wizard = page.locator('dialog[aria-labelledby="subscription-change-title"]')
+    for (const plan of ['Basic', 'Freelancer', 'Studio'])
+      assert.ok(
+        await wizard.getByRole('button', { name: 'Choose ' + plan, exact: true }).isEnabled(),
+      )
+    await wizard.getByRole('button', { name: 'Choose Studio', exact: true }).click()
+    await wizard.getByText('The current resources fit the plan limits.').waitFor()
+    assert.equal(await wizard.locator('.wizard-resources').count(), 0)
+    await wizard.getByRole('button', { name: 'Back', exact: true }).click()
+    await wizard.getByRole('button', { name: 'Choose Freelancer', exact: true }).click()
+    await wizard.getByText(/12 \/ 10/).waitFor()
+    assert.ok(await wizard.getByRole('checkbox', { name: 'Design project 01' }).isChecked())
+    assert.ok(await wizard.getByRole('checkbox', { name: 'Design project 12' }).isDisabled())
+    await wizard.getByRole('checkbox', { name: 'Design project 10' }).uncheck()
+    await wizard.getByRole('checkbox', { name: 'Design project 12' }).check()
+
+    const previewOtp = stale(true)
+    await wizard.getByRole('button', { name: 'Review assignment', exact: true }).click()
+    await dialog.getByText('Confirm your identity. Confirmation lasts for 10 minutes.').waitFor()
+    await dialog.locator('#security-code').fill(previewOtp)
+    await dialog.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+    await wizard
+      .getByText('This is a preview. The assignment takes effect when you confirm it.')
+      .waitFor()
+    const platformSummary = '/api/platform/workspaces/' + manual.workspace + '?view=subscription'
+    assert.equal((await (await call(context, platformSummary)).json()).subscription.phase, 'trial')
+
+    await wizard
       .getByLabel('Last service day (UTC)')
       .fill(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10))
-    await subscription.getByLabel(/I explicitly agree/).check()
-    await subscription.getByLabel(/I confirm this change/).check()
-    await subscription.getByRole('button', { name: 'Apply subscription change' }).click()
-    await subscription.getByRole('heading', { name: 'Freelancer', exact: true }).waitFor()
-    assert.equal(await dialog.count(), 0)
+    assert.ok(await wizard.getByRole('button', { name: 'Assign plan', exact: true }).isDisabled())
+    await wizard.getByLabel(/I explicitly agree/).check()
+    await page.route(
+      '**/assign-manual',
+      (route) =>
+        route.fulfill({
+          status: 429,
+          headers: { 'Retry-After': '2' },
+          json: { code: 'rate_limited' },
+        }),
+      { times: 1 },
+    )
+    await wizard.getByRole('button', { name: 'Assign plan', exact: true }).click()
+    await wizard.getByText(/Try again in [12] s/).waitFor()
+    assert.equal((await (await call(context, platformSummary)).json()).subscription.phase, 'trial')
+    await wizard.getByRole('button', { name: 'Try again', exact: true }).click()
+    await page
+      .locator('.subscription-current')
+      .getByRole('heading', { name: 'Freelancer', exact: true })
+      .waitFor()
+    assert.equal(await wizard.count(), 0)
+    const resulting = await (await call(context, platformSummary)).json()
+    assert.equal(resulting.usage['projects.active.max'].count, 10)
+    assert.equal(resulting.usage['agents.active.max'].count, 1)
 
     for (const [status, diagnostic] of [
       [401, '/admin/login'],
@@ -270,7 +404,14 @@ foreach ($db->get() as $row) {
       await guest.close()
     }
     assert.deepEqual(errors, [])
-    return { engine, packaged, totp: true, signedPasskeyRetry: engine === 'chromium' }
+    return {
+      engine,
+      packaged,
+      totp: true,
+      subscription: true,
+      retryAfter: true,
+      signedPasskeyRetry: engine === 'chromium',
+    }
   } finally {
     await context.close()
   }

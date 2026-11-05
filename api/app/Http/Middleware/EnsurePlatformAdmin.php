@@ -41,7 +41,7 @@ class EnsurePlatformAdmin
             $security->requireFresh($request);
         }
         $action = $request->route()?->getName() ?? 'platform.view';
-        $workspace = $request->route('uuid');
+        $workspace = $request->route('uuid') ?? ($request->is('api/platform/workspaces/*/resource-selection*') ? $request->route('workspace') : null);
         $response = $next($request);
         $audit->record($user->id, $action, $workspace ? 'workspace' : 'platform', $workspace, $response->getStatusCode() < 400 ? 'success' : 'error');
         $response->headers->set('Cache-Control', 'no-store');

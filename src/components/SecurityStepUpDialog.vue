@@ -47,10 +47,14 @@ function warm() {
 watch(
   () => route.path,
   () => {
-    stepUp.leave()
     warm()
   },
   { immediate: true },
+)
+watch(
+  () => route.fullPath,
+  () => stepUp.leave(),
+  { flush: 'sync' },
 )
 let timer
 onMounted(() => {

@@ -394,7 +394,7 @@ $workspace->update(['branding' => ['visual' => ['primaryColor' => '#0f766e']]]);
         page.on('pageerror', (error) => errors.push(String(error)))
         for (const [screen, pathname, marker] of [
           ['projects', '/admin', '.project-list-controls'],
-          ['workspaces', '/platform?section=workspaces', '#platform-period'],
+          ['workspaces', '/platform?section=workspaces', '#platform-search'],
           ['inventory', '/platform/plans/inventory', '.inventory-controls select'],
           ['registration', '/platform/plans/registration', '.registration-diagnostics dl'],
           ['register', '/register', '.registration-form'],

@@ -1,69 +1,110 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAdminNavigationStore } from '../stores/adminNavigation.js'
 import { api } from '../api/client.js'
-import { t, locale, formatApiError } from '../i18n/index.js'
+import { t } from '../i18n/index.js'
+import { useRequestFeedback } from '../services/requestFeedback.js'
 import ResourceSelectionPanel from '../components/ResourceSelectionPanel.vue'
-const nav = useAdminNavigationStore(),
-  versions = ref([]),
-  target = ref(''),
-  error = ref(''),
-  page = ref(0),
-  hasMore = ref(false)
-async function loadVersions() {
-  try {
-    const r = await api.request('/api/admin/resource-selection/versions?page=' + (page.value + 1))
-    versions.value.push(...r.data)
-    page.value = r.meta.page
-    hasMore.value = r.meta.page < r.meta.lastPage
-  } catch (e) {
-    error.value = formatApiError(e)
-  }
+import SubscriptionLoadError from '../components/SubscriptionLoadError.vue'
+import SubscriptionOverview from '../components/SubscriptionOverview.vue'
+import SubscriptionPlanCard from '../components/SubscriptionPlanCard.vue'
+
+const nav = useAdminNavigationStore()
+const model = ref(null)
+const preparationOpen = ref(false)
+const { busy, error, retrySeconds, run, cancel } = useRequestFeedback()
+const remaining = computed(() => {
+  if (!model.value?.subscription?.endsAt) return null
+  return Math.max(0, Math.ceil((new Date(model.value.subscription.endsAt) - Date.now()) / 86400000))
+})
+async function load() {
+  if (!nav.workspace?.id) return
+  const result = await run((signal) =>
+    api.request('/api/admin/resource-selection/summary', { signal }),
+  )
+  if (result) model.value = result.data
 }
-onMounted(loadVersions)
+watch(
+  () => nav.workspace?.id,
+  () => {
+    cancel()
+    model.value = null
+    preparationOpen.value = false
+    load()
+  },
+  { immediate: true },
+)
 </script>
+
 <template>
-  <main class="owner-resource-preview">
-    <h1>{{ t('account.subscription') }}</h1>
-    <p v-if="error" role="alert">{{ error }}</p>
-    <label
-      >{{ t('preparation.target')
-      }}<select v-model="target">
-        <option value="">{{ t('preparation.choose') }}</option>
-        <option v-for="v in versions" :key="v.id" :value="v.id">
-          {{ v.translations[locale]?.name || v.translations.en.name }} · v{{ v.number }}
-        </option>
-      </select></label
-    ><button v-if="hasMore" class="text-button" @click="loadVersions">
-      {{ t('planManagement.next') }}
-    </button>
-    <p v-if="!versions.length">{{ t('preparation.missingTarget') }}</p>
-    <ResourceSelectionPanel :workspace-id="nav.workspace?.id" :target-id="target" />
-  </main>
+  <section class="owner-resource-preview">
+    <div class="page-heading">
+      <h1>{{ t('account.subscription') }}</h1>
+      <button
+        v-if="model && !error"
+        type="button"
+        class="button secondary"
+        :disabled="busy || retrySeconds > 0"
+        @click="load"
+      >
+        {{ t('platform.refresh') }}
+      </button>
+    </div>
+    <SubscriptionLoadError :error="error" :seconds="retrySeconds" :retry="load" />
+    <p v-if="busy" role="status">{{ t('nav.loading') }}</p>
+    <template v-if="model">
+      <SubscriptionOverview owner :subscription="model.subscription" :usage="model.usage">
+        <template #dates>
+          <p v-if="remaining !== null" class="muted">
+            {{ t('subscriptionUx.remainingDays', { days: remaining }) }}
+          </p>
+        </template>
+      </SubscriptionOverview>
+      <section class="surface subscription-explainer">
+        <h2>{{ t('subscriptionUx.whatChanges') }}</h2>
+        <p v-if="model.subscription?.phase === 'trial'">{{ t('subscriptionUx.trialEnds') }}</p>
+        <p v-else>{{ t('subscriptionUx.holds') }}</p>
+        <details v-if="model.selectionTarget" @toggle="preparationOpen = $event.target.open">
+          <summary>{{ t('subscriptionUx.keepResources') }}</summary>
+          <ResourceSelectionPanel
+            v-if="preparationOpen"
+            embedded
+            :workspace-id="nav.workspace.id"
+            :target-id="model.selectionTarget"
+            @changed="load"
+          />
+        </details>
+      </section>
+      <section>
+        <h2>{{ t('subscriptionUx.compare') }}</h2>
+        <p>{{ t('subscriptionUx.compareHint') }}</p>
+        <div class="subscription-catalog">
+          <SubscriptionPlanCard v-for="plan in model.catalog" :key="plan.code" :plan="plan" />
+        </div>
+        <p v-if="!model.catalog.length">{{ t('subscriptionUx.noCatalog') }}</p>
+      </section>
+    </template>
+  </section>
 </template>
+
 <style scoped>
 .owner-resource-preview {
   max-width: 1100px;
-  padding: 24px;
+  padding: clamp(14px, 4vw, 24px);
   margin: 0 auto;
   min-width: 0;
-}
-.owner-resource-preview > p {
-  margin-block: 16px;
-}
-.owner-resource-preview > label {
   display: grid;
-  gap: 8px;
-  max-width: 100%;
+  gap: 20px;
 }
-.owner-resource-preview select {
-  padding: 12px var(--select-end) 12px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background-color: var(--surface);
-  color: var(--text);
-  max-width: 100%;
-  font: inherit;
-  line-height: var(--select-line-height);
+.subscription-explainer {
+  padding: clamp(16px, 4vw, 24px);
+}
+.subscription-explainer summary {
+  cursor: pointer;
+}
+.subscription-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+  gap: 14px;
 }
 </style>

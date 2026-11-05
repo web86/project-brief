@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ResourceSelections
 {
-    public function options(array $snapshot, bool $owner): array
+    public function options(array $snapshot, bool $named, bool $manual = false): array
     {
         $r = $snapshot['rows'];
         $projects = $r['projects']->filter(fn ($p) => ! $p->deleted_at && $p->status === 'active');
@@ -21,14 +21,24 @@ final class ResourceSelections
         $validity = app(InvitationOccupancy::class)->managerValidity($invites, $snapshot['workspaceInternalId'], true);
         $holds = $r['entitlement_capacity_reservations']->keyBy('developer_invitation_id');
         $invites = $invites->filter(fn ($i) => ($validity[$i->id] ?? null) === true && $holds->get($i->id)?->state !== 'suspended');
-        $names = $owner ? DB::table('projects')->whereIn('id', $projects->pluck('id'))->pluck('title', 'id') : collect();
-        $humans = $owner ? DB::table('users')->whereIn('id', $members->pluck('user_id'))->pluck('name', 'id') : collect();
-        $clientNames = $owner ? DB::table('project_clients')->whereIn('id', $clients->pluck('id'))->pluck('name', 'id') : collect();
-        $agentNames = $owner ? DB::table('external_agents')->whereIn('id', $agents->pluck('id'))->pluck('name', 'id') : collect();
+        $names = $named ? DB::table('projects')->whereIn('id', $projects->pluck('id'))->pluck('title', 'id') : collect();
+        $humans = $named ? DB::table('users')->whereIn('id', $members->pluck('user_id'))->get(['id', 'name', 'email'])->keyBy('id') : collect();
+        $clientNames = $named ? DB::table('project_clients')->whereIn('id', $clients->pluck('id'))->pluck('name', 'id') : collect();
+        $agentNames = $named ? DB::table('external_agents')->whereIn('id', $agents->pluck('id'))->pluck('name', 'id') : collect();
         $projectIds = $projects->pluck('uuid', 'id');
 
+        $seat = app(InvitationOccupancy::class);
+        $people = $manual ? DB::table('users')->whereIn(DB::raw('LOWER(TRIM(email))'), $invites->map(fn ($invite) => DeveloperInvitations::normalizeEmail($invite->email)))->orderBy('id')->get(['id', 'email'])
+            ->groupBy(fn ($user) => DeveloperInvitations::normalizeEmail($user->email)) : collect();
+        $assignedAgents = $r['project_members']->whereNotNull('external_agent_id')
+            ->groupBy('external_agent_id')->map(fn ($rows) => $rows->pluck('project_id'));
+        $agentProjects = $r['agent_project_grants']->groupBy('external_agent_id')->map(fn ($rows, $agent) => $rows->pluck('project_id')->intersect($assignedAgents->get($agent, collect()))
+            ->map(fn ($id) => $projectIds->get($id))->filter()->unique()->values()->all());
+        $issued = $manual ? DB::table('developer_invitations')->where('workspace_id', $snapshot['workspaceInternalId'])->whereIn('id', $invites->pluck('id'))->whereNotNull('token_hash')->pluck('id')->all() : [];
+
         return ['projects' => $projects->map(fn ($p) => ['id' => $p->uuid, 'label' => $names->get($p->id, $p->uuid)])->values()->all(),
-            'developers' => $members->map(fn ($m) => ['id' => (string) $m->id, 'owner' => $m->role === 'owner', 'label' => $humans->get($m->user_id, (string) $m->id)])->values()->all(),
+            'developers' => $members->map(fn ($m) => ['id' => (string) $m->id, 'owner' => $m->role === 'owner', 'label' => $humans->get($m->user_id)?->name ?? (string) $m->id,
+                ...($manual ? ['email' => $humans->get($m->user_id)?->email, 'seatKey' => $seat->identity('', $m->user_id)] : [])])->values()->all(),
             'clients' => $clients->groupBy('entitlement_identity_id')->map(function ($links, $id) use ($identities, $projectIds, $clientNames): array {
                 $identity = $identities->get($id);
 
@@ -36,8 +46,19 @@ final class ResourceSelections
 
                 return ['id' => $identity?->uuid, ...($label !== '' ? ['label' => $label] : []), 'state' => $identity ? 'mapped' : 'needs_review', 'projectIds' => $links->map(fn ($c) => $projectIds->get($c->project_id))->unique()->values()->all()];
             })->values()->all(),
-            'agents' => $agents->map(fn ($a) => ['id' => $a->uuid, ...($agentNames->has($a->id) ? ['label' => $agentNames->get($a->id)] : [])])->values()->all(),
-            'invitations' => $invites->map(fn ($i) => ['id' => $i->uuid, 'expiresAt' => $i->expires_at])->values()->all()];
+            'agents' => $agents->map(fn ($a) => ['id' => $a->uuid, ...($agentNames->has($a->id) ? ['label' => $agentNames->get($a->id)] : []), ...($manual ? ['projectIds' => $agentProjects->get($a->id, [])] : [])])->values()->all(),
+            'invitations' => $invites->map(function ($invite) use ($named, $manual, $seat, $people, $projectIds, $issued): array {
+                $row = ['id' => $invite->uuid, 'expiresAt' => $invite->expires_at, ...($named ? ['label' => $invite->email] : [])];
+                if (! $manual) {
+                    return $row;
+                }
+                $assigned = collect(json_decode($invite->project_ids ?? '[]', true, 16, JSON_THROW_ON_ERROR));
+                $projects = $assigned->map(fn ($id) => $projectIds->get($id))->filter()->values()->all();
+                $known = $people->get(DeveloperInvitations::normalizeEmail($invite->email), collect());
+
+                return $row + ['projectIds' => $projects, 'seatKey' => $seat->identity($invite->email, $known->first()?->id),
+                    'eligible' => count($projects) === $assigned->count() && $known->count() <= 1 && in_array($invite->id, $issued, true)];
+            })->values()->all()];
     }
 
     public function target(string $uuid, bool $public = false): array

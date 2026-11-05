@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plans\WorkspaceSubscription;
+use App\Services\Plans\FrozenTransitions;
 use App\Services\PlatformOverview;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,8 +52,16 @@ class PlatformController extends Controller
             });
         }
         $page = $query->orderBy('workspaces.id')->paginate(25);
-        $owners = $this->platform->owners($page->getCollection()->pluck('id')->all());
-        $page->setCollection($page->getCollection()->map(fn ($workspace) => [...(array) $workspace, 'owners' => $owners[$workspace->id] ?? []]));
+        $ids = $page->getCollection()->pluck('id')->all();
+        $owners = $this->platform->owners($ids);
+        $subscriptions = WorkspaceSubscription::with('currentPeriod.version')->whereIn('workspace_id', $ids)->get()->keyBy('workspace_id');
+        $counts = DB::table('projects')->whereIn('workspace_id', $ids)->whereNull('deleted_at')->groupBy('workspace_id')
+            ->selectRaw('workspace_id, COUNT(*) as total')->pluck('total', 'workspace_id');
+        $transitions = app(FrozenTransitions::class);
+        $page->setCollection($page->getCollection()->map(fn ($workspace) => [
+            ...(array) $workspace, 'owners' => $owners[$workspace->id] ?? [], 'projectCount' => (int) ($counts[$workspace->id] ?? 0),
+            'subscription' => $transitions->describePeriod($subscriptions->get($workspace->id)?->currentPeriod),
+        ]));
 
         return response()->json($page);
     }
@@ -62,7 +72,20 @@ class PlatformController extends Controller
         $workspace = $this->platform->workspaces()->where('workspaces.uuid', $uuid)->first();
         abort_unless($workspace, 404);
         $id = $workspace->id;
+        $view = $request->validate(['view' => 'sometimes|in:overview,subscription,resources,diagnostics'])['view'] ?? null;
+        $header = ['workspace' => $workspace, 'owners' => $this->platform->owners([$id])[$id] ?? []];
+        if (in_array($view, ['subscription', 'resources'], true)) {
+            $summary = app(FrozenTransitions::class)->summary($id);
+
+            return response()->json($header + array_intersect_key($summary, ['subscription' => true, 'usage' => true]));
+        }
         $projects = DB::table('projects')->where('workspace_id', $id)->whereNull('deleted_at');
+        $counts = ['projects' => $projects->count(), 'clients' => $this->platform->clientCount($id),
+            'members' => DB::table('workspace_members')->where('workspace_id', $id)->where('status', 'active')->count(),
+            'requests' => DB::table('project_requests')->where('workspace_id', $id)->count()];
+        if ($view === 'overview') {
+            return response()->json($header + ['counts' => $counts]);
+        }
         $tokens = DB::table('integration_tokens')->where('workspace_id', $id)->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) THEN 1 ELSE 0 END), 0) as active', [now()])->first();
         $notifications = DB::table('notification_deliveries as n')->leftJoin('projects as p', 'p.id', '=', 'n.project_id')->leftJoin('project_requests as r', 'r.id', '=', 'n.project_request_id')->where(fn ($q) => $q->where('p.workspace_id', $id)->orWhere('r.workspace_id', $id))->where('n.status', 'sent')->where('n.created_at', '>=', $since)->count();
 
@@ -90,6 +113,10 @@ class PlatformController extends Controller
     {
         $since = $this->since($request);
 
-        return response()->json(DB::table('platform_audit')->where('created_at', '>=', $since)->orderByDesc('id')->paginate(25));
+        $workspace = $request->validate(['workspace' => 'sometimes|uuid'])['workspace'] ?? null;
+
+        return response()->json(DB::table('platform_audit')->where('created_at', '>=', $since)
+            ->when($workspace, fn ($query) => $query->where('object_type', 'workspace')->where('object_id', $workspace))
+            ->orderByDesc('id')->paginate(25));
     }
 }
