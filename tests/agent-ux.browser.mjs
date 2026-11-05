@@ -34,7 +34,7 @@ if (liveEnvPath) {
 const collapseOnly = process.env.AGENT_UX_COLLAPSE_ONLY === '1'
 const hotfix = process.env.AGENT_UX_HOTFIX === '1'
 const refinement = process.env.AGENT_UX_RELEASE910 === '1' || hotfix
-const mysql = !collapseOnly && (!refinement || hotfix)
+const mysql = !refinement || hotfix
 const smtp =
   refinement && !hotfix
     ? await (await import('./release910.browser-steps.mjs')).startLocalSmtp()
