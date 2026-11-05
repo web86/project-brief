@@ -116,6 +116,12 @@ const label = (key) => t('planManagement.featureNames.' + key)
                 </select></label
               >
             </template>
+            <ul v-if="definition.sections_by_level">
+              <li v-for="level in definition.values" :key="level">
+                <strong>{{ t('planManagement.enumNames.' + level) }}</strong> ·
+                {{ t('brandingLevels.' + level) }}
+              </li>
+            </ul>
           </template>
         </article>
       </div>

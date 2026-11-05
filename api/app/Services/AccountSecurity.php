@@ -17,6 +17,15 @@ use PragmaRX\Google2FA\Google2FA;
 
 class AccountSecurity
 {
+    public const PLATFORM_STEP_UP_MINUTES = 10;
+
+    public const PLATFORM_SESSION_HOURS = 6;
+
+    public function stepUpMinutes(?User $user): int
+    {
+        return $user?->platform_admin ? self::PLATFORM_STEP_UP_MINUTES : 5;
+    }
+
     public function enrolled(User $user): bool
     {
         return $user->hasEnabledTwoFactorAuthentication() && $user->recovery_codes_acknowledged_at;
@@ -66,7 +75,7 @@ class AccountSecurity
             && ($proof['session'] ?? '') === $this->sessionHash($request)
             && ($proof['policy'] ?? '') === $this->policyFingerprint($user)
             && DB::table('account_security_challenges')->where('id', $proof['id'] ?? null)->where('purpose', $key === 'step_up' ? 'step_up' : 'recovery_enrollment')->where('user_id', $user->id)->where('session_version', $user->auth_session_version)->where('session_hash', $this->sessionHash($request))->where('expires_at', '>', now())->when(DB::transactionLevel() > 0, fn ($query) => $query->lockForUpdate())->first(['id']) !== null
-            && (int) ($proof['at'] ?? 0) > now()->subMinutes(5)->timestamp
+            && (int) ($proof['at'] ?? 0) > now()->subMinutes($key === 'step_up' ? $this->stepUpMinutes($user) : 5)->timestamp
             && (int) ($proof['at'] ?? 0) <= now()->timestamp
             && (! $user->security_recovery_expires_at || ($user->security_recovery_expires_at->isFuture() && $request->session()->get('security.operator_recovery') === true));
     }
@@ -130,7 +139,8 @@ class AccountSecurity
     public function confirm(Request $request, User $user, string $method): void
     {
         $operatorRecovery = $request->session()->get('security.operator_recovery') === true && (int) $request->session()->get('security.user') === $user->id;
-        $request->session()->put('security', ['user' => $user->id, 'version' => (int) $user->auth_session_version, 'method' => $method, 'confirmed_at' => now()->timestamp, 'operator_recovery' => $operatorRecovery, 'step_up' => $this->proof($request, $user, $method)]);
+        $startedAt = (int) $request->session()->get('security.started_at', $request->session()->get('security.confirmed_at', now()->timestamp));
+        $request->session()->put('security', ['started_at' => $startedAt, 'user' => $user->id, 'version' => (int) $user->auth_session_version, 'method' => $method, 'confirmed_at' => now()->timestamp, 'operator_recovery' => $operatorRecovery, 'step_up' => $this->proof($request, $user, $method)]);
     }
 
     public function passwordLogin(Request $request, User $user): string
@@ -169,7 +179,9 @@ class AccountSecurity
             DB::table('account_security_challenges')->where('session_hash', $this->sessionHash($request))->where('purpose', $purpose)->delete();
         }
         $id = (string) Str::uuid();
-        DB::table('account_security_challenges')->insert(['id' => $id, 'user_id' => $user?->id, 'session_version' => $user ? (int) $user->auth_session_version : null, 'session_hash' => $this->sessionHash($request), 'purpose' => $purpose, 'context_hash' => in_array($purpose, ['passkey_confirm', 'passkey_register'], true) ? $this->confirmationContext($request) : null, 'options' => $options, 'expires_at' => now()->addMinutes(in_array($purpose, ['password_2fa', 'step_up', 'recovery_enrollment'], true) ? 5 : 2)]);
+        DB::table('account_security_challenges')->insert(['id' => $id, 'user_id' => $user?->id, 'session_version' => $user ? (int) $user->auth_session_version : null, 'session_hash' => $this->sessionHash($request), 'purpose' => $purpose, 'context_hash' => in_array($purpose, ['passkey_confirm', 'passkey_register'], true) ? $this->confirmationContext($request) : null, 'options' => $options, 'expires_at' => now()->addMinutes(match ($purpose) {
+            'step_up' => $this->stepUpMinutes($user), 'password_2fa', 'recovery_enrollment' => 5, default => 2
+        })]);
 
         return $id;
     }

@@ -108,7 +108,8 @@ final class ResourceSelections
         foreach (['api.agents.enabled', 'api.external.enabled', 'webhooks.enabled', 'sso.enabled'] as $key) {
             $premium[$key] = $target['limits'][$key]['value'] ? 'retained_subject_to_existing_permissions' : 'would_hold_execution';
         }
-        $premium['branding.level'] = ['target' => $target['limits']['branding.level']['value'], 'state' => 'field_policy_review_required'];
+        $branding = $target['limits']['branding.level']['value'];
+        $premium['branding.level'] = ['target' => $branding, 'sections' => EntitlementRegistry::BRANDING_SECTIONS[$branding], 'state' => 'target_policy'];
 
         $selectedProjects = $r['projects']->whereIn('uuid', $selection['projects'])->pluck('id');
         $selectedIdentities = $r['entitlement_client_identities']->whereIn('uuid', $selection['clients'])->pluck('id');

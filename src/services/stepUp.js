@@ -14,7 +14,7 @@ export function createStepUpFlow({ now = () => performance.now() } = {}) {
     retrying
   function remember(value) {
     status = value
-    deadline = now() + Math.max(0, Math.min(300, value?.freshFor || 0)) * 1000
+    deadline = now() + Math.max(0, Math.min(600, value?.freshFor || 0)) * 1000
   }
   function fresh() {
     return status?.fresh === true && now() < deadline

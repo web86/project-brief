@@ -4,6 +4,50 @@ import { preparationMessages } from './preparation.js'
 import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  manualSubscription: {
+    title: 'Manage subscription',
+    intro:
+      'Select the new plan and the resources to keep. This manual grant does not record a payment.',
+    target: 'New plan',
+    choose: 'Choose a published plan',
+    unavailable:
+      'This workspace cannot be assigned a plan here, or no eligible plan has been published. Compatibility workspaces require a separate transition.',
+    started: 'Started',
+    noEnd: 'No end date',
+    holds:
+      'Resources on hold are preserved. After a paid assignment, the owner must explicitly re-enable integrations allowed by the plan.',
+    apply: 'Apply subscription change',
+    endDate: 'Last service day (UTC)',
+    replace:
+      'I explicitly agree to replace the active Trial or paid period and cancel any scheduled renewal.',
+    manual_assignment_end_date_required: 'Enter an end date for a paid plan.',
+    manual_assignment_end_date_invalid: 'Choose a valid service end date.',
+    manual_assignment_replacement_required: 'Confirm replacement of the active period separately.',
+    manual_assignment_overrides_require_review:
+      'Review active or scheduled entitlement overrides before assigning a plan.',
+    manual_assignment_unavailable: 'Manual assignment is unavailable for this subscription.',
+  },
+  brandingLevels: {
+    none: 'Workspace name and standard Dev2Done branding.',
+    basic: 'Custom brand name, logo, favicon and primary color in supported client screens.',
+    full: 'Everything in basic branding, plus company and contact details, branded email and PDF/DOCX, and optional Dev2Done attribution in supported exports.',
+  },
+  planRestrictions: {
+    developerLimit: 'Developer seat limit reached',
+    plan_limit_reached: 'Plan limit reached',
+    plan_feature_unavailable: 'Feature unavailable on this plan',
+    plan_subscription_inactive: 'Subscription access is paused',
+    plan_resource_held: 'Resource is on hold',
+    usage: 'Using {usage} of {maximum}.',
+    planUsage: 'Using {usage} of {maximum} on {plan}.',
+    maximum: 'Plan maximum: {maximum}.',
+    capacityAction: 'Free up capacity or ask about increasing your limit.',
+    plan_feature_unavailable_action: 'Review the features included in your plan.',
+    plan_subscription_inactive_action: 'Ask the workspace owner to review the subscription.',
+    plan_resource_held_action:
+      'Review the resource selection or ask the workspace owner to restore access.',
+    unread: 'New agent messages',
+  },
   canary: canaryMessages['en'],
   onboarding: onboardingMessages['en'],
   preparation: preparationMessages.en,

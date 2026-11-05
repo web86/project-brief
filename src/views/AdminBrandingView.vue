@@ -21,6 +21,12 @@ const nav = useAdminNavigationStore(),
   store = useWorkspaceBrandingStore(),
   tab = ref('visual')
 const tabs = ['visual', 'business', 'contact', 'export', 'email', 'footer', 'future']
+const allowedTabs = computed(() =>
+  store.settings?.level === 'none' ? [] : store.settings?.level === 'basic' ? ['visual'] : tabs,
+)
+watch(allowedTabs, (allowed) => {
+  if (!allowed.includes(tab.value)) tab.value = 'visual'
+})
 watch(
   () => nav.workspace?.id,
   (id) => {
@@ -129,7 +135,7 @@ const changed = (section) =>
       </div>
       <button
         class="button secondary"
-        :disabled="!!store.busy || store.loading || !store.draft"
+        :disabled="!!store.busy || store.loading || !store.draft || !allowedTabs.length"
         @click="reset"
       >
         {{ t('branding.reset') }}
@@ -170,10 +176,13 @@ const changed = (section) =>
     >
       {{ t('ui.cancel') }}
     </button>
-    <template v-if="store.draft">
+    <p v-if="store.settings?.level === 'none' || store.settings?.level === 'basic'" class="muted">
+      {{ t('brandingLevels.' + store.settings.level) }}
+    </p>
+    <template v-if="store.draft && allowedTabs.length">
       <nav class="branding-tabs" :aria-label="t('branding.title')">
         <button
-          v-for="section in tabs"
+          v-for="section in allowedTabs"
           :key="section"
           type="button"
           :aria-current="tab === section ? 'page' : undefined"

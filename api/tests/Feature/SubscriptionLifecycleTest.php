@@ -34,6 +34,7 @@ use App\Services\ProjectAccess;
 use App\Services\ProjectProvisioning;
 use App\Services\WebhookEvents;
 use App\Services\WebhookProcessor;
+use App\Services\WorkspaceBranding;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PlansFoundationSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -49,6 +50,120 @@ use Tests\TestCase;
 class SubscriptionLifecycleTest extends TestCase
 {
     use LazilyRefreshDatabase;
+
+    public function test_primary_manual_assignments_preserve_trial_history_and_restore_selected_resources(): void
+    {
+        config(['onboarding.subject_retention_days' => 365]);
+        $operator = User::factory()->owner()->create(['platform_admin' => true]);
+        DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $operator->id, 'revision' => 1]);
+        $this->seed(PlansFoundationSeeder::class);
+        $versions = [];
+        foreach (['basic', 'freelancer', 'studio'] as $code) {
+            $version = PlanVersion::whereHas('plan', fn ($query) => $query->where('code', $code))->firstOrFail();
+            $versions[$code] = app(PlanCatalog::class)->publish($operator, $version->id, 1, 'manual-target-'.$code);
+        }
+        $policy = app(PlatformPolicyCatalog::class)->publish($operator, PlatformPolicyVersion::firstOrFail()->id, 1, 'manual-policy');
+        DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
+        $owner = User::factory()->create();
+        app(AuthOnboarding::class)->pending($owner);
+        $workspace = app(AuthOnboarding::class)->prepare($owner);
+        $owner->forceFill([
+            'two_factor_secret' => Fortify::currentEncrypter()->encrypt(app(Google2FA::class)->generateSecretKey()),
+            'two_factor_confirmed_at' => now(),
+            'recovery_codes_acknowledged_at' => now(),
+        ])->save();
+        $lifecycle = app(SubscriptionLifecycle::class);
+        $trial = $lifecycle->startVerifiedTrial($workspace->id, $owner->id);
+        $member = $owner->workspaceMembers()->firstOrFail();
+        $developers = User::factory()->count(9)->memberOf($workspace)->create();
+        $first = Project::factory()->create(['workspace_id' => $workspace->id]);
+        $second = Project::factory()->create(['workspace_id' => $workspace->id]);
+        $first->clients()->update(['active' => false]);
+        $second->clients()->update(['active' => false]);
+        $brand = ['visual' => ['companyName' => 'Synthetic Studio', 'primaryColor' => '#442288'],
+            'business' => ['legalName' => 'Synthetic LLC'], 'export' => ['platform' => false, 'business' => true],
+            'email' => ['enabled' => true]];
+        $workspace->update(['branding' => $brand]);
+        $branding = app(WorkspaceBranding::class);
+        $this->assertSame('Synthetic Studio', $branding->email($workspace)['name']);
+        $this->assertFalse($branding->document($workspace, 'en')['platform']);
+
+        $invite = '/api/admin/administrators/invitations';
+        $inviteBody = ['email' => 'extra@example.test', 'sendEmail' => false, 'generateLink' => true];
+        $this->actingAs($owner)->postJson($invite, $inviteBody)->assertForbidden()
+            ->assertJsonPath('code', 'plan_limit_reached')->assertJsonPath('planRestriction.entitlement', 'developers.max')
+            ->assertJsonPath('planRestriction.usage', 10)->assertJsonPath('planRestriction.maximum', 10)
+            ->assertJsonPath('planRestriction.attemptedUsage', 11)->assertJsonPath('planRestriction.plan', 'studio');
+        $this->assertDatabaseMissing('developer_invitations', ['email' => $inviteBody['email']]);
+        $this->postJson($invite, ['email' => 'invalid'])->assertUnprocessable()->assertJsonMissingPath('planRestriction');
+        $this->actingAs($developers->first())->postJson($invite, $inviteBody)->assertForbidden()->assertJsonMissingPath('planRestriction');
+
+        $root = '/api/platform/workspaces/'.$workspace->uuid.'/resource-selection';
+        $ownerOnly = ['projects' => [$first->uuid], 'developers' => [(string) $member->id], 'clients' => [], 'agents' => [], 'invitations' => []];
+        $this->actingAs($operator)->getJson($root.'/manual')->assertOk()->assertJsonCount(3, 'data.assignableVersions')->assertJsonPath('data.subscription.phase', 'trial');
+        $freeze = function (string $code, array $selection) use ($root, $versions): array {
+            $revision = $this->getJson($root.'/manual')->assertOk()->json('data.subscriptionRevision');
+            $headers = ['If-Match' => '"revision:'.$revision.'"', 'Idempotency-Key' => (string) Str::uuid()];
+            $preview = $this->postJson($root.'/manual/previews', ['targetVersionId' => $versions[$code]->uuid, 'selection' => $selection], $headers)
+                ->assertCreated()->assertJsonPath('data.availableAction', 'assign-manual')->json('data');
+
+            return [$root.'/previews/'.$preview['id'].'/assign-manual', $headers, $preview];
+        };
+
+        $endDate = CarbonImmutable::now('UTC')->addMonth()->toDateString();
+        [$path, $headers, $preview] = $freeze('freelancer', $ownerOnly);
+        $this->assertContains($second->uuid, $preview['wouldHold']['projects']);
+        $this->assertSame(10, $preview['limits']['projects.active.max']['value']);
+        $this->postJson($path, ['endDate' => $endDate, 'replaceActivePeriod' => false], $headers)
+            ->assertUnprocessable()->assertJsonPath('code', 'manual_assignment_replacement_required');
+        $this->travel(601)->seconds();
+        $this->postJson($path, ['endDate' => $endDate, 'replaceActivePeriod' => true], $headers)
+            ->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
+        $this->actingAs($operator)->postJson($path, ['endDate' => $endDate, 'replaceActivePeriod' => true], $headers)->assertOk();
+        $this->postJson($path, ['endDate' => $endDate, 'replaceActivePeriod' => true], $headers)->assertOk();
+        $this->assertDatabaseHas('owner_trial_claims', ['workspace_id' => $workspace->id, 'period_id' => $trial->id, 'state' => 'used']);
+        $this->assertSame($trial->id, $lifecycle->startVerifiedTrial($workspace->id, $owner->id)->id);
+        $this->assertSame('Synthetic Studio', $branding->portal($workspace)['companyName']);
+        $this->assertNull($branding->email($workspace));
+        $this->assertSame('', $branding->document($workspace, 'en')['name']);
+        $this->assertTrue($branding->document($workspace, 'en')['platform']);
+        $this->actingAs($owner)->postJson($invite, $inviteBody)->assertForbidden()->assertJsonPath('planRestriction.maximum', 1);
+        $brandingPath = '/api/admin/workspaces/'.$workspace->uuid.'/branding';
+        $this->getJson($brandingPath)->assertOk()->assertJsonPath('data.level', 'basic');
+        $this->patchJson($brandingPath, ['section' => 'business', 'values' => ['legalName' => 'Denied LLC']])
+            ->assertForbidden()->assertJsonPath('code', 'plan_feature_unavailable');
+        $this->patchJson($brandingPath, ['section' => 'visual', 'values' => ['companyName' => 'Freelancer brand']])->assertOk();
+
+        $this->actingAs($operator);
+        [$path, $headers] = $freeze('basic', $ownerOnly);
+        $this->postJson($path, ['replaceActivePeriod' => true], $headers)->assertOk();
+        $this->assertSame('', $branding->portal($workspace->fresh())['companyName']);
+        $this->assertSame('Synthetic LLC', $workspace->fresh()->branding['business']['legalName']);
+        $this->assertFalse(app(EffectiveParticipation::class)->projects($workspace->id)->where('projects.id', $second->id)->exists());
+        $this->assertDatabaseHas('projects', ['id' => $second->id, 'status' => 'active']);
+        $this->actingAs($owner)->getJson($brandingPath)->assertJsonPath('data.level', 'none');
+        $this->patchJson($brandingPath, ['section' => 'visual', 'values' => ['companyName' => 'Denied']])
+            ->assertForbidden()->assertJsonPath('code', 'plan_feature_unavailable');
+        $this->postJson($invite, $inviteBody)->assertForbidden()->assertJsonPath('planRestriction.maximum', 1);
+        $this->postJson('/api/admin/projects', ['title' => 'One project too many'])->assertForbidden()
+            ->assertJsonPath('planRestriction.entitlement', 'projects.active.max')->assertJsonPath('planRestriction.usage', 1);
+
+        $this->actingAs($operator);
+        [$path, $headers] = $freeze('studio', array_replace($ownerOnly, ['projects' => [$first->uuid, $second->uuid]]));
+        $result = $this->postJson($path, ['endDate' => $endDate, 'replaceActivePeriod' => false], $headers)->assertOk()->json('data');
+        $this->assertSame(2, app(EffectiveParticipation::class)->projects($workspace->id)->count());
+        $this->assertSame('Freelancer brand', $branding->email($workspace->fresh())['name']);
+        $this->assertSame('Synthetic LLC', $branding->document($workspace->fresh(), 'en')['business'][0]['value']);
+        $barrier = app(ExecutionBarrier::class);
+        $this->assertFalse($barrier->allows($workspace->id, 'api'));
+        $this->actingAs($owner)->postJson('/api/admin/resource-selection/rearm', ['groups' => ['api', 'agent', 'sso', 'webhook']], [
+            'If-Match' => '"revision:'.$result['revision'].'"', 'Idempotency-Key' => (string) Str::uuid(),
+        ])->assertOk();
+        $this->assertTrue($barrier->allows($workspace->id, 'api'));
+        $this->assertDatabaseCount('subscription_periods', 4);
+        $this->assertDatabaseCount('subscription_changes', 3);
+        $this->assertDatabaseHas('plan_events', ['actor_user_id' => $operator->id, 'action' => 'subscription.assign_manual']);
+    }
 
     public static function kinds(): array
     {
@@ -393,7 +508,7 @@ class SubscriptionLifecycleTest extends TestCase
         $this->getJson('/api/platform/registration-diagnostics')->assertOk()->assertDontSee($claimIds[0]);
 
         config(['onboarding.trial_activation_requested' => true]);
-        $this->travel(301)->seconds();
+        $this->travel(601)->seconds();
         $this->postJson($endpoint.'admit', $payload, $headers($revision, 'stale-mfa'))
             ->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
         $this->actingAs($primary)->postJson($endpoint.'admit', $payload, $headers($revision - 1, 'stale'))

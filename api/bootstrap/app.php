@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\PlanCapacityExceeded;
 use App\Http\Middleware\DemoIdentity;
 use App\Http\Middleware\DemoReadOnly;
 use App\Http\Middleware\EnsureAccountSecurity;
@@ -64,6 +65,22 @@ return Application::configure(basePath: dirname(__DIR__))
         });
         $exceptions->respond(fn (Response $response) => SecurityResponseHeaders::apply($response));
         $exceptions->render(function (Throwable $e, Request $request) {
+            if ($request->is('api/*') && $e instanceof HttpExceptionInterface) {
+                $code = match ($e->getMessage()) {
+                    'subscription_capacity_exceeded' => 'plan_limit_reached',
+                    'subscription_feature_unavailable' => 'plan_feature_unavailable',
+                    'subscription_execution_blocked', 'subscription_boundary_pending' => 'plan_subscription_inactive',
+                    'subscription_project_held', 'subscription_selection_required', 'subscription_execution_stale', 'subscription_execution_held' => 'plan_resource_held',
+                    default => null,
+                };
+                if ($code !== null) {
+                    return response()->json([
+                        'code' => $code,
+                        'message' => $code,
+                        'planRestriction' => $e instanceof PlanCapacityExceeded ? $e->details() : null,
+                    ], $e->getStatusCode())->header('Cache-Control', 'no-store');
+                }
+            }
             if ($request->is('api/security/*')) {
                 return app(AccountSecurityDiagnostics::class)->render($e, $request);
             }

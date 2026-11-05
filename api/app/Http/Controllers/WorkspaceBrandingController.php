@@ -95,6 +95,7 @@ class WorkspaceBrandingController extends Controller
             $settings = $branding->settings($workspace);
             $versions = $branding->versions($workspace);
             foreach ($sections as $section => $values) {
+                $branding->requireSection($workspace, $section);
                 if ($atomic && ! hash_equals($versions[$section], $data['versions'][$section])) {
                     abort(response()->json(['code' => 'branding_conflict', 'message' => trans('branding.conflict')], 409));
                 }
@@ -108,7 +109,7 @@ class WorkspaceBrandingController extends Controller
 
     public function sanitize(Request $request, BrandImage $images): JsonResponse
     {
-        $this->owner($request);
+        app(WorkspaceBranding::class)->requireSection($this->owner($request), 'assets');
         $request->validate(['file' => ['required', 'file', 'max:2048']], $this->messages());
 
         return response()->json(['svg' => $images->svg($request->file('file')->get())]);
@@ -117,10 +118,11 @@ class WorkspaceBrandingController extends Controller
     public function asset(Request $request, string $brandingWorkspace, string $kind, WorkspaceBranding $branding, BrandImage $images): JsonResponse
     {
         abort_unless(in_array($kind, ['logo', 'favicon'], true), 404);
-        $this->owner($request);
+        $branding->requireSection($this->owner($request), 'assets');
         if ($request->isMethod('DELETE')) {
-            DB::transaction(function () use ($request, $kind): void {
+            DB::transaction(function () use ($request, $kind, $branding): void {
                 $workspace = $this->owner($request, true);
+                $branding->requireSection($workspace, 'assets');
                 $settings = $workspace->branding ?? [];
                 $this->retire($settings['assets'][$kind] ?? null);
                 unset($settings['assets'][$kind]);
@@ -135,8 +137,9 @@ class WorkspaceBrandingController extends Controller
                 $images->invalid();
             }
             $image = $images->optimized($svg ? $request->file('raster') : $file, $kind);
-            AttachmentStorage::atomic(function (array &$paths) use ($request, $kind, $source, $image, $file): void {
+            AttachmentStorage::atomic(function (array &$paths) use ($request, $kind, $source, $image, $file, $branding): void {
                 $workspace = $this->owner($request, true);
+                $branding->requireSection($workspace, 'assets');
                 $settings = $workspace->branding ?? [];
                 $token = bin2hex(random_bytes(24));
                 $path = 'branding/'.$workspace->uuid.'/'.$token.'.'.$image['extension'];
@@ -169,13 +172,16 @@ class WorkspaceBrandingController extends Controller
         DB::transaction(function () use ($request, $branding): void {
             $workspace = $this->owner($request, true);
             $settings = $branding->settings($workspace);
+            $branding->requireSection($workspace, 'visual');
             foreach ($settings['assets'] as $asset) {
                 $this->retire($asset);
             }
             $settings['assets'] = [];
             $settings['visual'] = array_fill_keys(array_keys(WorkspaceBranding::FIELDS['visual']), '');
-            $settings['email'] = WorkspaceBranding::EMAIL_DEFAULTS;
-            $settings['export'] = WorkspaceBranding::EXPORT_DEFAULTS;
+            if ($branding->level($workspace) === 'full') {
+                $settings['email'] = WorkspaceBranding::EMAIL_DEFAULTS;
+                $settings['export'] = WorkspaceBranding::EXPORT_DEFAULTS;
+            }
             $workspace->update(['branding' => $settings]);
         });
 
@@ -185,6 +191,7 @@ class WorkspaceBrandingController extends Controller
     /** Only opaque, normalized visuals; SVG is sanitized again for legacy assets and direct navigation. */
     public function image(Workspace $workspace, string $token, string $extension, BrandImage $images): Response
     {
+        abort_if(app(WorkspaceBranding::class)->level($workspace) === 'none', 404);
         $asset = collect($workspace->branding['assets'] ?? [])->first(fn ($asset) => $asset['token'] === $token);
         $svg = $extension === 'svg';
         $path = $svg ? ($asset['svgPath'] ?? null) : ($asset['path'] ?? null);
@@ -192,6 +199,6 @@ class WorkspaceBrandingController extends Controller
         $bytes = Storage::disk('local')->get($path);
         $bytes = $svg ? $images->svg($bytes) : $bytes;
 
-        return response($bytes, 200, ['Content-Type' => $svg ? 'image/svg+xml' : ($asset['mime'] ?? 'image/png'), 'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; script-src 'none'; style-src 'none'; sandbox", 'Content-Disposition' => 'inline; filename="brand.'.$extension.'"']);
+        return response($bytes, 200, ['Cache-Control' => 'no-store', 'Content-Type' => $svg ? 'image/svg+xml' : ($asset['mime'] ?? 'image/png'), 'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; script-src 'none'; style-src 'none'; sandbox", 'Content-Disposition' => 'inline; filename="brand.'.$extension.'"']);
     }
 }

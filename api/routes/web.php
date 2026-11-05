@@ -121,6 +121,10 @@ foreach (['platform', 'admin'] as $persona) {
             Route::post('/previews/{preview}/restore-paid', [ResourceSelectionController::class, 'handle'])
                 ->defaults('preparationKind', 'restore-paid')->whereUuid('preview');
         } else {
+            Route::get('/manual', [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', 'manual-options');
+            Route::post('/manual/previews', [ResourceSelectionController::class, 'handle'])->defaults('preparationKind', 'manual-preview');
+            Route::post('/previews/{preview}/assign-manual', [ResourceSelectionController::class, 'handle'])
+                ->defaults('preparationKind', 'assign-manual')->whereUuid(['workspace', 'preview']);
             Route::post('/previews/{preview}/approve-paid', [ResourceSelectionController::class, 'handle'])
                 ->defaults('preparationKind', 'approve-paid')->whereUuid(['workspace', 'preview']);
         }

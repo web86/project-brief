@@ -46,17 +46,34 @@ class PlatformAdminTest extends TestCase
         $admin = $this->administrator();
         $this->actingAs($admin)->getJson('/api/platform/overview')->assertOk();
         $this->travel(301)->seconds();
-        foreach (['overview', 'plan-access', 'registration-canary/owners'] as $endpoint) {
-            $this->getJson('/api/platform/'.$endpoint)->assertStatus(423)
-                ->assertJsonPath('code', 'security_step_up_required')
-                ->assertJsonPath('mutationNotStarted', true);
+        $this->getJson('/api/security/status')->assertJsonPath('fresh', true);
+        $this->travel(300)->seconds();
+        foreach (['overview', 'plan-access'] as $endpoint) {
+            $this->getJson('/api/platform/'.$endpoint)->assertOk();
         }
+        $this->postJson('/api/platform/registration-canary/stop')->assertStatus(423)
+            ->assertJsonPath('code', 'security_step_up_required')
+            ->assertJsonPath('mutationNotStarted', true);
         $this->assertDatabaseHas('platform_audit', ['result' => 'step_up_required']);
         $this->withSession(['security.method' => 'password']);
         $this->getJson('/api/platform/overview')->assertForbidden()->assertJsonPath('code', 'account_security_required');
         $admin->forceFill(['two_factor_confirmed_at' => null])->save();
         $this->actingAs($admin)->getJson('/api/platform/overview')->assertForbidden()->assertJsonPath('state', 'enrollment_required');
         $this->postJson('/api/security/confirm', ['current_password' => 'password'])->assertOk()->assertJsonPath('fresh', false);
+    }
+
+    public function test_platform_session_expires_six_hours_after_login_even_after_fresh_confirmation(): void
+    {
+        $admin = $this->administrator();
+        $this->actingAs($admin);
+        $started = now()->timestamp;
+        $this->travel(359)->minutes();
+        $this->getJson('/api/platform/overview')->assertOk();
+        $this->postJson('/api/security/confirm', ['recovery_code' => 'test-recovery-code'])->assertOk()->assertJsonPath('fresh', true);
+        $this->assertSame($started, session()->get('security.started_at'));
+        $this->travel(1)->minutes();
+        $this->getJson('/api/platform/overview')->assertUnauthorized()->assertJsonPath('code', 'platform_session_expired');
+        $this->assertGuest();
     }
 
     public function test_platform_only_account_logs_in_through_existing_password_mfa_and_cannot_disable_mfa(): void

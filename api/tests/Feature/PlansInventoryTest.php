@@ -176,8 +176,8 @@ class PlansInventoryTest extends TestCase
         $this->actingAs($other)->getJson('/api/platform/workspace-inventory')->assertForbidden();
         $this->getJson('/api/platform/plans')->assertForbidden();
         $this->actingAs($owner)->getJson('/api/platform/workspace-inventory?limit=1000')->assertUnprocessable();
-        $this->travel(301)->seconds();
-        $this->getJson('/api/platform/workspace-inventory')->assertStatus(423);
+        $this->travel(601)->seconds();
+        $this->getJson('/api/platform/workspace-inventory')->assertOk();
     }
 
     public function test_chunk_checkpoint_resume_cutoff_and_pinned_subscription_preservation(): void

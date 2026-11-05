@@ -57,89 +57,70 @@ require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 if (! $app->environment('testing') || ! str_contains(Illuminate\Support\Facades\DB::getDatabaseName(), 'brief-platform-plans-')) exit(90);
-App\Models\User::where('email', $argv[1])->firstOrFail()->passkeys()->delete();
+$actor = App\Models\User::where('email', $argv[1])->firstOrFail();
+$actor->passkeys()->delete();
+
 `,
       fixture.admin,
     ])
+    const manual = JSON.parse(php(['tests/platform-plans-fixture.php', 'manual-ux']))
     await login(context, fixture)
     stale()
     assert.equal((await call(context, '/api/security/status')).status(), 200)
-    for (const endpoint of ['overview', 'plan-access']) {
-      const denied = await call(context, '/api/platform/' + endpoint)
-      assert.equal(denied.status(), 423)
-      const result = await denied.json()
-      assert.equal(result.code, 'security_step_up_required')
-      assert.equal(result.mutationNotStarted, true)
-    }
+    for (const endpoint of ['overview', 'plan-access'])
+      assert.equal((await call(context, '/api/platform/' + endpoint)).status(), 200)
+    const denied = await call(context, '/api/platform/plans', 'POST', {})
+    assert.equal(denied.status(), 423)
+    assert.deepEqual(
+      (({ code, mutationNotStarted }) => ({ code, mutationNotStarted }))(await denied.json()),
+      { code: 'security_step_up_required', mutationNotStarted: true },
+    )
+
     for (const [route, marker] of [...markers, markers.at(-1)]) {
-      const code = stale()
-      const reads = []
-      const securityReads = []
-      const record = (response) => {
-        if (new URL(response.url()).pathname === '/api/platform/plan-access')
-          reads.push(response.status())
-        if (new URL(response.url()).pathname === '/api/security/status')
-          securityReads.push(response.status())
-      }
-      page.on('response', record)
       const url = origin + route
-      const catalog = marker === '.plans-page' ? waitForCatalog() : null
       if (page.url() === url) await page.reload({ waitUntil: 'domcontentloaded' })
       else await page.goto(url, { waitUntil: 'domcontentloaded' })
-      await dialog
-        .locator('#security-code')
-        .fill(code, { timeout: 12000 })
-        .catch(async (error) => {
-          console.log(
-            JSON.stringify({
-              route,
-              reads,
-              securityReads,
-              ui: await page
-                .locator('body')
-                .innerText()
-                .then((text) => text.slice(0, 400)),
-              flow: packaged
-                ? null
-                : await page.evaluate(async () => {
-                    const flow = (await import('/src/services/stepUp.js')).stepUp
-                    return {
-                      waiting: !!flow.request.value,
-                      mode: flow.state.value?.mode,
-                      busy: flow.state.value?.busy,
-                      totp: flow.state.value?.status?.totp,
-                      passkeys: flow.state.value?.status?.passkeys?.length,
-                      code: flow.state.value?.error?.code,
-                      signedIn: flow.state.value?.status?.signedIn,
-                    }
-                  }),
-              path: new URL(page.url()).pathname,
-              dialogs: await page.locator('dialog[open] h2').allTextContents(),
-              errors,
-            }),
-          )
-          throw error
-        })
-      await page.locator('#bootstrap-splash').waitFor({ state: 'detached' })
-      await noFallback()
-      await dialog.getByRole('button', { name: 'Confirm identity', exact: true }).click()
       await page.locator(marker).first().waitFor()
-      if (catalog) assert.equal(await (await catalog).finished(), null)
+      await noFallback()
       assert.equal(page.url(), url)
-      assert.deepEqual(reads, [423, 200])
-      page.off('response', record)
+      assert.equal(await dialog.count(), 0)
     }
-
-    // Verify that a new guard can pause a SPA navigation after the same proof expires.
-    const code = stale()
     const plans = page.locator('.platform-desktop-sidebar a[href="/platform/plans"]').first()
     const catalog = waitForCatalog()
-    await plans.click({ noWaitAfter: true })
-    await dialog.locator('#security-code').fill(code)
-    await dialog.getByRole('button', { name: 'Confirm identity', exact: true }).click()
-    await page.locator('.plans-page').waitFor()
+    await plans.click()
     assert.equal(await (await catalog).finished(), null)
+    assert.equal(await dialog.count(), 0)
+
+    const draftAction = async (code) => {
+      const card = page
+        .locator('.plans-card')
+        .filter({ has: page.locator('code').getByText(code, { exact: true }) })
+      await card.locator('summary').click()
+      await card.getByRole('button', { name: 'Create a new draft' }).click({ noWaitAfter: true })
+    }
+    const otp = stale(true)
+    await draftAction('studio')
+    await dialog.locator('#security-code').fill(otp)
+    await dialog.getByRole('button', { name: 'Confirm identity', exact: true }).click()
+    await page.locator('.plans-editor').first().waitFor()
     await noFallback()
+
+    await page.goto(origin + '/platform?section=workspaces', { waitUntil: 'domcontentloaded' })
+    await page.getByRole('button', { name: manual.name, exact: true }).click()
+    await page.getByText('Manage subscription', { exact: true }).click()
+    const subscription = page.locator('.resource-selection')
+    await subscription.getByText('Trial', { exact: true }).waitFor()
+    await subscription.getByLabel('New plan').selectOption({ label: 'Freelancer' })
+    await subscription.getByRole('button', { name: 'Freeze preview' }).click()
+    await subscription.getByText('Snapshot ready').waitFor()
+    await subscription
+      .getByLabel('Last service day (UTC)')
+      .fill(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10))
+    await subscription.getByLabel(/I explicitly agree/).check()
+    await subscription.getByLabel(/I confirm this change/).check()
+    await subscription.getByRole('button', { name: 'Apply subscription change' }).click()
+    await subscription.getByRole('heading', { name: 'Freelancer', exact: true }).waitFor()
+    assert.equal(await dialog.count(), 0)
 
     for (const [status, diagnostic] of [
       [401, '/admin/login'],
@@ -213,9 +194,10 @@ App\Models\User::where('email', $argv[1])->firstOrFail()->passkeys()->delete();
       })
       // The rapid TOTP/reload scenarios can consume the operator's minute budget.
       stale(true)
-      await page.goto(origin + '/platform/plans/registration', { waitUntil: 'domcontentloaded' })
+      await page.goto(origin + '/platform/plans', { waitUntil: 'domcontentloaded' })
+      await draftAction('basic')
       const retry = dialog.getByRole('button', { name: 'Retry with Passkey', exact: true })
-      const passkey = dialog.getByRole('button', { name: 'Confirm with Passkey', exact: true })
+      const passkey = dialog.getByRole('button', { name: /^(Confirm with|Retry with) Passkey$/ })
       const alternative = dialog.getByRole('button', { name: 'Another confirmation method' })
       await passkey.waitFor()
       for (const width of [1200, 360]) {
@@ -225,11 +207,11 @@ App\Models\User::where('email', $argv[1])->firstOrFail()->passkeys()->delete();
         assert.ok(b.x - (a.x + a.width) >= 8 || b.y - (a.y + a.height) >= 8)
         assert.ok(a.x >= 0 && b.x >= 0 && a.x + a.width <= width && b.x + b.width <= width)
       }
-      await passkey.click()
+      if ((await page.evaluate(() => window.qaPasskeyGestures.length)) === 0) await passkey.click()
       await page.waitForFunction(() => window.qaPasskeyGestures.length === 1)
       await retry.click({ noWaitAfter: true })
       await page
-        .locator('.registration-diagnostics dl')
+        .locator('.plans-editor')
         .first()
         .waitFor()
         .catch(async (error) => {
@@ -250,6 +232,28 @@ App\Models\User::where('email', $argv[1])->firstOrFail()->passkeys()->delete();
       await noFallback()
     }
 
+    php([
+      '-r',
+      String.raw`
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+if (! $app->environment('testing') || ! str_contains(Illuminate\Support\Facades\DB::getDatabaseName(), 'brief-platform-plans-')) exit(90);
+$user = App\Models\User::where('email', $argv[1])->firstOrFail();
+$db = Illuminate\Support\Facades\DB::table('sessions')->where('user_id', $user->id);
+foreach ($db->get() as $row) {
+    $data = unserialize(base64_decode($row->payload), ['allowed_classes' => false]);
+    if (isset($data['security'])) {
+        $data['security']['started_at'] = now()->subHours(6)->timestamp;
+        Illuminate\Support\Facades\DB::table('sessions')->where('id', $row->id)->update(['payload' => base64_encode(serialize($data))]);
+    }
+}
+`,
+      fixture.admin,
+    ])
+    await page.goto(origin + '/platform', { waitUntil: 'domcontentloaded' })
+    await page.waitForURL('**/admin/login')
+    assert.equal((await call(context, '/api/platform/overview')).status(), 401)
     const guest = await browser.newContext({ ignoreHTTPSErrors: true })
     try {
       assert.equal((await call(guest, '/api/platform/plan-access')).status(), 401)

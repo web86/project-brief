@@ -55,7 +55,7 @@ class OnboardingTest extends TestCase
         $this->postJson($endpoint, $input, $headers)->assertUnauthorized();
         $this->actingAs($secondary)->postJson($endpoint, $input, $headers)->assertForbidden();
         $this->actingAs($primary);
-        $this->travel(301)->seconds();
+        $this->travel(601)->seconds();
         $this->postJson($endpoint, $input, $headers)->assertStatus(423);
         $this->actingAs($primary);
         $url = $this->postJson($endpoint, $input, $headers)->assertCreated()->assertHeader('Referrer-Policy', 'no-referrer')->json('data.url');
@@ -225,8 +225,8 @@ class OnboardingTest extends TestCase
         }
         $this->actingAs($secondary)->getJson('/api/platform/registration-diagnostics')->assertForbidden();
         $this->actingAs($primary);
-        $this->travel(301)->seconds();
-        $this->getJson('/api/platform/registration-diagnostics')->assertStatus(423);
+        $this->travel(601)->seconds();
+        $this->getJson('/api/platform/registration-diagnostics')->assertOk();
     }
 
     public function test_pending_registrant_accepting_an_invitation_does_not_create_an_owner_or_trial(): void

@@ -28,6 +28,7 @@ export function createToastStore({ now = Date.now } = {}) {
     timers.set(id, timer)
   }
   function show(type, message, options = {}) {
+    if (!(typeof message === 'function' ? message() : message)) return
     const id = ++sequence
     if (items.value.length >= 5) dismiss(items.value[0].id)
     items.value.push({

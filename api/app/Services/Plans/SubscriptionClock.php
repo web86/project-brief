@@ -29,6 +29,18 @@ final class SubscriptionClock
         return ['kind' => $kind, 'starts_at' => $start, 'service_ends_at' => $end, 'grace_ends_at' => $kind === 'paid' ? $end->addSeconds($graceDays * 86400) : null];
     }
 
+    public function manualPeriod(string $kind, CarbonImmutable $startsAt, ?string $endDate, int $graceDays): array
+    {
+        if ($kind === 'free' && $endDate === null) {
+            return $this->period('free', $startsAt);
+        }
+        abort_unless($kind === 'paid' && $endDate !== null, 422, 'manual_assignment_end_date_required');
+        $end = CarbonImmutable::parse($endDate, 'UTC')->startOfDay()->addDay();
+        abort_unless($end > $startsAt && $end <= $startsAt->addDays(36600), 422, 'manual_assignment_end_date_invalid');
+
+        return ['kind' => 'paid', 'starts_at' => $startsAt, 'service_ends_at' => $end, 'grace_ends_at' => $end->addDays($graceDays)];
+    }
+
     public function phase(array $period, CarbonImmutable $at): array
     {
         $kind = $period['kind'] ?? null;

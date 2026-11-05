@@ -31,6 +31,7 @@ if (liveEnvPath) {
   providerEnvironment = { GROQ_API_KEY: parsed.GROQ_API_KEY, GROQ_MODEL: parsed.GROQ_MODEL }
 }
 
+const collapseOnly = process.env.AGENT_UX_COLLAPSE_ONLY === '1'
 const hotfix = process.env.AGENT_UX_HOTFIX === '1'
 const refinement = process.env.AGENT_UX_RELEASE910 === '1' || hotfix
 const mysql = !refinement || hotfix
@@ -128,7 +129,7 @@ function php(args) {
 let backend, frontend, browser, receiver
 const errors = [],
   results = []
-try {
+suite: try {
   if (packageRoot) {
     await cp(path.join(packageRoot, 'private/project-brief-app'), app, { recursive: true })
     await cp(path.join(packageRoot, 'public'), path.join(scratch, 'domains/brief.web86.site'), {
@@ -202,20 +203,25 @@ try {
       ),
     )
   }
-  const previousMigrations = path.join(scratch, 'previous-migrations')
-  await mkdir(previousMigrations)
-  for (const file of await readdir(path.join(app, 'database/migrations'))) {
-    if (file < '2026_11_01_111241_add_shared_agent_credentials.php')
-      await cp(path.join(app, 'database/migrations', file), path.join(previousMigrations, file))
+  if (collapseOnly) {
+    await mkdir(path.join(output, 'milestone-10-1'), { recursive: true })
+    php(['artisan', 'migrate:fresh', '--force', '--no-interaction'])
+  } else {
+    const previousMigrations = path.join(scratch, 'previous-migrations')
+    await mkdir(previousMigrations)
+    for (const file of await readdir(path.join(app, 'database/migrations'))) {
+      if (file < '2026_11_01_111241_add_shared_agent_credentials.php')
+        await cp(path.join(app, 'database/migrations', file), path.join(previousMigrations, file))
+    }
+    php([
+      'artisan',
+      'migrate:fresh',
+      '--path=' + previousMigrations,
+      '--realpath',
+      '--force',
+      '--no-interaction',
+    ])
   }
-  php([
-    'artisan',
-    'migrate:fresh',
-    '--path=' + previousMigrations,
-    '--realpath',
-    '--force',
-    '--no-interaction',
-  ])
   const fixture = JSON.parse(
     php([
       'tests/live-sync-fixture.php',
@@ -427,6 +433,90 @@ require $_SERVER['DOCUMENT_ROOT'].'/index.php';
       instructions: 'PROJECT-V1: Vue/PHP, English reports, no secrets.',
     })
 
+    async function runExecutor() {
+      const child = spawn('node', [exampleScript], {
+        cwd: root,
+        env: {
+          PATH: process.env.PATH,
+          PROJECT_BRIEF_URL: origin,
+          PROJECT_BRIEF_TOKEN: token,
+          PROJECT_BRIEF_AGENT_ID: agentId,
+          AGENT_READ_TEXT_FILES: '1',
+          AGENT_PROVIDER: liveEnvPath ? 'groq' : 'deterministic',
+          ...providerEnvironment,
+          ...(process.env.NODE_EXTRA_CA_CERTS
+            ? { NODE_EXTRA_CA_CERTS: process.env.NODE_EXTRA_CA_CERTS }
+            : {}),
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      let out = '',
+        err = ''
+      child.stdout.on('data', (data) => (out += data))
+      child.stderr.on('data', (data) => (err += data))
+      const exitCode = await new Promise((resolve) => child.on('close', resolve))
+      assert.ok(out.trim(), 'External executor returns an outcome')
+      const result = JSON.parse(out)
+      providerRequests += result.providerRequests || 0
+      providerMetrics.push(...(result.providerMetrics || []))
+      assert.equal(exitCode, 0, err)
+      assert.equal(result.outcomes.filter((row) => row.state === 'submitted').length, 1)
+    }
+    if (collapseOnly) {
+      await page.goto(origin + taskUrl)
+      await page.locator('[data-task-agents] select').selectOption(agentId)
+      await page.locator('.agent-assign-form button').click()
+      await page.locator('.agent-follow-up textarea').waitFor()
+      const collapse = page.locator('.agent-chat-toggle')
+      const agentDraft = page.locator('.agent-follow-up textarea')
+      let conversationReads = 0
+      const countConversation = (request) => {
+        if (new URL(request.url()).pathname.endsWith('/agent-collaboration')) conversationReads++
+      }
+      page.on('request', countConversation)
+      await agentDraft.fill('Keep this draft when collapsed')
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 800 })
+        const beforeCollapse = conversationReads
+        await collapse.click()
+        assert.equal(await collapse.getAttribute('aria-expanded'), 'false')
+        assert.equal(await agentDraft.isVisible(), false)
+        await collapse.click()
+        assert.equal(await agentDraft.inputValue(), 'Keep this draft when collapsed')
+        assert.equal(
+          conversationReads,
+          beforeCollapse,
+          'Toggling the dialogue does not fetch messages',
+        )
+      }
+      await collapse.click()
+      await page.reload()
+      await collapse.waitFor()
+      assert.equal(await collapse.getAttribute('aria-expanded'), 'false')
+      await collapse.click()
+      page.off('request', countConversation)
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await agentDraft.fill('Review this synthetic brief and suggest an acceptance criterion.')
+      await page.locator('.agent-follow-up button[type=submit]').click()
+      await collapse.click()
+      await page
+        .locator('[data-agent-chat]')
+        .getByRole('status')
+        .filter({ hasText: 'Request saved' })
+        .waitFor()
+      await runExecutor()
+      await page.locator('.comments-panel .check-messages').click()
+      await page.locator('[data-agent-chat]').getByText('New agent messages').waitFor()
+      await page.screenshot({ path: path.join(output, 'milestone-10-1', 'agent-collapsed.png') })
+      await collapse.click()
+      await page.locator('.agent-dialogue-message.agent').waitFor()
+      assert.deepEqual(errors, [])
+      console.log(
+        JSON.stringify({ ok: true, desktop: true, mobile: true, unread: true, runCompleted: true }),
+      )
+      break suite
+    }
+
     receiver = await startWebhookReceiver()
     const destinationProbe = path.join(app, 'tests/destination-probe.php')
     await writeFile(
@@ -603,35 +693,6 @@ echo json_encode($q->orderBy('id')->get(['status','http_status','attempts','erro
     )
     await drain()
     await page.getByRole('button', { name: 'Check new messages', exact: true }).first().click()
-    async function runExecutor() {
-      const child = spawn('node', [exampleScript], {
-        cwd: root,
-        env: {
-          PATH: process.env.PATH,
-          PROJECT_BRIEF_URL: origin,
-          PROJECT_BRIEF_TOKEN: token,
-          PROJECT_BRIEF_AGENT_ID: agentId,
-          AGENT_READ_TEXT_FILES: '1',
-          AGENT_PROVIDER: liveEnvPath ? 'groq' : 'deterministic',
-          ...providerEnvironment,
-          ...(process.env.NODE_EXTRA_CA_CERTS
-            ? { NODE_EXTRA_CA_CERTS: process.env.NODE_EXTRA_CA_CERTS }
-            : {}),
-        },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
-      let out = '',
-        err = ''
-      child.stdout.on('data', (data) => (out += data))
-      child.stderr.on('data', (data) => (err += data))
-      const exitCode = await new Promise((resolve) => child.on('close', resolve))
-      assert.ok(out.trim(), 'External executor returns an outcome')
-      const result = JSON.parse(out)
-      providerRequests += result.providerRequests || 0
-      providerMetrics.push(...(result.providerMetrics || []))
-      assert.equal(exitCode, 0, err)
-      assert.equal(result.outcomes.filter((row) => row.state === 'submitted').length, 1)
-    }
     await runExecutor()
     await page.locator('[data-agent-chat] .agent-chat-heading > button').first().click()
     await page.locator('.agent-dialogue-message.agent').waitFor()
@@ -962,13 +1023,9 @@ echo json_encode($q->orderBy('id')->get(['status','http_status','attempts','erro
     await page.waitForFunction(
       () => !document.querySelector('[data-task-agents] .agent-compact-row'),
     )
-    await page.waitForFunction(
-      () =>
-        !document.querySelector('[data-agent-chat] .agent-follow-up') &&
-        document.querySelectorAll('.agent-dialogue-message.agent').length === 2,
-    )
-    assert.equal(await page.locator('[data-agent-chat] .agent-follow-up').count(), 0)
-    assert.equal(await page.locator('.agent-dialogue-message.agent').count(), 2)
+    await page.locator('[data-agent-chat]').waitFor({ state: 'detached' })
+    const historical = (await current()).data.find((row) => row.revokedAt)
+    assert.equal(historical.messages.filter((message) => message.author === 'agent').length, 2)
     const before = receiver.received.length
     // The full visual matrix can outlast fresh MFA; obtain a real new synthetic proof.
     await call('/api/security/confirm', 'POST', { recovery_code: 'Live-browser-code-2' })

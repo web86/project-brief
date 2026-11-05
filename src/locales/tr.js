@@ -4,6 +4,49 @@ import { preparationMessages } from './preparation.js'
 import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  manualSubscription: {
+    title: 'Aboneliği yönet',
+    intro: 'Yeni planı ve etkin kalacak kaynakları seçin. Manuel atama ödeme kaydetmez.',
+    target: 'Yeni plan',
+    choose: 'Yayımlanmış bir plan seçin',
+    unavailable:
+      'Bu alana plan atanamaz veya uygun bir plan yayımlanmamış. Uyumluluk alanları ayrı bir geçiş gerektirir.',
+    started: 'Başlangıç',
+    noEnd: 'Bitiş tarihi yok',
+    holds:
+      'Askıya alınan kaynaklar korunur. Ücretli atamadan sonra çalışma alanı sahibi uygun entegrasyonları yeniden etkinleştirir.',
+    apply: 'Abonelik değişikliğini uygula',
+    endDate: 'Son hizmet günü (UTC)',
+    replace:
+      'Mevcut deneme veya ücretli dönemin değiştirilmesini ve planlanan yenilemenin iptalini onaylıyorum.',
+    manual_assignment_end_date_required: 'Ücretli plan için bitiş tarihi girin.',
+    manual_assignment_end_date_invalid: 'Geçerli bir bitiş tarihi seçin.',
+    manual_assignment_replacement_required: 'Mevcut dönemin değiştirilmesini ayrıca onaylayın.',
+    manual_assignment_overrides_require_review:
+      'Atamadan önce etkin veya planlanmış hak değişikliklerini inceleyin.',
+    manual_assignment_unavailable: 'Bu abonelik için manuel atama kullanılamıyor.',
+  },
+  brandingLevels: {
+    none: 'Çalışma alanı adı ve standart Dev2Done markası.',
+    basic: 'Desteklenen istemci ekranlarında marka adı, logo, site simgesi ve ana renk.',
+    full: 'Temel markalamaya ek olarak şirket ve iletişim bilgileri, e-posta ve PDF/DOCX markalaması ve desteklenen dışa aktarmalarda isteğe bağlı Dev2Done imzası.',
+  },
+  planRestrictions: {
+    developerLimit: 'Geliştirici koltuğu sınırına ulaşıldı',
+    plan_limit_reached: 'Plan sınırına ulaşıldı',
+    plan_feature_unavailable: 'Bu özellik planda yok',
+    plan_subscription_inactive: 'Abonelik erişimi duraklatıldı',
+    plan_resource_held: 'Kaynak askıya alındı',
+    usage: '{maximum} kapasitenin {usage} kadarı kullanımda.',
+    planUsage: '{plan} planında {maximum} kapasitenin {usage} kadarı kullanımda.',
+    maximum: 'Plan sınırı: {maximum}.',
+    capacityAction: 'Yer açın veya sınırı artırma seçeneklerini sorun.',
+    plan_feature_unavailable_action: 'Planınıza dahil olan özellikleri inceleyin.',
+    plan_subscription_inactive_action: 'Çalışma alanı sahibinden aboneliği incelemesini isteyin.',
+    plan_resource_held_action:
+      'Kaynak seçimini inceleyin veya çalışma alanı sahibinden erişimi geri yüklemesini isteyin.',
+    unread: 'Yeni aracı mesajları',
+  },
   canary: canaryMessages['tr'],
   onboarding: onboardingMessages['tr'],
   preparation: preparationMessages['tr'],

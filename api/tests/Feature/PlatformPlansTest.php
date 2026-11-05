@@ -40,8 +40,9 @@ class PlatformPlansTest extends TestCase
         $this->getJson('/api/platform/plans')->assertUnauthorized();
         $primary = $this->primary();
         $this->getJson('/api/platform/plans')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
-        $this->travel(301)->seconds();
-        $this->getJson('/api/platform/plans')->assertStatus(423);
+        $this->travel(601)->seconds();
+        $this->getJson('/api/platform/plans')->assertOk();
+        $this->postJson('/api/platform/plans')->assertStatus(423)->assertJsonPath('code', 'security_step_up_required');
         $this->actingAs($primary)->withSession(['security.method' => 'password']);
         $this->getJson('/api/platform/plans')->assertForbidden();
         $other = User::factory()->owner()->create(['platform_admin' => true]);

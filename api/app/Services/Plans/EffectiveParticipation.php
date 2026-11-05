@@ -2,6 +2,7 @@
 
 namespace App\Services\Plans;
 
+use App\Exceptions\PlanCapacityExceeded;
 use App\Models\Project;
 use App\Services\DeveloperInvitations;
 use Carbon\CarbonImmutable;
@@ -95,7 +96,9 @@ final class EffectiveParticipation
         foreach ($keys as $key) {
             $limit = $plan['values'][$key] ?? null;
             abort_unless($limit && $usage[$key]['state'] === 'ready', 409, 'subscription_capacity_unavailable');
-            abort_if($limit['kind'] !== 'unlimited' && $usage[$key]['count'] > $limit['value'], 403, 'subscription_capacity_exceeded');
+            if ($limit['kind'] !== 'unlimited' && $usage[$key]['count'] > $limit['value']) {
+                throw new PlanCapacityExceeded($workspaceId, $key, $limit['value'], $usage[$key]['count'], $plan['version_id']);
+            }
         }
         abort_if($this->boundaryDue($workspaceId), 409, 'subscription_boundary_pending');
     }

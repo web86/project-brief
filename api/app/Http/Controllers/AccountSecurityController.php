@@ -34,6 +34,7 @@ class AccountSecurityController extends Controller
     {
         $user = $request->user()?->fresh();
         $fresh = $this->security->fresh($request);
+        $ttl = $this->security->stepUpMinutes($user) * 60;
         $onboarding = app(AuthOnboarding::class)->state($request);
 
         return response()->json([
@@ -45,7 +46,7 @@ class AccountSecurityController extends Controller
             'totp' => $user?->hasEnabledTwoFactorAuthentication() ?? false,
             'recoverySaved' => (bool) $user?->recovery_codes_acknowledged_at,
             'fresh' => $fresh,
-            'freshFor' => $fresh ? max(0, min(300, (int) $request->session()->get('security.step_up.at') + 300 - now()->timestamp)) : 0,
+            'freshFor' => $fresh ? max(0, min($ttl, (int) $request->session()->get('security.step_up.at') + $ttl - now()->timestamp)) : 0,
             'confirmationContext' => $this->security->confirmationContext($request),
             'setupFresh' => $this->security->setupFresh($request),
             'recoveryFresh' => $this->security->recoveryFresh($request),

@@ -33,19 +33,20 @@ final class ExecutionBarrier
             ->when($current, fn ($q) => $q->sharedLock())->first(['enforcement_mode']);
         $epoch = DB::table('workspace_execution_epochs')->where('workspace_id', $workspaceId)->where('feature_group', $group)
             ->when($current, fn ($q) => $q->sharedLock())->first();
-        abort_if($epoch && $epoch->state !== 'ready', 403, 'subscription_execution_blocked');
-        if ($receipt !== null) {
-            abort_if($epoch
-                ? ($receipt->execution_feature_group ?? null) !== $group || (string) ($receipt->execution_epoch ?? '') !== (string) $epoch->epoch
-                : ($receipt->execution_epoch ?? null) !== null, 409, 'subscription_execution_stale');
-        }
-
         if ($epoch || $subscription?->enforcement_mode === 'enforce') {
-            $resolved = $this->resolver->resolve($workspaceId, current: $current, inspectSuspended: $epoch?->resume_at !== null);
+            $resolved = $this->resolver->resolve($workspaceId, current: $current, inspectSuspended: $epoch !== null);
             abort_unless($resolved['state'] === 'available', 403, 'subscription_execution_blocked');
             foreach ($keys as $key) {
                 abort_unless(($resolved['values'][$key]['value'] ?? null) === true, 403, 'subscription_feature_unavailable');
             }
+        }
+
+        abort_if($epoch && $epoch->state !== 'ready', 403, 'subscription_execution_held');
+
+        if ($receipt !== null) {
+            abort_if($epoch
+                ? ($receipt->execution_feature_group ?? null) !== $group || (string) ($receipt->execution_epoch ?? '') !== (string) $epoch->epoch
+                : ($receipt->execution_epoch ?? null) !== null, 409, 'subscription_execution_stale');
         }
 
         return $epoch ? (int) $epoch->epoch : null;

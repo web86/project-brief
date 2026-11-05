@@ -1,6 +1,7 @@
 import { createStaticDemoClient } from './staticDemo.js'
 import { demo, STATIC_DEMO } from '../services/demo.js'
 import { stepUp, isSensitiveMutation } from '../services/stepUp.js'
+import { showPlanRestriction } from '../services/planRestrictions.js'
 import { t, locale } from '../i18n/index.js'
 export class ApiError extends Error {
   constructor(status, message, errors = {}, code = null) {
@@ -269,6 +270,7 @@ export function createApiClient({
         error.diagnosticId = data.diagnosticId
       if (typeof data.stage === 'string' && /^[a-z_]{1,32}$/.test(data.stage))
         error.stage = data.stage
+      showPlanRestriction(error, data.planRestriction)
       throw error
     }
     return data

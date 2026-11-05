@@ -3,8 +3,14 @@ import { ref, watch, computed, onBeforeUnmount } from 'vue'
 import { api } from '../api/client.js'
 import { t, i18n, locale, formatApiError } from '../i18n/index.js'
 import LoadingButton from './LoadingButton.vue'
-const props = defineProps({ workspaceId: String, platform: Boolean, targetId: String })
+const props = defineProps({
+  workspaceId: String,
+  platform: Boolean,
+  targetId: String,
+  manual: Boolean,
+})
 const l = (k) => t('preparation.' + k)
+const m = (k) => t('manualSubscription.' + k)
 const reasonLabel = (code) => {
   for (const prefix of ['preparation.reasons.', 'inventory.reasons.'])
     if (i18n.global.te(prefix + code, 'en')) return t(prefix + code)
@@ -26,7 +32,17 @@ const options = ref(null),
   reason = ref('operator_verified'),
   confirmed = ref(false),
   serviceDays = ref(30),
-  paidReason = ref('')
+  paidReason = ref(''),
+  manualTarget = ref(''),
+  endDate = ref(''),
+  replaceActivePeriod = ref(false)
+const targetId = computed(() => (props.manual ? manualTarget.value : props.targetId))
+const manualVersion = computed(() =>
+  options.value?.assignableVersions?.find((version) => version.id === targetId.value),
+)
+const canSelect = computed(() => options.value && (!props.manual || manualVersion.value))
+const paidTarget = computed(() => manualVersion.value?.accessClass === 'paid')
+const today = () => new Date().toISOString().slice(0, 10)
 const approval = computed(() => frozen.value?.availableAction || null)
 const rearmGroups = computed(() => options.value?.rearmGroups || [])
 const featureNames = { agent: 'AI Agent API', api: 'External API', sso: 'SSO', webhook: 'Webhooks' }
@@ -59,9 +75,14 @@ async function load() {
   approvalIntent = null
   confirmed.value = false
   try {
-    const r = await api.request(prefix.value)
+    const r = await api.request(prefix.value + (props.manual ? '/manual' : ''))
     if (epoch !== current) return
     options.value = r.data
+    if (props.manual) {
+      manualTarget.value = ''
+      endDate.value = ''
+      replaceActivePeriod.value = false
+    }
     selection.value = Object.fromEntries(
       groups.map((g) => [g, r.data.resources[g].map((v) => v.id).filter(Boolean)]),
     )
@@ -88,13 +109,13 @@ async function freeze() {
   error.value = ''
   notice.value = ''
   const body = {
-    targetVersionId: props.targetId,
+    targetVersionId: targetId.value,
     selection: JSON.parse(JSON.stringify(selection.value)),
   }
   const hash = JSON.stringify(body)
   if (!intent || intent.hash !== hash) intent = { hash, key: crypto.randomUUID() }
   try {
-    const r = await api.request(url + '/previews', {
+    const r = await api.request(url + (props.manual ? '/manual/previews' : '/previews'), {
       method: 'POST',
       body,
       headers: {
@@ -138,9 +159,14 @@ async function apply(action) {
   const revision = isRearm ? options.value.subscriptionRevision : preview.subscriptionRevision
   const body = isRearm
     ? { groups: rearmGroups.value }
-    : action === 'approve-paid'
-      ? { serviceDays: serviceDays.value, reason: paidReason.value }
-      : {}
+    : action === 'assign-manual'
+      ? {
+          endDate: paidTarget.value ? endDate.value : null,
+          replaceActivePeriod: replaceActivePeriod.value,
+        }
+      : action === 'approve-paid'
+        ? { serviceDays: serviceDays.value, reason: paidReason.value }
+        : {}
   const fingerprint = JSON.stringify([url, revision, body])
   if (approvalIntent?.fingerprint !== fingerprint)
     approvalIntent = { fingerprint, key: crypto.randomUUID() }
@@ -165,7 +191,12 @@ async function apply(action) {
           : l('approvalSaved')
   } catch (cause) {
     if (epoch !== current) return
-    error.value = cause.status === 409 ? l('expired') : formatApiError(cause)
+    const manualError = props.manual && i18n.global.te('manualSubscription.' + cause.code, 'en')
+    error.value = manualError
+      ? m(cause.code)
+      : cause.status === 409
+        ? l('expired')
+        : formatApiError(cause)
     if (cause.status === 409) {
       frozen.value = null
       confirmed.value = false
@@ -220,19 +251,17 @@ onBeforeUnmount(() => {
   epoch++
 })
 watch(() => [props.workspaceId, props.platform], load, { immediate: true })
-watch(
-  () => props.targetId,
-  () => {
-    targetEpoch++
-    confirmed.value = false
-    frozen.value = null
-    intent = null
-  },
-)
+watch(targetId, () => {
+  targetEpoch++
+  confirmed.value = false
+  replaceActivePeriod.value = false
+  frozen.value = null
+  intent = null
+})
 </script>
 <template>
   <section class="resource-selection" :aria-busy="busy">
-    <section v-if="!props.platform && options" class="subscription-overview">
+    <section v-if="(!props.platform || props.manual) && options" class="subscription-overview">
       <template v-if="options.subscription">
         <h2>
           {{
@@ -241,10 +270,15 @@ watch(
           }}
         </h2>
         <p>{{ t('account.subscriptionPhase.' + options.subscription.phase) }}</p>
+        <p v-if="props.manual">
+          {{ m('started') }} ·
+          <time :datetime="options.subscription.startsAt">{{ options.subscription.startsAt }}</time>
+        </p>
         <p v-if="options.subscription.endsAt">
           {{ l('expires') }} ·
           <time :datetime="options.subscription.endsAt">{{ options.subscription.endsAt }}</time>
         </p>
+        <p v-else-if="props.manual">{{ m('noEnd') }}</p>
         <dl>
           <div v-for="(limit, key) in options.subscription.limits" :key="key">
             <dt>{{ t('inventory.resources.' + key) }}</dt>
@@ -257,14 +291,33 @@ watch(
       </template>
       <p v-else>{{ l('reasons.subscription_missing_or_incomplete') }}</p>
     </section>
-    <h2>{{ l('title') }}</h2>
-    <p>{{ l('intro') }}</p>
+    <template v-if="props.manual">
+      <p>{{ m('intro') }}</p>
+      <label v-if="options?.assignableVersions?.length">
+        {{ m('target') }}
+        <select v-model="manualTarget" :disabled="busy">
+          <option value="">{{ m('choose') }}</option>
+          <option
+            v-for="version in options.assignableVersions"
+            :key="version.id"
+            :value="version.id"
+          >
+            {{ version.translations[locale]?.name || version.translations.en.name }}
+          </option>
+        </select>
+      </label>
+      <p v-else-if="options">{{ m('unavailable') }}</p>
+    </template>
+    <template v-else>
+      <h2>{{ l('title') }}</h2>
+      <p>{{ l('intro') }}</p>
+    </template>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <LoadingButton v-if="error" class="button secondary" :busy="busy" @click="load">{{
       t('inventory.refresh')
     }}</LoadingButton>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <div v-if="options" class="resource-groups">
+    <div v-if="canSelect" class="resource-groups">
       <fieldset v-for="group in groups" :key="group">
         <legend>{{ l(group) }} · {{ selection[group]?.length || 0 }}</legend>
         <p v-if="!rows(group).length">{{ l('empty') }}</p>
@@ -292,11 +345,13 @@ watch(
     <LoadingButton
       class="button primary"
       :busy="busy"
-      :disabled="!options || !props.targetId"
+      v-if="canSelect"
+      :disabled="!targetId"
       @click="freeze"
       >{{ l('freeze') }}</LoadingButton
     >
     <div v-if="frozen" class="frozen-summary">
+      <p v-if="props.manual">{{ m('holds') }}</p>
       <h3>{{ frozen.state === 'ready' ? l('ready') : l('unknown') }}</h3>
       <ul v-if="frozen.reasonCodes.length">
         <li v-for="code in frozen.reasonCodes" :key="code">{{ reasonLabel(code) }}</li>
@@ -318,13 +373,14 @@ watch(
       </dl>
       <p v-for="(ids, group) in frozen.wouldHold" :key="group">
         {{ l(group) }} · {{ l('held') }}: {{ ids.length }}
+        <small v-if="props.manual && ids.length">{{ ids.map(short).join(', ') }}</small>
       </p>
       <ul>
         <li v-for="(state, key) in frozen.premium" :key="key">
           {{ t('inventory.resources.' + key) }}:
           {{
             typeof state === 'object'
-              ? l('unknown')
+              ? t('planManagement.enumNames.' + state.target)
               : state === 'would_hold_execution'
                 ? l('held')
                 : l('kept')
@@ -341,7 +397,24 @@ watch(
       class="surface admin-form"
       @submit.prevent="apply(approval || 'rearm')"
     >
-      <h3>{{ l('actions.' + (approval || 'rearm')) }}</h3>
+      <h3>{{ props.manual ? m('apply') : l('actions.' + (approval || 'rearm')) }}</h3>
+      <template v-if="approval === 'assign-manual'">
+        <label v-if="paidTarget">
+          {{ m('endDate') }}
+          <input
+            v-model="endDate"
+            type="date"
+            :min="today()"
+            required
+            @change="confirmed = false"
+          />
+        </label>
+        <p v-else>{{ m('noEnd') }}</p>
+        <label v-if="options.replacementRequired" class="resource-option">
+          <input v-model="replaceActivePeriod" type="checkbox" required />
+          {{ m('replace') }}
+        </label>
+      </template>
       <p v-if="!approval">{{ rearmGroups.map((group) => featureNames[group]).join(' · ') }}</p>
       <template v-if="approval === 'approve-paid'">
         <label
@@ -357,10 +430,10 @@ watch(
         ><input v-model="confirmed" type="checkbox" />{{ l('approveConfirmation') }}</label
       >
       <LoadingButton class="button primary" type="submit" :busy="busy" :disabled="!confirmed">
-        {{ l('actions.' + (approval || 'rearm')) }}
+        {{ props.manual ? m('apply') : l('actions.' + (approval || 'rearm')) }}
       </LoadingButton>
     </form>
-    <details @toggle="$event.target.open && reviewList()">
+    <details v-if="!props.manual" @toggle="$event.target.open && reviewList()">
       <summary>{{ l('review') }}</summary>
       <p>{{ l('reviewNotice') }}</p>
       <p v-if="!reviews.length">{{ l('empty') }}</p>

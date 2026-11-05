@@ -24,7 +24,7 @@ class EnsurePlanAuthority
                 $user = $request->user()->fresh();
                 $security = app(AccountSecurity::class);
                 abort_unless($user->email_verified_at && $security->enrolled($user) && $security->strong($request, $user) && ! $user->security_recovery_expires_at, 403);
-                if ($request->route()?->getName() !== 'platform.plans.enter') {
+                if (! $request->isMethodSafe()) {
                     $security->requireFresh($request);
                 }
 

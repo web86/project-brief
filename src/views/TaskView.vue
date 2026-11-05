@@ -92,12 +92,7 @@ const showAgentControls = computed(
       task.value?.agentAssignments?.length),
 )
 const showAgentChat = computed(
-  () =>
-    store.isDeveloper &&
-    store.apiMode &&
-    (task.value?.hasAgentHistory ||
-      task.value?.agentAssignments?.length ||
-      task.value?.comments?.some((comment) => comment.teamOnly && comment.author === 'agent')),
+  () => store.isDeveloper && store.apiMode && !!task.value?.agentAssignments?.length,
 )
 const editorTask = computed(() => store.developerTask(route.params.id))
 const dirty = computed(() => store.isDeveloper && store.hasDeveloperChanges(route.params.id))
@@ -245,6 +240,7 @@ function focusClarification() {
           <AgentConversation
             v-if="showAgentChat"
             :task="task"
+            :viewer="store.admin?.notificationPreferenceId"
             @changed="checkMessages"
             @share="shareAgentMessage"
           />

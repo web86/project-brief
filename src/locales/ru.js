@@ -4,6 +4,51 @@ import { preparationMessages } from './preparation.js'
 import { inventoryMessages } from './inventory.js'
 import { planMessages } from './planManagement.js'
 export default {
+  manualSubscription: {
+    title: 'Управление подпиской',
+    intro:
+      'Выберите новый тариф и ресурсы, которые нужно сохранить активными. Ручное назначение не записывает платёж.',
+    target: 'Новый тариф',
+    choose: 'Выберите опубликованный тариф',
+    unavailable:
+      'Назначение для этого пространства недоступно или подходящий тариф не опубликован. Для Compatibility нужен отдельный переход.',
+    started: 'Начало',
+    noEnd: 'Без даты окончания',
+    holds:
+      'Приостановленные ресурсы сохраняются. После назначения платного тарифа владелец отдельно включает доступные интеграции.',
+    apply: 'Подтвердить смену тарифа',
+    endDate: 'Последний день обслуживания (UTC)',
+    replace:
+      'Я подтверждаю замену действующего Trial или платного периода и отмену запланированного продления.',
+    manual_assignment_end_date_required: 'Укажите дату окончания платного тарифа.',
+    manual_assignment_end_date_invalid: 'Выберите допустимую дату окончания.',
+    manual_assignment_replacement_required: 'Отдельно подтвердите замену действующего периода.',
+    manual_assignment_overrides_require_review:
+      'Перед назначением проверьте действующие и запланированные переопределения лимитов.',
+    manual_assignment_unavailable: 'Ручное назначение недоступно для этой подписки.',
+  },
+  brandingLevels: {
+    none: 'Название рабочего пространства и стандартное оформление Dev2Done.',
+    basic:
+      'Своё название бренда, логотип, favicon и основной цвет в поддерживаемых клиентских интерфейсах.',
+    full: 'Всё из базового брендирования, а также реквизиты, контакты, оформление писем и PDF/DOCX и возможность скрыть подпись Dev2Done в поддерживаемых экспортах.',
+  },
+  planRestrictions: {
+    developerLimit: 'Достигнут лимит разработчиков',
+    plan_limit_reached: 'Достигнут лимит тарифа',
+    plan_feature_unavailable: 'Функция недоступна на этом тарифе',
+    plan_subscription_inactive: 'Доступ по подписке приостановлен',
+    plan_resource_held: 'Ресурс приостановлен',
+    usage: 'Использовано {usage} из {maximum}.',
+    planUsage: 'Использовано {usage} из {maximum} мест тарифа {plan}.',
+    maximum: 'Лимит тарифа: {maximum}.',
+    capacityAction: 'Освободите место или узнайте, можно ли увеличить лимит.',
+    plan_feature_unavailable_action: 'Проверьте, какие функции включены в ваш тариф.',
+    plan_subscription_inactive_action: 'Попросите владельца проверить подписку.',
+    plan_resource_held_action:
+      'Проверьте выбор ресурсов или попросите владельца восстановить доступ.',
+    unread: 'Новые сообщения агента',
+  },
   canary: canaryMessages['ru'],
   onboarding: onboardingMessages['ru'],
   preparation: preparationMessages.ru,

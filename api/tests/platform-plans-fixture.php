@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ExternalAgent;
+use App\Models\Plans\PlanVersion;
 use App\Models\Plans\PlatformPolicyVersion;
 use App\Models\Project;
 use App\Models\ProjectClient;
@@ -13,6 +14,8 @@ use App\Services\ClientSso;
 use App\Services\IntegrationTokens;
 use App\Services\IntegrationWrites;
 use App\Services\Plans\ClientCountingIdentities;
+use App\Services\Plans\PlanCatalog;
+use App\Services\Plans\PlatformPolicyCatalog;
 use App\Services\Plans\SubscriptionLifecycle;
 use App\Services\WebhookEvents;
 use App\Services\WebhookProcessor;
@@ -36,6 +39,27 @@ $disposableMariaDb = config('database.default') === 'mysql'
     && in_array(config('database.connections.mysql.database'), ['brief_phase4b2_browser', 'brief_phase4b2_browser_restored'], true);
 if (! app()->environment('testing') || (! $disposableSqlite && ! $disposableMariaDb)) {
     throw new RuntimeException('Disposable plan-management browser fixture only.');
+}
+if (($argv[1] ?? null) === 'manual-ux') {
+    $operator = User::where('email', 'primary@example.test')->firstOrFail();
+    foreach (['basic', 'freelancer', 'studio'] as $code) {
+        $version = PlanVersion::whereHas('plan', fn ($q) => $q->where('code', $code))->firstOrFail();
+        if ($version->state === 'draft') {
+            app(PlanCatalog::class)->publish($operator, $version->id, $version->revision, 'step-up-'.$code);
+        }
+    }
+    $policy = app(PlatformPolicyCatalog::class)->publish($operator, PlatformPolicyVersion::firstOrFail()->id, 1, 'manual-ux-policy');
+    DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
+    $owner = User::factory()->create(['email' => 'manual-ux@example.test']);
+    app(AuthOnboarding::class)->pending($owner);
+    $workspace = app(AuthOnboarding::class)->prepare($owner);
+    $workspace->update(['name' => 'Manual subscription QA']);
+    $owner->forceFill(['two_factor_secret' => Fortify::currentEncrypter()->encrypt(app(Google2FA::class)->generateSecretKey()),
+        'two_factor_confirmed_at' => now(), 'recovery_codes_acknowledged_at' => now()])->save();
+    app(SubscriptionLifecycle::class)->startVerifiedTrial($workspace->id, $owner->id);
+    echo json_encode(['workspace' => $workspace->uuid, 'name' => $workspace->name]);
+
+    return;
 }
 if (($argv[1] ?? null) === 'snapshot') {
     if ($disposableSqlite) {

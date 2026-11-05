@@ -103,7 +103,7 @@ export function formatApiError(error) {
   if (['demo_read_only', 'demo_view_only'].includes(error?.code))
     return 'Demo · View only. Changes are unavailable.'
   if (error?.code === 'task_conflict') return t('liveSync.conflict')
-  if (!error) return ''
+  if (!error || error.presentedAsToast) return ''
   if (typeof error === 'string') return error
   if (['SEC_REQUEST_INVALID', 'SEC_FIELDS_INVALID'].includes(error.code))
     return t('ui.checkTheFields')

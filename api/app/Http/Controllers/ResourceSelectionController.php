@@ -23,8 +23,10 @@ class ResourceSelectionController extends Controller
 {
     private function context(Request $request, ?string $workspace): array
     {
-        app(AccountSecurity::class)->requireFresh($request);
         $platform = $request->is('api/platform/*');
+        if (! $platform || ! $request->isMethodSafe()) {
+            app(AccountSecurity::class)->requireFresh($request);
+        }
         if ($platform) {
             abort_unless($request->user()->fresh()->email_verified_at && ! $request->user()->fresh()->security_recovery_expires_at, 403);
 
@@ -60,8 +62,8 @@ class ResourceSelectionController extends Controller
                     return response()->json(['data' => $versions->getCollection()->map(fn ($v) => ['id' => $v->uuid, 'number' => $v->number, 'translations' => $v->translations_json]), 'meta' => ['page' => $versions->currentPage(), 'lastPage' => $versions->lastPage()]]);
                 });
             }
-            if ($kind === 'options') {
-                return response()->json(['data' => $service->options($request->user(), $id, $platform)]);
+            if (in_array($kind, ['options', 'manual-options'], true)) {
+                return response()->json(['data' => $service->options($request->user(), $id, $platform, $kind === 'manual-options')]);
             }
             if ($kind === 'review-list') {
                 return DB::transaction(function () use ($id, $platform, $request, $service): JsonResponse {
@@ -84,6 +86,17 @@ class ResourceSelectionController extends Controller
 
                 return response()->json(['data' => $subscription]);
             }
+            if ($kind === 'assign-manual') {
+                PlanInput::only($request->all(), ['endDate', 'replaceActivePeriod']);
+                $data = $request->validate(['endDate' => ['nullable', 'date_format:Y-m-d'], 'replaceActivePeriod' => ['required', 'boolean']]);
+
+                $assignment = app(SubscriptionAssignments::class)->assignManual($request->user(), $id, $preview,
+                    PlanInput::revision($request), $data['endDate'] ?? null, (bool) $data['replaceActivePeriod'], PlanInput::key($request));
+
+                return response()->json(['data' => ['id' => $assignment['uuid'], 'revision' => (string) $assignment['after'],
+                    'state' => $assignment['state'], 'effectiveAt' => $assignment['effectiveAt'], 'cycleId' => $assignment['cycleId']]]);
+
+            }
             if (in_array($kind, ['apply-basic', 'restore-paid'], true)) {
                 PlanInput::only($request->all(), []);
 
@@ -92,11 +105,11 @@ class ResourceSelectionController extends Controller
             if ($kind === 'read') {
                 return response()->json(['data' => $service->read($request->user(), $id, $platform, $preview)]);
             }
-            if ($kind === 'create') {
+            if (in_array($kind, ['create', 'manual-preview'], true)) {
                 PlanInput::only($request->all(), ['targetVersionId', 'selection']);
                 $data = $request->validate(['targetVersionId' => ['required', 'uuid'], 'selection' => ['required', 'array']]);
 
-                return response()->json(['data' => $service->create($request->user(), $id, $platform, $data['targetVersionId'], $data['selection'], PlanInput::revision($request), PlanInput::key($request))], 201);
+                return response()->json(['data' => $service->create($request->user(), $id, $platform, $data['targetVersionId'], $data['selection'], PlanInput::revision($request), PlanInput::key($request), $kind === 'manual-preview')], 201);
             }
             PlanInput::only($request->all(), ['clientId', 'action', 'inputHash', 'reason', 'confirmation']);
             $data = $request->validate(['clientId' => ['required', 'uuid'], 'action' => ['required', 'in:confirm,separate'], 'inputHash' => ['required', 'regex:/^[a-f0-9]{64}$/D'], 'reason' => ['required', 'regex:/^[a-z][a-z0-9_]{0,59}$/D'], 'confirmation' => ['required', 'in:ACCOUNTING ONLY']]);

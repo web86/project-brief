@@ -12,6 +12,12 @@ final class EntitlementRegistry
 
     public const MAX_SEATS = 50;
 
+    public const BRANDING_SECTIONS = [
+        'none' => [],
+        'basic' => ['visual', 'assets'],
+        'full' => ['visual', 'assets', 'business', 'contact', 'footer', 'export', 'email'],
+    ];
+
     /** @return array<string, array<string, mixed>> */
     public function definitions(): array
     {
@@ -25,7 +31,7 @@ final class EntitlementRegistry
         foreach (['agents.enabled', 'api.agents.enabled', 'api.external.enabled', 'webhooks.enabled', 'sso.enabled', 'formwatch.enabled'] as $key) {
             $result[$key] = ['kind' => 'boolean', 'scopes' => ['workspace'], 'allow_unlimited' => false, 'default' => ['kind' => 'boolean', 'value' => false], 'paid_requirement' => 'paid_or_trial', 'availability' => $key === 'formwatch.enabled' ? 'unavailable' : 'available', 'derived' => false];
         }
-        $result['branding.level'] = ['kind' => 'enum', 'scopes' => ['workspace'], 'allow_unlimited' => false, 'values' => ['none', 'basic', 'full'], 'default' => ['kind' => 'enum', 'value' => 'none'], 'paid_requirement' => 'paid_or_trial', 'availability' => 'available', 'derived' => false];
+        $result['branding.level'] = ['kind' => 'enum', 'scopes' => ['workspace'], 'allow_unlimited' => false, 'values' => array_keys(self::BRANDING_SECTIONS), 'sections_by_level' => self::BRANDING_SECTIONS, 'default' => ['kind' => 'enum', 'value' => 'none'], 'paid_requirement' => 'paid_or_trial', 'availability' => 'available', 'derived' => false];
         foreach (['agents.runs.quota', 'ai.requests.quota', 'formwatch.checks.quota'] as $key) {
             $result[$key] = ['kind' => 'quota', 'scopes' => ['workspace'], 'allow_unlimited' => true, 'windows' => ['calendar_day_utc', 'calendar_month_utc'], 'unit' => match ($key) {
                 'formwatch.checks.quota' => 'check', 'agents.runs.quota' => 'run', default => 'request'

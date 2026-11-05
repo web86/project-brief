@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client.js'
 import { t, formatApiError, intlLocale } from '../i18n/index.js'
 import LoadingButton from '../components/LoadingButton.vue'
+import ResourceSelectionPanel from '../components/ResourceSelectionPanel.vue'
 const router = useRouter(),
   route = useRoute()
 const usageWorkspace = ref('')
+const subscriptionOpen = ref(false)
 const tab = ref(
     ['overview', 'workspaces', 'usage', 'audit'].includes(route.query.section)
       ? route.query.section
@@ -19,6 +21,10 @@ const data = ref(null),
   detail = ref(null),
   busy = ref(false),
   error = ref(null)
+watch(
+  () => detail.value?.workspace.uuid,
+  () => (subscriptionOpen.value = false),
+)
 let revision = 0,
   controller
 const tabs = ['overview', 'workspaces', 'usage', 'audit']
@@ -209,6 +215,15 @@ load()
         <dt>{{ t('platform.endpoints') }}</dt>
         <dd>{{ number(detail.webhookEndpoints) }}</dd>
       </dl>
+      <details v-if="route.meta.canManagePlans" @toggle="subscriptionOpen = $event.target.open">
+        <summary>{{ t('manualSubscription.title') }}</summary>
+        <ResourceSelectionPanel
+          v-if="subscriptionOpen"
+          :workspace-id="detail.workspace.uuid"
+          platform
+          manual
+        />
+      </details>
       <h3>{{ t('platform.integrations') }}</h3>
       <p v-for="source in detail.integrations" :key="source.id">
         #{{ source.id }} · {{ source.name }}

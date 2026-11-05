@@ -158,16 +158,31 @@ final class SubscriptionLifecycle
             'approval_kind' => 'system',
         ]);
 
+        $cycle = $this->suspend($subscription, $source, $version, $at);
+
+        if ($source->kind === 'trial') {
+            DB::table('owner_trial_claims')->where('workspace_id', $workspaceId)->where('period_id', $source->id)
+                ->where('state', 'active')->update(['state' => 'expired']);
+        }
+
+        $subscription->approved_extra_seats = 0;
+        $this->advance($subscription, 'free', $fallback, $at, null, $cycle);
+    }
+
+    public function suspend(WorkspaceSubscription $subscription, SubscriptionPeriod $source, PlanVersion $version, CarbonImmutable $at, ?int $changeId = null): string
+    {
+        $workspaceId = $subscription->workspace_id;
         $boundary = $at->utc()->format('Y-m-d H:i:s.u');
         $cycle = (string) Str::uuid();
         DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')
-            ->where('reason_code', 'subscription_expired')->update(['state' => 'resolved', 'revision' => DB::raw('revision + 1')]);
+            ->whereIn('reason_code', ['subscription_expired', 'manual_assignment'])->update(['state' => 'resolved', 'revision' => DB::raw('revision + 1')]);
         DB::table('workspace_suspension_cycles')->insert([
             'uuid' => $cycle,
             'workspace_id' => $workspaceId,
             'source_period_id' => $source->id,
+            'source_change_id' => $changeId,
             'effective_at' => $boundary,
-            'reason_code' => 'subscription_expired',
+            'reason_code' => $changeId === null ? 'subscription_expired' : 'manual_assignment',
             'target_version_id' => $version->id,
             'state' => 'open',
             'resource_high_watermarks_json' => json_encode($this->highWatermarks($workspaceId), JSON_THROW_ON_ERROR),
@@ -187,13 +202,7 @@ final class SubscriptionLifecycle
             ]);
         }
 
-        if ($source->kind === 'trial') {
-            DB::table('owner_trial_claims')->where('workspace_id', $workspaceId)->where('period_id', $source->id)
-                ->where('state', 'active')->update(['state' => 'expired']);
-        }
-
-        $subscription->approved_extra_seats = 0;
-        $this->advance($subscription, 'free', $fallback, $at, null, $cycle);
+        return $cycle;
     }
 
     private function highWatermarks(int $workspaceId): array

@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\Workspace;
+use App\Services\Plans\EntitlementRegistry;
+use App\Services\Plans\EntitlementResolver;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class WorkspaceBranding
@@ -18,6 +21,46 @@ class WorkspaceBranding
     public const FOOTER_DEFAULTS = ['support' => false, 'website' => false];
 
     public const EMAIL_DEFAULTS = ['enabled' => false, 'logo' => true, 'companyName' => true, 'contact' => false, 'accent' => true];
+
+    public function level(Workspace $workspace): string
+    {
+        $current = DB::transactionLevel() > 0;
+        $subscription = DB::table('workspace_subscriptions')->where('workspace_id', $workspace->id)
+            ->when($current, fn ($query) => $query->sharedLock())->value('enforcement_mode');
+        if ($subscription !== 'enforce') {
+            return 'full';
+        }
+        $snapshot = app(EntitlementResolver::class)->resolve($workspace->id, current: $current, inspectSuspended: true);
+        if (($snapshot['phase'] ?? null) === 'compatibility') {
+            return 'full';
+        }
+
+        return $snapshot['values']['branding.level']['value'] ?? 'none';
+    }
+
+    public function requireSection(Workspace $workspace, string $section): void
+    {
+        abort_unless(in_array($section, EntitlementRegistry::BRANDING_SECTIONS[$this->level($workspace)], true), 403, 'subscription_feature_unavailable');
+    }
+
+    private function visibleSettings(Workspace $workspace, string $level): array
+    {
+        $settings = $this->settings($workspace);
+        foreach ($settings as $section => $values) {
+            if (in_array($section, EntitlementRegistry::BRANDING_SECTIONS[$level], true)) {
+                continue;
+            }
+            $settings[$section] = match ($section) {
+                'export' => array_replace(self::EXPORT_DEFAULTS, ['logo' => false, 'companyName' => false]),
+                'email' => self::EMAIL_DEFAULTS,
+                'footer' => self::FOOTER_DEFAULTS,
+                'assets' => [],
+                default => array_fill_keys(array_keys($values), ''),
+            };
+        }
+
+        return $settings;
+    }
 
     public function settings(Workspace $workspace): array
     {
@@ -43,11 +86,14 @@ class WorkspaceBranding
 
     public function ownerState(Workspace $workspace): array
     {
-        $settings = $this->settings($workspace);
-        $settings['assets'] = ['logo' => $this->assetUrl($workspace, 'logo'), 'favicon' => $this->assetUrl($workspace, 'favicon')];
+        $level = $this->level($workspace);
+        $settings = $this->visibleSettings($workspace, $level);
+        $assets = $settings['assets'];
+        $settings['level'] = $level;
+        $settings['assets'] = ['logo' => isset($assets['logo']) ? $this->assetUrl($workspace, 'logo') : null, 'favicon' => isset($assets['favicon']) ? $this->assetUrl($workspace, 'favicon') : null];
 
         $settings['versions'] = $this->versions($workspace);
-        $settings['assetInfo'] = array_map(fn (array $asset): array => ['originalBytes' => $asset['originalBytes'] ?? null, 'bytes' => $asset['browserBytes'] ?? $asset['bytes'] ?? null, 'mime' => ! empty($asset['svgPath']) ? 'image/svg+xml' : ($asset['mime'] ?? 'image/png'), 'fallbackBytes' => $asset['bytes'] ?? null], $workspace->branding['assets'] ?? []);
+        $settings['assetInfo'] = array_map(fn (array $asset): array => ['originalBytes' => $asset['originalBytes'] ?? null, 'bytes' => $asset['browserBytes'] ?? $asset['bytes'] ?? null, 'mime' => ! empty($asset['svgPath']) ? 'image/svg+xml' : ($asset['mime'] ?? 'image/png'), 'fallbackBytes' => $asset['bytes'] ?? null], $assets);
 
         return $settings;
     }
@@ -59,9 +105,17 @@ class WorkspaceBranding
 
     public function portal(Workspace $workspace): array
     {
-        $visual = $this->settings($workspace)['visual'];
+        $settings = $this->visibleSettings($workspace, $this->level($workspace));
+        $visual = $settings['visual'];
+        $assets = $settings['assets'];
 
-        return ['agreementUrl' => app(WorkspaceAgreements::class)->publicUrl($workspace), 'supportEmail' => $this->settings($workspace)['footer']['support'] ? (filter_var($this->settings($workspace)['contact']['email'], FILTER_VALIDATE_EMAIL) ?: null) : null, 'companyUrl' => $this->settings($workspace)['footer']['website'] && CompanyWebsite::valid($this->settings($workspace)['contact']['website']) ? CompanyWebsite::normalize($this->settings($workspace)['contact']['website']) : null, 'companyName' => $visual['companyName'], 'primaryColor' => $visual['primaryColor'], 'logoUrl' => $this->assetUrl($workspace, 'logo'), 'faviconUrl' => $this->assetUrl($workspace, 'favicon'), 'faviconType' => ! empty($workspace->branding['assets']['favicon']['svgPath']) ? 'image/svg+xml' : ($workspace->branding['assets']['favicon']['mime'] ?? 'image/png')];
+        return ['agreementUrl' => app(WorkspaceAgreements::class)->publicUrl($workspace),
+            'supportEmail' => $settings['footer']['support'] ? (filter_var($settings['contact']['email'], FILTER_VALIDATE_EMAIL) ?: null) : null,
+            'companyUrl' => $settings['footer']['website'] && CompanyWebsite::valid($settings['contact']['website']) ? CompanyWebsite::normalize($settings['contact']['website']) : null,
+            'companyName' => $visual['companyName'], 'primaryColor' => $visual['primaryColor'],
+            'logoUrl' => isset($assets['logo']) ? $this->assetUrl($workspace, 'logo') : null,
+            'faviconUrl' => isset($assets['favicon']) ? $this->assetUrl($workspace, 'favicon') : null,
+            'faviconType' => ! empty($assets['favicon']['svgPath']) ? 'image/svg+xml' : ($assets['favicon']['mime'] ?? 'image/png')];
     }
 
     public function contact(array $values, bool $address): array
@@ -73,7 +127,7 @@ class WorkspaceBranding
 
     public function email(Workspace $workspace): ?array
     {
-        $settings = $this->settings($workspace);
+        $settings = $this->visibleSettings($workspace, $this->level($workspace));
         $flags = $settings['email'];
         if (! $flags['enabled']) {
             return null;
@@ -98,7 +152,8 @@ class WorkspaceBranding
 
     public function document(Workspace $workspace, string $locale, bool $preferVectorLogo = false): array
     {
-        $settings = $this->settings($workspace);
+        $level = $this->level($workspace);
+        $settings = $this->visibleSettings($workspace, $level);
         $flags = $settings['export'];
         $asset = $workspace->branding['assets']['logo'] ?? null;
         $logo = null;
@@ -126,7 +181,7 @@ class WorkspaceBranding
         }
 
         return ['name' => $flags['companyName'] ? $settings['visual']['companyName'] : '', 'logo' => $logo, 'logoSvg' => $logoSvg,
-            'color' => $this->documentAccent($settings['visual']['primaryColor']),
+            'color' => $this->documentAccent($level === 'full' ? $settings['visual']['primaryColor'] : ''),
             'address' => $flags['address'] ? $this->contact($settings['contact'], true) : [],
             'contact' => $flags['contact'] ? $this->contact($settings['contact'], false) : [], 'business' => $rows,
             'businessTitle' => trans('branding.business', [], $locale), 'platform' => $flags['platform'], 'platformUrl' => rtrim(config('app.url'), '/')];
