@@ -242,10 +242,10 @@ if (! $app->environment('testing') || ! str_contains(Illuminate\Support\Facades\
 $user = App\Models\User::where('email', $argv[1])->firstOrFail();
 $db = Illuminate\Support\Facades\DB::table('sessions')->where('user_id', $user->id);
 foreach ($db->get() as $row) {
-    $data = unserialize(base64_decode($row->payload), ['allowed_classes' => false]);
+    $data = json_decode(base64_decode($row->payload), true, 512, JSON_THROW_ON_ERROR);
     if (isset($data['security'])) {
         $data['security']['started_at'] = now()->subHours(6)->timestamp;
-        Illuminate\Support\Facades\DB::table('sessions')->where('id', $row->id)->update(['payload' => base64_encode(serialize($data))]);
+        Illuminate\Support\Facades\DB::table('sessions')->where('id', $row->id)->update(['payload' => base64_encode(json_encode($data, JSON_THROW_ON_ERROR))]);
     }
 }
 `,
