@@ -13,6 +13,9 @@ export default {
     current: 'Current plan',
     ends: 'Ends',
     noSubscription: 'No subscription is recorded for this workspace.',
+    initialOnboardingRequired:
+      'The owner must verify their email, finish account security setup, and accept any required workspace agreement.',
+    initialTrialClaim: 'Any pending Studio Trial claim will be closed without starting a trial.',
     openWorkspace: 'Open workspace {name}',
     changePlan: 'Change plan',
     choosePlan: 'Choose a plan',

@@ -104,22 +104,31 @@ function assigned() {
           <button
             v-if="
               route.meta.canManagePlans &&
-              data.subscription &&
-              data.subscription.phase !== 'compatibility'
+              (data.subscription
+                ? data.subscription.phase !== 'compatibility'
+                : data.initialAssignmentStatus === 'ready')
             "
             class="button primary change-plan"
             :disabled="busy || retrySeconds > 0"
             @click="wizard = true"
           >
-            {{ label('changePlan') }}
+            {{ label(data.subscription ? 'changePlan' : 'assign') }}
           </button>
           <p v-else-if="data.subscription?.phase === 'compatibility'">
             {{ label('compatibility') }}
+          </p>
+          <p v-else-if="route.meta.canManagePlans && !data.subscription">
+            {{
+              data.initialAssignmentStatus === 'onboarding_required'
+                ? label('initialOnboardingRequired')
+                : t('manualSubscription.unavailable')
+            }}
           </p>
         </SubscriptionOverview>
         <SubscriptionChangeWizard
           v-if="wizard"
           :workspace-id="workspaceId"
+          :initial="!data.subscription"
           @close="wizard = false"
           @assigned="assigned"
         />

@@ -32,6 +32,7 @@ use App\Services\Plans\SubscriptionClock;
 use App\Services\Plans\SubscriptionLifecycle;
 use App\Services\ProjectAccess;
 use App\Services\ProjectProvisioning;
+use App\Services\TrialEligibility;
 use App\Services\WebhookEvents;
 use App\Services\WebhookProcessor;
 use App\Services\WorkspaceBranding;
@@ -185,6 +186,156 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertDatabaseCount('subscription_periods', 4);
         $this->assertDatabaseCount('subscription_changes', 3);
         $this->assertDatabaseHas('plan_events', ['actor_user_id' => $operator->id, 'action' => 'subscription.assign_manual']);
+    }
+
+    #[DataProvider('initialPlans')]
+    public function test_initial_manual_assignment_uses_onboarding_and_normal_subscription_lifecycle(string $firstPlan): void
+    {
+        $this->freezeSecond();
+        config([
+            'onboarding.subject_retention_days' => 365,
+            'onboarding.trial_activation_requested' => false,
+            'mail.default' => 'smtp',
+            'mail.mailers.smtp.host' => 'synthetic.example.test',
+            'mail.from.address' => 'sender@example.test',
+        ]);
+        $operator = User::factory()->owner()->create(['platform_admin' => true]);
+        DB::table('platform_plan_authority')->insert(['id' => 1, 'primary_user_id' => $operator->id, 'revision' => 1]);
+        $this->seed(PlansFoundationSeeder::class);
+        $versions = [];
+        foreach (['basic', 'freelancer', 'studio'] as $code) {
+            $draft = PlanVersion::whereHas('plan', fn ($query) => $query->where('code', $code))->firstOrFail();
+            $versions[$code] = app(PlanCatalog::class)->publish($operator, $draft->id, 1, 'initial-'.$code);
+        }
+        $policy = app(PlatformPolicyCatalog::class)->publish($operator, PlatformPolicyVersion::firstOrFail()->id, 1, 'initial-policy');
+        DB::table('plan_settings')->where('id', 1)->update(['current_policy_version_id' => $policy->id]);
+
+        $inventory = app(LegacyInventory::class);
+        $inventory->bootstrap();
+        $legacyWorkspace = $operator->workspaceMembers()->sole()->workspace;
+        $inventory->process($legacyWorkspace->id);
+
+        $owner = User::factory()->create();
+        app(AuthOnboarding::class)->pending($owner);
+        $workspace = app(AuthOnboarding::class)->prepare($owner);
+        $claim = DB::table('owner_trial_claims')->where('owner_user_id', $owner->id)->first();
+        $subjects = DB::table('owner_trial_claim_subjects')->where('claim_id', $claim->id);
+        $this->assertSame('pending', $claim->state);
+        $this->assertGreaterThan(0, $subjectCount = $subjects->count());
+        $platform = '/api/platform/workspaces/'.$workspace->uuid;
+        $root = $platform.'/resource-selection';
+        $selection = ['projects' => [], 'developers' => [(string) $owner->workspaceMembers()->sole()->id], 'clients' => [], 'agents' => [], 'invitations' => []];
+        $headers = fn (int $revision): array => ['If-Match' => '"revision:'.$revision.'"', 'Idempotency-Key' => (string) Str::uuid()];
+        $body = fn (string $code): array => ['targetVersionId' => $versions[$code]->uuid, 'selection' => $selection];
+        $previewPath = $root.'/manual/previews';
+        $this->actingAs($operator)->getJson($platform.'?view=subscription')->assertOk()
+            ->assertJsonPath('subscription', null)->assertJsonPath('initialAssignmentStatus', 'onboarding_required');
+        $this->getJson($root.'/manual')->assertOk()->assertJsonCount(0, 'data.assignableVersions');
+        $this->getJson('/api/platform/workspaces/'.$legacyWorkspace->uuid.'/resource-selection/manual')
+            ->assertOk()->assertJsonPath('data.subscription.phase', 'compatibility')->assertJsonCount(0, 'data.assignableVersions');
+        $this->postJson($previewPath, $body($firstPlan), $headers(0))->assertConflict()
+            ->assertJsonPath('code', 'manual_assignment_onboarding_required');
+
+        $owner->forceFill([
+            'two_factor_secret' => Fortify::currentEncrypter()->encrypt(app(Google2FA::class)->generateSecretKey()),
+            'two_factor_confirmed_at' => now(),
+            'recovery_codes_acknowledged_at' => now(),
+        ])->save();
+        $project = $firstPlan === 'basic'
+            ? Project::create(['workspace_id' => $workspace->id, 'title' => 'Held at initial assignment', 'status' => 'active', 'currency' => 'USD'])
+            : null;
+        $this->actingAs(User::factory()->owner()->create(['platform_admin' => true]))
+            ->postJson($previewPath, $body($firstPlan), $headers(0))->assertForbidden();
+        $this->actingAs($operator)->getJson($platform.'?view=subscription')->assertOk()->assertJsonPath('initialAssignmentStatus', 'ready');
+        $this->getJson($root.'/manual')->assertOk()->assertJsonPath('data.subscriptionRevision', '0')->assertJsonCount(3, 'data.assignableVersions');
+        $preview = fn (int $revision, array $input): string => $this->postJson($previewPath, $input, $headers($revision))
+            ->assertCreated()->assertJsonPath('data.availableAction', 'assign-manual')->assertJsonPath('data.initialAssignment', $revision === 0)->json('data.id');
+        $applyPath = fn (string $id): string => $root.'/previews/'.$id.'/assign-manual';
+
+        $id = $preview(0, $body($firstPlan));
+        $path = $applyPath($id);
+        $intent = $headers(0);
+        $endDate = CarbonImmutable::now('UTC')->addMonth()->toDateString();
+        $request = ['replaceActivePeriod' => false, 'endDate' => $firstPlan === 'basic' ? null : $endDate];
+        if ($firstPlan !== 'basic') {
+            $this->postJson($path, ['replaceActivePeriod' => false], $intent)->assertUnprocessable()
+                ->assertJsonPath('code', 'manual_assignment_end_date_required');
+        }
+        $owner->forceFill(['recovery_codes_acknowledged_at' => null])->save();
+        $this->postJson($path, $request, $intent)->assertConflict()->assertJsonPath('code', 'manual_assignment_onboarding_required');
+        $this->assertDatabaseMissing('workspace_subscriptions', ['workspace_id' => $workspace->id]);
+        $this->assertDatabaseHas('owner_trial_claims', ['id' => $claim->id, 'state' => 'pending']);
+        $owner->forceFill(['recovery_codes_acknowledged_at' => now()])->save();
+
+        $this->travel(601)->seconds();
+        $this->postJson($path, $request, $intent)->assertStatus(423);
+        $result = $this->actingAs($operator)->postJson($path, $request, $intent)->assertOk()->assertJsonPath('data.revision', '1')->json();
+        $this->postJson($path, $request, $intent)->assertOk()->assertExactJson($result);
+        $this->postJson($path, $request, $headers(0))->assertConflict();
+        $this->assertSame(1, SubscriptionPeriod::where('workspace_id', $workspace->id)->count());
+        $this->assertSame(1, DB::table('subscription_changes')->where('workspace_id', $workspace->id)->count());
+        $this->assertDatabaseHas('subscription_changes', ['workspace_id' => $workspace->id, 'kind' => 'assign', 'approved_by' => $operator->id]);
+        $this->assertDatabaseHas('plan_events', ['workspace_id' => $workspace->id, 'action' => 'subscription.assign_manual', 'before_revision' => 0, 'after_revision' => 1]);
+        $this->assertDatabaseHas('account_onboardings', ['workspace_id' => $workspace->id, 'user_id' => $owner->id, 'state' => 'commercial_active']);
+        $this->assertDatabaseHas('owner_trial_claims', ['id' => $claim->id, 'state' => 'denied', 'reason_code' => 'operator_initial_manual_assignment', 'period_id' => null, 'starts_at' => null, 'ends_at' => null]);
+        $this->assertSame($subjectCount, $subjects->count());
+        $this->assertSame('denied', app(TrialEligibility::class)->prepare($owner, $workspace, CarbonImmutable::now('UTC'))->state);
+        $this->getJson('/api/platform/registration-canary/owners')->assertOk()
+            ->assertJsonPath('data.management.owners.0.eligible', false)
+            ->assertJsonPath('data.management.admittedOwners', 0);
+        config(['onboarding.trial_activation_requested' => true]);
+        $settingsRevision = (int) DB::table('plan_settings')->where('id', 1)->value('revision');
+        $this->postJson('/api/platform/registration-canary/admit', ['claimId' => $claim->uuid], $headers($settingsRevision))
+            ->assertConflict()->assertJsonPath('code', 'canary_claim_unavailable');
+
+        $summary = $this->actingAs($owner)->getJson('/api/admin/resource-selection/summary')->assertOk()
+            ->assertJsonPath('data.subscription.assignment', 'manual');
+        $this->assertSame($firstPlan === 'basic' ? 1 : 10, $summary->json('data.subscription.limits')['projects.active.max']['value']);
+        $barrier = app(ExecutionBarrier::class);
+        $this->assertFalse($barrier->allows($workspace->id, 'api'));
+        $this->actingAs($operator);
+        $revision = 1;
+        if ($project) {
+            $summary->assertJsonPath('data.subscription.endsAt', null);
+            $this->assertDatabaseHas('workspace_suspension_cycles', ['uuid' => $result['data']['cycleId'], 'reason_code' => 'initial_manual_assignment', 'state' => 'open']);
+            $this->assertFalse(app(EffectiveParticipation::class)->projects($workspace->id)->where('projects.id', $project->id)->exists());
+            $selection['projects'] = [$project->uuid];
+        } else {
+            $this->assertNull($result['data']['cycleId']);
+            $this->assertSame(0, DB::table('workspace_execution_epochs')->where('workspace_id', $workspace->id)->count());
+            $this->postJson($applyPath($preview($revision, $body('basic'))), ['replaceActivePeriod' => true], $headers($revision))
+                ->assertOk()->assertJsonPath('data.revision', '2');
+            $revision++;
+            $this->getJson($platform.'?view=subscription')->assertOk()->assertJsonPath('subscription.phase', 'free')->assertJsonPath('subscription.endsAt', null);
+        }
+        $studio = $preview($revision, ['targetVersionId' => $versions['studio']->uuid, 'selection' => $selection]);
+        $this->postJson($applyPath($studio), ['endDate' => $endDate, 'replaceActivePeriod' => false], $headers($revision))->assertOk();
+        if ($project) {
+            $this->assertDatabaseHas('workspace_suspension_cycles', ['uuid' => $result['data']['cycleId'], 'state' => 'resolved']);
+            $this->assertTrue(app(EffectiveParticipation::class)->projects($workspace->id)->where('projects.id', $project->id)->exists());
+        }
+        $subscription = WorkspaceSubscription::where('workspace_id', $workspace->id)->firstOrFail();
+        $period = $subscription->currentPeriod;
+        $this->assertSame($versions['studio']->id, $period->entitlement_version_id);
+        $this->assertSame($policy->fallback_version_id, $period->fallback_version_id);
+        $this->assertSame(CarbonImmutable::parse($endDate, 'UTC')->addDay()->toDateString(), $period->service_ends_at->toDateString());
+        $this->travelTo($period->service_ends_at);
+        $lifecycle = app(SubscriptionLifecycle::class);
+        $lifecycle->catchUp($workspace->id);
+        $this->assertSame('grace', $subscription->refresh()->materialized_phase);
+        $this->travelTo($period->grace_ends_at);
+        $lifecycle->catchUp($workspace->id);
+        $lifecycle->catchUp($workspace->id);
+        $this->assertSame('free', $subscription->refresh()->materialized_phase);
+        $this->assertSame($versions['basic']->id, $subscription->currentPeriod->entitlement_version_id);
+        $this->assertSame($revision + 2, SubscriptionPeriod::where('workspace_id', $workspace->id)->count());
+        $this->assertDatabaseMissing('subscription_periods', ['workspace_id' => $workspace->id, 'kind' => 'trial']);
+        $this->assertDatabaseHas('owner_trial_claims', ['id' => $claim->id, 'state' => 'denied', 'period_id' => null]);
+    }
+
+    public static function initialPlans(): array
+    {
+        return ['Freelancer then Basic then Studio' => ['freelancer'], 'Basic with a held resource then Studio' => ['basic']];
     }
 
     public static function kinds(): array

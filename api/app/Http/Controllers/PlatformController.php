@@ -77,7 +77,7 @@ class PlatformController extends Controller
         if (in_array($view, ['subscription', 'resources'], true)) {
             $summary = app(FrozenTransitions::class)->summary($id);
 
-            return response()->json($header + array_intersect_key($summary, ['subscription' => true, 'usage' => true]));
+            return response()->json($header + array_intersect_key($summary, ['subscription' => true, 'usage' => true, 'initialAssignmentStatus' => true]));
         }
         $projects = DB::table('projects')->where('workspace_id', $id)->whereNull('deleted_at');
         $counts = ['projects' => $projects->count(), 'clients' => $this->platform->clientCount($id),

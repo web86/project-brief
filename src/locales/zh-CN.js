@@ -13,6 +13,8 @@ export default {
     current: '当前套餐',
     ends: '到期时间',
     noSubscription: '此工作区没有订阅记录。',
+    initialOnboardingRequired: '所有者需要验证电子邮箱、完成账户安全设置并接受适用的工作区协议。',
+    initialTrialClaim: '如果有待处理的 Studio Trial 申请，系统将关闭该申请且不会启动试用。',
     openWorkspace: '打开工作区 {name}',
     changePlan: '更改套餐',
     choosePlan: '选择套餐',

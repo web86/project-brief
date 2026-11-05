@@ -37,9 +37,13 @@ final class FrozenTransitions
 
             $subscription = $platform && ! $manual ? null : $this->subscriptionSummary($snapshot);
 
+            $record = $snapshot['rows']['workspace_subscriptions']->first();
+            $initial = $manual && ! $record && app(SubscriptionLifecycle::class)->initialAssignmentOwner($workspaceId) !== null;
+
             return ['workspaceId' => $snapshot['workspaceId'], 'subscriptionRevision' => $snapshot['subscriptionRevision'], 'resources' => $this->selections->options($snapshot, ! $platform || $manual, $manual), 'usage' => $snapshot['usage'], 'resourceFingerprint' => $snapshot['hash'], 'previewOnly' => true, 'executorAvailable' => false, ...($platform && ! $manual ? [] : ['subscription' => $subscription, 'rearmGroups' => $platform ? [] : $this->rearmGroups($snapshot)]),
                 ...($manual ? [
-                    'assignableVersions' => ($subscription && $subscription['phase'] !== 'compatibility' && $snapshot['rows']['workspace_subscriptions']->first()?->enforcement_mode === 'enforce')
+                    'initialAssignment' => $initial,
+                    'assignableVersions' => ($initial || ($subscription && $subscription['phase'] !== 'compatibility' && $record?->enforcement_mode === 'enforce'))
                         ? app(SubscriptionAssignments::class)->manualVersions(includeLimits: true) : [],
                     'replacementRequired' => in_array($subscription['phase'] ?? null, ['trial', 'paid', 'grace'], true),
                 ] : []), ];
@@ -134,6 +138,7 @@ final class FrozenTransitions
                 'subscription' => $summary ? $summary + ['limits' => $limits] : null,
                 'usage' => $limits ? app(WorkspaceUsage::class)->snapshot($workspaceId, keys: array_keys($limits), effective: true) : [],
                 'selectionTarget' => $selectionTarget,
+                'initialAssignmentStatus' => $subscription ? null : (app(SubscriptionLifecycle::class)->initialAssignmentOwner($workspaceId) ? 'ready' : 'onboarding_required'),
             ];
         }, 3);
     }
@@ -169,19 +174,25 @@ final class FrozenTransitions
             abort_unless((int) $snapshot['subscriptionRevision'] === $expectedRevision, 409, 'subscription_revision_conflict');
             $target = $this->selections->target($version, ! $platform);
             $plan = $this->selections->plan($snapshot, $target, $selection);
+            $record = $snapshot['rows']['workspace_subscriptions']->first();
+            $initial = $manual && ! $record;
             if ($manual) {
-                abort_unless($platform && in_array($version, array_column(app(SubscriptionAssignments::class)->manualVersions(), 'id'), true)
-                    && $snapshot['pinnedState'] === 'available' && ($snapshot['pinned']['phase'] ?? null) !== 'compatibility'
-                    && $snapshot['rows']['workspace_subscriptions']->first()?->enforcement_mode === 'enforce', 409, 'manual_assignment_unavailable');
+                abort_unless($platform && in_array($version, array_column(app(SubscriptionAssignments::class)->manualVersions(), 'id'), true), 409, 'manual_assignment_unavailable');
+                if ($initial) {
+                    abort_unless(app(SubscriptionLifecycle::class)->initialAssignmentOwner($workspaceId), 409, 'manual_assignment_onboarding_required');
+                } else {
+                    abort_unless($snapshot['pinnedState'] === 'available' && ($snapshot['pinned']['phase'] ?? null) !== 'compatibility'
+                        && $record->enforcement_mode === 'enforce', 409, 'manual_assignment_unavailable');
+                }
             }
-            if ($snapshot['pinnedState'] !== 'available') {
+            if (! $initial && $snapshot['pinnedState'] !== 'available') {
                 $plan['state'] = 'needs_review';
                 $plan['reasonCodes'][] = 'subscription_missing_or_incomplete';
             }
             $uuid = (string) Str::uuid();
             $now = CarbonImmutable::now('UTC');
             $settings = DB::table('plan_settings')->where('id', 1)->sharedLock()->value('revision') ?? 0;
-            $summary = $plan + ['manualAssignment' => $manual, 'availableAction' => $manual
+            $summary = $plan + ['manualAssignment' => $manual, 'initialAssignment' => $initial, 'availableAction' => $manual
                 ? (array_diff($plan['reasonCodes'], ['participation_cycle_adapter_required']) ? null : 'assign-manual')
                 : $this->availableAction($snapshot, $target, $plan, $platform), 'target' => $target, 'resourceFingerprint' => $snapshot['hash'], 'resourceRevisions' => $snapshot['fingerprints'], 'executionContract' => $this->selections->executionContract($snapshot, $target, $plan)];
             $id = DB::table('plan_previews')->insertGetId(['uuid' => $uuid, 'actor_user_id' => $actor->id, 'authority_revision' => $authorityRevision, 'kind' => 'resource_transition', 'target_uuid' => $target['id'], 'target_revision' => $target['revision'], 'target_hash' => $target['hash'], 'settings_revision' => $settings, 'registry_revision' => EntitlementRegistry::REVISION, 'policy_json' => json_encode(['selection' => $plan['selection'], 'platform' => $platform]), 'state' => 'ready', 'summary_json' => json_encode($summary, JSON_THROW_ON_ERROR), 'ready_at' => $now->format('Y-m-d H:i:s.u'), 'expires_at' => $now->addMinutes(15)->format('Y-m-d H:i:s.u'), 'created_at' => $now->format('Y-m-d H:i:s.u'), 'updated_at' => $now->format('Y-m-d H:i:s.u')]);
@@ -245,7 +256,7 @@ final class FrozenTransitions
                     && $period->service_ends_at > CarbonImmutable::now('UTC')
                 : $period->kind === 'free' && in_array($period->approval_kind, ['system', 'manual'], true)
                     && (int) $cycle?->target_version_id === (int) $period->entitlement_version_id;
-            abort_unless($eligible && $cycles->count() === 1 && in_array($cycle->reason_code, ['subscription_expired', 'manual_assignment'], true), 409, 'selection_apply_unavailable');
+            abort_unless($eligible && $cycles->count() === 1 && in_array($cycle->reason_code, SubscriptionLifecycle::SUSPENSION_REASONS, true), 409, 'selection_apply_unavailable');
             $preview = $this->read($actor, $workspaceId, false, $previewId);
             abort_unless($preview['target']['id'] === $period->version()->value('uuid')
                 && (int) $preview['subscriptionRevision'] === $expectedRevision, 409, 'transition_preview_stale');
@@ -266,7 +277,7 @@ final class FrozenTransitions
     }
 
     /** Write only reversible participation overlays; the caller owns the workspace lock and revision. */
-    public function applyParticipation(User $actor, int $workspaceId, object $cycle, array $preview, int $expectedRevision, string $operation, bool $restorePaid): void
+    public function applyParticipation(User $actor, int $workspaceId, ?object $cycle, array $preview, int $expectedRevision, string $operation, bool $restorePaid): void
     {
         $selection = $preview['selection'];
         $projects = DB::table('projects')->where('workspace_id', $workspaceId)->whereIn('uuid', $selection['projects'])
@@ -299,6 +310,9 @@ final class FrozenTransitions
         $reservations = DB::table('entitlement_capacity_reservations')->where('workspace_id', $workspaceId)->where('key', 'developers.max')
             ->whereIn('developer_invitation_id', $invites->pluck('id'))->where('state', 'held');
         abort_unless($invites->count() === count($selection['invitations']) && $reservations->count() === $invites->count(), 409, 'selection_invitation_unavailable');
+        if (! $cycle) {
+            return;
+        }
 
         $at = CarbonImmutable::now('UTC');
         $now = $at->format('Y-m-d H:i:s.u');

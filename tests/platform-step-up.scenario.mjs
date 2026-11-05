@@ -302,6 +302,50 @@ $actor->passkeys()->delete();
     assert.equal(resulting.usage['projects.active.max'].count, 10)
     assert.equal(resulting.usage['agents.active.max'].count, 1)
 
+    const subscriptionLink = (workspace) =>
+      origin + '/platform?section=workspaces&workspace=' + workspace + '&view=subscription'
+    const current = page.locator('.subscription-current')
+    await page.goto(subscriptionLink(manual.incompleteWorkspace))
+    await current.getByText(/The owner must verify their email/).waitFor()
+    assert.equal(await current.getByRole('button', { name: 'Assign plan' }).count(), 0)
+
+    await page.goto(subscriptionLink(manual.initialWorkspace))
+    await current.getByText('No subscription is recorded for this workspace.').waitFor()
+    const initialPath = '/api/platform/workspaces/' + manual.initialWorkspace + '?view=subscription'
+    const lastServiceDay = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+    for (const [plan, phase, limit] of [
+      ['Freelancer', 'paid', 10],
+      ['Basic', 'free', 1],
+      ['Studio', 'paid', 100],
+    ]) {
+      const initial = plan === 'Freelancer'
+      await current.getByRole('button', { name: initial ? 'Assign plan' : 'Change plan' }).click()
+      await wizard.getByRole('button', { name: 'Choose ' + plan, exact: true }).click()
+      await wizard.getByRole('button', { name: 'Review assignment', exact: true }).click()
+      const confirm = wizard.getByRole('button', { name: 'Assign plan', exact: true })
+      await confirm.waitFor()
+      const replace = wizard.getByLabel(/I explicitly agree/)
+      const endDate = wizard.getByLabel('Last service day (UTC)')
+      if (initial) {
+        await wizard.getByText(/Any pending Studio Trial claim will be closed/).waitFor()
+        assert.equal(await replace.count(), 0)
+        assert.ok(await endDate.evaluate((input) => input.validity.valueMissing))
+      }
+      if (plan === 'Basic') {
+        assert.equal(await endDate.count(), 0)
+        await replace.check()
+      } else {
+        await endDate.fill(lastServiceDay)
+      }
+      await confirm.click()
+      await current.getByRole('heading', { name: plan, exact: true }).waitFor()
+      const { subscription } = await (await call(context, initialPath)).json()
+      assert.equal(subscription.phase, phase)
+      assert.equal(subscription.assignment, 'manual')
+      assert.equal(subscription.limits['projects.active.max'].value, limit)
+      assert.equal(subscription.endsAt === null, plan === 'Basic')
+    }
+
     for (const [status, diagnostic] of [
       [401, '/admin/login'],
       [403, '/admin/unavailable?reason=permission'],

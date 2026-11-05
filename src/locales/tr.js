@@ -13,6 +13,9 @@ export default {
     current: 'Mevcut plan',
     ends: 'Bitiş',
     noSubscription: 'Bu çalışma alanında abonelik kaydı yok.',
+    initialOnboardingRequired:
+      'Sahip e-posta adresini doğrulamalı, hesap güvenliği kurulumunu tamamlamalı ve varsa zorunlu çalışma alanı sözleşmesini kabul etmelidir.',
+    initialTrialClaim: 'Bekleyen Studio Trial talebi varsa deneme süresi başlatılmadan kapatılır.',
     openWorkspace: '{name} çalışma alanını aç',
     changePlan: 'Planı değiştir',
     choosePlan: 'Plan seç',

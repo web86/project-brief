@@ -18,6 +18,8 @@ use Illuminate\Support\Str;
 
 final class SubscriptionLifecycle
 {
+    public const SUSPENSION_REASONS = ['subscription_expired', 'manual_assignment', 'initial_manual_assignment'];
+
     public const EXECUTION_GROUPS = ['agent', 'webhook', 'api', 'sso'];
 
     public function __construct(private readonly SubscriptionClock $clock) {}
@@ -67,7 +69,7 @@ final class SubscriptionLifecycle
                 'starts_at' => $facts['starts_at']->format('Y-m-d H:i:s.u'),
                 'ends_at' => $facts['service_ends_at']->format('Y-m-d H:i:s.u'),
             ]);
-            abort_unless($this->preparedOnboarding($ownerId, $workspaceId)->update(['state' => 'commercial_active', 'revision' => DB::raw('revision + 1'), 'updated_at' => now('UTC')]) === 1, 409);
+            $this->completeOnboarding($ownerId, $workspaceId);
             $this->advance($subscription, 'trial', $period, $facts['starts_at'], $facts['service_ends_at']);
 
             return $period;
@@ -85,6 +87,29 @@ final class SubscriptionLifecycle
 
         return $member && ! app(WorkspaceAgreements::class)->required($member)
             && $this->preparedOnboarding($owner->id, $workspaceId)->exists();
+    }
+
+    public function initialAssignmentOwner(int $workspaceId, bool $lock = false): ?User
+    {
+        $owners = WorkspaceMember::where('workspace_id', $workspaceId)->where('status', 'active')
+            ->where('role', 'owner')->limit(2)->pluck('user_id');
+        if ($owners->count() !== 1) {
+            return null;
+        }
+
+        $query = User::whereKey($owners->sole());
+        $owner = ($lock ? $query->lockForUpdate() : $query)->first();
+
+        return $owner && $this->verifiedTrialOwnerReady($owner, $workspaceId) ? $owner : null;
+    }
+
+    public function completeOnboarding(int $ownerId, int $workspaceId): void
+    {
+        abort_unless($this->preparedOnboarding($ownerId, $workspaceId)->update([
+            'state' => 'commercial_active',
+            'revision' => DB::raw('revision + 1'),
+            'updated_at' => now('UTC'),
+        ]) === 1, 409);
     }
 
     private function preparedOnboarding(int $ownerId, int $workspaceId): Builder
@@ -169,20 +194,24 @@ final class SubscriptionLifecycle
         $this->advance($subscription, 'free', $fallback, $at, null, $cycle);
     }
 
-    public function suspend(WorkspaceSubscription $subscription, SubscriptionPeriod $source, PlanVersion $version, CarbonImmutable $at, ?int $changeId = null): string
+    public function suspend(WorkspaceSubscription $subscription, SubscriptionPeriod $source, PlanVersion $version, CarbonImmutable $at, ?int $changeId = null, bool $initial = false): string
     {
         $workspaceId = $subscription->workspace_id;
         $boundary = $at->utc()->format('Y-m-d H:i:s.u');
         $cycle = (string) Str::uuid();
         DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('state', 'open')
-            ->whereIn('reason_code', ['subscription_expired', 'manual_assignment'])->update(['state' => 'resolved', 'revision' => DB::raw('revision + 1')]);
+            ->whereIn('reason_code', self::SUSPENSION_REASONS)->update(['state' => 'resolved', 'revision' => DB::raw('revision + 1')]);
         DB::table('workspace_suspension_cycles')->insert([
             'uuid' => $cycle,
             'workspace_id' => $workspaceId,
             'source_period_id' => $source->id,
             'source_change_id' => $changeId,
             'effective_at' => $boundary,
-            'reason_code' => $changeId === null ? 'subscription_expired' : 'manual_assignment',
+            'reason_code' => match (true) {
+                $initial => 'initial_manual_assignment',
+                $changeId !== null => 'manual_assignment',
+                default => 'subscription_expired',
+            },
             'target_version_id' => $version->id,
             'state' => 'open',
             'resource_high_watermarks_json' => json_encode($this->highWatermarks($workspaceId), JSON_THROW_ON_ERROR),

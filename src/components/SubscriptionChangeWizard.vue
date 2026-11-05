@@ -18,7 +18,7 @@ import LoadingButton from './LoadingButton.vue'
 import SubscriptionLoadError from './SubscriptionLoadError.vue'
 import SubscriptionPlanCard from './SubscriptionPlanCard.vue'
 
-const props = defineProps({ workspaceId: { type: String, required: true } })
+const props = defineProps({ workspaceId: { type: String, required: true }, initial: Boolean })
 const emit = defineEmits(['close', 'assigned'])
 const base = '/api/platform/workspaces/' + props.workspaceId + '/resource-selection'
 const { busy, error, retrySeconds, run } = useRequestFeedback()
@@ -198,7 +198,7 @@ load()
   <BaseDialog
     open
     id="subscription-change-title"
-    :title="label('changePlan')"
+    :title="label((model?.initialAssignment ?? initial) ? 'assign' : 'changePlan')"
     @close="!busy && emit('close')"
   >
     <ol class="wizard-steps">
@@ -309,8 +309,13 @@ load()
     </section>
     <form v-if="step === 3" class="admin-form wizard-body" @submit.prevent="assign">
       <h3 ref="stepHeading" tabindex="-1">
-        {{ planName(model.subscription) }} → {{ planName(target) }}
+        {{
+          model.initialAssignment
+            ? planName(target)
+            : planName(model.subscription) + ' → ' + planName(target)
+        }}
       </h3>
+      <p v-if="model.initialAssignment">{{ label('initialTrialClaim') }}</p>
       <label v-if="target.accessClass === 'paid'">
         {{ t('manualSubscription.endDate') }}
         <input v-model="endDate" type="date" :min="today()" :disabled="busy" required />
@@ -356,7 +361,9 @@ load()
         </div>
       </details>
       <p v-if="held">{{ label('holds') }}</p>
-      <p v-if="target.accessClass === 'paid'">{{ label('rearmHint') }}</p>
+      <p v-if="target.accessClass === 'paid' && (!model.initialAssignment || held)">
+        {{ label('rearmHint') }}
+      </p>
       <p>{{ label('previewOnly') }}</p>
       <label v-if="model.replacementRequired" class="wizard-check">
         <input v-model="replacement" type="checkbox" :disabled="busy" required />

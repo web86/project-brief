@@ -74,7 +74,17 @@ if (($argv[1] ?? null) === 'manual-ux') {
             'email' => $i === 9 ? $developer->email : 'manual-invite-'.$i.'@example.test', 'project_ids' => []]);
         app(DeveloperInvitations::class)->issue($invitation);
     }
-    echo json_encode(['workspace' => $workspace->uuid, 'name' => $workspace->name, 'owner' => $owner->email, 'trial' => $trial->uuid]);
+    $initial = User::factory()->create(['email' => 'initial-assignment@example.test']);
+    $incomplete = User::factory()->create(['email' => 'incomplete-assignment@example.test']);
+    $onboarding = app(AuthOnboarding::class);
+    $onboarding->pending($initial);
+    $onboarding->pending($incomplete);
+    $readyWorkspace = $onboarding->prepare($initial);
+    $incompleteWorkspace = $onboarding->prepare($incomplete);
+    $initial->forceFill(['two_factor_secret' => $owner->two_factor_secret,
+        'two_factor_confirmed_at' => now(), 'recovery_codes_acknowledged_at' => now()])->save();
+    echo json_encode(['workspace' => $workspace->uuid, 'name' => $workspace->name, 'owner' => $owner->email, 'trial' => $trial->uuid,
+        'initialWorkspace' => $readyWorkspace->uuid, 'incompleteWorkspace' => $incompleteWorkspace->uuid]);
 
     return;
 }

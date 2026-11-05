@@ -97,7 +97,7 @@ class ResourceSelectionController extends Controller
                 $data = $request->validate(['endDate' => ['nullable', 'date_format:Y-m-d'], 'replaceActivePeriod' => ['required', 'boolean']]);
 
                 $assignment = app(SubscriptionAssignments::class)->assignManual($request->user(), $id, $preview,
-                    PlanInput::revision($request), $data['endDate'] ?? null, (bool) $data['replaceActivePeriod'], PlanInput::key($request));
+                    PlanInput::revision($request, allowZero: true), $data['endDate'] ?? null, (bool) $data['replaceActivePeriod'], PlanInput::key($request));
 
                 return response()->json(['data' => ['id' => $assignment['uuid'], 'revision' => (string) $assignment['after'],
                     'state' => $assignment['state'], 'effectiveAt' => $assignment['effectiveAt'], 'cycleId' => $assignment['cycleId']]]);
@@ -115,7 +115,7 @@ class ResourceSelectionController extends Controller
                 PlanInput::only($request->all(), ['targetVersionId', 'selection']);
                 $data = $request->validate(['targetVersionId' => ['required', 'uuid'], 'selection' => ['required', 'array']]);
 
-                return response()->json(['data' => $service->create($request->user(), $id, $platform, $data['targetVersionId'], $data['selection'], PlanInput::revision($request), PlanInput::key($request), $kind === 'manual-preview')], 201);
+                return response()->json(['data' => $service->create($request->user(), $id, $platform, $data['targetVersionId'], $data['selection'], PlanInput::revision($request, allowZero: $kind === 'manual-preview'), PlanInput::key($request), $kind === 'manual-preview')], 201);
             }
             PlanInput::only($request->all(), ['clientId', 'action', 'inputHash', 'reason', 'confirmation']);
             $data = $request->validate(['clientId' => ['required', 'uuid'], 'action' => ['required', 'in:confirm,separate'], 'inputHash' => ['required', 'regex:/^[a-f0-9]{64}$/D'], 'reason' => ['required', 'regex:/^[a-z][a-z0-9_]{0,59}$/D'], 'confirmation' => ['required', 'in:ACCOUNTING ONLY']]);

@@ -13,6 +13,9 @@ export default {
     current: 'Мой тариф',
     ends: 'Окончание',
     noSubscription: 'У этого рабочего пространства нет записи о подписке.',
+    initialOnboardingRequired:
+      'Владелец должен подтвердить почту, настроить защиту аккаунта и принять обязательное соглашение, если оно требуется.',
+    initialTrialClaim: 'Ожидающая заявка Studio Trial будет закрыта без запуска пробного периода.',
     openWorkspace: 'Открыть workspace {name}',
     changePlan: 'Изменить тариф',
     choosePlan: 'Выбор тарифа',

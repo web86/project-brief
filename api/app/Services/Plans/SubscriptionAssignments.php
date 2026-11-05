@@ -141,17 +141,21 @@ final class SubscriptionAssignments
         $input = compact('previewId', 'revision', 'endDate', 'replace');
 
         return $this->commands->run($actor, 'subscription.assign_manual', $key, $input, function (object $authority) use ($actor, $workspaceId, $previewId, $revision, $endDate, $replace, $key, $input): array {
-            $subscription = WorkspaceSubscription::where('workspace_id', $workspaceId)->lockForUpdate()->firstOrFail();
-            abort_unless($subscription->revision === $revision && $subscription->enforcement_mode === 'enforce', 409, 'subscription_revision_conflict');
-            $source = $subscription->currentPeriod()->firstOrFail();
-            abort_if($source->kind === 'compatibility', 409, 'manual_assignment_unavailable');
-            abort_if(in_array($source->kind, ['trial', 'paid'], true) && ! $replace, 422, 'manual_assignment_replacement_required');
-            abort_if(DB::table('workspace_entitlement_overrides')->where('subscription_id', $subscription->id)
+            $subscription = WorkspaceSubscription::where('workspace_id', $workspaceId)->lockForUpdate()->first();
+            $initial = $subscription === null;
+            abort_unless(($subscription->revision ?? 0) === $revision && ($initial || $subscription->enforcement_mode === 'enforce'), 409, 'subscription_revision_conflict');
+            $source = $subscription?->currentPeriod()->firstOrFail();
+            abort_if($source?->kind === 'compatibility', 409, 'manual_assignment_unavailable');
+            abort_if(in_array($source?->kind, ['trial', 'paid'], true) && ! $replace, 422, 'manual_assignment_replacement_required');
+            abort_if($subscription && DB::table('workspace_entitlement_overrides')->where('subscription_id', $subscription->id)
                 ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>', now('UTC')))->exists(), 409, 'manual_assignment_overrides_require_review');
             $transitions = app(FrozenTransitions::class);
             $preview = $transitions->read($actor, $workspaceId, true, $previewId);
-            abort_unless(($preview['manualAssignment'] ?? false) && $preview['availableAction'] === 'assign-manual' &&
+            abort_unless(($preview['manualAssignment'] ?? false) && ($preview['initialAssignment'] ?? false) === $initial && $preview['availableAction'] === 'assign-manual' &&
                 (int) $preview['subscriptionRevision'] === $revision && in_array($preview['target']['id'], array_column($this->manualVersions(), 'id'), true), 409, 'transition_preview_stale');
+            $lifecycle = app(SubscriptionLifecycle::class);
+            $owner = $initial ? $lifecycle->initialAssignmentOwner($workspaceId, lock: true) : null;
+            abort_if($initial && ! $owner, 409, 'manual_assignment_onboarding_required');
             $target = PlanVersion::where('uuid', $preview['target']['id'])->firstOrFail();
             $policy = PlatformPolicyVersion::where('state', 'published')->findOrFail(
                 DB::table('plan_settings')->where('id', 1)->sharedLock()->value('current_policy_version_id'),
@@ -160,11 +164,16 @@ final class SubscriptionAssignments
             abort_unless(hash_equals($policy->content_hash, PlanConfiguration::hash(app(PlatformPolicyCatalog::class)->configuration($policy))), 409, 'commercial_policy_required');
             $previewRow = DB::table('plan_previews')->where('uuid', $previewId)->firstOrFail();
             $now = CarbonImmutable::now('UTC');
-            abort_if($subscription->next_boundary_at && $subscription->next_boundary_at <= $now, 409, 'transition_preview_stale');
+            abort_if($subscription?->next_boundary_at && $subscription->next_boundary_at <= $now, 409, 'transition_preview_stale');
             $kind = $target->access_class === 'free' ? 'free' : 'paid';
             $facts = $this->clock->manualPeriod($kind, $now, $endDate, $policy->grace_days);
             $timestamp = $now->format('Y-m-d H:i:s.u');
 
+            $subscription ??= WorkspaceSubscription::create([
+                'workspace_id' => $workspaceId,
+                'enforcement_mode' => 'enforce',
+                'revision' => 0,
+            ]);
             $scheduled = DB::table('subscription_changes')->where('subscription_id', $subscription->id)->where('state', 'scheduled');
             if ($scheduled->exists()) {
                 abort_unless($replace, 422, 'manual_assignment_replacement_required');
@@ -174,10 +183,10 @@ final class SubscriptionAssignments
                 'uuid' => (string) Str::uuid(),
                 'workspace_id' => $workspaceId,
                 'subscription_id' => $subscription->id,
-                'kind' => 'transition',
+                'kind' => $initial ? 'assign' : 'transition',
                 'target_version_id' => $target->id,
                 'expected_revision' => $revision,
-                'payload_json' => json_encode(['reason' => 'operator_manual_assignment', 'selectionHash' => $preview['selectionHash'], 'sourcePeriodId' => $source->id, 'endDate' => $endDate, 'replacementConfirmed' => $replace], JSON_THROW_ON_ERROR),
+                'payload_json' => json_encode(['reason' => 'operator_manual_assignment', 'selectionHash' => $preview['selectionHash'], 'sourcePeriodId' => $source?->id, 'endDate' => $endDate, 'replacementConfirmed' => $replace], JSON_THROW_ON_ERROR),
                 'policy_snapshot_json' => json_encode(['id' => $policy->id, 'hash' => $policy->content_hash], JSON_THROW_ON_ERROR),
                 'preview_id' => $previewRow->id,
                 'requested_by' => $actor->id,
@@ -200,23 +209,36 @@ final class SubscriptionAssignments
                 'approved_by' => $actor->id,
                 'approval_change_id' => $change,
             ]);
-            if ($source->kind === 'trial') {
+            if ($source?->kind === 'trial') {
                 DB::table('owner_trial_claims')->where('workspace_id', $workspaceId)->where('period_id', $source->id)
                     ->where('state', 'active')->update(['state' => 'used', 'reason_code' => 'operator_manual_assignment']);
             }
-            $cycleId = app(SubscriptionLifecycle::class)->suspend($subscription, $source, $target, $now, $change);
-            $cycle = DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('uuid', $cycleId)->firstOrFail();
+            $claimClosed = false;
+            if ($owner) {
+                $claimClosed = DB::table('owner_trial_claims')->where('workspace_id', $workspaceId)->where('owner_user_id', $owner->id)
+                    ->where('state', 'pending')->whereNull('period_id')
+                    ->update(['state' => 'denied', 'reason_code' => 'operator_initial_manual_assignment']) === 1;
+                $lifecycle->completeOnboarding($owner->id, $workspaceId);
+            }
+
+            $cycleId = null;
+            $cycle = null;
+            if ($source || array_filter($preview['wouldHold'])) {
+                // An initial hold uses the new period because there is no prior period to anchor it.
+                $cycleId = $lifecycle->suspend($subscription, $source ?? $period, $target, $now, $change, $initial);
+                $cycle = DB::table('workspace_suspension_cycles')->where('workspace_id', $workspaceId)->where('uuid', $cycleId)->firstOrFail();
+            }
             $transitions->applyParticipation($actor, $workspaceId, $cycle, $preview, $revision + 1, 'manual_assignment', false);
             $subscription->update(['current_period_id' => $period->id, 'materialized_phase' => $kind,
                 'approved_extra_seats' => 0, 'revision' => $revision + 1, 'next_boundary_at' => $period->service_ends_at]);
-            if ($kind === 'paid') {
+            if ($kind === 'paid' && $cycleId) {
                 $transitions->audit($actor, $workspaceId, true, 'transition.paid_restored', [
                     'cycleId' => $cycleId, 'subscriptionRevision' => (string) $subscription->revision, 'previewId' => $previewId, 'selectionHash' => $preview['selectionHash'],
                 ]);
             }
 
             return ['type' => 'subscription', 'id' => $subscription->id, 'uuid' => $subscription->uuid, 'before' => $revision, 'after' => $revision + 1,
-                'state' => 'applied', 'effectiveAt' => $now->toISOString(), 'cycleId' => $cycleId];
+                'state' => 'applied', 'effectiveAt' => $now->toISOString(), 'cycleId' => $cycleId, 'initialAssignment' => $initial, 'pendingTrialClaimClosed' => $claimClosed];
         }, $workspaceId);
     }
 

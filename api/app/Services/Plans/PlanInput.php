@@ -17,10 +17,14 @@ final class PlanInput
         app(PlanConfiguration::class)->bounded($input);
     }
 
-    public static function revision(Request $request): int
+    public static function revision(Request $request, bool $allowZero = false): int
     {
         $match = $request->header('If-Match');
         abort_if($match === null, 428);
+        if ($allowZero && $match === '"revision:0"') {
+            return 0;
+        }
+
         abort_unless(preg_match('/^"revision:([1-9][0-9]{0,14})"$/D', $match, $parts), 422);
 
         return (int) $parts[1];
